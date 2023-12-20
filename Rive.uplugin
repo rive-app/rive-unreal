@@ -1,0 +1,34 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Rive",
+	"Description": "A Unreal Engine runtime library for Rive.",
+	"Category": "Rive",
+	"CreatedBy": "Rive, Inc.",
+	"CreatedByURL": "https://rive.app/",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "https://rive.atlassian.net/servicedesk/customer/portals",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "Rive",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "RiveRenderer",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "RiveEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}
