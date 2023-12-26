@@ -21,6 +21,7 @@ AActor* URiveActorFactory::SpawnActor(UObject* InAsset, ULevel* InLevel, const F
 		if (URiveFile* RiveFile = Cast<URiveFile>(InAsset))
 		{
 			NewActor->RiveFile = RiveFile;
+			NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
 		}
 	}
 

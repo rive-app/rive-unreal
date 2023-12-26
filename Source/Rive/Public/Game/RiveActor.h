@@ -9,8 +9,6 @@
 class URiveFile;
 class URiveFullScreenUserWidget;
 
-// Idea from Engine\Plugins\Experimental\VirtualProductionUtilities\Source\VPUtilities\Public\Actors\VPFullScreenUserWidgetActor.h
-
 UCLASS()
 class RIVE_API ARiveActor : public AActor
 {
@@ -21,8 +19,7 @@ public:
 	ARiveActor();
 
 public:
-	UPROPERTY(EditAnywhere, Category="Rive")
-	TObjectPtr<URiveFile> RiveFile;
+	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
 	virtual void PostInitializeComponents() override;
 	virtual void PostLoad() override;
@@ -42,12 +39,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "User Interface")
 	UUserWidget* GetUserWidget() const;
 
+public:
+	UPROPERTY(EditAnywhere, Category="Rive")
+	TObjectPtr<URiveFile> RiveFile;
 private:
 	void RequestEditorDisplay();
 	void RequestGameDisplay();
 
 protected:
-	/** */
+	/** Settings for Rive Rendering */
 	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "User Interface", meta = (ShowOnlyInnerProperties))
 	TObjectPtr<URiveFullScreenUserWidget> ScreenUserWidget;
 

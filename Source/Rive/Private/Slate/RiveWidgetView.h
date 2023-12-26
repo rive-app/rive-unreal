@@ -32,7 +32,7 @@ public:
 
 public:
 
-    void Construct(const FArguments& InArgs, TSoftObjectPtr<URiveFile> InRiveFile);
+    void Construct(const FArguments& InArgs, URiveFile* InRiveFile);
 
     /** Get Parent slate window */
     TSharedPtr<SWindow> GetParentWindow() const;
@@ -43,7 +43,7 @@ public:
 
 private:
 
-    TSoftObjectPtr<URiveFile> RiveFile;
+    TObjectPtr<URiveFile> RiveFile;
 
     TSharedPtr<FRiveSlateViewport> RiveSlateViewport;
 

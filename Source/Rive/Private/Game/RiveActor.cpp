@@ -1,9 +1,7 @@
 // Copyright Rive, Inc. All rights reserved.
 
-
 #include "Game/RiveActor.h"
-
-#include "Slate/RiveFullScreenUserWidget.h"
+#include "RiveWidget/RiveFullScreenUserWidget.h"
 
 #define LOCTEXT_NAMESPACE "ARiveActor"
 
@@ -32,6 +30,11 @@ ARiveActor::ARiveActor()
 
 	SetActorTickEnabled(true);
 	SetHidden(false);
+}
+
+void ARiveActor::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
+{
+	ScreenUserWidget->SetWidgetClass(InWidgetClass);
 }
 
 void ARiveActor::PostInitializeComponents()

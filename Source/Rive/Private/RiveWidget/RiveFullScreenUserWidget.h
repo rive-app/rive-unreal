@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RiveFullScreenUserWidget_PostProcess.h"
+#include "RiveFullScreenUserWidget_PostProcessWithSVE.h"
 #include "UObject/Object.h"
 #include "RiveFullScreenUserWidget.generated.h"
-
-// Engine\Plugins\Experimental\VirtualProductionUtilities\Source\VPUtilities\Public\Widgets\VPFullScreenUserWidget.h
 
 class FSceneViewport;
 class SLevelViewport;
@@ -22,8 +22,6 @@ enum class ERiveWidgetDisplayType : uint8
 	Viewport,
 	/** Display by adding post process material via post process volume settings. Widget added only over area rendered by anamorphic squeeze. */
 	PostProcessWithBlendMaterial,
-	/** Render to a texture and send to composure. */
-	Composure,
 	/** Display by adding post process material via SceneViewExtensions. Widget added over entire viewport ignoring anamorphic squeeze.  */
 	PostProcessSceneViewExtension,
 };
@@ -33,7 +31,7 @@ struct FRiveFullScreenUserWidget_Viewport
 {
 	GENERATED_BODY()
 
-	bool Display(UWorld* World, const TSharedPtr<SWidget>& InWidget, TAttribute<float> InDPIScale);
+	bool Display(UWorld* World, UUserWidget* InWidget, TAttribute<float> InDPIScale);
 	void Hide(UWorld* World);
 
 #if WITH_EDITOR
@@ -56,7 +54,7 @@ private:
 };
 
 /**
- * 
+ * Will set the Widgets on a viewport either by Widgets are first rendered to a render target, then that render target is displayed in the world.
  */
 UCLASS(meta=(ShowOnlyInnerProperties))
 class RIVE_API URiveFullScreenUserWidget : public UObject
@@ -103,17 +101,17 @@ public:
 	/** Sets the widget class to be displayed. This must be called while not widget is being displayed - the class will not be updated while IsDisplayed().  */
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
-	constexpr static bool DoesDisplayTypeUsePostProcessSettings(ERiveWidgetDisplayType Type) { return Type == ERiveWidgetDisplayType::Composure || Type == ERiveWidgetDisplayType::PostProcessSceneViewExtension || Type == ERiveWidgetDisplayType::PostProcessWithBlendMaterial; }
-	// /** Returns the base post process settings for the given type if DoesDisplayTypeUsePostProcessSettings(Type) returns true. */
-	// FVPFullScreenUserWidget_PostProcessBase* GetPostProcessDisplayTypeSettingsFor(ERiveWidgetDisplayType Type);
-	// FVPFullScreenUserWidget_PostProcess& GetPostProcessDisplayTypeWithBlendMaterialSettings() { return PostProcessDisplayTypeWithBlendMaterial; }
-	// FVPFullScreenUserWidget_PostProcess& GetComposureDisplayTypeSettings() { return PostProcessDisplayTypeWithBlendMaterial; }
-	// FVPFullScreenUserWidget_PostProcessWithSVE& GetPostProcessDisplayTypeWithSceneViewExtensionsSettings() { return PostProcessWithSceneViewExtensions; }
-	// /** Returns the base post process settings for the given type if DoesDisplayTypeUsePostProcessSettings(Type) returns true. */
-	// const FVPFullScreenUserWidget_PostProcessBase* GetPostProcessDisplayTypeSettingsFor(ERiveWidgetDisplayType Type) const;
-	// const FVPFullScreenUserWidget_PostProcess& GetPostProcessDisplayTypeWithBlendMaterialSettings() const { return PostProcessDisplayTypeWithBlendMaterial; }
-	// const FVPFullScreenUserWidget_PostProcess& GetComposureDisplayTypeSettings() const { return PostProcessDisplayTypeWithBlendMaterial; }
-	// const FVPFullScreenUserWidget_PostProcessWithSVE& GetPostProcessDisplayTypeWithSceneViewExtensionsSettings() const { return PostProcessWithSceneViewExtensions; }
+	constexpr static bool DoesDisplayTypeUsePostProcessSettings(ERiveWidgetDisplayType Type) { return Type == ERiveWidgetDisplayType::PostProcessSceneViewExtension || Type == ERiveWidgetDisplayType::PostProcessWithBlendMaterial; }
+	/** Returns the base post process settings for the given type if DoesDisplayTypeUsePostProcessSettings(Type) returns true. */
+	FRiveFullScreenUserWidget_PostProcessBase* GetPostProcessDisplayTypeSettingsFor(ERiveWidgetDisplayType Type);
+	FRiveFullScreenUserWidget_PostProcess& GetPostProcessDisplayTypeWithBlendMaterialSettings() { return PostProcessDisplayTypeWithBlendMaterial; }
+	FRiveFullScreenUserWidget_PostProcess& GetComposureDisplayTypeSettings() { return PostProcessDisplayTypeWithBlendMaterial; }
+	FRiveFullScreenUserWidget_PostProcessWithSVE& GetPostProcessDisplayTypeWithSceneViewExtensionsSettings() { return PostProcessWithSceneViewExtensions; }
+	/** Returns the base post process settings for the given type if DoesDisplayTypeUsePostProcessSettings(Type) returns true. */
+	const FRiveFullScreenUserWidget_PostProcessBase* GetPostProcessDisplayTypeSettingsFor(ERiveWidgetDisplayType Type) const;
+	const FRiveFullScreenUserWidget_PostProcess& GetPostProcessDisplayTypeWithBlendMaterialSettings() const { return PostProcessDisplayTypeWithBlendMaterial; }
+	const FRiveFullScreenUserWidget_PostProcess& GetComposureDisplayTypeSettings() const { return PostProcessDisplayTypeWithBlendMaterial; }
+	const FRiveFullScreenUserWidget_PostProcessWithSVE& GetPostProcessDisplayTypeWithSceneViewExtensionsSettings() const { return PostProcessWithSceneViewExtensions; }
 
 #if WITH_EDITOR
 	/**
@@ -149,14 +147,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Viewport", meta = (ShowOnlyInnerProperties))
 	FRiveFullScreenUserWidget_Viewport ViewportDisplayType;
 
-	// /** Behavior when the widget is rendered via a post process material via post process volume settings; the widget is added only over area rendered by anamorphic squeeze. */
-	// UPROPERTY(EditAnywhere, Category = "Post Process (Blend Material)")
-	// FVPFullScreenUserWidget_PostProcess PostProcessDisplayTypeWithBlendMaterial;
-	//
-	// /** Behavior when the widget is rendered via a post process material via SceneViewExtensions; the widget is added over entire viewport, ignoring anamorphic squeeze. */
-	// UPROPERTY(EditAnywhere, Category = "Post Process (Scene View Extensions)")
-	// FVPFullScreenUserWidget_PostProcessWithSVE PostProcessWithSceneViewExtensions;
-	//
+	/** Behavior when the widget is rendered via a post process material via post process volume settings; the widget is added only over area rendered by anamorphic squeeze. */
+	UPROPERTY(EditAnywhere, Category = "Post Process (Blend Material)")
+	FRiveFullScreenUserWidget_PostProcess PostProcessDisplayTypeWithBlendMaterial;
+	
+	/** Behavior when the widget is rendered via a post process material via SceneViewExtensions; the widget is added over entire viewport, ignoring anamorphic squeeze. */
+	UPROPERTY(EditAnywhere, Category = "Post Process (Scene View Extensions)")
+	FRiveFullScreenUserWidget_PostProcessWithSVE PostProcessWithSceneViewExtensions;
+	
 	bool InitWidget();
 	void ReleaseWidget();
 
@@ -169,6 +167,7 @@ private:
 	UPROPERTY(Transient, DuplicateTransient)
 	TObjectPtr<UUserWidget> Widget;
 
+	/** Reference to Parent Rive Actor */
 	UPROPERTY()
 	TObjectPtr<ARiveActor> RiveActor;
 

@@ -43,6 +43,7 @@ public class Rive : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"Projects",
 				"RiveRenderer",
 				"RHI",
 				"RenderCore",

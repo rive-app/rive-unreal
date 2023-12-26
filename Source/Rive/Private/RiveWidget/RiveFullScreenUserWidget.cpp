@@ -1,21 +1,23 @@
 // Copyright Rive, Inc. All rights reserved.
 
 
-#include "Slate/RiveFullScreenUserWidget.h"
+#include "RiveWidget/RiveFullScreenUserWidget.h"
 
+#include "Blueprint/UserWidget.h"
+#include "Engine/UserInterfaceSettings.h"
+#include "Framework/Application/SlateApplication.h"
+#include "HAL/PlatformApplicationMisc.h"
+#include "Logs/RiveLog.h"
+#include "Slate/SceneViewport.h"
+#include "UMG/RiveWidget.h"
+#include "Widgets/Layout/SConstraintCanvas.h"
+#include "Widgets/Layout/SDPIScaler.h"
+
+#if WITH_EDITOR
 #include "LevelEditor.h"
 #include "LevelEditorViewport.h"
 #include "SLevelViewport.h"
-#include "Blueprint/UserWidget.h"
-#include "Engine/UserInterfaceSettings.h"
-#include "Slate/SceneViewport.h"
-#include "Widgets/Layout/SConstraintCanvas.h"
-#include "Widgets/Layout/SDPIScaler.h"
-#include "Framework/Application/SlateApplication.h"
-#include "Game/RiveActor.h"
-#include "HAL/PlatformApplicationMisc.h"
-#include "Slate/SRiveWidget.h"
-#include "UMG/RiveWidget.h"
+#endif
 
 UE_DISABLE_OPTIMIZATION
 
@@ -26,7 +28,7 @@ namespace
 {
 	const FName NAME_LevelEditorName = "LevelEditor";
 
-	namespace VPFullScreenUserWidgetPrivate
+	namespace RiveFullScreenUserWidgetPrivate
 	{
 		/**
 		 * Class made to handle world cleanup and hide/cleanup active UserWidget to avoid touching public headers
@@ -97,12 +99,12 @@ namespace
 }
 
 /////////////////////////////////////////////////////
-// FVPFullScreenUserWidget_Viewport
+// FRiveFullScreenUserWidget_Viewport
 
-bool FRiveFullScreenUserWidget_Viewport::Display(UWorld* World, const TSharedPtr<SWidget>& InWidget, TAttribute<float> InDPIScale)
+bool FRiveFullScreenUserWidget_Viewport::Display(UWorld* World, UUserWidget* InWidget, TAttribute<float> InDPIScale)
 {
 	const TSharedPtr<SConstraintCanvas> FullScreenWidgetPinned = FullScreenCanvasWidget.Pin();
-	if (!InWidget.IsValid() || World == nullptr || FullScreenWidgetPinned.IsValid())
+	if (InWidget == nullptr || World == nullptr || FullScreenWidgetPinned.IsValid())
 	{
 		return false;
 	}
@@ -116,7 +118,7 @@ bool FRiveFullScreenUserWidget_Viewport::Display(UWorld* World, const TSharedPtr
 			SNew(SDPIScaler)
 			.DPIScale(MoveTemp(InDPIScale))
 			[
-				InWidget.ToSharedRef()
+				InWidget->TakeWidget()
 			]
 		];
 
@@ -177,8 +179,8 @@ URiveFullScreenUserWidget::URiveFullScreenUserWidget()
 	: CurrentDisplayType(ERiveWidgetDisplayType::Inactive)
 	, bDisplayRequested(false)
 {
-	//static ConstructorHelpers::FObjectFinder<UMaterialInterface> PostProcessMaterial_Finder(TEXT("/VirtualProductionUtilities/Materials/WidgetPostProcessMaterial"));
-	//PostProcessDisplayTypeWithBlendMaterial.PostProcessMaterial = PostProcessMaterial_Finder.Object;
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> PostProcessMaterial_Finder(TEXT("/Rive/Materials/WidgetPostProcessMaterial"));
+	PostProcessDisplayTypeWithBlendMaterial.PostProcessMaterial = PostProcessMaterial_Finder.Object;
 }
 
 void URiveFullScreenUserWidget::BeginDestroy()
@@ -197,27 +199,27 @@ void URiveFullScreenUserWidget::PostEditChangeProperty(FPropertyChangedEvent& Pr
 	{
 		static FName NAME_WidgetClass = GET_MEMBER_NAME_CHECKED(URiveFullScreenUserWidget, WidgetClass);
 		static FName NAME_EditorDisplayType = GET_MEMBER_NAME_CHECKED(URiveFullScreenUserWidget, EditorDisplayType);
-		// static FName NAME_PostProcessMaterial = GET_MEMBER_NAME_CHECKED(FVPFullScreenUserWidget_PostProcess, PostProcessMaterial);
-		// static FName NAME_WidgetDrawSize = GET_MEMBER_NAME_CHECKED(FVPFullScreenUserWidget_PostProcess, WidgetDrawSize);
-		// static FName NAME_WindowFocusable = GET_MEMBER_NAME_CHECKED(FVPFullScreenUserWidget_PostProcess, bWindowFocusable);
-		// static FName NAME_WindowVisibility = GET_MEMBER_NAME_CHECKED(FVPFullScreenUserWidget_PostProcess, WindowVisibility);
-		// static FName NAME_ReceiveHardwareInput = GET_MEMBER_NAME_CHECKED(FVPFullScreenUserWidget_PostProcess, bReceiveHardwareInput);
-		// static FName NAME_RenderTargetBackgroundColor = GET_MEMBER_NAME_CHECKED(FVPFullScreenUserWidget_PostProcess, RenderTargetBackgroundColor);
-		// static FName NAME_RenderTargetBlendMode = GET_MEMBER_NAME_CHECKED(FVPFullScreenUserWidget_PostProcess, RenderTargetBlendMode);
-		// static FName NAME_PostProcessTintColorAndOpacity = GET_MEMBER_NAME_CHECKED(FVPFullScreenUserWidget_PostProcess, PostProcessTintColorAndOpacity);
-		// static FName NAME_PostProcessOpacityFromTexture = GET_MEMBER_NAME_CHECKED(FVPFullScreenUserWidget_PostProcess, PostProcessOpacityFromTexture);
+		static FName NAME_PostProcessMaterial = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessMaterial);
+		static FName NAME_WidgetDrawSize = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, WidgetDrawSize);
+		static FName NAME_WindowFocusable = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, bWindowFocusable);
+		static FName NAME_WindowVisibility = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, WindowVisibility);
+		static FName NAME_ReceiveHardwareInput = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, bReceiveHardwareInput);
+		static FName NAME_RenderTargetBackgroundColor = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, RenderTargetBackgroundColor);
+		static FName NAME_RenderTargetBlendMode = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, RenderTargetBlendMode);
+		static FName NAME_PostProcessTintColorAndOpacity = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessTintColorAndOpacity);
+		static FName NAME_PostProcessOpacityFromTexture = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessOpacityFromTexture);
 
 		if (Property->GetFName() == NAME_WidgetClass
 			|| Property->GetFName() == NAME_EditorDisplayType
-			// || Property->GetFName() == NAME_PostProcessMaterial
-			// || Property->GetFName() == NAME_WidgetDrawSize
-			// || Property->GetFName() == NAME_WindowFocusable
-			// || Property->GetFName() == NAME_WindowVisibility
-			// || Property->GetFName() == NAME_ReceiveHardwareInput
-			// || Property->GetFName() == NAME_RenderTargetBackgroundColor
-			// || Property->GetFName() == NAME_RenderTargetBlendMode
-			// || Property->GetFName() == NAME_PostProcessTintColorAndOpacity
-			// || Property->GetFName() == NAME_PostProcessOpacityFromTexture
+			|| Property->GetFName() == NAME_PostProcessMaterial
+			|| Property->GetFName() == NAME_WidgetDrawSize
+			|| Property->GetFName() == NAME_WindowFocusable
+			|| Property->GetFName() == NAME_WindowVisibility
+			|| Property->GetFName() == NAME_ReceiveHardwareInput
+			|| Property->GetFName() == NAME_RenderTargetBackgroundColor
+			|| Property->GetFName() == NAME_RenderTargetBlendMode
+			|| Property->GetFName() == NAME_PostProcessTintColorAndOpacity
+			|| Property->GetFName() == NAME_PostProcessOpacityFromTexture
 			)
 		{
 			bool bWasRequestedDisplay = bDisplayRequested;
@@ -242,7 +244,7 @@ bool URiveFullScreenUserWidget::Display(UWorld* InWorld)
 #if WITH_EDITOR
 	if (!EditorTargetViewport.IsValid() && !World->IsGameWorld())
 	{
-		UE_LOG(LogTemp, Log, TEXT("No TargetViewport set. Defaulting to FLevelEditorModule::GetFirstActiveLevelViewport."))
+		UE_LOG(LogRive, Log, TEXT("No TargetViewport set. Defaulting to FLevelEditorModule::GetFirstActiveLevelViewport."))
 		if (FModuleManager::Get().IsModuleLoaded(NAME_LevelEditorName))
 		{
 			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(NAME_LevelEditorName);
@@ -252,7 +254,7 @@ bool URiveFullScreenUserWidget::Display(UWorld* InWorld)
 
 		if (!EditorTargetViewport.IsValid())
 		{
-			UE_LOG(LogTemp, Error, TEXT("FLevelEditorModule::GetFirstActiveLevelViewport found no level viewport. UVPFullScreenUserWidget will not display."))
+			UE_LOG(LogRive, Error, TEXT("FLevelEditorModule::GetFirstActiveLevelViewport found no level viewport. URiveFullScreenUserWidget will not display."))
 			return false;
 		}
 	}
@@ -263,94 +265,39 @@ bool URiveFullScreenUserWidget::Display(UWorld* InWorld)
 
 	bool bWasAdded = false;
 
-	if (InWorld && ShouldDisplay(InWorld) && CurrentDisplayType == ERiveWidgetDisplayType::Inactive)
+	if (WidgetClass && InWorld && ShouldDisplay(InWorld) && CurrentDisplayType == ERiveWidgetDisplayType::Inactive)
 	{
-		// // TOOO. Test code
-		if (WidgetClass)
+		const bool bCreatedWidget = InitWidget();
+		if (!bCreatedWidget)
 		{
-			const bool bCreatedWidget = InitWidget();
-			if (!bCreatedWidget)
-			{
-				UE_LOG(LogTemp, Error, TEXT("Failed to create subwidget for URiveFullScreenUserWidget."));
-				return false;
-			}
-			
-			CurrentDisplayType = GetDisplayType(InWorld);
-			TAttribute<float> GetDpiScaleAttribute = TAttribute<float>::CreateLambda([WeakThis = TWeakObjectPtr<URiveFullScreenUserWidget>(this)]()
-			{
-				return WeakThis.IsValid() ? WeakThis->GetViewportDPIScale() : 1.f;
-			});
-			if (CurrentDisplayType == ERiveWidgetDisplayType::Viewport)
-			{
-				bWasAdded = ViewportDisplayType.Display(InWorld, Widget->TakeWidget(), MoveTemp(GetDpiScaleAttribute));
-			}
-			else if ((CurrentDisplayType == ERiveWidgetDisplayType::PostProcessWithBlendMaterial) || (CurrentDisplayType == ERiveWidgetDisplayType::Composure))
-			{
-				//bWasAdded = PostProcessDisplayTypeWithBlendMaterial.Display(InWorld, Widget, (CurrentDisplayType == ERiveWidgetDisplayType::Composure), MoveTemp(GetDpiScaleAttribute));
-			}
-			else if ((CurrentDisplayType == ERiveWidgetDisplayType::PostProcessSceneViewExtension) || (CurrentDisplayType == ERiveWidgetDisplayType::Composure))
-			{
-				//bWasAdded = PostProcessWithSceneViewExtensions.Display(InWorld, Widget, MoveTemp(GetDpiScaleAttribute));
-			}
-
-			if (bWasAdded)
-			{
-				FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &URiveFullScreenUserWidget::OnLevelRemovedFromWorld);
-				FWorldDelegates::OnWorldCleanup.AddUObject(this, &URiveFullScreenUserWidget::OnWorldCleanup);
-
-				VPFullScreenUserWidgetPrivate::FWorldCleanupListener::Get()->AddWidget(this);
-
-				// If we are using Composure as our output, then send the WidgetRenderTarget to each one
-				// 			if (CurrentDisplayType == ERiveWidgetDisplayType::Composure)
-				// 			{
-				// 				static const FName TextureCompClassName("BP_TextureRTCompElement_C");
-				// 				static const FName TextureInputPropertyName("TextureRTInput");
-				//
-				// 				for (ACompositingElement* Layer : PostProcessDisplayTypeWithBlendMaterial.ComposureLayerTargets)
-				// 				{
-				// 					if (Layer && (Layer->GetClass()->GetFName() == TextureCompClassName))
-				// 					{
-				// 						FProperty* TextureInputProperty = Layer->GetClass()->FindPropertyByName(TextureInputPropertyName);
-				// 						if (TextureInputProperty)
-				// 						{
-				// 							FObjectProperty* TextureInputObjectProperty = CastField<FObjectProperty>(TextureInputProperty);
-				// 							if (TextureInputObjectProperty)
-				// 							{
-				// 								UTextureRenderTarget2D** DestTextureRT2D = TextureInputProperty->ContainerPtrToValuePtr<UTextureRenderTarget2D*>(Layer);
-				// 								if (DestTextureRT2D)
-				// 								{
-				// 									TextureInputObjectProperty->SetObjectPropertyValue(DestTextureRT2D, PostProcessDisplayTypeWithBlendMaterial.WidgetRenderTarget);
-				// #if WITH_EDITOR
-				// 									Layer->RerunConstructionScripts();
-				// #endif // WITH_EDITOR
-				// 								}
-				// 							}
-				// 						}
-				// 					}
-				// 					else if (Layer)
-				// 					{
-				// 						UE_LOG(LogVPUtilities, Warning, TEXT("VPFullScreenUserWidget - ComposureLayerTarget entry '%s' is not the correct class '%s'"), *Layer->GetName(), *TextureCompClassName.ToString());
-				// 					}
-				// 				}
-				// 			}
-			}
+			UE_LOG(LogRive, Error, TEXT("Failed to create subwidget for URiveFullScreenUserWidget."));
+			return false;
 		}
-		else
+		
+		CurrentDisplayType = GetDisplayType(InWorld);
+		TAttribute<float> GetDpiScaleAttribute = TAttribute<float>::CreateLambda([WeakThis = TWeakObjectPtr<URiveFullScreenUserWidget>(this)]()
 		{
-			if (RiveActor)
-			{
-				// just render from SRiveWidget
-				CurrentDisplayType = GetDisplayType(InWorld);
-				TAttribute<float> GetDpiScaleAttribute = TAttribute<float>::CreateLambda([WeakThis = TWeakObjectPtr<URiveFullScreenUserWidget>(this)]()
-				{
-					return WeakThis.IsValid() ? WeakThis->GetViewportDPIScale() : 1.f;
-				});
-				if (CurrentDisplayType == ERiveWidgetDisplayType::Viewport)
-				{
-					TSharedRef<SRiveWidget> RiveWidget = SNew(SRiveWidget, RiveActor->RiveFile);
-					bWasAdded = ViewportDisplayType.Display(InWorld, RiveWidget, MoveTemp(GetDpiScaleAttribute));
-				}
-			}
+			return WeakThis.IsValid() ? WeakThis->GetViewportDPIScale() : 1.f;
+		});
+		if (CurrentDisplayType == ERiveWidgetDisplayType::Viewport)
+		{
+			bWasAdded = ViewportDisplayType.Display(InWorld, Widget, MoveTemp(GetDpiScaleAttribute));
+		}
+		else if (CurrentDisplayType == ERiveWidgetDisplayType::PostProcessWithBlendMaterial)
+		{
+			bWasAdded = PostProcessDisplayTypeWithBlendMaterial.Display(InWorld, Widget, false, MoveTemp(GetDpiScaleAttribute));
+		}
+		else if (CurrentDisplayType == ERiveWidgetDisplayType::PostProcessSceneViewExtension)
+		{
+			bWasAdded = PostProcessWithSceneViewExtensions.Display(InWorld, Widget, MoveTemp(GetDpiScaleAttribute));
+		}
+
+		if (bWasAdded)
+		{
+			FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &URiveFullScreenUserWidget::OnLevelRemovedFromWorld);
+			FWorldDelegates::OnWorldCleanup.AddUObject(this, &URiveFullScreenUserWidget::OnWorldCleanup);
+
+			RiveFullScreenUserWidgetPrivate::FWorldCleanupListener::Get()->AddWidget(this);
 		}
 	}
 	
@@ -370,24 +317,24 @@ void URiveFullScreenUserWidget::Hide()
 		{
 			ViewportDisplayType.Hide(WorldInstance);
 		}
-		else if ((CurrentDisplayType == ERiveWidgetDisplayType::PostProcessWithBlendMaterial) || (CurrentDisplayType == ERiveWidgetDisplayType::Composure))
+		else if (CurrentDisplayType == ERiveWidgetDisplayType::PostProcessWithBlendMaterial)
 		{
-			//PostProcessDisplayTypeWithBlendMaterial.Hide(WorldInstance);
+			PostProcessDisplayTypeWithBlendMaterial.Hide(WorldInstance);
 		}
 		else if (CurrentDisplayType == ERiveWidgetDisplayType::PostProcessSceneViewExtension)
 		{
-			//PostProcessWithSceneViewExtensions.Hide(WorldInstance);
+			PostProcessWithSceneViewExtensions.Hide(WorldInstance);
 		}
 		CurrentDisplayType = ERiveWidgetDisplayType::Inactive;
 	}
 
 	FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
 	FWorldDelegates::OnWorldCleanup.RemoveAll(this);
-	VPFullScreenUserWidgetPrivate::FWorldCleanupListener::Get()->RemoveWidget(this);
+	RiveFullScreenUserWidgetPrivate::FWorldCleanupListener::Get()->RemoveWidget(this);
 	World.Reset();
 }
 
-void URiveFullScreenUserWidget::Tick(float DeltaTime)
+void URiveFullScreenUserWidget::Tick(float DeltaSeconds)
 {
 	if (CurrentDisplayType != ERiveWidgetDisplayType::Inactive)
 	{
@@ -396,13 +343,13 @@ void URiveFullScreenUserWidget::Tick(float DeltaTime)
 		{
 			Hide();
 		}
-		else if ((CurrentDisplayType == ERiveWidgetDisplayType::PostProcessWithBlendMaterial) || (CurrentDisplayType == ERiveWidgetDisplayType::Composure))
+		else if (CurrentDisplayType == ERiveWidgetDisplayType::PostProcessWithBlendMaterial)
 		{
-			//PostProcessDisplayTypeWithBlendMaterial.Tick(CurrentWorld, DeltaSeconds);
+			PostProcessDisplayTypeWithBlendMaterial.Tick(CurrentWorld, DeltaSeconds);
 		}
 		else if (CurrentDisplayType == ERiveWidgetDisplayType::PostProcessSceneViewExtension)
 		{
-			//PostProcessWithSceneViewExtensions.Tick(CurrentWorld, DeltaSeconds);
+			PostProcessWithSceneViewExtensions.Tick(CurrentWorld, DeltaSeconds);
 		}
 	}
 }
@@ -423,7 +370,7 @@ void URiveFullScreenUserWidget::SetRiveActor(ARiveActor* InActor)
 void URiveFullScreenUserWidget::SetCustomPostProcessSettingsSource(
 	TWeakObjectPtr<UObject> InCustomPostProcessSettingsSource)
 {
-	//PostProcessDisplayTypeWithBlendMaterial.SetCustomPostProcessSettingsSource(InCustomPostProcessSettingsSource);
+	PostProcessDisplayTypeWithBlendMaterial.SetCustomPostProcessSettingsSource(InCustomPostProcessSettingsSource);
 }
 
 bool URiveFullScreenUserWidget::ShouldDisplay(UWorld* InWorld) const
@@ -475,21 +422,45 @@ void URiveFullScreenUserWidget::SetWidgetClass(TSubclassOf<UUserWidget> InWidget
 	}
 }
 
+FRiveFullScreenUserWidget_PostProcessBase* URiveFullScreenUserWidget::GetPostProcessDisplayTypeSettingsFor(
+	ERiveWidgetDisplayType Type)
+{
+	return const_cast<FRiveFullScreenUserWidget_PostProcessBase*>(const_cast<const URiveFullScreenUserWidget*>(this)->GetPostProcessDisplayTypeSettingsFor(Type));
+}
+
+const FRiveFullScreenUserWidget_PostProcessBase* URiveFullScreenUserWidget::GetPostProcessDisplayTypeSettingsFor(
+	ERiveWidgetDisplayType Type) const
+{
+	switch (Type)
+	{
+	case ERiveWidgetDisplayType::PostProcessWithBlendMaterial: return &PostProcessDisplayTypeWithBlendMaterial;
+	case ERiveWidgetDisplayType::PostProcessSceneViewExtension: return &PostProcessWithSceneViewExtensions;
+		
+	case ERiveWidgetDisplayType::Inactive: // Fall-through
+	case ERiveWidgetDisplayType::Viewport: 
+		ensureMsgf(false, TEXT("GetPostProcessDisplayTypeSettingsFor should only be called with PostProcessWithBlendMaterial or PostProcessSceneViewExtension"));
+		break;
+	default:
+		checkNoEntry();
+	}
+	return nullptr;
+}
+
 #if WITH_EDITOR
 void URiveFullScreenUserWidget::SetEditorTargetViewport(TWeakPtr<FSceneViewport> InTargetViewport)
 {
 	EditorTargetViewport = InTargetViewport;
 	ViewportDisplayType.EditorTargetViewport = InTargetViewport;
-	//PostProcessDisplayTypeWithBlendMaterial.EditorTargetViewport = InTargetViewport;
-	//PostProcessWithSceneViewExtensions.EditorTargetViewport = InTargetViewport;
+	PostProcessDisplayTypeWithBlendMaterial.EditorTargetViewport = InTargetViewport;
+	PostProcessWithSceneViewExtensions.EditorTargetViewport = InTargetViewport;
 }
 
 void URiveFullScreenUserWidget::ResetEditorTargetViewport()
 {
 	EditorTargetViewport.Reset();
 	ViewportDisplayType.EditorTargetViewport.Reset();
-	//PostProcessDisplayTypeWithBlendMaterial.EditorTargetViewport.Reset();
-	//PostProcessWithSceneViewExtensions.EditorTargetViewport.Reset();
+	PostProcessDisplayTypeWithBlendMaterial.EditorTargetViewport.Reset();
+	PostProcessWithSceneViewExtensions.EditorTargetViewport.Reset();
 }
 #endif
 
@@ -503,7 +474,7 @@ bool URiveFullScreenUserWidget::InitWidget()
 
 	// Could fail e.g. if the class has been marked deprecated or abstract.
 	Widget = CreateWidget(World.Get(), WidgetClass);
-	UE_CLOG(!Widget, LogTemp, Warning, TEXT("Failed to create widget with class %s. Review the log for more info."), *WidgetClass->GetPathName())
+	UE_CLOG(!Widget, LogRive, Warning, TEXT("Failed to create widget with class %s. Review the log for more info."), *WidgetClass->GetPathName())
 	if (Widget)
 	{
 		Widget->SetFlags(RF_Transient);

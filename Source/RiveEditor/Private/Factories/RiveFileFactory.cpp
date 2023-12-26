@@ -1,6 +1,8 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveFileFactory.h"
+
+#include "RiveWidgetFactory.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
 
@@ -51,8 +53,14 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
     // Do not Serialize, simple load to BiteArray
     RiveFile->Initialize();
 
-    GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, RiveFile);
+    // Create Rive UMG
+    if (!FRiveWidgetFactory(RiveFile).Create())
+    {
+        return nullptr;
+    }
 
+    GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, RiveFile);
+    
     return RiveFile;
 }
 
