@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Tools/UAssetEditor.h"
 #include "RiveAssetEditor.generated.h"
 

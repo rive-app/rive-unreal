@@ -3,6 +3,7 @@
 #pragma once
 
 #include "UObject/Object.h"
+#include "Assets/UnrealRiveFile.h"
 #include "RiveArtboard.generated.h"
 
 /**
@@ -20,4 +21,12 @@ class RIVE_API URiveArtboard : public UObject
 public:
 
     bool LoadNativeArtboard(const TArray<uint8>& InBuffer);
+
+    /**
+     * Attibute(s)
+     */
+
+private:
+
+    UE::Rive::Assets::FUnrealRiveFilePtr UnrealRiveFile;
 };
