@@ -22,8 +22,6 @@ bool URiveFileFactory::FactoryCanImport(const FString& Filename)
     return FPaths::GetExtension(Filename).Equals(TEXT("riv"));
 }
 
-UE_DISABLE_OPTIMIZATION
-
 UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags InFlags, const FString& InFilename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
     const FString FileExtension = FPaths::GetExtension(InFilename);
@@ -63,5 +61,3 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
     
     return RiveFile;
 }
-
-UE_ENABLE_OPTIMIZATION

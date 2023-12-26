@@ -99,7 +99,7 @@ void FRivePostProcessSceneViewExtension::RenderMaterial_RenderThread(FRDGBuilder
 	const FScreenPassTextureViewport InputViewport(WidgetRenderTarget_RDG);
 	const FScreenPassTextureViewport OutputViewport(ViewFamilyTexture);
 	// Note that we reference WidgetRenderTarget here, which means RDG will synchronize access to it.
-	// That means that the DrawWindow operation (see FVPFullScreenUserWidget_PostProcessBase) will finish writing into WidgetRenderTarget before we access it with this pass.
+	// That means that the DrawWindow operation (see FVRiveFullScreenUserWidget_PostProcessBase) will finish writing into WidgetRenderTarget before we access it with this pass.
 	AddDrawScreenPass(
 		GraphBuilder,
 		RDG_EVENT_NAME("RiveScreenPostProcessOverlay"),

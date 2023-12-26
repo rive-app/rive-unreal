@@ -19,8 +19,6 @@
 #include "SLevelViewport.h"
 #endif
 
-UE_DISABLE_OPTIMIZATION
-
 
 /////////////////////////////////////////////////////
 // Internal helper
@@ -559,4 +557,3 @@ void URiveFullScreenUserWidget::OnWorldCleanup(UWorld* InWorld, bool bSessionEnd
 	}
 }
 
-UE_ENABLE_OPTIMIZATION

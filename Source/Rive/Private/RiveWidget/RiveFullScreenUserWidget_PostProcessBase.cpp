@@ -34,10 +34,10 @@ namespace UE::RiveUtilities::Private
 		}
 	}
 
-	class FVPWidgetPostProcessHitTester : public ICustomHitTestPath
+	class FRiveWidgetPostProcessHitTester : public ICustomHitTestPath
 	{
 	public:
-		FVPWidgetPostProcessHitTester(UWorld* InWorld, TSharedPtr<SVirtualWindow> InSlateWindow, TAttribute<float> GetDPIAttribute)
+		FRiveWidgetPostProcessHitTester(UWorld* InWorld, TSharedPtr<SVirtualWindow> InSlateWindow, TAttribute<float> GetDPIAttribute)
 			: World(InWorld)
 			, VirtualSlateWindow(InSlateWindow)
 			, GetDPIAttribute(MoveTemp(GetDPIAttribute))
@@ -306,7 +306,7 @@ void FRiveFullScreenUserWidget_PostProcessBase::RegisterHitTesterWithViewport(UW
 		else
 		{
 			ViewportWidget = EngineViewportWidget;
-			CustomHitTestPath = MakeShared<UE::RiveUtilities::Private::FVPWidgetPostProcessHitTester>(
+			CustomHitTestPath = MakeShared<UE::RiveUtilities::Private::FRiveWidgetPostProcessHitTester>(
 				World,
 				SlateWindow,
 				TAttribute<float>::CreateRaw(this, &FRiveFullScreenUserWidget_PostProcessBase::GetDPIScaleForPostProcessHitTester, TWeakObjectPtr<UWorld>(World))
