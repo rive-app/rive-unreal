@@ -1,8 +1,10 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveRenderer.h"
+#include "CanvasItem.h"
 #include "CanvasTypes.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "TextureResource.h"
 
 void UE::Rive::Renderer::Private::FRiveRenderer::QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile)
 {

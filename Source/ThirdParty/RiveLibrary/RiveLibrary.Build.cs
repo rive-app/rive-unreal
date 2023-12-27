@@ -12,6 +12,10 @@ public class RiveLibrary : ModuleRules
 
         bool bIsPlatformAdded = false;
 
+        PrivateDependencyModuleNames.Add("Vulkan");
+
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
+
         AddEngineThirdPartyPrivateStaticDependencies(Target, "UElibPNG");
 
         AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
@@ -29,6 +33,14 @@ public class RiveLibrary : ModuleRules
 
         if (Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
         {
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "DX9");
+
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
+
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+
+            PublicSystemLibraries.Add("d3dcompiler.lib");
+
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Win64");
 
             string RiveSheenBidiStaticLibName = "rive_sheenbidi" + LibPostfix + ".lib"; ;
@@ -39,10 +51,13 @@ public class RiveLibrary : ModuleRules
 
             string RiveDecodersStaticLibName = "rive_decoders" + LibPostfix + ".lib"; ;
 
+            string RivePlsLibName = "rive_pls_renderer" + LibPostfix + ".lib"; ;
+
             PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
                 , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
                 , Path.Combine(LibDirectory, RiveStaticLibName)
-                , Path.Combine(LibDirectory, RiveDecodersStaticLibName) });
+                , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
+                , Path.Combine(LibDirectory, RivePlsLibName) });
 
             bIsPlatformAdded = true;
         }
