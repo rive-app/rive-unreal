@@ -54,6 +54,13 @@ void URiveFile::Initialize()
     {
         RenderTarget = UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget({ 1980, 1080 });
 
+        // Not the best solution, just for testing we can do here. The problem that won't cover the user update texture in UI,
+        // we would need to update texture in renderer
+        UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+        check(RiveRenderer);
+
+        RiveRenderer->SetTextureTarget_GameThread(*GetPathName(), GetRenderTarget());
+
         bIsInitialized = true;
     }
 

@@ -4,6 +4,14 @@
 #include "CanvasTypes.h"
 #include "Engine/TextureRenderTarget2D.h"
 
+UE::Rive::Renderer::Private::FRiveRenderer::FRiveRenderer()
+{
+}
+
+UE::Rive::Renderer::Private::FRiveRenderer::~FRiveRenderer()
+{
+}
+
 void UE::Rive::Renderer::Private::FRiveRenderer::QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile)
 {
 }

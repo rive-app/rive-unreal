@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-using System.IO;
+using EpicGames.Core;
 using UnrealBuildTool;
 
 public class RiveRenderer : ModuleRules
@@ -39,7 +39,16 @@ public class RiveRenderer : ModuleRules
 				"RHI",
 				"RenderCore",
 				"Renderer",
+				"RiveLibrary",
 			}
 		);
+		
+		if (Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
+		{
+			PublicIncludePathModuleNames.AddAll("D3D11RHI", "D3D12RHI");
+
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+		}
 	}
 }
