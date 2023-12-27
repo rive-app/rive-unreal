@@ -39,17 +39,21 @@ public class Rive : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"ApplicationCore",
 				"CoreUObject",
 				"Engine",
+				"Slate",
+				"SlateCore",
+				"Projects",
 				"RiveRenderer",
 				"RHI",
 				"RenderCore",
 				"Renderer",
-                "RiveCore",
-                "RiveLibrary",
-                "Slate",
-                "SlateCore",
-                "UMG",
+        "RiveCore",
+        "RiveLibrary",
+        "Slate",
+        "SlateCore",
+        "UMG",
             }
 			);
 		
@@ -59,5 +63,18 @@ public class Rive : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
+		
+		if (Target.Type == TargetType.Editor)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"EditorFramework",
+					"LevelEditor",
+					"UnrealEd",
+					"ViewportInteraction",
+				}
+			);
+		}
 	}
 }

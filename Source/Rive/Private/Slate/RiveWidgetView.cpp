@@ -4,7 +4,7 @@
 #include "RiveSlateViewport.h"
 #include "Widgets/SViewport.h"
 
-void SRiveWidgetView::Construct(const FArguments& InArgs, TSoftObjectPtr<URiveFile> InRiveFile)
+void SRiveWidgetView::Construct(const FArguments& InArgs, URiveFile* InRiveFile)
 {
     RiveFile = InRiveFile;
 

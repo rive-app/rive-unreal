@@ -14,7 +14,7 @@
 #include "RiveRendererUtils.h"
 #include "ScreenPass.h"
 
-FRiveSlateViewport::FRiveSlateViewport(TSoftObjectPtr<URiveFile> InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView)
+FRiveSlateViewport::FRiveSlateViewport(URiveFile* InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView)
 {
     RiveFile = InRiveFile;
 
@@ -100,7 +100,7 @@ void FRiveSlateViewport::Tick(const FGeometry& AllottedGeometry, double InCurren
 
     ResizeRenderingSize(AbsoluteSize.IntPoint());
 
-    if (RiveFile.IsValid())
+    if (RiveFile)
     {
         RiveFile->RequestRendering();
 
