@@ -20,7 +20,8 @@ void URiveFile::Tick(float InDeltaSeconds)
 
         check(RiveRenderer);
 
-        RiveRenderer->DebugColorDraw(GetRenderTarget(), DebugColor);
+        // Pass rive art board just for testing, that is wrong, just for testing, we should not pass native artboard here
+        RiveRenderer->DebugColorDraw(GetRenderTarget(), DebugColor, RiveArtboard->GetNativeArtBoard());
 
         CountdownRenderingTickCounter--;
     }
@@ -50,9 +51,17 @@ FLinearColor URiveFile::GetDebugColor() const
 
 void URiveFile::Initialize()
 {
+    //if (RiveArtboard.IsNull())
+    {
+        RiveArtboard = NewObject<URiveArtboard>(this);
+
+        RiveArtboard->LoadNativeArtboard(TempFileBuffer);
+    }
+
+    RenderTarget = UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget({ 800, 1000 }, EPixelFormat::PF_R8G8B8A8, true);
+
     if (bIsInitialized == false)
     {
-        RenderTarget = UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget({ 1980, 1080 });
 
         // Not the best solution, just for testing we can do here. The problem that won't cover the user update texture in UI,
         // we would need to update texture in renderer
@@ -62,13 +71,6 @@ void URiveFile::Initialize()
         RiveRenderer->SetTextureTarget_GameThread(*GetPathName(), GetRenderTarget());
 
         bIsInitialized = true;
-    }
-
-    //if (RiveArtboard.IsNull())
-    {
-        RiveArtboard = NewObject<URiveArtboard>(this);
-
-        RiveArtboard->LoadNativeArtboard(TempFileBuffer);
     }
 }
 

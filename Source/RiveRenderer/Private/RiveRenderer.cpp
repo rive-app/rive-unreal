@@ -14,11 +14,29 @@ UE::Rive::Renderer::Private::FRiveRenderer::~FRiveRenderer()
 {
 }
 
+void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
+{
+    check(IsInGameThread());
+    
+    FScopeLock Lock(&ThreadDataCS);
+
+    ENQUEUE_RENDER_COMMAND(FRiveRenderer_Initialize)(
+    [this](FRHICommandListImmediate& RHICmdList)
+    {
+        CreatePLSContext_RenderThread(RHICmdList);
+        CreatePLSRenderer_RenderThread(RHICmdList);
+    });
+
+    // Should give more data how that was initialized
+    bIsInitialized = true;
+}
+
+
 void UE::Rive::Renderer::Private::FRiveRenderer::QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile)
 {
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderer::DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor)
+void UE::Rive::Renderer::Private::FRiveRenderer::DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtBoard)
 {
     check(InTexture);
 

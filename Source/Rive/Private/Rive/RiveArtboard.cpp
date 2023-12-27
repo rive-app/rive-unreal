@@ -41,6 +41,11 @@ bool URiveArtboard::LoadNativeArtboard(const TArray<uint8>& InBuffer)
     return true;
 }
 
+rive::Artboard* URiveArtboard::GetNativeArtBoard()
+{
+   return UnrealRiveFile->GetNativeArtBoard();
+}
+
 UE_ENABLE_OPTIMIZATION
 
 #pragma warning(pop)

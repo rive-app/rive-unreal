@@ -6,7 +6,7 @@
 #include "ScreenPass.h"
 #include "Engine/TextureRenderTarget2D.h"
 
-UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget(FIntPoint InTargetSize)
+UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget(FIntPoint InTargetSize, EPixelFormat PixelFormat, bool bCanCreateUAV)
 {
     UTextureRenderTarget2D* const RenderTarget = NewObject<UTextureRenderTarget2D>(GetTransientPackage());
 
@@ -14,8 +14,9 @@ UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRen
 
     RenderTarget->bAutoGenerateMips = false;
 
-    RenderTarget->OverrideFormat = EPixelFormat::PF_B8G8R8A8;
-
+    RenderTarget->OverrideFormat = PixelFormat;
+    RenderTarget->bCanCreateUAV = bCanCreateUAV;
+    
     RenderTarget->ResizeTarget(InTargetSize.X, InTargetSize.Y);
 
     return RenderTarget;

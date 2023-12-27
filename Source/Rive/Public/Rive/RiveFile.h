@@ -102,7 +102,7 @@ private:
     UPROPERTY(EditAnywhere, Category = Rive)
     FLinearColor DebugColor = FLinearColor::Black;
 
-    UPROPERTY()
+    UPROPERTY(Transient)
     TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 
     UPROPERTY()

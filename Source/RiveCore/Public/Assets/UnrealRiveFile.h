@@ -49,6 +49,9 @@ namespace UE::Rive::Assets
 
         rive::ImportResult Import(Core::FUnrealRiveFactory* InRiveFactory, Assets::FUnrealRiveFileAssetLoader* InAssetLoader = nullptr);
 
+    	// Just for testing
+    	rive::Artboard* GetNativeArtBoard();
+
     private:
 
         void PrintStats();

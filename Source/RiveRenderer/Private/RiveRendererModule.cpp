@@ -29,7 +29,15 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
     default:
         break;
     }
-    
+
+
+    FCoreDelegates::OnFEngineLoopInitComplete.AddLambda([this]()
+    {
+        if (RiveRenderer.IsValid())
+        {
+            RiveRenderer->Initialize();
+        }
+    });
 }
 
 void UE::Rive::Renderer::Private::FRiveRendererModule::ShutdownModule()

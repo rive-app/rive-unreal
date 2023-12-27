@@ -29,6 +29,11 @@ rive::ImportResult UE::Rive::Assets::FUnrealRiveFile::Import(Core::FUnrealRiveFa
     return ImportResult;
 }
 
+rive::Artboard* UE::Rive::Assets::FUnrealRiveFile::GetNativeArtBoard()
+{
+    return NativeFilePtr->artboard();
+}
+
 void UE::Rive::Assets::FUnrealRiveFile::PrintStats()
 {
     if (!NativeFilePtr)

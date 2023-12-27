@@ -26,6 +26,9 @@ public:
      * Attibute(s)
      */
 
+	// Just for testing
+	rive::Artboard* GetNativeArtBoard();
+
 private:
 
     UE::Rive::Assets::FUnrealRiveFilePtr UnrealRiveFile;
