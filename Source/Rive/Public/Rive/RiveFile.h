@@ -75,6 +75,10 @@ public:
 
     void RequestRendering();
 
+    void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
+
+    TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
+
     /**
      * Attribute(s)
      */
@@ -95,7 +99,6 @@ public:
     TArray<uint8> TempFileBuffer;
 
 private:
-
     UPROPERTY(EditAnywhere, Category = Rive)
     FLinearColor DebugColor = FLinearColor::Black;
 
@@ -104,6 +107,9 @@ private:
 
     UPROPERTY()
     TObjectPtr<URiveArtboard> RiveArtboard;
+
+    UPROPERTY(EditAnywhere, Category=Rive)
+    TSubclassOf<UUserWidget> WidgetClass;
 
     bool bIsInitialized = false;
 

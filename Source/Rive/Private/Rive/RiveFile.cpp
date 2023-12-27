@@ -74,3 +74,8 @@ void URiveFile::RequestRendering()
 {
     CountdownRenderingTickCounter = CountdownRenderingTicks;
 }
+
+void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
+{
+    WidgetClass = InWidgetClass;
+}

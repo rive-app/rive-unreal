@@ -21,11 +21,13 @@ public class RiveEditor : ModuleRules
                 "AssetDefinition",
                 "CoreUObject",
                 "Engine",
+                "PropertyEditor",
                 "Rive",
                 "Slate",
                 "SlateCore",
                 "UnrealEd",
-                "PropertyEditor",
+                "UMG",
+                "UMGEditor",
             }
         );
     }
