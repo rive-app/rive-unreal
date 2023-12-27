@@ -25,7 +25,7 @@ class RIVE_API URiveFile : public UObject, public FTickableGameObject
 {
     GENERATED_BODY()
 
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveStatMachineDelegate, FRiveStateMachineEvent, RiveStateMachineEvent);
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveStateMachineDelegate, FRiveStateMachineEvent, RiveStateMachineEvent);
 
     //~ BEGIN : FTickableGameObject Interface
 
@@ -93,7 +93,7 @@ public:
 
     // This Event is triggered any time new LiveLink data is available, including in the editor
     UPROPERTY(BlueprintAssignable, Category = "LiveLink")
-    FRiveStatMachineDelegate OnRiveStatMachineDelegate;
+    FRiveStateMachineDelegate OnRiveStateMachineDelegate;
 
     UPROPERTY()
     TArray<uint8> TempFileBuffer;

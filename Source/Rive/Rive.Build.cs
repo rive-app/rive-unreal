@@ -26,10 +26,11 @@ public class Rive : ModuleRules
 			new string[]
 			{
 				"Core",
-				"RHICore",
+                "Projects",
+                "RHICore",
 				"RenderCore",
+				"RiveCore",
                 "RiveLibrary",
-				"Projects"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -48,9 +49,12 @@ public class Rive : ModuleRules
 				"RHI",
 				"RenderCore",
 				"Renderer",
-				"UMG",
-				"RiveLibrary"
-			}
+        "RiveCore",
+        "RiveLibrary",
+        "Slate",
+        "SlateCore",
+        "UMG",
+            }
 			);
 		
 		DynamicallyLoadedModuleNames.AddRange(
