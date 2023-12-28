@@ -27,6 +27,13 @@ rive::ImportResult UE::Rive::Assets::FUnrealRiveFile::Import(Core::FUnrealRiveFa
     ArtboardInstance = NativeFilePtr->artboard()->instance();
     ArtboardInstance->advance(0.0);
 
+    //rive::StatusCode StatusCode = ArtboardInstance->initialize();
+
+    // if (StatusCode != rive::StatusCode::Ok)
+    // {
+    //     UE_LOG(LogTemp, Warning, TEXT("not initialize"));
+    // }
+
     PrintStats();
 
     return ImportResult;
