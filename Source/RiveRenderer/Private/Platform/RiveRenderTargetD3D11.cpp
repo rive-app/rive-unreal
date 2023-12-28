@@ -62,8 +62,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 		D3D11_TEXTURE2D_DESC desc;
 		D3D11ResourcePtr->GetDesc(&desc);
 		UE_LOG(LogTemp, Warning, TEXT("D3D11ResourcePtr texture %dx%d"), desc.Width, desc.Height);
-
-
+		
 		// For now we just set one renderer and one texture
 		rive::pls::PLSRenderContextD3DImpl* const PLSRenderContextD3DImpl = PLSRenderContext->static_impl_cast<rive::pls::PLSRenderContextD3DImpl>();
 		CachedPLSRenderTargetD3D = PLSRenderContextD3DImpl->makeRenderTarget(desc.Width, desc.Height);
@@ -146,6 +145,7 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	rive::pls::PLSRenderContext::FrameDescriptor frameDescriptor;
 	frameDescriptor.renderTarget = CachedPLSRenderTargetD3D;
 	frameDescriptor.loadAction = !bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
+	//frameDescriptor.clearColor = rive::colorARGB(136, 45,66,88);
 	frameDescriptor.clearColor = 0x00000000;
 	frameDescriptor.wireframe = false;
 	frameDescriptor.fillsDisabled = false;

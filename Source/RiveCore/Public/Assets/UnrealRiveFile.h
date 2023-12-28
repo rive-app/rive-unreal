@@ -68,6 +68,8 @@ namespace UE::Rive::Assets
 
         rive::Span<const uint8> NativeFileSpan;
 
+    	std::unique_ptr<rive::ArtboardInstance> ArtboardInstance;
+
 #endif // WITH_RIVE
     };
 }

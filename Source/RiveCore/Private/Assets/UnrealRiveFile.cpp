@@ -24,6 +24,9 @@ rive::ImportResult UE::Rive::Assets::FUnrealRiveFile::Import(Core::FUnrealRiveFa
 
     NativeFilePtr = rive::File::import(NativeFileSpan, InRiveFactory, &ImportResult, InAssetLoader == nullptr ? FileAssetLoader.Get() : InAssetLoader);
 
+    ArtboardInstance = NativeFilePtr->artboard()->instance();
+    ArtboardInstance->advance(0.0);
+
     PrintStats();
 
     return ImportResult;
@@ -31,7 +34,7 @@ rive::ImportResult UE::Rive::Assets::FUnrealRiveFile::Import(Core::FUnrealRiveFa
 
 rive::Artboard* UE::Rive::Assets::FUnrealRiveFile::GetNativeArtBoard()
 {
-    return NativeFilePtr->artboard();
+    return ArtboardInstance.get();
 }
 
 void UE::Rive::Assets::FUnrealRiveFile::PrintStats()
