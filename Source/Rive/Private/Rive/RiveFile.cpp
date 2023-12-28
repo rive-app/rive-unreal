@@ -15,17 +15,17 @@ TStatId URiveFile::GetStatId() const
 
 void URiveFile::Tick(float InDeltaSeconds)
 {
-    // if (IsRendering())
-    // {
-    //     // Maybe only once
-    //     //if (bDrawOnceTest == false)
-    //     {
-    //        RiveRenderTarget->DrawArtboard(TEnumAsByte<ERiveFitType>(RiveFitType).GetIntValue(), RiveAlignment.X, RiveAlignment.Y, RiveArtboard->GetNativeArtBoard());
-    //         bDrawOnceTest = true;
-    //     }
-    //
-    //     CountdownRenderingTickCounter--;
-    // }
+    if (IsRendering())
+    {
+        // Maybe only once
+        //if (bDrawOnceTest == false)
+        {
+           RiveRenderTarget->DrawArtboard(TEnumAsByte<ERiveFitType>(RiveFitType).GetIntValue(), RiveAlignment.X, RiveAlignment.Y, RiveArtboard->GetNativeArtBoard());
+            bDrawOnceTest = true;
+        }
+    
+        CountdownRenderingTickCounter--;
+    }
 }
 
 bool URiveFile::IsTickable() const
@@ -71,20 +71,6 @@ void URiveFile::Initialize()
         check(RiveRenderer);
         bIsInitialized = true;
     }
-
-    FCoreDelegates::OnEndFrame.AddLambda([this]()
-    {
-        if (IsRendering())
-        {
-            //if (bDrawOnceTest == false)
-            {
-               RiveRenderTarget->DrawArtboard(TEnumAsByte<ERiveFitType>(RiveFitType).GetIntValue(), RiveAlignment.X, RiveAlignment.Y, RiveArtboard->GetNativeArtBoard());
-                bDrawOnceTest = true;
-            }
-
-            CountdownRenderingTickCounter--;
-        }
-    });
 }
 
 bool URiveFile::IsRendering() const
