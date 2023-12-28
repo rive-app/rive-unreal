@@ -99,6 +99,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 		return;
 	}
 
+	// Begin frame
 	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = GetPLSRenderer();
 	if (PLSRenderer == nullptr)
 	{
@@ -106,7 +107,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 	}
 	
 
-	// Just for testing here, should be queue
+	// alignArtboard
 	{
 			
 		const rive::Fit& Fit = *reinterpret_cast<rive::Fit*>(&InFit);
@@ -124,9 +125,13 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 		PLSRenderer->transform(transform);
 	}
 
+	// drawArtboard
 	InNativeArtBoard->draw(PLSRenderer.get());
 
+	// Flush
 	PLSRenderContextPtr->flush();
+
+	//PLSRenderContextPtr->resetGPUResources();
 }
 
 std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetPLSRenderer() const
