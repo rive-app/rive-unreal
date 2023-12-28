@@ -5,6 +5,11 @@
 #include "UObject/Object.h"
 #include "RiveFile.generated.h"
 
+namespace UE::Rive::Renderer
+{
+    class IRiveRenderTarget;
+}
+
 class UTextureRenderTarget2D;
 class URiveArtboard;
 
@@ -15,6 +20,35 @@ struct FRiveStateMachineEvent
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
     FIntPoint MousePosition = FIntPoint(0, 0);
+};
+
+UENUM(BlueprintType)
+enum class ERiveFitType : uint8
+{
+    Fill = 0,
+    Contain = 1,
+    Cover = 2,
+    FitWidth = 3,
+    FitHeight = 4,
+    None = 5,
+    ScaleDown = 6
+};
+
+USTRUCT()
+struct FRiveAlignment
+{
+    GENERATED_BODY()
+
+public:
+    inline static FVector2f TopLeft = FVector2f(-1.0f, -1.0f);
+    inline static FVector2f TopCenter = FVector2f(0.0f, -1.0f);
+    inline static FVector2f TopRight = FVector2f(1.0f, -1.0f);
+    inline static FVector2f CenterLeft = FVector2f(-1.0f, 0.0f);
+    inline static FVector2f Center = FVector2f(0.0f, 0.0f);
+    inline static FVector2f CenterRight = FVector2f(1.0f, 0.0f);
+    inline static FVector2f BottomLeft = FVector2f(-1.0f, 1.0f);
+    inline static FVector2f BottomCenter = FVector2f(0.0f, 1.0f);
+    inline static FVector2f BottomRight = FVector2f(1.0f, 1.0f);
 };
 
 /**
@@ -102,6 +136,12 @@ private:
     UPROPERTY(EditAnywhere, Category = Rive)
     FLinearColor DebugColor = FLinearColor::Black;
 
+    UPROPERTY(EditAnywhere, Category = Rive)
+    ERiveFitType RiveFitType = ERiveFitType::Contain;
+
+    UPROPERTY(EditAnywhere, Category = Rive)
+    FVector2f RiveAlignment = FRiveAlignment::Center;
+
     UPROPERTY(Transient)
     TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 
@@ -114,4 +154,8 @@ private:
     bool bIsInitialized = false;
 
     int32 CountdownRenderingTickCounter = 0;
+
+    TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> RiveRenderTarget;
+
+    bool bDrawOnceTest = false;
 };

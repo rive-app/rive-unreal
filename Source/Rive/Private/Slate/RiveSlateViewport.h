@@ -98,7 +98,7 @@ private:
     TObjectPtr<URiveFile> RiveFile;
 
     /** Default Rendering Size */
-    FIntPoint RenderingSize = FIntPoint(1920, 1080);
+    FIntPoint RenderingSize = FIntPoint(800, 1000);
 
     /** We can't render directrly to UpdatableTexture slate texture, that is why we need extra texture before CopyTexture */
     TStrongObjectPtr<UTextureRenderTarget2D> RiveSlateRenderTarget;

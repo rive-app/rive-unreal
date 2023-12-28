@@ -32,6 +32,6 @@ namespace UE::Rive::Renderer::Private
 
     private:
 
-        TUniquePtr<IRiveRenderer> RiveRenderer;
+        TSharedPtr<IRiveRenderer> RiveRenderer;
     };
 }

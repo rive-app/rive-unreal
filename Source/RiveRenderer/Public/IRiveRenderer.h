@@ -13,7 +13,9 @@ namespace rive
 
 namespace UE::Rive::Renderer
 {
-    class IRiveRenderer
+    class IRiveRenderTarget;
+
+    class IRiveRenderer : public TSharedFromThis<IRiveRenderer>
     {
         /**
          * Structor(s)
@@ -37,12 +39,12 @@ namespace UE::Rive::Renderer
         // just  for testing, we should not pass native artboard
         virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtBoard) = 0;
 
-        virtual void SetTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) = 0;
-
-        virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) = 0;
+        virtual TSharedPtr<IRiveRenderTarget> CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) = 0;
 
         virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) = 0;
 
         virtual void CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList) = 0;
+
+        virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) = 0;
     };
 }

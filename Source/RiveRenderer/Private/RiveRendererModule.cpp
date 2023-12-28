@@ -15,7 +15,7 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
     {
     case ERHIInterfaceType::D3D11:
         {
-            RiveRenderer = MakeUnique<FRiveRendererD3D11>();
+            RiveRenderer = MakeShared<FRiveRendererD3D11>();
             break;
         }
     case ERHIInterfaceType::D3D12:

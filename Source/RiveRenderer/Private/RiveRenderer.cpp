@@ -50,3 +50,22 @@ void UE::Rive::Renderer::Private::FRiveRenderer::DebugColorDraw(UTextureRenderTa
             Canvas.Clear(DebugColor);
         });
 }
+
+UTextureRenderTarget2D* UE::Rive::Renderer::Private::FRiveRenderer::CreateDefaultRenderTarget(FIntPoint InTargetSize)
+{
+    UTextureRenderTarget2D* const RenderTarget = NewObject<UTextureRenderTarget2D>(GetTransientPackage());
+
+    // RenderTarget->bForceLinearGamma = false;
+    //
+    // RenderTarget->bAutoGenerateMips = false;
+
+    RenderTarget->OverrideFormat = EPixelFormat::PF_R8G8B8A8;
+    RenderTarget->bCanCreateUAV = true;
+    
+    RenderTarget->ResizeTarget(InTargetSize.X, InTargetSize.Y);
+    RenderTarget->UpdateResourceImmediate(true);
+
+    FlushRenderingCommands();
+
+    return RenderTarget;
+}

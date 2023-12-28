@@ -3,6 +3,7 @@
 #include "Rive/RiveFile.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "IRiveRenderTarget.h"
 #include "Rive/RiveArtboard.h"
 #include "RiveRendererUtils.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -16,12 +17,15 @@ void URiveFile::Tick(float InDeltaSeconds)
 {
     if (IsRendering())
     {
-        UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-
-        check(RiveRenderer);
+        // Maybe only once
+        //if (bDrawOnceTest == false)
+        {
+           RiveRenderTarget->DrawArtboard(TEnumAsByte<ERiveFitType>(RiveFitType).GetIntValue(), RiveAlignment.X, RiveAlignment.Y, RiveArtboard->GetNativeArtBoard());
+            bDrawOnceTest = true;
+        }
 
         // Pass rive art board just for testing, that is wrong, just for testing, we should not pass native artboard here
-        RiveRenderer->DebugColorDraw(GetRenderTarget(), DebugColor, RiveArtboard->GetNativeArtBoard());
+        //RiveRenderer->DebugColorDraw(GetRenderTarget(), DebugColor, RiveArtboard->GetNativeArtBoard());
 
         CountdownRenderingTickCounter--;
     }
@@ -57,19 +61,17 @@ void URiveFile::Initialize()
 
         RiveArtboard->LoadNativeArtboard(TempFileBuffer);
     }
+    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    RenderTarget = RiveRenderer->CreateDefaultRenderTarget({ 800, 1000 });
+    RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTarget());
+    RiveRenderTarget->Initialize();
 
-    RenderTarget = UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget({ 800, 1000 }, EPixelFormat::PF_R8G8B8A8, true);
-
-    if (bIsInitialized == false)
+    //if (bIsInitialized == false)
     {
 
         // Not the best solution, just for testing we can do here. The problem that won't cover the user update texture in UI,
         // we would need to update texture in renderer
-        UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
         check(RiveRenderer);
-
-        RiveRenderer->SetTextureTarget_GameThread(*GetPathName(), GetRenderTarget());
-
         bIsInitialized = true;
     }
 }

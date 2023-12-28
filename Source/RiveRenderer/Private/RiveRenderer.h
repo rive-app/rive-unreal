@@ -35,10 +35,13 @@ namespace UE::Rive::Renderer::Private
 
         virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtBoard) override;
 
-        virtual void SetTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) override {}
+        virtual TSharedPtr<IRiveRenderTarget> CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) override { return nullptr; }
 
-        virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override {}
+        virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) override;
 
+    public:
+        rive::pls::PLSRenderContext* GetPLSRenderContextPtr() { return PLSRenderContext.get(); }
+        
         //~ END : IRiveRenderer Interface
 
     protected:
