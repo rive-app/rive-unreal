@@ -29,17 +29,17 @@ namespace UE::Rive::Renderer
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override {}
 
 		virtual void AlignArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard) override;
-		virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard) override {}
+		virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard, const FLinearColor DebugColor) override {}
 
 		virtual uint32 GetWidth() const;
 		
 		virtual uint32 GetHeight() const;
 	
 	protected:
-		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard) = 0;
+		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard, const FLinearColor DebugColor) = 0;
 
 		// It Might need to be on rendering thread, render QUEUE is required
-		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer() const = 0;
+		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const = 0;
 		
 	protected:
 		mutable FCriticalSection ThreadDataCS;

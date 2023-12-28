@@ -134,7 +134,7 @@ public:
 
 private:
     UPROPERTY(EditAnywhere, Category = Rive)
-    FLinearColor DebugColor = FLinearColor::Black;
+    FLinearColor DebugColor = FLinearColor::Transparent;
 
     UPROPERTY(EditAnywhere, Category = Rive)
     ERiveFitType RiveFitType = ERiveFitType::Contain;

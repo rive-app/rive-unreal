@@ -22,13 +22,13 @@ namespace UE::Rive::Renderer::Private
 
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override;
 
-		virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard) override;
+		virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard, const FLinearColor DebugColor) override;
 
 	protected:
-		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard) override;
+		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard, const FLinearColor DebugColor) override;
 
 		// It Might need to be on rendering thread, render QUEUE is required
-		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer() const override;
+		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const override;
 		
 	private:
 		rive::rcp<rive::pls::PLSRenderTargetD3D> CachedPLSRenderTargetD3D;

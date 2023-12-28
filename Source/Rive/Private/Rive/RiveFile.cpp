@@ -20,7 +20,7 @@ void URiveFile::Tick(float InDeltaSeconds)
         // Maybe only once
         //if (bDrawOnceTest == false)
         {
-           RiveRenderTarget->DrawArtboard(TEnumAsByte<ERiveFitType>(RiveFitType).GetIntValue(), RiveAlignment.X, RiveAlignment.Y, RiveArtboard->GetNativeArtBoard());
+           RiveRenderTarget->DrawArtboard(TEnumAsByte<ERiveFitType>(RiveFitType).GetIntValue(), RiveAlignment.X, RiveAlignment.Y, RiveArtboard->GetNativeArtBoard(), DebugColor);
             bDrawOnceTest = true;
         }
     

@@ -70,21 +70,21 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 	}
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard)
+void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard, const FLinearColor DebugColor)
 {
 	check(IsInGameThread());
 
 	FScopeLock Lock(&ThreadDataCS);
 
 	ENQUEUE_RENDER_COMMAND(DebugColorDraw)(
-[this, InFit, AlignX, AlignY, InNativeArtBoard](FRHICommandListImmediate& RHICmdList)
+[this, InFit, AlignX, AlignY, InNativeArtBoard, DebugColor](FRHICommandListImmediate& RHICmdList)
 	{
-		DrawArtboard_RenderThread(RHICmdList, InFit, AlignX, AlignY, InNativeArtBoard);
+		DrawArtboard_RenderThread(RHICmdList, InFit, AlignX, AlignY, InNativeArtBoard, DebugColor);
 	});
 }
 
 DECLARE_GPU_STAT_NAMED(DrawArtboard, TEXT("FRiveRenderTargetD3D11::DrawArtboard"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard)
+void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard, const FLinearColor DebugColor)
 {
 	SCOPED_GPU_STAT(RHICmdList, DrawArtboard);
 	check(IsInRenderingThread());
@@ -99,7 +99,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 	}
 
 	// Begin frame
-	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = GetPLSRenderer();
+	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = GetPLSRenderer(DebugColor);
 	if (PLSRenderer == nullptr)
 	{
 		return;
@@ -133,7 +133,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 	//PLSRenderContextPtr->resetGPUResources();
 }
 
-std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetPLSRenderer() const
+std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetPLSRenderer(const FLinearColor DebugColor) const
 {
 	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
 
@@ -141,12 +141,14 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	{
 		return nullptr;
 	}
+
+	FColor ClearColor = DebugColor.ToRGBE();
 	
 	rive::pls::PLSRenderContext::FrameDescriptor frameDescriptor;
 	frameDescriptor.renderTarget = CachedPLSRenderTargetD3D;
-	frameDescriptor.loadAction = !bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
-	//frameDescriptor.clearColor = rive::colorARGB(136, 45,66,88);
-	frameDescriptor.clearColor = 0x00000000;
+	frameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
+	frameDescriptor.clearColor = rive::colorARGB(ClearColor.A, ClearColor.R,ClearColor.G,ClearColor.B);
+	//frameDescriptor.clearColor = 0x00000000;
 	frameDescriptor.wireframe = false;
 	frameDescriptor.fillsDisabled = false;
 	frameDescriptor.strokesDisabled = false;
