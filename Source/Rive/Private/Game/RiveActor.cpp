@@ -1,6 +1,8 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "Game/RiveActor.h"
+
+#include "Rive/RiveFile.h"
 #include "RiveWidget/RiveFullScreenUserWidget.h"
 
 #define LOCTEXT_NAMESPACE "ARiveActor"

@@ -119,10 +119,6 @@ public:
 
     void Initialize();
 
-    bool IsRendering() const;
-
-    void RequestRendering();
-
     void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
     TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
@@ -136,15 +132,15 @@ public:
     UPROPERTY(EditAnywhere, Category = Rive)
     TObjectPtr<UTextureRenderTarget2D> CopyRenderTarget;
 
-    UPROPERTY(EditAnywhere, Category = Rive)
-    uint32 CountdownRenderingTicks = 5;
-
     // This Event is triggered any time new LiveLink data is available, including in the editor
     UPROPERTY(BlueprintAssignable, Category = "LiveLink")
     FRiveStateMachineDelegate OnRiveStateMachineDelegate;
 
     UPROPERTY()
     TArray<uint8> TempFileBuffer;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 
 private:
 
@@ -157,6 +153,9 @@ private:
     UPROPERTY(EditAnywhere, Category = Rive)
     FVector2f RiveAlignment = FRiveAlignment::Center;
 
+    UPROPERTY(EditAnywhere, Category = Rive)
+    bool bIsRendering = true;
+
     UPROPERTY()
     TObjectPtr<URiveArtboard> RiveArtboard;
 
@@ -164,9 +163,7 @@ private:
     TSubclassOf<UUserWidget> WidgetClass;
 
     bool bIsInitialized = false;
-
-    int32 CountdownRenderingTickCounter = 0;
-
+    
     UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
 
     bool bDrawOnceTest = false;

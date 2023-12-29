@@ -4,6 +4,7 @@
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
 #include "IRiveRenderTarget.h"
+#include "RiveRendererUtils.h"
 #include "Rive/RiveArtboard.h"
 
 URiveFile::URiveFile()
@@ -11,6 +12,8 @@ URiveFile::URiveFile()
     OverrideFormat = EPixelFormat::PF_R8G8B8A8;
 
     bCanCreateUAV = true;
+
+    // TODO. We might need extra texture to Draw rive separately and copy to this
 
     SizeX = 500;
     SizeY = 500;
@@ -24,7 +27,7 @@ TStatId URiveFile::GetStatId() const
 UE_DISABLE_OPTIMIZATION
 void URiveFile::Tick(float InDeltaSeconds)
 {
-    if (IsRendering())
+    if (bIsInitialized && bIsRendering)
     {
         // Maybe only once
         //if (bDrawOnceTest == false)
@@ -37,15 +40,26 @@ void URiveFile::Tick(float InDeltaSeconds)
 
                 bDrawOnceTest = true;
 
-               // TODO. Move to state machine class
-               RiveArtboard->AdvanceDefaultStateMachine(InDeltaSeconds);
+                // TODO. Move to state machine class
+                RiveArtboard->AdvanceDefaultStateMachine(InDeltaSeconds);
+            }
 
+            // Copy from render target
+            // TODO. move from here
+            // Separate target might needed to let RIve draw only to separate teture
+            {
+                FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
+                FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+                ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
+        [this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
+                    {
+
+                     UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
+                    });
             }
 
 #endif // WITH_RIVE
         }
-
-        CountdownRenderingTickCounter--;
     }
 }
 UE_ENABLE_OPTIMIZATION
@@ -97,23 +111,15 @@ void URiveFile::Initialize()
         FVector2f ArtBoardSize = RiveArtboard->GetArtboardSize();
         
         InitCustomFormat( ArtBoardSize.X, ArtBoardSize.Y, OverrideFormat, false );
+
+        RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(ArtBoardSize.X, ArtBoardSize.Y));
         FlushRenderingCommands();
-        RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), this);
+        RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), RenderTarget);
 
         RiveRenderTarget->Initialize();
 
         bIsInitialized = true;
     }
-}
-
-bool URiveFile::IsRendering() const
-{
-    return CountdownRenderingTickCounter > 0;
-}
-
-void URiveFile::RequestRendering()
-{
-    CountdownRenderingTickCounter = CountdownRenderingTicks;
 }
 
 void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
