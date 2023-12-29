@@ -25,6 +25,9 @@ public:
     // Just for testing
     rive::Artboard* GetNativeArtBoard();
 
+	// TODO. Move To state machine file
+	void AdvanceDefaultStateMachine(const float inSeconds);
+
 	FVector2f GetArtboardSize() const;
 
     /**

@@ -2,6 +2,7 @@
 
 #include "Assets/UnrealRiveFile.h"
 #include "Logs/RiveCoreLog.h"
+#include "rive/animation/state_machine_instance.hpp"
 
 UE::Rive::Assets::FUnrealRiveFile::FUnrealRiveFile(const TArray<uint8>& InBuffer)
     : FUnrealRiveFile(InBuffer.GetData(), InBuffer.Num())
@@ -26,15 +27,23 @@ rive::ImportResult UE::Rive::Assets::FUnrealRiveFile::Import(rive::Factory* InRi
 
     if (rive::Artboard* NativeArtboard = NativeFilePtr->artboard())
     {
-        NativeArtboard->advance(0);
+        ///NativeArtboard->advance(0);
+
+        ArtboardInstance = NativeArtboard->instance();
+        ArtboardInstance->advance(0);
+
+        // Move State machine to separate file
+        std::unique_ptr<rive::StateMachineInstance> DefaultStateMachine = ArtboardInstance->defaultStateMachine();
+        if (DefaultStateMachine == nullptr)
+        {
+            DefaultStateMachine = ArtboardInstance->stateMachineAt(0);
+        }
+        if (DefaultStateMachine)
+        {
+            DefaultStateMachinePtr = DefaultStateMachine.release();
+        }
     }
-
-    /*rive::StatusCode StatusCode = Artboard->initialize();
-
-    if (StatusCode != rive::StatusCode::Ok)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("not initialize"));
-    }*/
+    
 
     PrintStats();
 
@@ -43,14 +52,16 @@ rive::ImportResult UE::Rive::Assets::FUnrealRiveFile::Import(rive::Factory* InRi
 
 rive::Artboard* UE::Rive::Assets::FUnrealRiveFile::GetNativeArtBoard() const
 {
-    if (!NativeFilePtr)
-    {
-        UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard as we have detected an empty rive file."));
+    // if (!NativeFilePtr)
+    // {
+    //     UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard as we have detected an empty rive file."));
+    //
+    //     return nullptr;
+    // }
+    //
+    // return NativeFilePtr->artboard();
 
-        return nullptr;
-    }
-
-    return NativeFilePtr->artboard();
+    return ArtboardInstance.get();
 }
 
 FVector2f UE::Rive::Assets::FUnrealRiveFile::GetArtboardSize() const
@@ -59,6 +70,16 @@ FVector2f UE::Rive::Assets::FUnrealRiveFile::GetArtboardSize() const
     const rive::Artboard* NativArtboard = GetNativeArtBoard();
     return {NativArtboard->width(), NativArtboard->height() };
 }
+
+UE_DISABLE_OPTIMIZATION
+void UE::Rive::Assets::FUnrealRiveFile::AdvanceDefaultStateMachine(const float inSeconds)
+{
+    if (DefaultStateMachinePtr)
+    {
+        DefaultStateMachinePtr->advanceAndApply(inSeconds);
+    }
+}
+UE_ENABLE_OPTIMIZATION
 
 void UE::Rive::Assets::FUnrealRiveFile::PrintStats()
 {

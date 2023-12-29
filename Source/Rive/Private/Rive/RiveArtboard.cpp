@@ -76,6 +76,11 @@ rive::Artboard* URiveArtboard::GetNativeArtBoard()
    return UnrealRiveFile->GetNativeArtBoard();
 }
 
+void URiveArtboard::AdvanceDefaultStateMachine(const float inSeconds)
+{
+    UnrealRiveFile->AdvanceDefaultStateMachine(inSeconds);
+}
+
 FVector2f URiveArtboard::GetArtboardSize() const
 {
     return UnrealRiveFile->GetArtboardSize();

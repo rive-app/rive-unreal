@@ -53,6 +53,9 @@ namespace UE::Rive::Assets
 
     	FVector2f GetArtboardSize() const;
 
+    	// TODO. Move To state machine file
+    	void AdvanceDefaultStateMachine(const float inSeconds);
+
     private:
 
         void PrintStats();
@@ -68,6 +71,10 @@ namespace UE::Rive::Assets
         std::unique_ptr<rive::File> NativeFilePtr;
 
         rive::Span<const uint8> NativeFileSpan;
+
+    	std::unique_ptr<rive::ArtboardInstance> ArtboardInstance;
+
+    	rive::StateMachineInstance* DefaultStateMachinePtr = nullptr;
 
 #endif // WITH_RIVE
     };

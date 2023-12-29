@@ -21,6 +21,7 @@ TStatId URiveFile::GetStatId() const
     RETURN_QUICK_DECLARE_CYCLE_STAT(URiveFile, STATGROUP_Tickables);
 }
 
+UE_DISABLE_OPTIMIZATION
 void URiveFile::Tick(float InDeltaSeconds)
 {
     if (IsRendering())
@@ -33,8 +34,18 @@ void URiveFile::Tick(float InDeltaSeconds)
             if (rive::Artboard* NativeArtboard = RiveArtboard->GetNativeArtBoard())
             {
                 RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignment.X, RiveAlignment.Y, NativeArtboard, DebugColor);
+                
 
                 bDrawOnceTest = true;
+
+               //if (!isStatic)
+                {
+                    RiveArtboard->AdvanceDefaultStateMachine(InDeltaSeconds);
+                    //double TimeNow = FPlatformTime::Seconds();
+                    //double TimeToSet = TimeNow - LastTime;
+                    // m_stateMachine?.advance((float)(now - m_lastTime));
+                    // m_lastTime = now;
+                }
             }
 
 #endif // WITH_RIVE
@@ -43,6 +54,7 @@ void URiveFile::Tick(float InDeltaSeconds)
         CountdownRenderingTickCounter--;
     }
 }
+UE_ENABLE_OPTIMIZATION
 
 bool URiveFile::IsTickable() const
 {
