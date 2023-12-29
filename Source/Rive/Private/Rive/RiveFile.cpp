@@ -34,18 +34,12 @@ void URiveFile::Tick(float InDeltaSeconds)
             if (rive::Artboard* NativeArtboard = RiveArtboard->GetNativeArtBoard())
             {
                 RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignment.X, RiveAlignment.Y, NativeArtboard, DebugColor);
-                
 
                 bDrawOnceTest = true;
 
-               //if (!isStatic)
-                {
-                    RiveArtboard->AdvanceDefaultStateMachine(InDeltaSeconds);
-                    //double TimeNow = FPlatformTime::Seconds();
-                    //double TimeToSet = TimeNow - LastTime;
-                    // m_stateMachine?.advance((float)(now - m_lastTime));
-                    // m_lastTime = now;
-                }
+               // TODO. Move to state machine class
+               RiveArtboard->AdvanceDefaultStateMachine(InDeltaSeconds);
+
             }
 
 #endif // WITH_RIVE

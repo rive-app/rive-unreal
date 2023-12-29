@@ -171,6 +171,4 @@ private:
 
     bool bDrawOnceTest = false;
 
-    // Move to State Machine file
-    double LastTime = 0.0;
 };
