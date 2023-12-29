@@ -3,7 +3,6 @@
 #pragma once
 
 #include "IRiveCoreModule.h"
-#include "Core/UnrealRiveFactory.h"
 
 namespace UE::Rive::Core::Private
 {
@@ -18,22 +17,5 @@ namespace UE::Rive::Core::Private
         void ShutdownModule() override;
 
         //~ END : IModuleInterface Interface
-
-
-        //~ BEGIN : IRiveCoreModule Interface
-
-    public:
-
-        virtual FUnrealRiveFactory& GetRiveFactory() override;
-
-        //~ END : IRiveCoreModule Interface
-
-        /**
-         * Attribute(s)
-         */
-
-    private:
-
-        FUnrealRiveFactoryPtr UnrealRiveFactory;
     };
 }

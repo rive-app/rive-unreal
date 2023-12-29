@@ -24,31 +24,49 @@ namespace UE::RiveUtilities::Private
 	{
 		switch (visibility)
 		{
-		case EWindowVisibility::Visible:
-			return EVisibility::Visible;
-		case EWindowVisibility::SelfHitTestInvisible:
-			return EVisibility::SelfHitTestInvisible;
-		default:
-			checkNoEntry();
-			return EVisibility::SelfHitTestInvisible;
+			case EWindowVisibility::Visible:
+			{
+				return EVisibility::Visible;
+			}
+			case EWindowVisibility::SelfHitTestInvisible:
+			{
+				return EVisibility::SelfHitTestInvisible;
+			}
+			default:
+			{
+				checkNoEntry();
+
+				return EVisibility::SelfHitTestInvisible;
+			}
 		}
 	}
 
 	class FRiveWidgetPostProcessHitTester : public ICustomHitTestPath
 	{
+		/**
+		 * Structor(s)
+		 */
+
 	public:
+		
 		FRiveWidgetPostProcessHitTester(UWorld* InWorld, TSharedPtr<SVirtualWindow> InSlateWindow, TAttribute<float> GetDPIAttribute)
 			: World(InWorld)
 			, VirtualSlateWindow(InSlateWindow)
 			, GetDPIAttribute(MoveTemp(GetDPIAttribute))
 			, WidgetDrawSize(FIntPoint::ZeroValue)
 			, LastLocalHitLocation(FVector2D::ZeroVector)
-		{}
+		{
+		}
+
+		//~ BEGIN : ICustomHitTestPath Interface
+
+	public:
 
 		virtual TArray<FWidgetAndPointer> GetBubblePathAndVirtualCursors(const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus) const override
 		{
 			// Get the list of widget at the requested location.
 			TArray<FWidgetAndPointer> ArrangedWidgets;
+
 			if (TSharedPtr<SVirtualWindow> SlateWindowPin = VirtualSlateWindow.Pin())
 			{
 				// For some reason the DPI is not applied correctly so we need to multiply the window's native DPI ourselves.
@@ -56,13 +74,17 @@ namespace UE::RiveUtilities::Private
 				// If this bit is skipped, then hovering widgets towards the bottom right will not work
 				// if system scale is > 100% AND the viewport size is not fixed (default).
 				const float DPI = GetDPIAttribute.Get();
+
 				const FVector2D LocalMouseCoordinate = DPI * InGeometry.AbsoluteToLocal(DesktopSpaceCoordinate);
 				
 				constexpr float CursorRadius = 0.f;
+
 				ArrangedWidgets = SlateWindowPin->GetHittestGrid().GetBubblePath(LocalMouseCoordinate, CursorRadius, bIgnoreEnabledStatus);
 
 				const FVirtualPointerPosition VirtualMouseCoordinate(LocalMouseCoordinate, LastLocalHitLocation);
+				
 				LastLocalHitLocation = LocalMouseCoordinate;
+				
 				for (FWidgetAndPointer& ArrangedWidget : ArrangedWidgets)
 				{
 					ArrangedWidget.SetPointerPosition(VirtualMouseCoordinate);
@@ -78,6 +100,7 @@ namespace UE::RiveUtilities::Private
 			if (TSharedPtr<SVirtualWindow> SlateWindowPin = VirtualSlateWindow.Pin())
 			{
 				FGeometry WidgetGeom;
+
 				ArrangedChildren.AddWidget(FArrangedWidget(SlateWindowPin.ToSharedRef(), WidgetGeom.MakeChild(WidgetDrawSize, FSlateLayoutTransform())));
 			}
 		}
@@ -87,16 +110,33 @@ namespace UE::RiveUtilities::Private
 			return TOptional<FVirtualPointerPosition>();
 		}
 
+		//~ END : ICustomHitTestPath Interface
+
+		/**
+		 * Implementation(s)
+		 */
+
+	public:
+
 		void SetWidgetDrawSize(FIntPoint NewWidgetDrawSize)
 		{
 			WidgetDrawSize = NewWidgetDrawSize;
 		}
 
+		/**
+		 * Attribute(s)
+		 */
+
 	private:
+
 		TWeakObjectPtr<UWorld> World;
+
 		TWeakPtr<SVirtualWindow> VirtualSlateWindow;
+
 		TAttribute<float> GetDPIAttribute;
+
 		FIntPoint WidgetDrawSize;
+
 		mutable FVector2D LastLocalHitLocation;
 	};
 }
@@ -115,7 +155,8 @@ FRiveFullScreenUserWidget_PostProcessBase::FRiveFullScreenUserWidget_PostProcess
 	, WidgetRenderTarget(nullptr)
 	, WidgetRenderer(nullptr)
 	, CurrentWidgetDrawSize(FIntPoint::ZeroValue)
-{}
+{
+}
 
 void FRiveFullScreenUserWidget_PostProcessBase::Hide(UWorld* World)
 {
@@ -134,15 +175,21 @@ bool FRiveFullScreenUserWidget_PostProcessBase::CreateRenderer(UWorld* World, UU
 	if (World && Widget)
 	{
 		constexpr bool bApplyGammaCorrection = true;
+
 		WidgetRenderer = new FWidgetRenderer(bApplyGammaCorrection);
+
 		WidgetRenderer->SetIsPrepassNeeded(true);
 		
 		// CalculateWidgetDrawSize may sometimes return {0,0}, e.g. right after engine startup when viewport not yet initialized.
 		// TickRenderer will call Resize automatically once CurrentWidgetDrawSize is updated to be non-zero.
 		checkf(CurrentWidgetDrawSize == FIntPoint::ZeroValue, TEXT("Expected ReleaseRenderer to reset CurrentWidgetDrawSize."));
+		
 		SlateWindow = SNew(SVirtualWindow).Size(CurrentWidgetDrawSize);
+		
 		SlateWindow->SetIsFocusable(bWindowFocusable);
+		
 		SlateWindow->SetVisibility(UE::RiveUtilities::Private::ConvertWindowVisibilityToVisibility(WindowVisibility));
+		
 		SlateWindow->SetContent(
 			SNew(SDPIScaler)
 			.DPIScale(InDPIScale)
@@ -156,7 +203,9 @@ bool FRiveFullScreenUserWidget_PostProcessBase::CreateRenderer(UWorld* World, UU
 		if (!Widget->IsDesignTime() && World->IsGameWorld())
 		{
 			UGameInstance* GameInstance = World->GetGameInstance();
+		
 			UGameViewportClient* GameViewportClient = GameInstance ? GameInstance->GetGameViewportClient() : nullptr;
+			
 			if (GameViewportClient)
 			{
 				SlateWindow->AssignParentWidget(GameViewportClient->GetGameViewportWidget());
@@ -164,23 +213,33 @@ bool FRiveFullScreenUserWidget_PostProcessBase::CreateRenderer(UWorld* World, UU
 		}
 
 		FLinearColor ActualBackgroundColor = RenderTargetBackgroundColor;
+		
 		switch (RenderTargetBlendMode)
 		{
-		case EWidgetBlendMode::Opaque:
-			ActualBackgroundColor.A = 1.0f;
-			break;
-		case EWidgetBlendMode::Masked:
-			ActualBackgroundColor.A = 0.0f;
-			break;
-		case EWidgetBlendMode::Transparent: break;
-		default: ;
+			case EWidgetBlendMode::Opaque:
+			{	
+				ActualBackgroundColor.A = 1.f;
+				
+				break;
+			}
+			case EWidgetBlendMode::Masked:
+			{
+				ActualBackgroundColor.A = 0.f;
+				
+				break;
+			}
+			case EWidgetBlendMode::Transparent:
+			default:
+				break;
 		}
 
 		// Skip InitCustomFormat call because CalculateWidgetDrawSize may sometimes return {0,0}, e.g. right after engine startup when viewport not yet initialized
 		// TickRenderer will call InitCustomFormat automatically once CurrentWidgetDrawSize is updated to be non-zero.
 		checkf(CurrentWidgetDrawSize == FIntPoint::ZeroValue, TEXT("Expected ReleaseRenderer to reset CurrentWidgetDrawSize."));
+		
 		// Outer needs to be transient package: otherwise we cause a world memory leak using "Save Current Level As" due to reference not getting replaced correctly
 		WidgetRenderTarget = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), NAME_None, RF_Transient);
+		
 		WidgetRenderTarget->ClearColor = ActualBackgroundColor;
 
 		return WidgetRenderer && WidgetRenderTarget && OnRenderTargetInited();
@@ -194,31 +253,43 @@ void FRiveFullScreenUserWidget_PostProcessBase::ReleaseRenderer()
 	if (WidgetRenderer)
 	{
 		BeginCleanup(WidgetRenderer);
+
 		WidgetRenderer = nullptr;
 	}
+
 	UnRegisterHitTesterWithViewport();
 
 	SlateWindow.Reset();
+
 	WidgetRenderTarget = nullptr;
+
 	CurrentWidgetDrawSize = FIntPoint::ZeroValue;
 }
 
 void FRiveFullScreenUserWidget_PostProcessBase::TickRenderer(UWorld* World, float DeltaSeconds)
 {
 	check(World);
+
 	if (WidgetRenderTarget)
 	{
-		const float DrawScale = 1.0f;
+		const float DrawScale = 1.f;
 
 		const FIntPoint NewCalculatedWidgetSize = CalculateWidgetDrawSize(World);
+
 		if (NewCalculatedWidgetSize != CurrentWidgetDrawSize)
 		{
 			if (IsTextureSizeValid(NewCalculatedWidgetSize))
 			{
 				CurrentWidgetDrawSize = NewCalculatedWidgetSize;
-				WidgetRenderTarget->InitCustomFormat(CurrentWidgetDrawSize.X, CurrentWidgetDrawSize.Y, PF_B8G8R8A8, false);
+
+				constexpr bool bForceLinearGamma = false;
+
+				WidgetRenderTarget->InitCustomFormat(CurrentWidgetDrawSize.X, CurrentWidgetDrawSize.Y, PF_B8G8R8A8, bForceLinearGamma);
+				
 				WidgetRenderTarget->UpdateResourceImmediate();
+				
 				SlateWindow->Resize(CurrentWidgetDrawSize);
+				
 				if (CustomHitTestPath)
 				{
 					CustomHitTestPath->SetWidgetDrawSize(CurrentWidgetDrawSize);
@@ -259,26 +330,34 @@ FIntPoint FRiveFullScreenUserWidget_PostProcessBase::CalculateWidgetDrawSize(UWo
 			// See TickRenderer(), it will be resize on the next tick to the proper size.
 			// We initialized all the rendering with an small size.
 			const float SmallWidgetSize = 16.f;
+
 			FVector2D OutSize = FVector2D(SmallWidgetSize, SmallWidgetSize);
+
 			ViewportClient->GetViewportSize(OutSize);
+
 			if (OutSize.X < SMALL_NUMBER)
 			{
 				OutSize = FVector2D(SmallWidgetSize, SmallWidgetSize);
 			}
+
 			return OutSize.IntPoint();
 		}
 		
 		UE_LOG(LogRive, Warning, TEXT("CalculateWidgetDrawSize failed for game world."));
+
 		return FIntPoint::ZeroValue;
 	}
 
 #if WITH_EDITOR
+
 	if (const TSharedPtr<FSceneViewport> SharedActiveViewport = EditorTargetViewport.Pin())
 	{
 		return SharedActiveViewport->GetSize();
 	}
+
 	UE_LOG(LogRive, Warning, TEXT("CalculateWidgetDrawSize failed for editor world."));
-#endif
+
+#endif // WITH_EDITOR
 	
 	return FIntPoint::ZeroValue;
 }
@@ -286,6 +365,7 @@ FIntPoint FRiveFullScreenUserWidget_PostProcessBase::CalculateWidgetDrawSize(UWo
 bool FRiveFullScreenUserWidget_PostProcessBase::IsTextureSizeValid(FIntPoint Size) const
 {
 	const int32 MaxAllowedDrawSize = GetMax2DTextureDimension();
+
 	return Size.X > 0 && Size.Y > 0 && Size.X <= MaxAllowedDrawSize && Size.Y <= MaxAllowedDrawSize;
 }
 
@@ -297,6 +377,7 @@ void FRiveFullScreenUserWidget_PostProcessBase::RegisterHitTesterWithViewport(UW
 	}
 
 	const TSharedPtr<SViewport> EngineViewportWidget = GetViewport(World);
+
 	if (EngineViewportWidget && bReceiveHardwareInput)
 	{
 		if (EngineViewportWidget->GetCustomHitTestPath())
@@ -306,12 +387,15 @@ void FRiveFullScreenUserWidget_PostProcessBase::RegisterHitTesterWithViewport(UW
 		else
 		{
 			ViewportWidget = EngineViewportWidget;
+
 			CustomHitTestPath = MakeShared<UE::RiveUtilities::Private::FRiveWidgetPostProcessHitTester>(
 				World,
 				SlateWindow,
 				TAttribute<float>::CreateRaw(this, &FRiveFullScreenUserWidget_PostProcessBase::GetDPIScaleForPostProcessHitTester, TWeakObjectPtr<UWorld>(World))
 				);
+
 			CustomHitTestPath->SetWidgetDrawSize(CurrentWidgetDrawSize);
+
 			EngineViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
 		}
 	}
@@ -333,6 +417,7 @@ void FRiveFullScreenUserWidget_PostProcessBase::UnRegisterHitTesterWithViewport(
 	}
 
 	ViewportWidget.Reset();
+
 	CustomHitTestPath.Reset();
 }
 
@@ -344,11 +429,13 @@ TSharedPtr<SViewport> FRiveFullScreenUserWidget_PostProcessBase::GetViewport(UWo
 	}
 
 #if WITH_EDITOR
+
 	if (const TSharedPtr<FSceneViewport> TargetViewportPin = EditorTargetViewport.Pin())
 	{
 		return TargetViewportPin->GetViewportWidget().Pin();
 	}
-#endif
+
+#endif // WITH_EDITOR
 	
 	return nullptr;
 }
@@ -356,18 +443,24 @@ TSharedPtr<SViewport> FRiveFullScreenUserWidget_PostProcessBase::GetViewport(UWo
 float FRiveFullScreenUserWidget_PostProcessBase::GetDPIScaleForPostProcessHitTester(TWeakObjectPtr<UWorld> World) const
 {
 	FSceneViewport* Viewport = nullptr;
+
 	if (ensure(World.IsValid()) && World->IsGameWorld())
 	{
 		UGameViewportClient* ViewportClient = World->GetGameViewport();
+
 		Viewport = ensure(ViewportClient) ? ViewportClient->GetGameViewport() : nullptr;
 	}
 
 #if WITH_EDITOR
+
 	const TSharedPtr<FSceneViewport> ViewportPin = EditorTargetViewport.Pin();
+
 	Viewport = Viewport ? Viewport : ViewportPin.Get();
-#endif
+
+#endif // WITH_EDITOR
 
 	const bool bCanScale = Viewport && !Viewport->HasFixedSize();
+
 	if (!bCanScale)
 	{
 		return 1.f;
@@ -378,5 +471,6 @@ float FRiveFullScreenUserWidget_PostProcessBase::GetDPIScaleForPostProcessHitTes
 	// If this bit is skipped, then hovering widgets towards the bottom right will not work
 	// if system scale is > 100% AND the viewport size is not fixed (default).
 	const TSharedPtr<SWindow> ViewportWindow = Viewport->FindWindow();
+
 	return ViewportWindow ? ViewportWindow->GetDPIScaleFactor() : 1.f;
 }

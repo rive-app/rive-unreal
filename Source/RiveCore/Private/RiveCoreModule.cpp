@@ -12,16 +12,6 @@ void UE::Rive::Core::Private::FRiveCoreModule::ShutdownModule()
 {
 }
 
-UE::Rive::Core::FUnrealRiveFactory& UE::Rive::Core::Private::FRiveCoreModule::GetRiveFactory()
-{
-    if (!UnrealRiveFactory.IsValid())
-    {
-        UnrealRiveFactory = MakeUnique<UE::Rive::Core::FUnrealRiveFactory>();
-    }
-
-    return *UnrealRiveFactory.Get();
-}
-
 #undef LOCTEXT_NAMESPACE
 
 IMPLEMENT_MODULE(UE::Rive::Core::Private::FRiveCoreModule, RiveCore)

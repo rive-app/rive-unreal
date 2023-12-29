@@ -38,8 +38,6 @@ namespace UE::Rive::Core
             return FModuleManager::Get().IsModuleLoaded(ModuleName);
         }
 
-        virtual FUnrealRiveFactory& GetRiveFactory() = 0;
-
         /**
          * Attribute(s)
          */

@@ -16,13 +16,51 @@ struct FRiveFullScreenUserWidget_PostProcess : public FRiveFullScreenUserWidget_
 {
 	GENERATED_BODY()
 	
+	/**
+	 * Structor(s)
+	 */
+
+public:
+
 	FRiveFullScreenUserWidget_PostProcess();
+
+	//~ BEGIN : FRiveFullScreenUserWidget_PostProcessBase Interface
+
+public:
+
+	virtual void Hide(UWorld* World) override;
+
+private:
+
+	virtual bool OnRenderTargetInited() override;
+
+	//~ END : FRiveFullScreenUserWidget_PostProcessBase Interface
+
+	/**
+	 * Implementation(s)
+	 */
+
+public:
 
 	void SetCustomPostProcessSettingsSource(TWeakObjectPtr<UObject> InCustomPostProcessSettingsSource);
 	
 	bool Display(UWorld* World, UUserWidget* Widget, bool bInRenderToTextureOnly, TAttribute<float> InDPIScale);
-	virtual void Hide(UWorld* World) override;
+
 	void Tick(UWorld* World, float DeltaSeconds);
+
+private:
+
+	bool InitPostProcessComponent(UWorld* World);
+	
+	bool UpdateTargetPostProcessSettingsWithMaterial();
+	
+	void ReleasePostProcessComponent();
+
+	FPostProcessSettings* GetPostProcessSettings() const;
+
+	/**
+	 * Attribute(s)
+	 */
 
 private:
 	
@@ -41,12 +79,4 @@ private:
 	 * Optional. Some object that contains a FPostProcessSettings property. These settings will be used for PostProcessMaterialInstance.
 	 */
 	TWeakObjectPtr<UObject> CustomPostProcessSettingsSource;
-	
-	bool InitPostProcessComponent(UWorld* World);
-	bool UpdateTargetPostProcessSettingsWithMaterial();
-	void ReleasePostProcessComponent();
-	
-	virtual bool OnRenderTargetInited() override;
-
-	FPostProcessSettings* GetPostProcessSettings() const;
 };

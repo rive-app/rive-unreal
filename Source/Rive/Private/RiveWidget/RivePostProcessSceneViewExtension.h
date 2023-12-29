@@ -3,11 +3,9 @@
 #pragma once
 
 #include "SceneViewExtension.h"
-#include "UObject/WeakObjectPtrFwd.h"
 
 class UMaterialInterface;
 class UTextureRenderTarget2D;
-
 
 /**
  * Renders a post process material over the entirety of the screen.
@@ -22,24 +20,49 @@ class UTextureRenderTarget2D;
 class FRivePostProcessSceneViewExtension : public FSceneViewExtensionBase
 {
 	using Super = FSceneViewExtensionBase;
+
+	/**
+	 * Structor(s)
+	 */
+
 public:
 	
 	FRivePostProcessSceneViewExtension(const FAutoRegister& AutoRegister, UTextureRenderTarget2D& WidgetRenderTarget);
 
-	//~ISceneViewExtension interface
+	//~ BEGIN : ISceneViewExtension Interface
+
+public:
+
 	virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) override;
+
 	virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override;
+
 	virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) override;
+
 	virtual void PreRenderView_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& InView) override;
+
 	virtual void PreRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& InViewFamily) override;
+
 	virtual void PostRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& InViewFamily) override;
+
 	virtual bool IsActiveThisFrame_Internal(const FSceneViewExtensionContext& Context) const override;
-	//~ISceneViewExtension interface
+
+	//~ END : ISceneViewExtension Interface
+
+	/**
+	 * Implementation(s)
+	 */
+
+private:
+
+	void RenderMaterial_RenderThread(FRDGBuilder& GraphBuilder, const FSceneView& InView, FRDGTextureRef ViewFamilyTexture);
+
+	/**
+	 * Attribute(s)
+	 */
 
 private:
 	
 	/** Contains the widget that is supposed to be overlaid. */
 	TWeakObjectPtr<UTextureRenderTarget2D> WidgetRenderTarget;
-	
-	void RenderMaterial_RenderThread(FRDGBuilder& GraphBuilder, const FSceneView& InView, FRDGTextureRef ViewFamilyTexture);
 };

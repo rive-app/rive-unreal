@@ -22,12 +22,12 @@ public:
 
     bool LoadNativeArtboard(const TArray<uint8>& InBuffer);
 
+    // Just for testing
+    rive::Artboard* GetNativeArtBoard();
+
     /**
      * Attibute(s)
      */
-
-	// Just for testing
-	rive::Artboard* GetNativeArtBoard();
 
 private:
 

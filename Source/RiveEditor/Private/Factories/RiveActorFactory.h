@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "ActorFactories/ActorFactory.h"
 #include "RiveActorFactory.generated.h"
 
@@ -14,12 +13,23 @@ class RIVEEDITOR_API URiveActorFactory : public UActorFactory
 {
 	GENERATED_BODY()
 
+	/**
+	 * Structor(s)
+	 */
+
 public:
+
 	URiveActorFactory();
 	
-	//~ Begin UActorFactory Interface
+	//~ BEGIN : UActorFactory Interface
+	
+public:
+
 	virtual AActor* SpawnActor(UObject* InAsset, ULevel* InLevel, const FTransform& InTransform, const FActorSpawnParameters& InSpawnParams) override;
+	
 	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;
+	
 	virtual UObject* GetAssetFromActorInstance(AActor* ActorInstance) override;
-	//~ End UActorFactory Interface
+	
+	//~ END : UActorFactory Interface
 };

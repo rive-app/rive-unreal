@@ -19,7 +19,6 @@
 #include "SLevelViewport.h"
 #endif
 
-
 /////////////////////////////////////////////////////
 // Internal helper
 namespace
@@ -71,14 +70,16 @@ namespace
 				for (auto WeakWidgetIter = WidgetsToHide.CreateIterator(); WeakWidgetIter; ++WeakWidgetIter)
 				{
 					TWeakObjectPtr<URiveFullScreenUserWidget>& WeakWidget = *WeakWidgetIter;
+					
 					if (URiveFullScreenUserWidget* Widget = WeakWidget.Get())
 					{
 						if (Widget->IsDisplayed()
 							&& Widget->GetWidget()
 							&& (Widget->GetWidget()->GetWorld() == InWorld))
 						{
-							//Remove first since Hide removes object from the list
+							// Remove first since Hide removes object from the list
 							WeakWidgetIter.RemoveCurrent();
+					
 							Widget->Hide();
 						}
 					}
@@ -102,12 +103,14 @@ namespace
 bool FRiveFullScreenUserWidget_Viewport::Display(UWorld* World, UUserWidget* InWidget, TAttribute<float> InDPIScale)
 {
 	const TSharedPtr<SConstraintCanvas> FullScreenWidgetPinned = FullScreenCanvasWidget.Pin();
+	
 	if (InWidget == nullptr || World == nullptr || FullScreenWidgetPinned.IsValid())
 	{
 		return false;
 	}
 	
 	const TSharedRef<SConstraintCanvas> FullScreenCanvas = SNew(SConstraintCanvas);
+	
 	FullScreenCanvas->AddSlot()
 		.Offset(FMargin(0, 0, 0, 0))
 		.Anchors(FAnchors(0, 0, 1, 1))
@@ -122,28 +125,39 @@ bool FRiveFullScreenUserWidget_Viewport::Display(UWorld* World, UUserWidget* InW
 
 	
 	UGameViewportClient* ViewportClient = World->GetGameViewport();
+	
 	const bool bCanUseGameViewport = ViewportClient && World->IsGameWorld();
+	
 	if (bCanUseGameViewport)
 	{
 		FullScreenCanvasWidget = FullScreenCanvas;
+	
 		ViewportClient->AddViewportWidgetContent(FullScreenCanvas);
+		
 		return true;
 	}
 
 #if WITH_EDITOR
+
 	const TSharedPtr<FSceneViewport> PinnedTargetViewport = EditorTargetViewport.Pin();
+	
 	for (FLevelEditorViewportClient* Client : GEditor->GetLevelViewportClients())
 	{
 		const TSharedPtr<SLevelViewport> LevelViewport = StaticCastSharedPtr<SLevelViewport>(Client->GetEditorViewportWidget());
+	
 		if (LevelViewport.IsValid() && LevelViewport->GetSceneViewport() == PinnedTargetViewport)
 		{
 			LevelViewport->AddOverlayWidget(FullScreenCanvas);
+			
 			FullScreenCanvasWidget = FullScreenCanvas;
+		
 			OverlayWidgetLevelViewport = LevelViewport;
+			
 			return true;
 		}
 	}
-#endif
+
+#endif // WITH_EDITOR
 
 	return false;
 }
@@ -151,22 +165,27 @@ bool FRiveFullScreenUserWidget_Viewport::Display(UWorld* World, UUserWidget* InW
 void FRiveFullScreenUserWidget_Viewport::Hide(UWorld* World)
 {
 	TSharedPtr<SConstraintCanvas> FullScreenWidgetPinned = FullScreenCanvasWidget.Pin();
+	
 	if (FullScreenWidgetPinned.IsValid())
 	{
 		// Remove from Viewport and Fullscreen, in case the settings changed before we had the chance to hide.
 		UGameViewportClient* ViewportClient = World ? World->GetGameViewport() : nullptr;
+	
 		if (ViewportClient)
 		{
 			ViewportClient->RemoveViewportWidgetContent(FullScreenWidgetPinned.ToSharedRef());
 		}
 
 #if WITH_EDITOR
+		
 		if (const TSharedPtr<SLevelViewport> OverlayWidgetLevelViewportPinned = OverlayWidgetLevelViewport.Pin())
 		{
 			OverlayWidgetLevelViewportPinned->RemoveOverlayWidget(FullScreenWidgetPinned.ToSharedRef());
 		}
+		
 		OverlayWidgetLevelViewport.Reset();
-#endif
+
+#endif // WITH_EDITOR
 
 		FullScreenCanvasWidget.Reset();
 	}
@@ -177,13 +196,18 @@ URiveFullScreenUserWidget::URiveFullScreenUserWidget()
 	: CurrentDisplayType(ERiveWidgetDisplayType::Inactive)
 	, bDisplayRequested(false)
 {
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> PostProcessMaterial_Finder(TEXT("/Rive/Materials/WidgetPostProcessMaterial"));
-	PostProcessDisplayTypeWithBlendMaterial.PostProcessMaterial = PostProcessMaterial_Finder.Object;
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> M_PostProcessMaterial(TEXT("/Rive/Materials/WidgetPostProcessMaterial"));
+
+	if (M_PostProcessMaterial.Succeeded())
+	{
+		PostProcessDisplayTypeWithBlendMaterial.PostProcessMaterial = M_PostProcessMaterial.Object;
+	}
 }
 
 void URiveFullScreenUserWidget::BeginDestroy()
 {
 	Hide();
+
 	Super::BeginDestroy();
 }
 
@@ -196,15 +220,25 @@ void URiveFullScreenUserWidget::PostEditChangeProperty(FPropertyChangedEvent& Pr
 	if (Property && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
 		static FName NAME_WidgetClass = GET_MEMBER_NAME_CHECKED(URiveFullScreenUserWidget, WidgetClass);
+		
 		static FName NAME_EditorDisplayType = GET_MEMBER_NAME_CHECKED(URiveFullScreenUserWidget, EditorDisplayType);
+		
 		static FName NAME_PostProcessMaterial = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessMaterial);
+		
 		static FName NAME_WidgetDrawSize = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, WidgetDrawSize);
+		
 		static FName NAME_WindowFocusable = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, bWindowFocusable);
+		
 		static FName NAME_WindowVisibility = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, WindowVisibility);
+		
 		static FName NAME_ReceiveHardwareInput = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, bReceiveHardwareInput);
+		
 		static FName NAME_RenderTargetBackgroundColor = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, RenderTargetBackgroundColor);
+		
 		static FName NAME_RenderTargetBlendMode = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, RenderTargetBlendMode);
+		
 		static FName NAME_PostProcessTintColorAndOpacity = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessTintColorAndOpacity);
+		
 		static FName NAME_PostProcessOpacityFromTexture = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessOpacityFromTexture);
 
 		if (Property->GetFName() == NAME_WidgetClass
@@ -220,9 +254,12 @@ void URiveFullScreenUserWidget::PostEditChangeProperty(FPropertyChangedEvent& Pr
 			|| Property->GetFName() == NAME_PostProcessOpacityFromTexture
 			)
 		{
-			bool bWasRequestedDisplay = bDisplayRequested;
+			const bool bWasRequestedDisplay = bDisplayRequested;
+		
 			UWorld* CurrentWorld = World.Get();
+			
 			Hide();
+			
 			if (bWasRequestedDisplay && CurrentWorld)
 			{
 				Display(CurrentWorld);
@@ -232,51 +269,63 @@ void URiveFullScreenUserWidget::PostEditChangeProperty(FPropertyChangedEvent& Pr
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
-#endif
+
+#endif // WITH_EDITOR
 
 bool URiveFullScreenUserWidget::Display(UWorld* InWorld)
 {
 	bDisplayRequested = true;
+
 	World = InWorld;
 
 #if WITH_EDITOR
+
 	if (!EditorTargetViewport.IsValid() && !World->IsGameWorld())
 	{
-		UE_LOG(LogRive, Log, TEXT("No TargetViewport set. Defaulting to FLevelEditorModule::GetFirstActiveLevelViewport."))
+		UE_LOG(LogRive, Log, TEXT("No TargetViewport set. Defaulting to FLevelEditorModule::GetFirstActiveLevelViewport."));
+		
 		if (FModuleManager::Get().IsModuleLoaded(NAME_LevelEditorName))
 		{
 			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(NAME_LevelEditorName);
+		
 			const TSharedPtr<SLevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveLevelViewport();
+			
 			EditorTargetViewport = ActiveLevelViewport ? ActiveLevelViewport->GetSharedActiveViewport() : nullptr;
 		}
 
 		if (!EditorTargetViewport.IsValid())
 		{
-			UE_LOG(LogRive, Error, TEXT("FLevelEditorModule::GetFirstActiveLevelViewport found no level viewport. URiveFullScreenUserWidget will not display."))
+			UE_LOG(LogRive, Error, TEXT("FLevelEditorModule::GetFirstActiveLevelViewport found no level viewport. URiveFullScreenUserWidget will not display."));
+		
 			return false;
 		}
 	}
 	
 	// Make sure that each display type has also received the EditorTargetViewport
 	SetEditorTargetViewport(EditorTargetViewport);
-#endif
+
+#endif // WITH_EDITOR
 
 	bool bWasAdded = false;
 
 	if (WidgetClass && InWorld && ShouldDisplay(InWorld) && CurrentDisplayType == ERiveWidgetDisplayType::Inactive)
 	{
 		const bool bCreatedWidget = InitWidget();
+		
 		if (!bCreatedWidget)
 		{
 			UE_LOG(LogRive, Error, TEXT("Failed to create subwidget for URiveFullScreenUserWidget."));
+		
 			return false;
 		}
 		
 		CurrentDisplayType = GetDisplayType(InWorld);
+
 		TAttribute<float> GetDpiScaleAttribute = TAttribute<float>::CreateLambda([WeakThis = TWeakObjectPtr<URiveFullScreenUserWidget>(this)]()
 		{
 			return WeakThis.IsValid() ? WeakThis->GetViewportDPIScale() : 1.f;
 		});
+
 		if (CurrentDisplayType == ERiveWidgetDisplayType::Viewport)
 		{
 			bWasAdded = ViewportDisplayType.Display(InWorld, Widget, MoveTemp(GetDpiScaleAttribute));
@@ -293,6 +342,7 @@ bool URiveFullScreenUserWidget::Display(UWorld* InWorld)
 		if (bWasAdded)
 		{
 			FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &URiveFullScreenUserWidget::OnLevelRemovedFromWorld);
+		
 			FWorldDelegates::OnWorldCleanup.AddUObject(this, &URiveFullScreenUserWidget::OnWorldCleanup);
 
 			RiveFullScreenUserWidgetPrivate::FWorldCleanupListener::Get()->AddWidget(this);
@@ -311,6 +361,7 @@ void URiveFullScreenUserWidget::Hide()
 		ReleaseWidget();
 
 		UWorld* WorldInstance = World.Get();
+
 		if (CurrentDisplayType == ERiveWidgetDisplayType::Viewport)
 		{
 			ViewportDisplayType.Hide(WorldInstance);
@@ -323,12 +374,16 @@ void URiveFullScreenUserWidget::Hide()
 		{
 			PostProcessWithSceneViewExtensions.Hide(WorldInstance);
 		}
+		
 		CurrentDisplayType = ERiveWidgetDisplayType::Inactive;
 	}
 
 	FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
+
 	FWorldDelegates::OnWorldCleanup.RemoveAll(this);
+	
 	RiveFullScreenUserWidgetPrivate::FWorldCleanupListener::Get()->RemoveWidget(this);
+	
 	World.Reset();
 }
 
@@ -337,6 +392,7 @@ void URiveFullScreenUserWidget::Tick(float DeltaSeconds)
 	if (CurrentDisplayType != ERiveWidgetDisplayType::Inactive)
 	{
 		UWorld* CurrentWorld = World.Get();
+
 		if (CurrentWorld == nullptr)
 		{
 			Hide();
@@ -352,11 +408,12 @@ void URiveFullScreenUserWidget::Tick(float DeltaSeconds)
 	}
 }
 
-void URiveFullScreenUserWidget::SetDisplayTypes(ERiveWidgetDisplayType InEditorDisplayType,
-	ERiveWidgetDisplayType InGameDisplayType, ERiveWidgetDisplayType InPIEDisplayType)
+void URiveFullScreenUserWidget::SetDisplayTypes(ERiveWidgetDisplayType InEditorDisplayType, ERiveWidgetDisplayType InGameDisplayType, ERiveWidgetDisplayType InPIEDisplayType)
 {
 	EditorDisplayType = InEditorDisplayType;
+
 	GameDisplayType = InGameDisplayType;
+
 	PIEDisplayType = InPIEDisplayType;
 }
 
@@ -365,8 +422,7 @@ void URiveFullScreenUserWidget::SetRiveActor(ARiveActor* InActor)
 	RiveActor = InActor;
 }
 
-void URiveFullScreenUserWidget::SetCustomPostProcessSettingsSource(
-	TWeakObjectPtr<UObject> InCustomPostProcessSettingsSource)
+void URiveFullScreenUserWidget::SetCustomPostProcessSettingsSource(TWeakObjectPtr<UObject> InCustomPostProcessSettingsSource)
 {
 	PostProcessDisplayTypeWithBlendMaterial.SetCustomPostProcessSettingsSource(InCustomPostProcessSettingsSource);
 }
@@ -374,15 +430,19 @@ void URiveFullScreenUserWidget::SetCustomPostProcessSettingsSource(
 bool URiveFullScreenUserWidget::ShouldDisplay(UWorld* InWorld) const
 {
 #if UE_SERVER
+
 	return false;
+
 #else
+
 	if (GUsingNullRHI || HasAnyFlags(RF_ArchetypeObject | RF_ClassDefaultObject) || IsRunningDedicatedServer())
 	{
 		return false;
 	}
 
 	return GetDisplayType(InWorld) != ERiveWidgetDisplayType::Inactive;
-#endif //!UE_SERVER
+
+#endif // !UE_SERVER
 }
 
 ERiveWidgetDisplayType URiveFullScreenUserWidget::GetDisplayType(UWorld* InWorld) const
@@ -393,7 +453,9 @@ ERiveWidgetDisplayType URiveFullScreenUserWidget::GetDisplayType(UWorld* InWorld
 		{
 			return GameDisplayType;
 		}
+
 #if WITH_EDITOR
+
 		else if (InWorld->WorldType == EWorldType::PIE)
 		{
 			return PIEDisplayType;
@@ -402,8 +464,11 @@ ERiveWidgetDisplayType URiveFullScreenUserWidget::GetDisplayType(UWorld* InWorld
 		{
 			return EditorDisplayType;
 		}
+
 #endif // WITH_EDITOR
+
 	}
+
 	return ERiveWidgetDisplayType::Inactive;
 }
 
@@ -420,51 +485,67 @@ void URiveFullScreenUserWidget::SetWidgetClass(TSubclassOf<UUserWidget> InWidget
 	}
 }
 
-FRiveFullScreenUserWidget_PostProcessBase* URiveFullScreenUserWidget::GetPostProcessDisplayTypeSettingsFor(
-	ERiveWidgetDisplayType Type)
+FRiveFullScreenUserWidget_PostProcessBase* URiveFullScreenUserWidget::GetPostProcessDisplayTypeSettingsFor(ERiveWidgetDisplayType Type)
 {
 	return const_cast<FRiveFullScreenUserWidget_PostProcessBase*>(const_cast<const URiveFullScreenUserWidget*>(this)->GetPostProcessDisplayTypeSettingsFor(Type));
 }
 
-const FRiveFullScreenUserWidget_PostProcessBase* URiveFullScreenUserWidget::GetPostProcessDisplayTypeSettingsFor(
-	ERiveWidgetDisplayType Type) const
+const FRiveFullScreenUserWidget_PostProcessBase* URiveFullScreenUserWidget::GetPostProcessDisplayTypeSettingsFor(ERiveWidgetDisplayType Type) const
 {
 	switch (Type)
 	{
-	case ERiveWidgetDisplayType::PostProcessWithBlendMaterial: return &PostProcessDisplayTypeWithBlendMaterial;
-	case ERiveWidgetDisplayType::PostProcessSceneViewExtension: return &PostProcessWithSceneViewExtensions;
+		case ERiveWidgetDisplayType::PostProcessWithBlendMaterial:
+		{
+			return &PostProcessDisplayTypeWithBlendMaterial;
+		}
+		case ERiveWidgetDisplayType::PostProcessSceneViewExtension:
+		{
+			return &PostProcessWithSceneViewExtensions;
+		}
+		case ERiveWidgetDisplayType::Inactive: // Fall-through
+		case ERiveWidgetDisplayType::Viewport: 
+		{
+			ensureMsgf(false, TEXT("GetPostProcessDisplayTypeSettingsFor should only be called with PostProcessWithBlendMaterial or PostProcessSceneViewExtension"));
 		
-	case ERiveWidgetDisplayType::Inactive: // Fall-through
-	case ERiveWidgetDisplayType::Viewport: 
-		ensureMsgf(false, TEXT("GetPostProcessDisplayTypeSettingsFor should only be called with PostProcessWithBlendMaterial or PostProcessSceneViewExtension"));
-		break;
-	default:
-		checkNoEntry();
+			break;
+		}
+		default:
+			checkNoEntry();
 	}
+
 	return nullptr;
 }
 
 #if WITH_EDITOR
+
 void URiveFullScreenUserWidget::SetEditorTargetViewport(TWeakPtr<FSceneViewport> InTargetViewport)
 {
 	EditorTargetViewport = InTargetViewport;
+
 	ViewportDisplayType.EditorTargetViewport = InTargetViewport;
+
 	PostProcessDisplayTypeWithBlendMaterial.EditorTargetViewport = InTargetViewport;
+
 	PostProcessWithSceneViewExtensions.EditorTargetViewport = InTargetViewport;
 }
 
 void URiveFullScreenUserWidget::ResetEditorTargetViewport()
 {
 	EditorTargetViewport.Reset();
+
 	ViewportDisplayType.EditorTargetViewport.Reset();
+
 	PostProcessDisplayTypeWithBlendMaterial.EditorTargetViewport.Reset();
+
 	PostProcessWithSceneViewExtensions.EditorTargetViewport.Reset();
 }
-#endif
+
+#endif // WITH_EDITOR
 
 bool URiveFullScreenUserWidget::InitWidget()
 {
 	const bool bCanCreate = !Widget && WidgetClass && ensure(World.Get()) && FSlateApplication::IsInitialized();
+	
 	if (!bCanCreate)
 	{
 		return false;
@@ -472,8 +553,10 @@ bool URiveFullScreenUserWidget::InitWidget()
 
 	// Could fail e.g. if the class has been marked deprecated or abstract.
 	Widget = CreateWidget(World.Get(), WidgetClass);
+	
 	UE_CLOG(!Widget, LogRive, Warning, TEXT("Failed to create widget with class %s. Review the log for more info."), *WidgetClass->GetPathName())
-	if (Widget)
+	
+		if (Widget)
 	{
 		Widget->SetFlags(RF_Transient);
 	}
@@ -491,23 +574,29 @@ FVector2D URiveFullScreenUserWidget::FindSceneViewportSize()
 	ensure(World.IsValid());
 	
 	const UWorld* CurrentWorld = World.Get();
+	
 	const bool bIsPlayWorld = CurrentWorld && (CurrentWorld->WorldType == EWorldType::Game || CurrentWorld->WorldType == EWorldType::PIE); 
+	
 	if (bIsPlayWorld)
 	{
 		if (UGameViewportClient* ViewportClient = World->GetGameViewport())
 		{
 			FVector2D OutSize;
+	
 			ViewportClient->GetViewportSize(OutSize);
+			
 			return OutSize;
 		}
 	}
 
 #if WITH_EDITOR
+	
 	if (const TSharedPtr<FSceneViewport> TargetViewportPin = EditorTargetViewport.Pin())
 	{
 		return TargetViewportPin->GetSize();
 	}
-#endif
+
+#endif // WITH_EDITOR
 
 	ensureMsgf(false, TEXT(
 		"FindSceneViewportSize failed. Likely Hide() was called (making World = nullptr) or EditorTargetViewport "
@@ -515,15 +604,18 @@ FVector2D URiveFullScreenUserWidget::FindSceneViewportSize()
 		"FindSceneViewportSize. Investigate whether something was not cleaned up correctly!"
 		)
 	);
+
 	return FVector2d::ZeroVector;
 }
 
 float URiveFullScreenUserWidget::GetViewportDPIScale()
 {
-	float UIScale = 1.0f;
-	float PlatformScale = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(10.0f, 10.0f);
+	float UIScale = 1.f;
+	
+	float PlatformScale = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(10.f, 10.f);
 
 	UWorld* CurrentWorld = World.Get();
+
 	if ((CurrentDisplayType == ERiveWidgetDisplayType::Viewport) && CurrentWorld && (CurrentWorld->WorldType == EWorldType::Game || CurrentWorld->WorldType == EWorldType::PIE))
 	{
 		// If we are in Game or PIE in Viewport display mode, the GameLayerManager will scale correctly so just return the Platform Scale
@@ -533,6 +625,7 @@ float URiveFullScreenUserWidget::GetViewportDPIScale()
 	{
 		// Otherwise when in Editor mode, the editor automatically scales to the platform size, so we only care about the UI scale
 		const FIntPoint ViewportSize = FindSceneViewportSize().IntPoint();
+
 		UIScale = GetDefault<UUserInterfaceSettings>()->GetDPIScaleBasedOnSize(ViewportSize);
 	}
 
@@ -556,4 +649,3 @@ void URiveFullScreenUserWidget::OnWorldCleanup(UWorld* InWorld, bool bSessionEnd
 		Hide();
 	}
 }
-

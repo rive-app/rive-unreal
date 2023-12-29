@@ -18,12 +18,20 @@ void URiveFile::Tick(float InDeltaSeconds)
     if (IsRendering())
     {
         // Maybe only once
-        //if (bDrawOnceTest == false)
+        if (bDrawOnceTest == false)
         {
-           RiveRenderTarget->DrawArtboard(TEnumAsByte<ERiveFitType>(RiveFitType).GetIntValue(), RiveAlignment.X, RiveAlignment.Y, RiveArtboard->GetNativeArtBoard(), DebugColor);
-            bDrawOnceTest = true;
+#if WITH_RIVE
+
+            if (rive::Artboard* NativeArtboard = RiveArtboard->GetNativeArtBoard())
+            {
+                RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignment.X, RiveAlignment.Y, NativeArtboard, DebugColor);
+
+                bDrawOnceTest = true;
+            }
+
+#endif // WITH_RIVE
         }
-    
+
         CountdownRenderingTickCounter--;
     }
 }
@@ -52,23 +60,18 @@ FLinearColor URiveFile::GetDebugColor() const
 
 void URiveFile::Initialize()
 {
-    //if (RiveArtboard.IsNull())
+    RiveArtboard = NewObject<URiveArtboard>(this);
+
+    RiveArtboard->LoadNativeArtboard(TempFileBuffer);
+
+    if (UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
     {
-        RiveArtboard = NewObject<URiveArtboard>(this);
+        RenderTarget = RiveRenderer->CreateDefaultRenderTarget({ 800, 1000 });
 
-        RiveArtboard->LoadNativeArtboard(TempFileBuffer);
-    }
-    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-    RenderTarget = RiveRenderer->CreateDefaultRenderTarget({ 800, 1000 });
-    RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTarget());
-    RiveRenderTarget->Initialize();
+        RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTarget());
 
-    //if (bIsInitialized == false)
-    {
+        RiveRenderTarget->Initialize();
 
-        // Not the best solution, just for testing we can do here. The problem that won't cover the user update texture in UI,
-        // we would need to update texture in renderer
-        check(RiveRenderer);
         bIsInitialized = true;
     }
 }

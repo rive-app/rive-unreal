@@ -18,8 +18,18 @@ struct FRiveFullScreenUserWidget_PostProcessWithSVE : public FRiveFullScreenUser
 {
 	GENERATED_BODY()
 
+	//~ BEGIN : FRiveFullScreenUserWidget_PostProcessBase Interface
+
+	virtual void Hide(UWorld* World) override;
+
+	//~ END : FRiveFullScreenUserWidget_PostProcessBase Interface
+
+	/**
+	 * Implementation(s)
+	 */
+
 	bool Display(UWorld* World, UUserWidget* Widget, TAttribute<float> InDPIScale);
-	void Hide(UWorld* World);
+
 	void Tick(UWorld* World, float DeltaSeconds);
 
 	/**
@@ -30,6 +40,10 @@ struct FRiveFullScreenUserWidget_PostProcessWithSVE : public FRiveFullScreenUser
 	 * All functors are not retained when Hide(...) is called: they are removed
 	 */
 	RIVE_API void RegisterIsActiveFunctor(FSceneViewExtensionIsActiveFunctor IsActiveFunctor);
+
+	/**
+	 * Attribute(s)
+	 */
 
 private:
 

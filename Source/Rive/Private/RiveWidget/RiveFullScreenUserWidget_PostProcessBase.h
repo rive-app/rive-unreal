@@ -33,6 +33,65 @@ struct FRiveFullScreenUserWidget_PostProcessBase
 	GENERATED_BODY()
 	
 	/**
+	 * Structor(s)
+	 */
+
+public:
+
+	FRiveFullScreenUserWidget_PostProcessBase();
+
+	virtual ~FRiveFullScreenUserWidget_PostProcessBase() = default;
+
+	/**
+	 * Implementation(s)
+	 */
+
+public:
+
+	/** Deinits this output type */
+	virtual void Hide(UWorld* World);
+
+	TSharedPtr<SVirtualWindow> RIVE_API GetSlateWindow() const;
+
+protected:
+
+	bool CreateRenderer(UWorld* World, UUserWidget* Widget, TAttribute<float> InDPIScale);
+
+	virtual void ReleaseRenderer();
+
+	void TickRenderer(UWorld* World, float DeltaSeconds);
+
+private:
+
+	/** Creates the post process material and sets up its parameters. */
+	virtual bool OnRenderTargetInited()
+	{
+		return true;
+	};
+
+	/** Determines widget size depending on the viewport type (PIE / Game) */
+	FIntPoint CalculateWidgetDrawSize(UWorld* World);
+
+	bool IsTextureSizeValid(FIntPoint Size) const;
+
+	/** Starts detecting input to viewport and relays it to the user widget. */
+	void RegisterHitTesterWithViewport(UWorld* World);
+
+	void UnRegisterHitTesterWithViewport();
+
+	/** Gets the viewport to register the hit tester with. */
+	TSharedPtr<SViewport> GetViewport(UWorld* World) const;
+
+	/** Determines the DPI to apply for clicks depending on the type of viewport (PIE / Game). */
+	float GetDPIScaleForPostProcessHitTester(TWeakObjectPtr<UWorld> World) const;
+
+	/**
+	 * Attribute(s)
+	 */
+
+public:
+
+	/**
 	 * Post process material used to display the widget.
 	 * SlateUI [Texture]
 	 * TintColorAndOpacity [Vector]
@@ -82,28 +141,16 @@ struct FRiveFullScreenUserWidget_PostProcessBase
 	TObjectPtr<UTextureRenderTarget2D> WidgetRenderTarget;
 
 #if WITH_EDITOR
+
 	/**
 	 * The viewport to use for displaying.
 	 * 
 	 * Defaults to GetFirstActiveLevelViewport().
 	 */
 	TWeakPtr<FSceneViewport> EditorTargetViewport;
-#endif
 
-	FRiveFullScreenUserWidget_PostProcessBase();
-	virtual ~FRiveFullScreenUserWidget_PostProcessBase() = default;
+#endif // WITH_EDITOR
 
-	/** Deinits this output type */
-	virtual void Hide(UWorld* World);
-	
-	TSharedPtr<SVirtualWindow> RIVE_API GetSlateWindow() const;
-
-protected:
-
-	bool CreateRenderer(UWorld* World, UUserWidget* Widget, TAttribute<float> InDPIScale);
-	virtual void ReleaseRenderer();
-	void TickRenderer(UWorld* World, float DeltaSeconds);
-	
 private:
 	
 	/** Helper class for drawing widgets to a render target. */
@@ -119,19 +166,4 @@ private:
 	
 	/** Hit tester when we want the hardware input. */
 	TSharedPtr<UE::RiveUtilities::Private::FRiveWidgetPostProcessHitTester> CustomHitTestPath;
-
-	/** Creates the post process material and sets up its parameters. */
-	virtual bool OnRenderTargetInited() { return true; };
-	
-	/** Determines widget size depending on the viewport type (PIE / Game) */
-	FIntPoint CalculateWidgetDrawSize(UWorld* World);
-	bool IsTextureSizeValid(FIntPoint Size) const;
-
-	/** Starts detecting input to viewport and relays it to the user widget. */
-	void RegisterHitTesterWithViewport(UWorld* World);
-	void UnRegisterHitTesterWithViewport();
-	/** Gets the viewport to register the hit tester with. */
-	TSharedPtr<SViewport> GetViewport(UWorld* World) const;
-	/** Determines the DPI to apply for clicks depending on the type of viewport (PIE / Game). */
-	float GetDPIScaleForPostProcessHitTester(TWeakObjectPtr<UWorld> World) const;
 };

@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "RiveFullScreenUserWidget_PostProcess.h"
 #include "RiveFullScreenUserWidget_PostProcessWithSVE.h"
 #include "UObject/Object.h"
@@ -18,10 +17,13 @@ enum class ERiveWidgetDisplayType : uint8
 {
 	/** Do not display. */
 	Inactive,
+
 	/** Display on a game viewport. */
 	Viewport,
+
 	/** Display by adding post process material via post process volume settings. Widget added only over area rendered by anamorphic squeeze. */
 	PostProcessWithBlendMaterial,
+
 	/** Display by adding post process material via SceneViewExtensions. Widget added over entire viewport ignoring anamorphic squeeze.  */
 	PostProcessSceneViewExtension,
 };
@@ -30,17 +32,30 @@ USTRUCT()
 struct FRiveFullScreenUserWidget_Viewport
 {
 	GENERATED_BODY()
+	
+	/**
+	 * Implementation(s)
+	 */
+
+public:
 
 	bool Display(UWorld* World, UUserWidget* InWidget, TAttribute<float> InDPIScale);
+
 	void Hide(UWorld* World);
 
+	/**
+	 * Attribute(s)
+	 */
+
 #if WITH_EDITOR
+
 	/**
 	 * The viewport to use for displaying.
 	 * Defaults to GetFirstActiveLevelViewport().
 	 */
 	TWeakPtr<FSceneViewport> EditorTargetViewport;
-#endif
+
+#endif // WITH_EDITOR
 
 private:
 
@@ -48,32 +63,53 @@ private:
 	TWeakPtr<SConstraintCanvas> FullScreenCanvasWidget;
 
 #if WITH_EDITOR
+
 	/** Level viewport the widget was added to. */
 	TWeakPtr<SLevelViewport> OverlayWidgetLevelViewport;
-#endif
+
+#endif // WITH_EDITOR
 };
 
 /**
  * Will set the Widgets on a viewport either by Widgets are first rendered to a render target, then that render target is displayed in the world.
  */
-UCLASS(meta=(ShowOnlyInnerProperties))
+UCLASS(Meta = (ShowOnlyInnerProperties))
 class RIVE_API URiveFullScreenUserWidget : public UObject
 {
 	GENERATED_BODY()
+
+	/**
+	 * Structor(s)
+	 */
 
 public:
 
 	URiveFullScreenUserWidget();
 
-	//~ Begin UObject interface
+	//~ BEGIN : UObject Interface
+
+public:
+
 	virtual void BeginDestroy() override;
+
 #if WITH_EDITOR
+
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-	//~ End UObject Interface
+
+#endif // WITH_EDITOR
+
+	//~ END : UObject Interface
+
+	/**
+	 * Implementation(s)
+	 */
+
+public:
 
 	virtual bool Display(UWorld* World);
+	
 	virtual void Hide();
+	
 	virtual void Tick(float DeltaTime);
 
 	/** Sets the way the widget is supposed to be displayed */
@@ -90,7 +126,9 @@ public:
 	void SetCustomPostProcessSettingsSource(TWeakObjectPtr<UObject> InCustomPostProcessSettingsSource);
 	
 	bool ShouldDisplay(UWorld* World) const;
+
 	ERiveWidgetDisplayType GetDisplayType(UWorld* World) const;
+
 	bool IsDisplayed() const;
 	
 	/** Get a pointer to the inner widget. Note: This should not be stored! */
@@ -98,22 +136,32 @@ public:
 
 	/** Gets the widget class being displayed */
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
+
 	/** Sets the widget class to be displayed. This must be called while not widget is being displayed - the class will not be updated while IsDisplayed().  */
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
 	constexpr static bool DoesDisplayTypeUsePostProcessSettings(ERiveWidgetDisplayType Type) { return Type == ERiveWidgetDisplayType::PostProcessSceneViewExtension || Type == ERiveWidgetDisplayType::PostProcessWithBlendMaterial; }
+	
 	/** Returns the base post process settings for the given type if DoesDisplayTypeUsePostProcessSettings(Type) returns true. */
 	FRiveFullScreenUserWidget_PostProcessBase* GetPostProcessDisplayTypeSettingsFor(ERiveWidgetDisplayType Type);
+	
 	FRiveFullScreenUserWidget_PostProcess& GetPostProcessDisplayTypeWithBlendMaterialSettings() { return PostProcessDisplayTypeWithBlendMaterial; }
+	
 	FRiveFullScreenUserWidget_PostProcess& GetComposureDisplayTypeSettings() { return PostProcessDisplayTypeWithBlendMaterial; }
+	
 	FRiveFullScreenUserWidget_PostProcessWithSVE& GetPostProcessDisplayTypeWithSceneViewExtensionsSettings() { return PostProcessWithSceneViewExtensions; }
+	
 	/** Returns the base post process settings for the given type if DoesDisplayTypeUsePostProcessSettings(Type) returns true. */
 	const FRiveFullScreenUserWidget_PostProcessBase* GetPostProcessDisplayTypeSettingsFor(ERiveWidgetDisplayType Type) const;
+	
 	const FRiveFullScreenUserWidget_PostProcess& GetPostProcessDisplayTypeWithBlendMaterialSettings() const { return PostProcessDisplayTypeWithBlendMaterial; }
+	
 	const FRiveFullScreenUserWidget_PostProcess& GetComposureDisplayTypeSettings() const { return PostProcessDisplayTypeWithBlendMaterial; }
+	
 	const FRiveFullScreenUserWidget_PostProcessWithSVE& GetPostProcessDisplayTypeWithSceneViewExtensionsSettings() const { return PostProcessWithSceneViewExtensions; }
 
 #if WITH_EDITOR
+
 	/**
 	 * Sets the TargetViewport to use on both the Viewport and the PostProcess class.
 	 * 
@@ -121,9 +169,31 @@ public:
 	 * Defaults to GetFirstActiveLevelViewport().
 	 */
 	void SetEditorTargetViewport(TWeakPtr<FSceneViewport> InTargetViewport);
+
 	/** Resets the TargetViewport  */
 	void ResetEditorTargetViewport();
-#endif
+
+#endif // WITH_EDITOR
+
+protected:
+
+	bool InitWidget();
+
+	void ReleaseWidget();
+
+	FVector2D FindSceneViewportSize();
+
+	float GetViewportDPIScale();
+
+private:
+
+	void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
+
+	void OnWorldCleanup(UWorld* InWorld, bool bSessionEnded, bool bCleanupResources);
+
+	/**
+	 * Attribute(s)
+	 */
 
 protected:
 	
@@ -155,12 +225,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Post Process (Scene View Extensions)")
 	FRiveFullScreenUserWidget_PostProcessWithSVE PostProcessWithSceneViewExtensions;
 	
-	bool InitWidget();
-	void ReleaseWidget();
-
-	FVector2D FindSceneViewportSize();
-	float GetViewportDPIScale();
-
 private:
 	
 	/** The User Widget object displayed and managed by this component */
@@ -183,13 +247,12 @@ private:
 	bool bDisplayRequested;
 
 #if WITH_EDITOR
+
 	/**
 	 * The viewport to use for displaying.
 	 * Defaults to GetFirstActiveLevelViewport().
 	 */
 	TWeakPtr<FSceneViewport> EditorTargetViewport;
-#endif
-	
-	void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
-	void OnWorldCleanup(UWorld* InWorld, bool bSessionEnded, bool bCleanupResources);
+
+#endif // WITH_EDITOR
 };

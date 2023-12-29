@@ -18,21 +18,23 @@ UE::Rive::Assets::FUnrealRiveFile::FUnrealRiveFile(const uint8* InBytes, uint32 
 
 #if WITH_RIVE
 
-rive::ImportResult UE::Rive::Assets::FUnrealRiveFile::Import(Core::FUnrealRiveFactory* InRiveFactory, Assets::FUnrealRiveFileAssetLoader* InAssetLoader)
+rive::ImportResult UE::Rive::Assets::FUnrealRiveFile::Import(rive::Factory* InRiveFactory, Assets::FUnrealRiveFileAssetLoader* InAssetLoader)
 {
     rive::ImportResult ImportResult;
 
     NativeFilePtr = rive::File::import(NativeFileSpan, InRiveFactory, &ImportResult, InAssetLoader == nullptr ? FileAssetLoader.Get() : InAssetLoader);
 
-    ArtboardInstance = NativeFilePtr->artboard()->instance();
-    ArtboardInstance->advance(0.0);
+    if (rive::Artboard* NativeArtboard = NativeFilePtr->artboard())
+    {
+        NativeArtboard->advance(0);
+    }
 
-    //rive::StatusCode StatusCode = ArtboardInstance->initialize();
+    /*rive::StatusCode StatusCode = Artboard->initialize();
 
-    // if (StatusCode != rive::StatusCode::Ok)
-    // {
-    //     UE_LOG(LogTemp, Warning, TEXT("not initialize"));
-    // }
+    if (StatusCode != rive::StatusCode::Ok)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("not initialize"));
+    }*/
 
     PrintStats();
 
@@ -41,14 +43,21 @@ rive::ImportResult UE::Rive::Assets::FUnrealRiveFile::Import(Core::FUnrealRiveFa
 
 rive::Artboard* UE::Rive::Assets::FUnrealRiveFile::GetNativeArtBoard()
 {
-    return ArtboardInstance.get();
+    if (!NativeFilePtr)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard as we have detected an empty rive file."));
+
+        return nullptr;
+    }
+
+    return NativeFilePtr->artboard();
 }
 
 void UE::Rive::Assets::FUnrealRiveFile::PrintStats()
 {
     if (!NativeFilePtr)
     {
-        UE_LOG(LogRiveCore, Error, TEXT("Empty rive file detected."));
+        UE_LOG(LogRiveCore, Error, TEXT("Could not print statistics as we have detected an empty rive file."));
 
         return;
     }

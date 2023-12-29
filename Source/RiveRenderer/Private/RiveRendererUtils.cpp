@@ -15,6 +15,7 @@ UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRen
     RenderTarget->bAutoGenerateMips = false;
 
     RenderTarget->OverrideFormat = PixelFormat;
+
     RenderTarget->bCanCreateUAV = bCanCreateUAV;
     
     RenderTarget->ResizeTarget(InTargetSize.X, InTargetSize.Y);
@@ -39,9 +40,9 @@ void UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(FRHICommandListImmed
     // Register an external RDG texture from the output buffer
     FRDGTexture* OutputTexture = GraphBuilder.RegisterExternalTexture(CreateRenderTarget(DestTexture, TEXT("PixelCaptureCopyDestTexture")));
 
-    if (InputTexture->Desc.Format == OutputTexture->Desc.Format &&
-        InputTexture->Desc.Extent.X == OutputTexture->Desc.Extent.X &&
-        InputTexture->Desc.Extent.Y == OutputTexture->Desc.Extent.Y)
+    if (InputTexture->Desc.Format == OutputTexture->Desc.Format
+        && InputTexture->Desc.Extent.X == OutputTexture->Desc.Extent.X
+        && InputTexture->Desc.Extent.Y == OutputTexture->Desc.Extent.Y)
     {
         // The formats are the same and size are the same. simple copy
         AddDrawTexturePass(

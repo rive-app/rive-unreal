@@ -1,6 +1,5 @@
 // Copyright Rive, Inc. All rights reserved.
 
-
 #include "RiveActorFactory.h"
 #include "Game/RiveActor.h"
 #include "Rive/RiveFile.h"
@@ -8,11 +7,11 @@
 URiveActorFactory::URiveActorFactory()
 {
 	DisplayName = NSLOCTEXT("RiveActorFactory", "RiveActorDisplayName", "RiveActor");
+
 	NewActorClass = ARiveActor::StaticClass();
 }
 
-AActor* URiveActorFactory::SpawnActor(UObject* InAsset, ULevel* InLevel, const FTransform& InTransform,
-	const FActorSpawnParameters& InSpawnParams)
+AActor* URiveActorFactory::SpawnActor(UObject* InAsset, ULevel* InLevel, const FTransform& InTransform, const FActorSpawnParameters& InSpawnParams)
 {
 	ARiveActor* NewActor = Cast<ARiveActor>(Super::SpawnActor(InAsset, InLevel, InTransform, InSpawnParams));
 
@@ -21,6 +20,7 @@ AActor* URiveActorFactory::SpawnActor(UObject* InAsset, ULevel* InLevel, const F
 		if (URiveFile* RiveFile = Cast<URiveFile>(InAsset))
 		{
 			NewActor->RiveFile = RiveFile;
+
 			NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
 		}
 	}
@@ -33,6 +33,7 @@ bool URiveActorFactory::CanCreateActorFrom(const FAssetData& AssetData, FText& O
 	if (AssetData.IsValid() && !AssetData.GetClass()->IsChildOf(URiveFile::StaticClass()))
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoRiveFileAsset", "A valid rive file asset must be specified.");
+		
 		return false;
 	}
 
@@ -45,5 +46,6 @@ UObject* URiveActorFactory::GetAssetFromActorInstance(AActor* ActorInstance)
 	{
 		return RiveActor->RiveFile;
 	}
+
 	return nullptr;
 }

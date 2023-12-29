@@ -39,7 +39,7 @@ namespace UE::Rive::Renderer
 		}
 
 		virtual IRiveRenderer* GetRenderer() = 0;
-		
+
 		/**
 		 * Attribute(s)
 		 */

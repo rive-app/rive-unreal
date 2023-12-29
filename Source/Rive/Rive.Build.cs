@@ -31,9 +31,10 @@ public class Rive : ModuleRules
 				"RenderCore",
 				"RiveCore",
                 "RiveLibrary",
+                "RiveRenderer",
 				// ... add other public dependencies that you statically link with here ...
 			}
-			);
+            );
 			
 		
 		PrivateDependencyModuleNames.AddRange(
@@ -49,11 +50,11 @@ public class Rive : ModuleRules
 				"RHI",
 				"RenderCore",
 				"Renderer",
-        "RiveCore",
-        "RiveLibrary",
-        "Slate",
-        "SlateCore",
-        "UMG",
+				"RiveCore",
+				"RiveLibrary",
+				"Slate",
+				"SlateCore",
+				"UMG",
             }
 			);
 		

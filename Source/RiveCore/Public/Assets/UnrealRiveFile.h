@@ -3,7 +3,6 @@
 #pragma once
 
 #include "Assets/UnrealRiveFileAssetLoader.h"
-#include "Core/UnrealRiveFactory.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -47,7 +46,7 @@ namespace UE::Rive::Assets
 
     public:
 
-        rive::ImportResult Import(Core::FUnrealRiveFactory* InRiveFactory, Assets::FUnrealRiveFileAssetLoader* InAssetLoader = nullptr);
+        rive::ImportResult Import(rive::Factory* InRiveFactory, Assets::FUnrealRiveFileAssetLoader* InAssetLoader = nullptr);
 
     	// Just for testing
     	rive::Artboard* GetNativeArtBoard();
@@ -67,8 +66,6 @@ namespace UE::Rive::Assets
         std::unique_ptr<rive::File> NativeFilePtr;
 
         rive::Span<const uint8> NativeFileSpan;
-
-    	std::unique_ptr<rive::ArtboardInstance> ArtboardInstance;
 
 #endif // WITH_RIVE
     };

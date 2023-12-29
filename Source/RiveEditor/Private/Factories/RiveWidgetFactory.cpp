@@ -20,7 +20,8 @@
 
 FRiveWidgetFactory::FRiveWidgetFactory(URiveFile* InRiveFile)
 	: RiveFile(InRiveFile)
-{}
+{
+}
 
 UE_DISABLE_OPTIMIZATION
 
@@ -33,24 +34,32 @@ bool FRiveWidgetFactory::SaveAsset(UWidgetBlueprint* InWidgetBlueprint)
 
 	// auto-save asset outside of the editor
 	UPackage* const Package = InWidgetBlueprint->GetOutermost();
+
 	FString const PackageName = Package->GetName();
+
 	FString const PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
 
 	if (IFileManager::Get().IsReadOnly(*PackageFileName))
 	{
 		UE_LOG(LogRiveEditor, Error, TEXT("Could not save read only file: %s"), *PackageFileName);
+
 		return false;
 	}
 
 	double StartTime = FPlatformTime::Seconds();
 
 	UMetaData *MetaData = Package->GetMetaData();
+
 	FSavePackageArgs SaveArgs;
+
 	SaveArgs.TopLevelFlags = RF_Standalone;
+
 	SaveArgs.SaveFlags = SAVE_NoError | SAVE_Async;
+
 	UPackage::SavePackage(Package, NULL, *PackageFileName, SaveArgs);
 
 	const double ElapsedTime = FPlatformTime::Seconds() - StartTime;
+
 	UE_LOG(LogRiveEditor, Log, TEXT("Saved %s in %0.2f seconds"), *PackageName, ElapsedTime);
 
 	Package->MarkPackageDirty();
@@ -68,7 +77,9 @@ bool FRiveWidgetFactory::CreateWidgetStructure(UWidgetBlueprint* InWidgetBluepri
 		UWidget* Root = InWidgetBlueprint->WidgetTree->ConstructWidget<UWidget>(UCanvasPanel::StaticClass());
 
 		InWidgetBlueprint->WidgetTree->RootWidget = Root;
+
 		UWidget* Widget = FWidgetTemplateClass(URiveWidget::StaticClass()).Create(InWidgetBlueprint->WidgetTree);
+		
 		if (URiveWidget* RiveWidget = Cast<URiveWidget>(Widget))
 		{
 			RiveWidget->RiveFile = RiveFile;
@@ -77,8 +88,11 @@ bool FRiveWidgetFactory::CreateWidgetStructure(UWidgetBlueprint* InWidgetBluepri
 		if (UCanvasPanel* RootWidget = Cast<UCanvasPanel>(Root))
 		{
 			UCanvasPanelSlot* NewSlot = RootWidget->AddChildToCanvas(Widget);
+
 			check(NewSlot);
+
 			NewSlot->SetAnchors(FAnchors(0, 0, 1, 1));
+
 			NewSlot->SetOffsets(FMargin(0,0,0,0));
 		}
 
@@ -94,13 +108,16 @@ UWidgetBlueprint* FRiveWidgetFactory::CreateWidgetBlueprint()
 {
 	UClass* CurrentParentClass = UUserWidget::StaticClass();
 
-	if ((CurrentParentClass == nullptr) || !FKismetEditorUtilities::CanCreateBlueprintOfClass(CurrentParentClass) || !
-		CurrentParentClass->IsChildOf(UUserWidget::StaticClass()))
+	if ((CurrentParentClass == nullptr)
+		|| !FKismetEditorUtilities::CanCreateBlueprintOfClass(CurrentParentClass)
+		|| !CurrentParentClass->IsChildOf(UUserWidget::StaticClass()))
 	{
 		FFormatNamedArguments Args;
+
 		Args.Add(TEXT("ClassName"), CurrentParentClass
 			                            ? FText::FromString(CurrentParentClass->GetName())
 			                            : LOCTEXT("Null", "(null)"));
+
 		FMessageDialog::Open(EAppMsgType::Ok,
 		                     FText::Format(LOCTEXT("CannotCreateWidgetBlueprint",
 		                                           "Cannot create a Widget Blueprint based on the class '{ClassName}'."), Args));
@@ -108,10 +125,15 @@ UWidgetBlueprint* FRiveWidgetFactory::CreateWidgetBlueprint()
 	}
 	
 	const UPackage* const RivePackage = RiveFile->GetOutermost();
+
 	const FString RivePackageName = RivePackage->GetName();
+
 	const FString RiveWidgetFolderName = *FPackageName::GetLongPackagePath(RivePackageName);
+
 	const FName RiveWidgetName = MakeUniqueObjectName(RiveFile, URiveWidget::StaticClass());
+
 	const FString PackageName = UPackageTools::SanitizePackageName(	RiveWidgetFolderName + TEXT("/") + RiveWidgetName.ToString());
+	
 	UPackage* RiveWidgetPackage = CreatePackage(*PackageName);
 		
 	return CastChecked<UWidgetBlueprint>(FKismetEditorUtilities::CreateBlueprint(
@@ -122,6 +144,7 @@ UWidgetBlueprint* FRiveWidgetFactory::CreateWidgetBlueprint()
 bool FRiveWidgetFactory::Create()
 {
 	UWidgetBlueprint* NewBP = CreateWidgetBlueprint();
+
 	if (!NewBP)
 	{
 		return false;
@@ -141,13 +164,13 @@ bool FRiveWidgetFactory::Create()
 
 	// Compile BP
 	FCompilerResultsLog LogResults;
+
 	constexpr EBlueprintCompileOptions CompileOptions = EBlueprintCompileOptions::None;
+
 	FKismetEditorUtilities::CompileBlueprint(NewBP, CompileOptions, &LogResults);
 
 	return true;
 }
-
-
 
 #undef LOCTEXT_NAMESPACE
 

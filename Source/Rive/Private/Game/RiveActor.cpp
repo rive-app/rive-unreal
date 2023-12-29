@@ -12,23 +12,31 @@ ARiveActor::ARiveActor()
 	PrimaryActorTick.bCanEverTick = true;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent0"));
+	
 	check(RootComponent);
 	
 	ScreenUserWidget = CreateDefaultSubobject<URiveFullScreenUserWidget>(TEXT("ScreenUserWidget"));
+	
 	ScreenUserWidget->SetDisplayTypes(ERiveWidgetDisplayType::Viewport, ERiveWidgetDisplayType::Viewport, ERiveWidgetDisplayType::Viewport);
+	
 	ScreenUserWidget->SetRiveActor(this);
 
 #if WITH_EDITOR
+	
 	RootComponent->bVisualizeComponent = true;
+
 #endif // WITH_EDITOR
 
 	RootComponent->SetMobility(EComponentMobility::Static);
 
 	PrimaryActorTick.bCanEverTick = true;
+
 	PrimaryActorTick.bStartWithTickEnabled = true;
+
 	bAllowTickBeforeBeginPlay = true;
 
 	SetActorTickEnabled(true);
+
 	SetHidden(false);
 }
 
@@ -42,7 +50,9 @@ void ARiveActor::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 #if WITH_EDITOR
+	
 	bEditorDisplayRequested = true;
+
 #endif //WITH_EDITOR
 }
 
@@ -51,7 +61,9 @@ void ARiveActor::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
+
 	bEditorDisplayRequested = true;
+
 #endif //WITH_EDITOR
 }
 
@@ -60,7 +72,9 @@ void ARiveActor::PostActorCreated()
 	Super::PostActorCreated();
 
 #if WITH_EDITOR
+	
 	bEditorDisplayRequested = true;
+
 #endif //WITH_EDITOR
 }
 
@@ -70,6 +84,7 @@ void ARiveActor::Destroyed()
 	{
 		ScreenUserWidget->Hide();
 	}
+
 	Super::Destroyed();
 }
 
@@ -87,6 +102,7 @@ void ARiveActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (ScreenUserWidget)
 	{
 		UWorld* ActorWorld = GetWorld();
+
 		if (ActorWorld && (ActorWorld->WorldType == EWorldType::Game || ActorWorld->WorldType == EWorldType::PIE))
 		{
 			ScreenUserWidget->Hide();
@@ -99,11 +115,14 @@ void ARiveActor::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 #if WITH_EDITOR
+
 	if (bEditorDisplayRequested)
 	{
 		bEditorDisplayRequested = false;
+
 		RequestEditorDisplay();
 	}
+
 #endif //WITH_EDITOR
 
 	if (ScreenUserWidget)
@@ -115,17 +134,21 @@ void ARiveActor::Tick(float DeltaSeconds)
 void ARiveActor::RequestEditorDisplay()
 {
 #if WITH_EDITOR
+
 	UWorld* ActorWorld = GetWorld();
+
 	if (ScreenUserWidget && ActorWorld && ActorWorld->WorldType == EWorldType::Editor)
 	{
 		ScreenUserWidget->Display(ActorWorld);
 	}
+
 #endif //WITH_EDITOR
 }
 
 void ARiveActor::RequestGameDisplay()
 {
 	UWorld* ActorWorld = GetWorld();
+	
 	if (ScreenUserWidget && ActorWorld && (ActorWorld->WorldType == EWorldType::Game || ActorWorld->WorldType == EWorldType::PIE))
 	{
 		ScreenUserWidget->Display(ActorWorld);
