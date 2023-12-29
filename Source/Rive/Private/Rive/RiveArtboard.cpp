@@ -76,6 +76,11 @@ rive::Artboard* URiveArtboard::GetNativeArtBoard()
    return UnrealRiveFile->GetNativeArtBoard();
 }
 
+FVector2f URiveArtboard::GetArtboardSize() const
+{
+    return UnrealRiveFile->GetArtboardSize();
+}
+
 UE_ENABLE_OPTIMIZATION
 
 #pragma warning(pop)

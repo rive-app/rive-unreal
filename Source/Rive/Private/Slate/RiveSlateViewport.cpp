@@ -20,6 +20,8 @@ FRiveSlateViewport::FRiveSlateViewport(URiveFile* InRiveFile, const TSharedRef<S
 
     WidgetViewWeakPtr = InWidgetView;
 
+    RenderingSize = {RiveFile->SizeX, RiveFile->SizeY};
+
     RiveSlateRenderTarget = TStrongObjectPtr(UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget(RenderingSize));
 
     if (FSlateRenderer* const Renderer = GetRenderer())
@@ -105,9 +107,7 @@ void FRiveSlateViewport::Tick(const FGeometry& AllottedGeometry, double InCurren
         RiveFile->RequestRendering();
 
         // Check it later
-        UTextureRenderTarget2D* RiveTexture = RiveFile->GetRenderTarget();
-
-        FTextureRenderTargetResource* RiveRenderTargetResource = RiveTexture->GameThread_GetRenderTargetResource();
+        FTextureRenderTargetResource* RiveRenderTargetResource = RiveFile->GameThread_GetRenderTargetResource();
 
         FTextureRenderTargetResource* RiveSlateRenderTargetResource = RiveSlateRenderTarget->GameThread_GetRenderTargetResource();
 

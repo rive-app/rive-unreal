@@ -2,15 +2,14 @@
 
 #pragma once
 
-#include "UObject/Object.h"
 #include "IRiveRenderTarget.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "RiveFile.generated.h"
 
-class UTextureRenderTarget2D;
 class URiveArtboard;
 
 USTRUCT(Blueprintable)
-struct FRiveStateMachineEvent
+struct RIVE_API FRiveStateMachineEvent
 {
     GENERATED_BODY()
 
@@ -37,7 +36,7 @@ enum class ERiveFitType : uint8
 };
 
 USTRUCT()
-struct FRiveAlignment
+struct RIVE_API FRiveAlignment
 {
     GENERATED_BODY()
 
@@ -65,8 +64,8 @@ public:
 /**
  *
  */
-UCLASS(Blueprintable)
-class RIVE_API URiveFile : public UObject, public FTickableGameObject
+UCLASS(BlueprintType, Blueprintable)
+class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameObject
 {
     GENERATED_BODY()
 
@@ -75,6 +74,8 @@ class RIVE_API URiveFile : public UObject, public FTickableGameObject
     //~ BEGIN : FTickableGameObject Interface
 
 public:
+
+    URiveFile();
 
     virtual TStatId GetStatId() const override;
 
@@ -86,7 +87,6 @@ public:
     {
         return true;
     }
-
     virtual ETickableTickType GetTickableTickType() const override
     {
         return ETickableTickType::Conditional;
@@ -94,11 +94,18 @@ public:
 
     //~ END : FTickableGameObject Interface
 
-    //~ BEGIN : UObject Interface
+    //~ BEGIN : UTexture Interface
+    virtual uint32 CalcTextureMemorySizeEnum(ETextureMipCount Enum) const override;
+    //~ END : UObject UTexture
 
+    //~ BEGIN : UObject Interface
 public:
 
     virtual void PostLoad() override;
+
+#if WITH_EDITOR
+    virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif // WITH_EDITOR
 
     //~ END : UObject Interface
 
@@ -107,10 +114,6 @@ public:
      */
 
 public:
-
-    UFUNCTION(BlueprintPure, Category = Rive)
-    UTextureRenderTarget2D* GetRenderTarget() const;
-
     UFUNCTION(BlueprintPure, Category = Rive)
     FLinearColor GetDebugColor() const;
 
@@ -131,7 +134,7 @@ public:
 public:
 
     UPROPERTY(EditAnywhere, Category = Rive)
-    TObjectPtr<UTextureRenderTarget2D> OverrideRenderTarget;
+    TObjectPtr<UTextureRenderTarget2D> CopyRenderTarget;
 
     UPROPERTY(EditAnywhere, Category = Rive)
     uint32 CountdownRenderingTicks = 5;
@@ -153,9 +156,6 @@ private:
 
     UPROPERTY(EditAnywhere, Category = Rive)
     FVector2f RiveAlignment = FRiveAlignment::Center;
-
-    UPROPERTY(Transient)
-    TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 
     UPROPERTY()
     TObjectPtr<URiveArtboard> RiveArtboard;

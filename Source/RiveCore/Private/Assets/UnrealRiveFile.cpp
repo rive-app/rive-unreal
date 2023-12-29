@@ -41,7 +41,7 @@ rive::ImportResult UE::Rive::Assets::FUnrealRiveFile::Import(rive::Factory* InRi
     return ImportResult;
 }
 
-rive::Artboard* UE::Rive::Assets::FUnrealRiveFile::GetNativeArtBoard()
+rive::Artboard* UE::Rive::Assets::FUnrealRiveFile::GetNativeArtBoard() const
 {
     if (!NativeFilePtr)
     {
@@ -51,6 +51,13 @@ rive::Artboard* UE::Rive::Assets::FUnrealRiveFile::GetNativeArtBoard()
     }
 
     return NativeFilePtr->artboard();
+}
+
+FVector2f UE::Rive::Assets::FUnrealRiveFile::GetArtboardSize() const
+{
+    // Have checks here
+    const rive::Artboard* NativArtboard = GetNativeArtBoard();
+    return {NativArtboard->width(), NativArtboard->height() };
 }
 
 void UE::Rive::Assets::FUnrealRiveFile::PrintStats()

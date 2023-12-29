@@ -25,6 +25,8 @@ public:
     // Just for testing
     rive::Artboard* GetNativeArtBoard();
 
+	FVector2f GetArtboardSize() const;
+
     /**
      * Attibute(s)
      */

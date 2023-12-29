@@ -49,7 +49,9 @@ namespace UE::Rive::Assets
         rive::ImportResult Import(rive::Factory* InRiveFactory, Assets::FUnrealRiveFileAssetLoader* InAssetLoader = nullptr);
 
     	// Just for testing
-    	rive::Artboard* GetNativeArtBoard();
+    	rive::Artboard* GetNativeArtBoard() const;
+
+    	FVector2f GetArtboardSize() const;
 
     private:
 

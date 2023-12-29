@@ -5,8 +5,16 @@
 #include "IRiveRendererModule.h"
 #include "IRiveRenderTarget.h"
 #include "Rive/RiveArtboard.h"
-#include "RiveRendererUtils.h"
-#include "Engine/TextureRenderTarget2D.h"
+
+URiveFile::URiveFile()
+{
+    OverrideFormat = EPixelFormat::PF_R8G8B8A8;
+
+    bCanCreateUAV = true;
+
+    SizeX = 500;
+    SizeY = 500;
+}
 
 TStatId URiveFile::GetStatId() const
 {
@@ -18,7 +26,7 @@ void URiveFile::Tick(float InDeltaSeconds)
     if (IsRendering())
     {
         // Maybe only once
-        if (bDrawOnceTest == false)
+        //if (bDrawOnceTest == false)
         {
 #if WITH_RIVE
 
@@ -41,6 +49,19 @@ bool URiveFile::IsTickable() const
     return FTickableGameObject::IsTickable();
 }
 
+uint32 URiveFile::CalcTextureMemorySizeEnum(ETextureMipCount Enum) const
+{
+    // Calculate size based on format.  All mips are resident on render targets so we always return the same value.
+    EPixelFormat Format = GetFormat();
+    int32 BlockSizeX = GPixelFormats[Format].BlockSizeX;
+    int32 BlockSizeY = GPixelFormats[Format].BlockSizeY;
+    int32 BlockBytes = GPixelFormats[Format].BlockBytes;
+    int32 NumBlocksX = (SizeX + BlockSizeX - 1) / BlockSizeX;
+    int32 NumBlocksY = (SizeY + BlockSizeY - 1) / BlockSizeY;
+    int32 NumBytes = NumBlocksX * NumBlocksY * BlockBytes;
+    return NumBytes;
+}
+
 void URiveFile::PostLoad()
 {
     UObject::PostLoad();
@@ -48,10 +69,11 @@ void URiveFile::PostLoad()
     Initialize();
 }
 
-UTextureRenderTarget2D* URiveFile::GetRenderTarget() const
+#if WITH_EDITOR
+void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-    return OverrideRenderTarget != nullptr ? OverrideRenderTarget : RenderTarget;
 }
+#endif // WITH_EDITOR
 
 FLinearColor URiveFile::GetDebugColor() const
 {
@@ -66,9 +88,11 @@ void URiveFile::Initialize()
 
     if (UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
     {
-        RenderTarget = RiveRenderer->CreateDefaultRenderTarget({ 800, 1000 });
-
-        RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTarget());
+        FVector2f ArtBoardSize = RiveArtboard->GetArtboardSize();
+        
+        InitCustomFormat( ArtBoardSize.X, ArtBoardSize.Y, OverrideFormat, false );
+        FlushRenderingCommands();
+        RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), this);
 
         RiveRenderTarget->Initialize();
 

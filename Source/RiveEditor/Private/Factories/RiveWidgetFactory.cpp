@@ -130,7 +130,7 @@ UWidgetBlueprint* FRiveWidgetFactory::CreateWidgetBlueprint()
 
 	const FString RiveWidgetFolderName = *FPackageName::GetLongPackagePath(RivePackageName);
 
-	const FName RiveWidgetName = MakeUniqueObjectName(RiveFile, URiveWidget::StaticClass());
+	const FName RiveWidgetName = MakeUniqueObjectName(RiveFile, URiveWidget::StaticClass(), *(RiveFile->GetName() + FString("_Widget")));
 
 	const FString PackageName = UPackageTools::SanitizePackageName(	RiveWidgetFolderName + TEXT("/") + RiveWidgetName.ToString());
 	
