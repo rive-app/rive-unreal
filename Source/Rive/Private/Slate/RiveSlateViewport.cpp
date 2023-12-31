@@ -113,15 +113,19 @@ void FRiveSlateViewport::Tick(const FGeometry& AllottedGeometry, double InCurren
             [this, RiveRenderTargetResource, RiveSlateRenderTargetResource](FRHICommandListImmediate& RHICmdList)
             {
 
-                // JUST for testing here
-                // FCanvas Canvas(RiveRenderTargetResource, nullptr, FGameTime(), GMaxRHIFeatureLevel);
-                // Canvas.Clear(DebugColor);
-                //
-
+                if (!RiveRenderTargetResource || !RiveSlateRenderTargetResource)
+                {
+                    return;
+                }
+                
                 UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveRenderTargetResource->TextureRHI, RiveSlateRenderTargetResource->TextureRHI);
 
                 const FSlateTexture2DRHIRef* FinalDestTextureRHITexture = static_cast<FSlateTexture2DRHIRef*>(ViewportRenderTargetTexture);
-
+                if (!FinalDestTextureRHITexture)
+                {
+                    return;
+                }
+                
                 const FTexture2DRHIRef FinalDestRHIRef = FinalDestTextureRHITexture->GetRHIRef();
 
                 UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveSlateRenderTargetResource->TextureRHI, FinalDestRHIRef);

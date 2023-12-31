@@ -2,12 +2,14 @@
 
 #include "RiveWidgetFactory.h"
 
+#include "ContentBrowserMenuContexts.h"
 #include "PackageTools.h"
 #include "WidgetBlueprint.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Game/RiveActor.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Logs/RiveEditorLog.h"
@@ -170,6 +172,53 @@ bool FRiveWidgetFactory::Create()
 	FKismetEditorUtilities::CompileBlueprint(NewBP, CompileOptions, &LogResults);
 
 	return true;
+}
+
+namespace
+{
+	static void SpawnRiveWidgetActor(const FToolMenuContext& MenuContext)
+	{
+		if (const UContentBrowserAssetContextMenuContext* Context = UContentBrowserAssetContextMenuContext::FindContextWithAssets(MenuContext))
+		{
+			TArray<URiveFile*> RiveFiles = Context->LoadSelectedObjects<URiveFile>();
+			for (URiveFile* RiveFile : RiveFiles)
+			{
+				if (UWorld* World = GEditor->GetEditorWorldContext().World())
+				{
+					ARiveActor* NewActor = Cast<ARiveActor>(
+						World->SpawnActor<ARiveActor>(FVector::ZeroVector, FRotator::ZeroRotator,
+						                              FActorSpawnParameters()));
+					
+					if (NewActor)
+					{
+						NewActor->RiveFile = RiveFile;
+						NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
+					}
+				}
+			}
+		}
+	}
+	
+	static FDelayedAutoRegisterHelper DelayedAutoRegister(EDelayedRegisterRunPhase::EndOfEngineInit, []{ 
+		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateLambda([]()
+		{
+			FToolMenuOwnerScoped OwnerScoped(UE_MODULE_NAME);
+			UToolMenu* Menu = UE::ContentBrowser::ExtendToolMenu_AssetContextMenu(UTextureRenderTarget::StaticClass());
+	        
+			FToolMenuSection& Section = Menu->FindOrAddSection("GetAssetActions");
+			Section.AddDynamicEntry(TEXT("Rive"), FNewToolMenuSectionDelegate::CreateLambda([](FToolMenuSection& InSection)
+			{
+				{
+					const TAttribute<FText> Label = LOCTEXT("RiveFile_SpawnRiveWidget", "Spawn Rive Widget Actor");
+					const TAttribute<FText> ToolTip = LOCTEXT("RiveFile_SpawnRiveWidgetTooltip", "Spawn Rive Widget Actors.");
+					const FSlateIcon Icon = FSlateIcon(FAppStyle::GetAppStyleSetName(), "ClassIcon.Texture2D");
+					const FToolMenuExecuteAction UIAction = FToolMenuExecuteAction::CreateStatic(&SpawnRiveWidgetActor);
+
+					InSection.AddMenuEntry("RiveFile_SpawnRiveWidget", Label, ToolTip, Icon, UIAction);
+				}
+			}));
+		}));
+	});	
 }
 
 #undef LOCTEXT_NAMESPACE

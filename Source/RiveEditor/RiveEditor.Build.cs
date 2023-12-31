@@ -20,12 +20,14 @@ public class RiveEditor : ModuleRules
             {
                 "AssetDefinition",
                 "CoreUObject",
+                "ContentBrowser",
                 "Engine",
                 "PropertyEditor",
                 "Rive",
                 "Slate",
                 "SlateCore",
                 "UnrealEd",
+                "ToolMenus",
                 "UMG",
                 "UMGEditor",
             }

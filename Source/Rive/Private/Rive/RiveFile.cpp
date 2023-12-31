@@ -36,12 +36,12 @@ void URiveFile::Tick(float InDeltaSeconds)
 
             if (rive::Artboard* NativeArtboard = RiveArtboard->GetNativeArtBoard())
             {
+                // TODO. Move to state machine class
+                RiveArtboard->AdvanceDefaultStateMachine(InDeltaSeconds);
+                
                 RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignment.X, RiveAlignment.Y, NativeArtboard, DebugColor);
 
                 bDrawOnceTest = true;
-
-                // TODO. Move to state machine class
-                RiveArtboard->AdvanceDefaultStateMachine(InDeltaSeconds);
             }
 
             // Copy from render target
