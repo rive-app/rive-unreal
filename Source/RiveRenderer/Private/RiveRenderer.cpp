@@ -39,7 +39,7 @@ void UE::Rive::Renderer::Private::FRiveRenderer::QueueTextureRendering(TObjectPt
 
 #if WITH_RIVE
 
-void UE::Rive::Renderer::Private::FRiveRenderer::DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtBoard)
+void UE::Rive::Renderer::Private::FRiveRenderer::DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard)
 {
     check(InTexture);
 

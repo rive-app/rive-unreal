@@ -1,18 +1,13 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveSlateViewport.h"
-#include "CanvasTypes.h"
-#include "EngineModule.h"
-#include "RenderGraphBuilder.h"
-#include "RenderGraphUtils.h"
+#include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
 #include "RiveWidgetView.h"
 #include "Async/Async.h"
 #include "Slate/SlateTextures.h"
 #include "Textures/SlateUpdatableTexture.h"
-#include "MediaShaders.h"
 #include "RiveRendererUtils.h"
-#include "ScreenPass.h"
 
 FRiveSlateViewport::FRiveSlateViewport(URiveFile* InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView)
 {
@@ -20,7 +15,7 @@ FRiveSlateViewport::FRiveSlateViewport(URiveFile* InRiveFile, const TSharedRef<S
 
     WidgetViewWeakPtr = InWidgetView;
 
-    RenderingSize = {RiveFile->SizeX, RiveFile->SizeY};
+    RenderingSize = { RiveFile->SizeX, RiveFile->SizeY };
 
     RiveSlateRenderTarget = TStrongObjectPtr(UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget(RenderingSize));
 
@@ -147,11 +142,89 @@ FCursorReply FRiveSlateViewport::OnCursorQuery(const FGeometry& MyGeometry, cons
 
 FReply FRiveSlateViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+    if (!RiveFile)
+    {
+        UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonDown as we have an empty rive file."));
+
+        return FReply::Unhandled();
+    }
+
+    if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+    {
+        return FReply::Unhandled();
+    }
+
+#if WITH_RIVE
+
+    RiveFile->BeginInput();
+
+    if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+    {
+        if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+        {
+            const FSlateRect BoundingRect = MyGeometry.GetRenderBoundingRect();
+
+            const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
+
+            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect);
+
+            if (StateMachine->OnMouseButtonDown(LocalPosition))
+            {
+                RiveFile->EndInput();
+
+                return FReply::Handled();
+            }
+        }
+    }
+
+    RiveFile->EndInput();
+
+#endif // WITH_RIVE
+
     return FReply::Unhandled();
 }
 
 FReply FRiveSlateViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+    if (!RiveFile)
+    {
+        UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonUp as we have an empty rive file."));
+
+        return FReply::Unhandled();
+    }
+
+    if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+    {
+        return FReply::Unhandled();
+    }
+
+#if WITH_RIVE
+
+    RiveFile->BeginInput();
+
+    if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+    {
+        if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+        {
+            const FSlateRect BoundingRect = MyGeometry.GetRenderBoundingRect();
+
+            const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
+
+            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect);
+
+            if (StateMachine->OnMouseButtonUp(LocalPosition))
+            {
+                RiveFile->EndInput();
+
+                return FReply::Handled();
+            }
+        }
+    }
+
+    RiveFile->EndInput();
+
+#endif // WITH_RIVE
+
     return FReply::Unhandled();
 }
 
@@ -165,6 +238,47 @@ void FRiveSlateViewport::OnMouseLeave(const FPointerEvent& MouseEvent)
 
 FReply FRiveSlateViewport::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+    if (!RiveFile)
+    {
+        UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseMove as we have an empty rive file."));
+
+        return FReply::Unhandled();
+    }
+
+    if (MouseEvent.GetScreenSpacePosition() == LastMousePosition)
+    {
+        return FReply::Unhandled();
+    }
+
+#if WITH_RIVE
+
+    RiveFile->BeginInput();
+
+    if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+    {
+        if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+        {
+            const FSlateRect BoundingRect = MyGeometry.GetRenderBoundingRect();
+
+            const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
+
+            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect);
+
+            if (StateMachine->OnMouseMove(LocalPosition))
+            {
+                LastMousePosition = MouseEvent.GetScreenSpacePosition();
+
+                RiveFile->EndInput();
+
+                return FReply::Handled();
+            }
+        }
+    }
+
+    RiveFile->EndInput();
+
+#endif // WITH_RIVE
+
     return FReply::Unhandled();
 }
 

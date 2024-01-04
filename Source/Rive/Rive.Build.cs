@@ -26,6 +26,7 @@ public class Rive : ModuleRules
 			new string[]
 			{
 				"Core",
+				"InputCore",
                 "Projects",
                 "RHICore",
 				"RenderCore",

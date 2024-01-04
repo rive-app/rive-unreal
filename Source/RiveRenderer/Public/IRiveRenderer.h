@@ -70,7 +70,7 @@ namespace UE::Rive::Renderer
 #if WITH_RIVE
 
         // just  for testing, we should not pass native artboard
-        virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtBoard) = 0;
+        virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard) = 0;
 
         virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() = 0;
     

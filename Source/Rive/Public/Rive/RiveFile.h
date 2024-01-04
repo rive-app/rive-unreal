@@ -3,10 +3,9 @@
 #pragma once
 
 #include "IRiveRenderTarget.h"
+#include "Assets/URFile.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "RiveFile.generated.h"
-
-class URiveArtboard;
 
 USTRUCT(Blueprintable)
 struct RIVE_API FRiveStateMachineEvent
@@ -95,16 +94,21 @@ public:
     //~ END : FTickableGameObject Interface
 
     //~ BEGIN : UTexture Interface
+
     virtual uint32 CalcTextureMemorySizeEnum(ETextureMipCount Enum) const override;
+
     //~ END : UObject UTexture
 
     //~ BEGIN : UObject Interface
+
 public:
 
     virtual void PostLoad() override;
 
 #if WITH_EDITOR
+
     virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+
 #endif // WITH_EDITOR
 
     //~ END : UObject Interface
@@ -114,14 +118,34 @@ public:
      */
 
 public:
+
     UFUNCTION(BlueprintPure, Category = Rive)
     FLinearColor GetDebugColor() const;
+
+    UFUNCTION(BlueprintPure, Category = Rive)
+    FVector2f GetLocalCoordinates(const FVector2f& InScreenPosition, const FBox2f& InScreenRect) const;
+
+    void BeginInput()
+    {
+        bIsReceivingInput = true;
+    }
+
+    void EndInput()
+    {
+        bIsReceivingInput = false;
+    }
 
     void Initialize();
 
     void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
     TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
+
+    UE::Rive::Core::FURArtboard* GetArtboard() const;
+
+private:
+
+    bool LoadNativeFile();
 
     /**
      * Attribute(s)
@@ -156,16 +180,16 @@ private:
     UPROPERTY(EditAnywhere, Category = Rive)
     bool bIsRendering = true;
 
-    UPROPERTY()
-    TObjectPtr<URiveArtboard> RiveArtboard;
-
     UPROPERTY(EditAnywhere, Category=Rive)
     TSubclassOf<UUserWidget> WidgetClass;
 
     bool bIsInitialized = false;
-    
+
+    bool bIsReceivingInput = false;
+
     UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
 
     bool bDrawOnceTest = false;
 
+    UE::Rive::Assets::FURFilePtr UnrealRiveFile;
 };

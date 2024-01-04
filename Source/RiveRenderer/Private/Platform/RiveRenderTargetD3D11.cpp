@@ -100,21 +100,21 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 #endif // PLATFORM_WINDOWS
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard, const FLinearColor DebugColor)
+void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
 {
 	check(IsInGameThread());
 
 	FScopeLock Lock(&ThreadDataCS);
 
 	ENQUEUE_RENDER_COMMAND(DrawArtboard)(
-	[this, InFit, AlignX, AlignY, InNativeArtBoard, DebugColor](FRHICommandListImmediate& RHICmdList)
+	[this, InFit, AlignX, AlignY, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
 	{
-		DrawArtboard_RenderThread(RHICmdList, InFit, AlignX, AlignY, InNativeArtBoard, DebugColor);
+		DrawArtboard_RenderThread(RHICmdList, InFit, AlignX, AlignY, InNativeArtboard, DebugColor);
 	});
 }
 
 DECLARE_GPU_STAT_NAMED(DrawArtboard, TEXT("FRiveRenderTargetD3D11::DrawArtboard"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard, const FLinearColor DebugColor)
+void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
 {
 	SCOPED_GPU_STAT(RHICmdList, DrawArtboard);
 
@@ -153,13 +153,13 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 			Fit,
 			Alignment,
 			rive::AABB(0.0f, 0.0f, TextureWidth, TextureHeight),
-			InNativeArtBoard->bounds());
+			InNativeArtboard->bounds());
 
 		PLSRenderer->transform(Transform);
 	}
 
 	// Draw Artboard
-	InNativeArtBoard->draw(PLSRenderer.get());
+	InNativeArtboard->draw(PLSRenderer.get());
 
 	// Flush
 	PLSRenderContextPtr->flush();

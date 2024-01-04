@@ -92,6 +92,8 @@ private:
 
 private:
 
+    FVector2f LastMousePosition = FVector2f::ZeroVector;
+
     /** Interface to the texture we are rendering to. */
     FSlateUpdatableTexture* ViewportRenderTargetTexture = nullptr;
 

@@ -38,7 +38,7 @@ namespace UE::Rive::Renderer::Private
 
 #if WITH_RIVE
 
-		virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard, const FLinearColor DebugColor) override;
+		virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
 
 		//~ END : IRiveRenderTarget Interface
 
@@ -46,7 +46,7 @@ namespace UE::Rive::Renderer::Private
 
 	protected:
 
-		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtBoard, const FLinearColor DebugColor) override;
+		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
 
 		// It Might need to be on rendering thread, render QUEUE is required
 		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const override;

@@ -23,7 +23,7 @@ UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedR
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::AlignArtboard(uint8 InFit, float AlignX, float AlignY,
-	rive::Artboard* InNativeArtBoard)
+	rive::Artboard* InNativeArtboard)
 {
 	check(IsInGameThread());
 
@@ -47,7 +47,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::AlignArtboard(uint8 InFit, 
 	// 	Fit,
 	// 	Alignment,
 	// 	rive::AABB(0.0f, 0.0f, TextureWidth, TextureHeight),
-	// 	InNativeArtBoard->bounds());
+	// 	InNativeArtboard->bounds());
 	//
 	// PLSRenderer->transform(transform);
 

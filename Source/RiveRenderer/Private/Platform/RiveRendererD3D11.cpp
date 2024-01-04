@@ -29,7 +29,7 @@ UE::Rive::Renderer::Private::FRiveRendererD3D11::~FRiveRendererD3D11()
 }
 
 DECLARE_GPU_STAT_NAMED(DebugColorDraw, TEXT("FRiveRendererD3D11::DebugColorDraw"));
-void UE::Rive::Renderer::Private::FRiveRendererD3D11::DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtBoard)
+void UE::Rive::Renderer::Private::FRiveRendererD3D11::DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard)
 {
 	check(IsInGameThread());
 

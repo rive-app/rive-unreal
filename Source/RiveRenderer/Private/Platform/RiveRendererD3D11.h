@@ -34,7 +34,7 @@ namespace UE::Rive::Renderer::Private
 
 #if WITH_RIVE
 
-		virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtBoard) override;
+		virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard) override;
 		
 #endif // WITH_RIVE
 

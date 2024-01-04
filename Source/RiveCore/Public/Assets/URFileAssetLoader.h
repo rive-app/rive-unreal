@@ -10,12 +10,12 @@ THIRD_PARTY_INCLUDES_END
 
 namespace UE::Rive::Assets
 {
-    class FUnrealRiveFileAssetLoader;
+    class FURFileAssetLoader;
 
     /**
-     * Type definition for unique pointer reference to the instance of FUnrealRiveFileAssetLoader.
+     * Type definition for unique pointer reference to the instance of FURFileAssetLoader.
      */
-    using FUnrealRiveFileAssetLoaderPtr = TUniquePtr<FUnrealRiveFileAssetLoader>;
+    using FURFileAssetLoaderPtr = TUniquePtr<FURFileAssetLoader>;
 
     struct FAssetRef
     {
@@ -29,7 +29,7 @@ namespace UE::Rive::Assets
     /**
      * Unreal extension of rive::FileAssetLoader implementation (partial) for the Unreal RHI.
      */
-    class RIVECORE_API FUnrealRiveFileAssetLoader
+    class RIVECORE_API FURFileAssetLoader
 #if WITH_RIVE
         final : public rive::FileAssetLoader
 #endif // WITH_RIVE
@@ -40,7 +40,7 @@ namespace UE::Rive::Assets
 
     public:
 
-        FUnrealRiveFileAssetLoader(const FString& InRiveFilePath);
+        FURFileAssetLoader(const FString& InRiveFilePath);
 
 #if WITH_RIVE
 

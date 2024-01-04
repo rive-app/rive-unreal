@@ -1,6 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "Assets/UnrealRiveFileAssetLoader.h"
+#include "Assets/URFileAssetLoader.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -10,7 +10,7 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE::Rive::Assets::FUnrealRiveFileAssetLoader::FUnrealRiveFileAssetLoader(const FString& InRiveFilePath)
+UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(const FString& InRiveFilePath)
     : RelativePath(InRiveFilePath)
 {
     if (!InRiveFilePath.IsEmpty())
@@ -21,7 +21,7 @@ UE::Rive::Assets::FUnrealRiveFileAssetLoader::FUnrealRiveFileAssetLoader(const F
 
 #if WITH_RIVE
 
-bool UE::Rive::Assets::FUnrealRiveFileAssetLoader::loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes, rive::Factory* InFactory)
+bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes, rive::Factory* InFactory)
 {
     bool bDidLoad = false;
 
