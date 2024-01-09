@@ -172,7 +172,7 @@ private:
     FLinearColor DebugColor = FLinearColor::Transparent;
 
     UPROPERTY(EditAnywhere, Category = Rive)
-    ERiveFitType RiveFitType = ERiveFitType::Contain;
+    ERiveFitType RiveFitType = ERiveFitType::Fill;
 
     UPROPERTY(EditAnywhere, Category = Rive)
     FVector2f RiveAlignment = FRiveAlignment::Center;

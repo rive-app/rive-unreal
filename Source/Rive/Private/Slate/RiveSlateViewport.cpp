@@ -107,20 +107,20 @@ void FRiveSlateViewport::Tick(const FGeometry& AllottedGeometry, double InCurren
         ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
             [this, RiveRenderTargetResource, RiveSlateRenderTargetResource](FRHICommandListImmediate& RHICmdList)
             {
-
                 if (!RiveRenderTargetResource || !RiveSlateRenderTargetResource)
                 {
                     return;
                 }
-                
+
                 UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveRenderTargetResource->TextureRHI, RiveSlateRenderTargetResource->TextureRHI);
 
                 const FSlateTexture2DRHIRef* FinalDestTextureRHITexture = static_cast<FSlateTexture2DRHIRef*>(ViewportRenderTargetTexture);
+
                 if (!FinalDestTextureRHITexture)
                 {
                     return;
                 }
-                
+
                 const FTexture2DRHIRef FinalDestRHIRef = FinalDestTextureRHITexture->GetRHIRef();
 
                 UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveSlateRenderTargetResource->TextureRHI, FinalDestRHIRef);

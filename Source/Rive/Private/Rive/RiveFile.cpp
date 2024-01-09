@@ -52,24 +52,25 @@ void URiveFile::Tick(float InDeltaSeconds)
                     }
                 }
 
-                RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignment.X, RiveAlignment.Y, Artboard->GetNativeArtboard(), DebugColor);
+                RiveRenderTarget->AlignArtboard((uint8)RiveFitType, RiveAlignment.X, RiveAlignment.Y, Artboard->GetNativeArtboard(), DebugColor);
+
+                RiveRenderTarget->DrawArtboard(Artboard->GetNativeArtboard(), DebugColor);
 
                 bDrawOnceTest = true;
             }
-
+            
             // Copy from render target
             // TODO. move from here
             // Separate target might be needed to let Rive draw only to separate texture
             {
                 FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
-               
+
                 FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
-               
+
                 ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
                     [this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
                     {
-
-                     UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
+                        UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
                     });
             }
 

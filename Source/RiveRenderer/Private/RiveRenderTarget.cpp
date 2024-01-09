@@ -22,38 +22,6 @@ UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedR
 {
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::AlignArtboard(uint8 InFit, float AlignX, float AlignY,
-	rive::Artboard* InNativeArtboard)
-{
-	check(IsInGameThread());
-
-	FScopeLock Lock(&ThreadDataCS);
-
-#if WITH_RIVE
-
-	// rive::pls::PLSRenderer* PLSRenderer = GetPLSRenderer();
-	// if (PLSRenderer == nullptr)
-	// {
-	// 	return;
-	// }
-	//
-	// const rive::Fit& Fit = *reinterpret_cast<rive::Fit*>(&InFit);
-	// const rive::Alignment& Alignment = rive::Alignment(AlignX, AlignY);
-	//
-	// const uint32 TextureWidth = GetWidth();
-	// const uint32 TextureHeight = GetHeight();
-	//
-	// rive::Mat2D transform = rive::computeAlignment(
-	// 	Fit,
-	// 	Alignment,
-	// 	rive::AABB(0.0f, 0.0f, TextureWidth, TextureHeight),
-	// 	InNativeArtboard->bounds());
-	//
-	// PLSRenderer->transform(transform);
-
-#endif // WITH_RIVE
-}
-
 uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetWidth() const
 {
 	return RenderTarget->SizeX;

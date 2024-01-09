@@ -65,6 +65,8 @@ void UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(FRHICommandListImmed
         // The todo is here because there has to be a better way to achieve what we want without
         // all of this song and dance.
 
+        // FIntRect ViewportRect(FIntPoint(150, 150), InputTexture->Desc.Extent);
+
         // The formats or size differ to pixel shader stuff
         //Configure source/output viewport to get the right UV scaling from source texture to output texture
         FScreenPassTextureViewport InputViewport(InputTexture);
@@ -83,7 +85,7 @@ void UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(FRHICommandListImmed
         PermutationVector.Set<FModifyAlphaSwizzleRgbaPS::FConversionOp>(ConversionOperation);
 
         // Rectangle area to use from source
-        const FIntRect ViewRect(FIntPoint(0, 0), InputTexture->Desc.Extent);
+        const FIntRect ViewRect(FIntPoint::ZeroValue, InputTexture->Desc.Extent);
 
         TShaderMapRef<FModifyAlphaSwizzleRgbaPS> PixelShader(GlobalShaderMap, PermutationVector);
 
