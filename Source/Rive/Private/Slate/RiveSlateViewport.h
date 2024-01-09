@@ -15,7 +15,7 @@ class FReply;
 class FSlateRenderer;
 
 /**
- *
+ * TODO. That class can be removed
  */
 class RIVE_API FRiveSlateViewport : public ISlateViewport
 {

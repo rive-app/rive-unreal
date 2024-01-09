@@ -52,7 +52,8 @@ void URiveFile::Tick(float InDeltaSeconds)
                     }
                 }
 
-                RiveRenderTarget->AlignArtboard((uint8)RiveFitType, RiveAlignment.X, RiveAlignment.Y, Artboard->GetNativeArtboard(), DebugColor);
+                const FVector2f RiveAlignmentXY = GetRiveAlignment();
+                RiveRenderTarget->AlignArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y, Artboard->GetNativeArtboard(), DebugColor);
 
                 RiveRenderTarget->DrawArtboard(Artboard->GetNativeArtboard(), DebugColor);
 
@@ -117,6 +118,7 @@ void URiveFile::PostLoad()
 
 void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+    // TODO. WE need custom implementation here to handle the Rive FileEditor Changes
 }
 
 #endif // WITH_EDITOR
@@ -132,8 +134,9 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InScreenPosition, cons
 
     if (const UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
     {
+        const FVector2f RiveAlignmentXY = GetRiveAlignment();
         const rive::Mat2D Transform = rive::computeAlignment((rive::Fit)RiveFitType,
-            rive::Alignment(RiveAlignment.X, RiveAlignment.Y),
+            rive::Alignment(RiveAlignmentXY.X, RiveAlignmentXY.Y),
             rive::AABB(InScreenRect.Min.X, InScreenRect.Min.Y, InScreenRect.Max.X, InScreenRect.Max.Y),
             Artboard->GetBounds());
     
@@ -145,6 +148,141 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InScreenPosition, cons
 #endif // WITH_RIVE
 
     return FVector2f::ZeroVector;
+}
+
+FIntPoint URiveFile::CalculateRenderTextureSize(const FIntPoint& InViewportSize) const
+{
+    // TODO. Fully Implement
+    FIntPoint ReturnSize = {SizeX, SizeY};
+    switch (RiveFitType) {
+    case ERiveFitType::Fill:
+        ReturnSize = InViewportSize;
+        break;
+    case ERiveFitType::Contain:
+        break;
+    case ERiveFitType::Cover:
+        break;
+    case ERiveFitType::FitWidth:
+        break;
+    case ERiveFitType::FitHeight:
+        break;
+    case ERiveFitType::None:
+        ReturnSize = {SizeX, SizeY};
+        break;
+    case ERiveFitType::ScaleDown:
+        break;
+    }
+   
+    return ReturnSize;
+}
+
+FIntPoint URiveFile::CalculateRenderTexturePosition(const FIntPoint& InViewportSize) const
+{
+    // TODO. Implement
+    FIntPoint ReturnPosition = {0, 0};
+    const FIntPoint TextureSize = {SizeX, SizeY};
+
+    if (RiveFitType == ERiveFitType::Fill)
+    {
+        return ReturnPosition;
+    }
+
+    switch (RiveAlignment) {
+    case ERiveAlignment::TopLeft:
+        ReturnPosition = {0, 0};
+        break;
+    case ERiveAlignment::TopCenter:
+        break;
+    case ERiveAlignment::TopRight:
+        break;
+    case ERiveAlignment::CenterLeft:
+        break;
+    case ERiveAlignment::Center:
+        {
+            int32 XPos = 0;
+            int32 YPos = 0;
+            if (InViewportSize.X > TextureSize.X)
+            {
+                XPos = (InViewportSize.X - TextureSize.X) *.5f;
+            }
+
+            if (InViewportSize.Y > TextureSize.Y)
+            {
+                YPos = (InViewportSize.Y - TextureSize.Y) *.5f;
+            }
+            
+            ReturnPosition = {XPos, YPos};
+            break;
+        }
+    case ERiveAlignment::CenterRight:
+        break;
+    case ERiveAlignment::BottomLeft:
+        break;
+    case ERiveAlignment::BottomCenter:
+        break;
+    case ERiveAlignment::BottomRight:
+        break;
+    }
+
+    return ReturnPosition;
+}
+
+FVector2f URiveFile::GetRiveAlignment() const
+{
+    switch(RiveAlignment) {
+    case ERiveAlignment::TopLeft:
+        return FRiveAlignment::TopLeft;
+    case ERiveAlignment::TopCenter:
+        return FRiveAlignment::TopCenter;
+    case ERiveAlignment::TopRight:
+        return FRiveAlignment::TopRight;
+    case ERiveAlignment::CenterLeft:
+        return FRiveAlignment::CenterLeft;
+    case ERiveAlignment::Center:
+        return FRiveAlignment::Center;
+    case ERiveAlignment::CenterRight:
+         return FRiveAlignment::CenterRight;
+    case ERiveAlignment::BottomLeft:
+        return FRiveAlignment::BottomLeft;
+    case ERiveAlignment::BottomCenter:
+        return FRiveAlignment::BottomCenter;
+    case ERiveAlignment::BottomRight:
+        return FRiveAlignment::BottomRight;
+    }
+
+    check(0);
+    return FRiveAlignment::Center;
+}
+
+ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
+{
+    switch (RiveBlendMode) {
+    case ERiveBlendMode::SE_BLEND_Opaque:
+        return SE_BLEND_Opaque;
+    case ERiveBlendMode::SE_BLEND_Masked:
+        return SE_BLEND_Masked;
+    case ERiveBlendMode::SE_BLEND_Translucent:
+        return SE_BLEND_Translucent;
+    case ERiveBlendMode::SE_BLEND_Additive:
+        return SE_BLEND_Additive;
+    case ERiveBlendMode::SE_BLEND_Modulate:
+        return SE_BLEND_Modulate;
+    case ERiveBlendMode::SE_BLEND_MaskedDistanceField:
+        return SE_BLEND_MaskedDistanceField;
+    case ERiveBlendMode::SE_BLEND_MaskedDistanceFieldShadowed:
+        return SE_BLEND_MaskedDistanceFieldShadowed;
+    case ERiveBlendMode::SE_BLEND_TranslucentDistanceField:
+        return SE_BLEND_TranslucentDistanceField;
+    case ERiveBlendMode::SE_BLEND_TranslucentDistanceFieldShadowed:
+        return SE_BLEND_TranslucentDistanceFieldShadowed;
+    case ERiveBlendMode::SE_BLEND_AlphaComposite:
+        return SE_BLEND_AlphaComposite;
+    case ERiveBlendMode::SE_BLEND_AlphaHoldout:
+        return SE_BLEND_AlphaHoldout;
+    }
+
+    check(0);
+    return ESimpleElementBlendMode::SE_BLEND_Opaque; 
 }
 
 void URiveFile::Initialize()

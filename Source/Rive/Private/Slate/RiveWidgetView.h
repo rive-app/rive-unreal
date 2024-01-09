@@ -4,6 +4,8 @@
 
 #include "Widgets/SCompoundWidget.h"
 
+class FRiveSceneViewport;
+class FRiveViewportClient;
 class URiveFile;
 class FRiveSlateViewport;
 
@@ -37,6 +39,10 @@ public:
     /** Get Parent slate window */
     TSharedPtr<SWindow> GetParentWindow() const;
 
+	// SWidget overrides
+
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+
     /**
      * Attribute(s)
      */
@@ -48,7 +54,13 @@ private:
     TSharedPtr<FRiveSlateViewport> RiveSlateViewport;
 
     /** Reference to Slate Viewport */
-    TSharedPtr<SViewport> Viewport;
+    TSharedPtr<SViewport> ViewportWidget;
+
+	TSharedPtr<FRiveSceneViewport> RiveSceneViewport;
+	
+	TSharedPtr<FRiveViewportClient> RiveViewportClient;
+
+	bool bIsRenderingEnabled = true;
 
     /** The slate window that contains this widget. This must be stored weak otherwise we create a circular reference. */
     mutable TWeakPtr<SWindow> SlateParentWindowPtr;

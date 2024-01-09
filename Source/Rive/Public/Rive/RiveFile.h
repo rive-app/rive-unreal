@@ -60,6 +60,36 @@ public:
     inline static FVector2f BottomRight = FVector2f(1.f, 1.f);
 };
 
+UENUM(BlueprintType)
+enum class ERiveAlignment : uint8
+{
+    TopLeft = 0,
+    TopCenter = 1,
+    TopRight = 2,
+    CenterLeft = 3,
+    Center = 4,
+    CenterRight = 5,
+    BottomLeft = 6,
+    BottomCenter = 7,
+    BottomRight = 8,
+};
+
+UENUM(BlueprintType)
+enum class ERiveBlendMode : uint8
+{
+    SE_BLEND_Opaque = 0,
+    SE_BLEND_Masked,
+    SE_BLEND_Translucent,
+    SE_BLEND_Additive,
+    SE_BLEND_Modulate,
+    SE_BLEND_MaskedDistanceField,
+    SE_BLEND_MaskedDistanceFieldShadowed,
+    SE_BLEND_TranslucentDistanceField,
+    SE_BLEND_TranslucentDistanceFieldShadowed,
+    SE_BLEND_AlphaComposite,
+    SE_BLEND_AlphaHoldout,
+};
+
 /**
  *
  */
@@ -125,6 +155,16 @@ public:
     UFUNCTION(BlueprintPure, Category = Rive)
     FVector2f GetLocalCoordinates(const FVector2f& InScreenPosition, const FBox2f& InScreenRect) const;
 
+    // TODO. We need function in URiveFile to calculate it , based on RiveFitType
+    FIntPoint CalculateRenderTextureSize(const FIntPoint& InViewportSize) const;
+
+    // TODO. We need function in URiveFile to calculate it , based on RiveAlignment
+    FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize) const;
+
+    FVector2f GetRiveAlignment() const;
+
+    ESimpleElementBlendMode GetSimpleElementBlendMode() const;
+
     void BeginInput()
     {
         bIsReceivingInput = true;
@@ -166,6 +206,10 @@ public:
     UPROPERTY(Transient)
     TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 
+    // TODO. REMOVE IT!!, just for testing
+    UPROPERTY(EditAnywhere, Category = Rive)
+    bool bUseViewportClientTestProperty = true;
+    
 private:
 
     UPROPERTY(EditAnywhere, Category = Rive)
@@ -175,7 +219,10 @@ private:
     ERiveFitType RiveFitType = ERiveFitType::Fill;
 
     UPROPERTY(EditAnywhere, Category = Rive)
-    FVector2f RiveAlignment = FRiveAlignment::Center;
+    ERiveAlignment RiveAlignment = ERiveAlignment::Center;
+
+    UPROPERTY(EditAnywhere, Category = Rive)
+    ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_Opaque;
 
     UPROPERTY(EditAnywhere, Category = Rive)
     bool bIsRendering = true;
