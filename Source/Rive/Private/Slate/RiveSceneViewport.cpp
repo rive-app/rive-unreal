@@ -20,7 +20,7 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 {
 	if (!RiveFile)
 	{
-		UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonDown as we have an empty rive file."));
+		UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSceneViewport::OnMouseButtonDown as we have an empty rive file."));
 
 		return FReply::Unhandled();
 	}
@@ -30,6 +30,9 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 		return FReply::Unhandled();
 	}
 
+	// Start a new reply state
+	FReply NewReplyState = FSceneViewport::OnMouseButtonDown(MyGeometry, MouseEvent);
+
 #if WITH_RIVE
 
 	RiveFile->BeginInput();
@@ -38,17 +41,17 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FSlateRect BoundingRect = MyGeometry.GetRenderBoundingRect();
+			const FSlateRect BoundingRect = MyGeometry.GetLayoutBoundingRect();
 
 			const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
 
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect);
+			const FIntPoint ViewportSize = GetSizeXY();
+
+			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, ViewportSize);
 
 			if (StateMachine->OnMouseButtonDown(LocalPosition))
 			{
-				RiveFile->EndInput();
-
-				return FReply::Handled();
+				UE_LOG(LogRive, Warning, TEXT("Handled FRiveSceneViewport::OnMouseButtonDown at '%s'"), *LocalPosition.ToString())
 			}
 		}
 	}
@@ -57,14 +60,14 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 
 #endif // WITH_RIVE
 
-	return FSceneViewport::OnMouseButtonDown(MyGeometry, MouseEvent);
+	return NewReplyState;
 }
 
 FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	if (!RiveFile)
 	{
-		UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonUp as we have an empty rive file."));
+		UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSceneViewport::OnMouseButtonUp as we have an empty rive file."));
 
 		return FReply::Unhandled();
 	}
@@ -74,6 +77,9 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 		return FReply::Unhandled();
 	}
 
+	// Start a new reply state
+	FReply NewReplyState = FSceneViewport::OnMouseButtonUp(MyGeometry, MouseEvent);
+
 #if WITH_RIVE
 
 	RiveFile->BeginInput();
@@ -82,17 +88,17 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FSlateRect BoundingRect = MyGeometry.GetRenderBoundingRect();
+			const FSlateRect BoundingRect = MyGeometry.GetLayoutBoundingRect();
 
 			const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
 
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect);
+			const FIntPoint ViewportSize = GetSizeXY();
+
+			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, ViewportSize);
 
 			if (StateMachine->OnMouseButtonUp(LocalPosition))
 			{
-				RiveFile->EndInput();
-
-				return FReply::Handled();
+				UE_LOG(LogRive, Warning, TEXT("Handled FRiveSceneViewport::OnMouseButtonUp at '%s'"), *LocalPosition.ToString())
 			}
 		}
 	}
@@ -101,14 +107,14 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 
 #endif // WITH_RIVE
 	
-	return FSceneViewport::OnMouseButtonUp(MyGeometry, MouseEvent);
+	return NewReplyState;
 }
 
 FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	if (!RiveFile)
 	{
-		UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseMove as we have an empty rive file."));
+		UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSceneViewport::OnMouseMove as we have an empty rive file."));
 
 		return FReply::Unhandled();
 	}
@@ -118,6 +124,9 @@ FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 		return FReply::Unhandled();
 	}
 
+	// Start a new reply state
+	FReply NewReplyState = FSceneViewport::OnMouseMove(MyGeometry, MouseEvent);
+
 #if WITH_RIVE
 
 	RiveFile->BeginInput();
@@ -126,19 +135,17 @@ FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FSlateRect BoundingRect = MyGeometry.GetRenderBoundingRect();
+			const FSlateRect BoundingRect = MyGeometry.GetLayoutBoundingRect();
 
 			const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
 
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect);
+			const FIntPoint ViewportSize = GetSizeXY();
+
+			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, ViewportSize);
 
 			if (StateMachine->OnMouseMove(LocalPosition))
 			{
 				LastMousePosition = MouseEvent.GetScreenSpacePosition();
-
-				RiveFile->EndInput();
-
-				return FReply::Handled();
 			}
 		}
 	}
@@ -147,5 +154,5 @@ FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 
 #endif // WITH_RIVE
 	
-	return FSceneViewport::OnMouseMove(MyGeometry, MouseEvent);
+	return NewReplyState;
 }

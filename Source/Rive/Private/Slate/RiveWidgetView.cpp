@@ -12,6 +12,7 @@
 void SRiveWidgetView::Construct(const FArguments& InArgs, URiveFile* InRiveFile)
 {
     RiveFile = InRiveFile;
+
     if (!RiveFile)
     {
         return;
@@ -35,13 +36,16 @@ void SRiveWidgetView::Construct(const FArguments& InArgs, URiveFile* InRiveFile)
     {
         // TODO. new Implementation
         RiveViewportClient = MakeShared<FRiveViewportClient>(InRiveFile, SharedThis(this));
+
         RiveSceneViewport = MakeShared<FRiveSceneViewport>(RiveViewportClient.Get(), ViewportWidget, InRiveFile);
-        ViewportWidget->SetViewportInterface( RiveSceneViewport.ToSharedRef() );
+        
+        ViewportWidget->SetViewportInterface(RiveSceneViewport.ToSharedRef());
     }
     else
     {
         // TODO. Replacement for RiveSlateViewport
         RiveSlateViewport = MakeShared<FRiveSlateViewport>(InRiveFile, SharedThis(this));
+
         ViewportWidget->SetViewportInterface(RiveSlateViewport.ToSharedRef());
     }
 }

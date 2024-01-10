@@ -166,7 +166,7 @@ FReply FRiveSlateViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 
             const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
 
-            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect);
+            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, FIntPoint::ZeroValue);
 
             if (StateMachine->OnMouseButtonDown(LocalPosition))
             {
@@ -210,7 +210,7 @@ FReply FRiveSlateViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 
             const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
 
-            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect);
+            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, FIntPoint::ZeroValue);
 
             if (StateMachine->OnMouseButtonUp(LocalPosition))
             {
@@ -262,7 +262,7 @@ FReply FRiveSlateViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 
             const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
 
-            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect);
+            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, FIntPoint::ZeroValue);
 
             if (StateMachine->OnMouseMove(LocalPosition))
             {
