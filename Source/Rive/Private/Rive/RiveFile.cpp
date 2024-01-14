@@ -283,7 +283,14 @@ FIntPoint URiveFile::CalculateRenderTexturePosition(const FIntPoint& InViewportS
         return NewPosition;
     }
 
-    switch (RiveAlignment)
+    ERiveAlignment Alignment = RiveAlignment;
+    
+    if (RiveDisplayMode == ERiveDisplayMode::SCREEN_SPACE)
+    {
+        Alignment = ERiveAlignment::Center; 
+    }
+
+    switch (Alignment)
     {
         case ERiveAlignment::TopLeft:
             break;

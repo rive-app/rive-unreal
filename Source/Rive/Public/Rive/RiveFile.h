@@ -83,6 +83,13 @@ enum class ERiveAlignment : uint8
 };
 
 UENUM(BlueprintType)
+enum class ERiveDisplayMode : uint8
+{
+    WORLD_SPACE = 0 UMETA(DisplayNAme = "World Space"),
+    SCREEN_SPACE = 1 UMETA(DisplayName = "Screen Space")
+};
+
+UENUM(BlueprintType)
 enum class ERiveBlendMode : uint8
 {
     SE_BLEND_Opaque = 0 UMETA(DisplayName = "Opaque"),
@@ -257,9 +264,13 @@ private:
     UPROPERTY(EditAnywhere, Category = Rive)
     ERiveFitType RiveFitType = ERiveFitType::Contain;
 
+    /* Only applies when being rendered in World Space */
     UPROPERTY(EditAnywhere, Category = Rive)
     ERiveAlignment RiveAlignment = ERiveAlignment::Center;
 
+    UPROPERTY(EditAnywhere, Category = Rive)
+    ERiveDisplayMode RiveDisplayMode = ERiveDisplayMode::WORLD_SPACE;
+    
     UPROPERTY(EditAnywhere, Category = Rive)
     ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_Opaque;
 
