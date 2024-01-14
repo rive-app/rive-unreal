@@ -66,7 +66,7 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		
 		const FIntPoint RiveTextureSize = RiveFile->CalculateRenderTextureSize(ViewportSize);
 
-		const FIntPoint RiveTexturePosition = RiveFile->CalculateRenderTexturePosition(ViewportSize);
+		const FIntPoint RiveTexturePosition = RiveFile->CalculateRenderTexturePosition(ViewportSize, RiveTextureSize);
 		
 		FTexturePlatformData** RunningPlatformDataPtr = RiveFile->GetRunningPlatformData();
 
