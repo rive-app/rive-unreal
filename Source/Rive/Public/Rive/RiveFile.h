@@ -205,7 +205,7 @@ public:
     FIntPoint CalculateRenderTextureSize(const FIntPoint& InViewportSize) const;
 
     // TODO. We need function in URiveFile to calculate it , based on RiveAlignment
-    FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize, const FIntPoint& InTextureSize) const;
+    FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize) const;
 
     FVector2f GetRiveAlignment() const;
 

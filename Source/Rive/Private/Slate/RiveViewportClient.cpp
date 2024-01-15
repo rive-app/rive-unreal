@@ -52,7 +52,7 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		
 		const FIntPoint RiveTextureSize = RiveFile->CalculateRenderTextureSize(ViewportSize);
 
-		const FIntPoint RiveTexturePosition = RiveFile->CalculateRenderTexturePosition(ViewportSize, RiveTextureSize);
+		const FIntPoint RiveTexturePosition = RiveFile->CalculateRenderTexturePosition(ViewportSize);
 		
 		FCanvasTileItem TileItem(FVector2D(RiveTexturePosition.X, RiveTexturePosition.Y), RiveFile->GetResource(), FVector2D(RiveTextureSize.X, RiveTextureSize.Y), FLinearColor::White);
 		TileItem.BlendMode = RiveFile->GetSimpleElementBlendMode(); // TODO. check blending mode

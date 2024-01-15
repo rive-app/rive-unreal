@@ -194,17 +194,13 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InScreenPosition, cons
     {
         const FVector2f RiveAlignmentXY = GetRiveAlignment();
 
-        const FIntPoint TextureSize = CalculateRenderTextureSize(InViewportSize);
-        
-        const FVector2f TexturePosition = InScreenRect.Min + CalculateRenderTexturePosition(InViewportSize, TextureSize);
+        const FVector2f TexturePosition = InScreenRect.Min + CalculateRenderTexturePosition(InViewportSize);
+
+        const FVector2f TextureSize = TexturePosition + CalculateRenderTextureSize(InViewportSize);
 
         const rive::Mat2D Transform = rive::computeAlignment((rive::Fit)RiveFitType,
             rive::Alignment(RiveAlignmentXY.X, RiveAlignmentXY.Y),
-            rive::AABB(
-                TexturePosition.X,
-                TexturePosition.Y,
-                TexturePosition.X + TextureSize.X,
-                TexturePosition.Y + TextureSize.Y),
+            rive::AABB(TexturePosition.X, TexturePosition.Y, TextureSize.X, TextureSize.Y),
             Artboard->GetBounds());
     
         const rive::Vec2D ResultingVector = Transform.invertOrIdentity() * rive::Vec2D(InScreenPosition.X, InScreenPosition.Y);
@@ -331,13 +327,13 @@ FIntPoint URiveFile::CalculateRenderTextureSize(const FIntPoint& InViewportSize)
     return NewSize;
 }
 
-FIntPoint URiveFile::CalculateRenderTexturePosition(const FIntPoint& InViewportSize, const FIntPoint& InTextureSize) const
+FIntPoint URiveFile::CalculateRenderTexturePosition(const FIntPoint& InViewportSize) const
 {
     FIntPoint NewPosition = FIntPoint::ZeroValue;
 
-    const FIntPoint TextureSize = { InTextureSize.X, InTextureSize.Y };
+    const FIntPoint TextureSize = { SizeX, SizeY };
 
-    if (RiveFitType == ERiveFitType::Fill)
+    if (RiveFitType == ERiveFitType::Fill || RiveFitType == ERiveFitType::FitHeight || RiveFitType == ERiveFitType::FitWidth)
     {
         return NewPosition;
     }
