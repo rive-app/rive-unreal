@@ -249,27 +249,82 @@ void URiveFile::SetNumberValue(const FString& InPropertyName, int64 NewValue)
 
 FIntPoint URiveFile::CalculateRenderTextureSize(const FIntPoint& InViewportSize) const
 {
-    // TODO. Fully Implement
     FIntPoint NewSize = { SizeX, SizeY };
 
+    const FVector2f ArtboardSize = GetArtboard()->GetSize();
+    const float TextureAspectRatio = ArtboardSize.X / ArtboardSize.Y;
+    
     switch (RiveFitType)
     {
         case ERiveFitType::Fill:
             NewSize = InViewportSize;
             break;
         case ERiveFitType::Contain:
-            NewSize = { SizeX, SizeY };
+            // Ensures one dimension takes up the container space fully, without clipping
+            if (InViewportSize.X > InViewportSize.Y)
+            {
+                NewSize = {
+                    static_cast<int>(InViewportSize.Y / TextureAspectRatio),
+                    InViewportSize.Y
+                };
+            } else
+            {
+                NewSize = {
+                    static_cast<int>(InViewportSize.X / TextureAspectRatio),
+                    InViewportSize.X
+                };
+            }
             break;
         case ERiveFitType::Cover:
-            break;
+            {
+                // This Ensures one of the dimensions will always take up container space fully, with clipping
+                if (InViewportSize.X > InViewportSize.Y)
+                {
+                    NewSize = {
+                        InViewportSize.X,
+                        static_cast<int>(InViewportSize.X / TextureAspectRatio)
+                    };
+                } else
+                {
+                    NewSize = {
+                        static_cast<int>(InViewportSize.Y / TextureAspectRatio),
+                        InViewportSize.Y
+                    };
+                }
+                break;
+            }
         case ERiveFitType::FitWidth:
+            // Force Width to take up the screenspace width; Maintain aspect ratio, can clip
+            NewSize = {
+                InViewportSize.X,
+                static_cast<int>(InViewportSize.X / TextureAspectRatio)
+            };
             break;
         case ERiveFitType::FitHeight:
+            // Force to take up the screenspace height; Maintain aspect ratio, can clip
+            NewSize = {
+                static_cast<int>(InViewportSize.Y / TextureAspectRatio),
+                InViewportSize.Y
+            };
             break;
         case ERiveFitType::None:
             NewSize = { SizeX, SizeY };
             break;
         case ERiveFitType::ScaleDown:
+            // Take up maximum texture size, or scale it down
+            if (InViewportSize.X < SizeX)
+            {
+                NewSize = {
+                    InViewportSize.X,
+                    static_cast<int>(InViewportSize.X / TextureAspectRatio)
+                };
+            } else if (InViewportSize.Y < SizeY)
+            {
+                NewSize = {
+                    InViewportSize.Y,
+                    static_cast<int>(InViewportSize.Y / TextureAspectRatio)
+                };
+            }
             break;
     }
    
