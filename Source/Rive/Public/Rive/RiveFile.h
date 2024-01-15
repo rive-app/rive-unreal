@@ -265,7 +265,7 @@ private:
     ERiveFitType RiveFitType = ERiveFitType::Contain;
 
     /* Only applies when being rendered in World Space */
-    UPROPERTY(EditAnywhere, Category = Rive)
+    UPROPERTY(EditAnywhere, Category = Rive, meta=(EditCondition="RiveDisplayMode == ERiveDisplayMode::WORLD_SPACE"))
     ERiveAlignment RiveAlignment = ERiveAlignment::Center;
 
     UPROPERTY(EditAnywhere, Category = Rive)
