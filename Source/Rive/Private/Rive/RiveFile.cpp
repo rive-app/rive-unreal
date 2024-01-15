@@ -160,7 +160,22 @@ bool URiveFile::GetBoolValue(const FString& InPropertyName) const
 #endif // !WITH_RIVE
 }
 
-int64 URiveFile::GetNumberValue(const FString& InPropertyName) const
+bool URiveFile::GetCustomBoolValue(const FString& InEventName, const FString& InPropertyName) const
+{
+    return false;
+}
+
+float URiveFile::GetCustomNumberValue(const FString& InEventName, const FString& InPropertyName) const
+{
+    return 0.0f;
+}
+
+const FString URiveFile::GetCustomStringValue(const FString& InEventName, const FString& InPropertyName) const
+{
+    return FString();
+}
+
+float URiveFile::GetNumberValue(const FString& InPropertyName) const
 {
 #if WITH_RIVE
 
@@ -172,11 +187,11 @@ int64 URiveFile::GetNumberValue(const FString& InPropertyName) const
         }
     }
 
-    return 0;
+    return 0.f;
 
 #else
 
-    return 0;
+    return 0.f;
 
 #endif // !WITH_RIVE
 }
@@ -228,7 +243,7 @@ void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 #endif // WITH_RIVE
 }
 
-void URiveFile::SetNumberValue(const FString& InPropertyName, int64 NewValue)
+void URiveFile::SetNumberValue(const FString& InPropertyName, float NewValue)
 {
 #if WITH_RIVE
 
