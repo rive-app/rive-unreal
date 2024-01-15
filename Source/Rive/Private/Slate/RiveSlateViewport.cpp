@@ -27,7 +27,7 @@ FRiveSlateViewport::FRiveSlateViewport(URiveFile* InRiveFile, const TSharedRef<S
 
         ViewportRenderTargetTexture = Renderer->CreateUpdatableTexture(RenderingSize.X, RenderingSize.Y);
 
-        ViewportRenderTargetTexture->UpdateTextureThreadSafeRaw(RenderingSize.X, RenderingSize.Y, UpdatableTextureRawData.GetData());
+       // ViewportRenderTargetTexture->UpdateTextureThreadSafeRaw(RenderingSize.X, RenderingSize.Y, UpdatableTextureRawData.GetData());
     }
 
     FlushRenderingCommands();
