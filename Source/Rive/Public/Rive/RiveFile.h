@@ -198,7 +198,7 @@ public:
     FIntPoint CalculateRenderTextureSize(const FIntPoint& InViewportSize) const;
 
     // TODO. We need function in URiveFile to calculate it , based on RiveAlignment
-    FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize) const;
+    FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize, const FIntPoint& InTextureSize) const;
 
     FVector2f GetRiveAlignment() const;
 
@@ -255,11 +255,12 @@ private:
     FLinearColor DebugColor = FLinearColor::Transparent;
 
     UPROPERTY(EditAnywhere, Category = Rive)
-    ERiveFitType RiveFitType = ERiveFitType::Fill;
+    ERiveFitType RiveFitType = ERiveFitType::Contain;
 
-    UPROPERTY(EditAnywhere, Category = Rive)
+    /* This property is not editable via Editor in Unity, so we'll hide it also */
+    UPROPERTY()
     ERiveAlignment RiveAlignment = ERiveAlignment::Center;
-
+    
     UPROPERTY(EditAnywhere, Category = Rive)
     ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_Opaque;
 
