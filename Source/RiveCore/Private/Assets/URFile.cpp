@@ -13,7 +13,9 @@ UE::Rive::Assets::FURFile::FURFile(const uint8* InBytes, uint32 InSize)
     : NativeFileSpan(InBytes, InSize)
 #endif // WITH_RIVE
 {
+#if WITH_RIVE
     FileAssetLoader = MakeUnique<FURFileAssetLoader>("");
+#endif // WITH_RIVE
 }
 
 #if WITH_RIVE

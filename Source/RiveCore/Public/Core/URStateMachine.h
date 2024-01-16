@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Core/UREvent.h"
+
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
@@ -53,17 +55,25 @@ namespace UE::Rive::Core
 
         bool GetBoolValue(const FString& InPropertyName) const;
 
-        uint32 GetNumberValue(const FString& InPropertyName) const;
+        float GetNumberValue(const FString& InPropertyName) const;
 
         void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 
-        void SetNumberValue(const FString& InPropertyName, uint32 NewValue);
+        void SetNumberValue(const FString& InPropertyName, float NewValue);
 
         bool OnMouseButtonDown(const FVector2f& NewPosition);
 
         bool OnMouseMove(const FVector2f& NewPosition);
 
         bool OnMouseButtonUp(const FVector2f& NewPosition);
+
+        const TArray<FUREventPtr>& GetReportedEvents();
+
+        bool HasAnyReportedEvents() const;
+
+    private:
+
+        void PopulateReportedEvents();
 
         /**
          * Attribute(s)
@@ -72,6 +82,8 @@ namespace UE::Rive::Core
     private:
 
         std::unique_ptr<rive::StateMachineInstance> NativeStateMachinePtr = nullptr;
+
+        TArray<FUREventPtr> ReportedEvents;
 
 #endif // WITH_RIVE
     };
