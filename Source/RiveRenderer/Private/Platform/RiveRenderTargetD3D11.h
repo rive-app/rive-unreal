@@ -2,6 +2,8 @@
 
 #pragma once
 
+#if PLATFORM_WINDOWS
+
 #include "RiveRenderTarget.h"
 
 #if WITH_RIVE
@@ -70,3 +72,5 @@ namespace UE::Rive::Renderer::Private
 		mutable bool bIsCleared = false;
 	};
 }
+
+#endif // PLATFORM_WINDOWS

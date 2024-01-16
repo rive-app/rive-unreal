@@ -4,15 +4,22 @@
 #include "RiveRenderer.h"
 
 #include "Framework/Application/SlateApplication.h"
+
+#if PLATFORM_WINDOWS
 #include "Platform/RiveRendererD3D11.h"
+#endif // PLATFORM_WINDOWS
+
 #define LOCTEXT_NAMESPACE "RiveRendererModule"
 
 void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 {
     // Create Platform Specific Renderer
     RiveRenderer = nullptr;
+    
     switch (RHIGetInterfaceType())
     {
+#if PLATFORM_WINDOWS
+
     case ERHIInterfaceType::D3D11:
         {
             RiveRenderer = MakeShared<FRiveRendererD3D11>();
@@ -22,7 +29,10 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
         {
             break;
         }
-    case ERHIInterfaceType::Vulkan:
+        
+#endif // PLATFORM_WINDOWS
+    
+        case ERHIInterfaceType::Vulkan:
         {
             break;
         }

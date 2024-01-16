@@ -1,7 +1,9 @@
 // Copyright Rive, Inc. All rights reserved.
 
-
 #include "RiveRenderTargetD3D11.h"
+
+#if PLATFORM_WINDOWS
+
 #include "RiveRenderer.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Logs/RiveRendererLog.h"
@@ -44,8 +46,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Initialize()
 DECLARE_GPU_STAT_NAMED(CacheTextureTarget, TEXT("FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
 {
-#if PLATFORM_WINDOWS
-
 	check(IsInRenderingThread());
 
 	FScopeLock Lock(&ThreadDataCS);
@@ -96,8 +96,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 
 #endif // WITH_RIVE
 	}
-
-#endif // PLATFORM_WINDOWS
 }
 
 #if WITH_RIVE
@@ -251,3 +249,5 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 #endif // WITH_RIVE
 
 UE_ENABLE_OPTIMIZATION
+
+#endif // PLATFORM_WINDOWS

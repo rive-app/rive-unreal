@@ -1,6 +1,9 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveRendererD3D11.h"
+
+#if PLATFORM_WINDOWS
+
 #include "CanvasTypes.h"
 #include "Engine/TextureRenderTarget2D.h"
 
@@ -61,8 +64,6 @@ TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::F
 DECLARE_GPU_STAT_NAMED(CreatePLSContext, TEXT("CreatePLSContext_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
-#if PLATFORM_WINDOWS
-
 	check(IsInRenderingThread());
 
 	FScopeLock Lock(&ThreadDataCS);
@@ -106,8 +107,6 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 
 #endif // WITH_RIVE
 	}
-
-#endif // PLATFORM_WINDOWS
 }
 
 DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread"));
@@ -148,3 +147,5 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderTh
 }
 
 UE_ENABLE_OPTIMIZATION
+
+#endif // PLATFORM_WINDOWS

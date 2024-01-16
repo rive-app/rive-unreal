@@ -4,6 +4,8 @@
 
 #pragma once
 
+#if PLATFORM_WINDOWS
+
 #include "rive/pls/d3d/d3d11.hpp"
 #include "rive/pls/pls_render_context_helper_impl.hpp"
 #include <map>
@@ -134,3 +136,5 @@ private:
     ComPtr<ID3D11SamplerState> m_mipmapSampler;
 };
 } // namespace rive::pls
+
+#endif // PLATFORM_WINDOWS

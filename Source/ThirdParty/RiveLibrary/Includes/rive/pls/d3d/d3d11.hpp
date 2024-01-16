@@ -4,6 +4,8 @@
 
 #pragma once
 
+#if PLATFORM_WINDOWS
+
 #define NOMINMAX
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -23,3 +25,5 @@ using Microsoft::WRL::ComPtr;
             exit(-1);                                                                              \
         }                                                                                          \
     }
+
+#endif // PLATFORM_WINDOWS

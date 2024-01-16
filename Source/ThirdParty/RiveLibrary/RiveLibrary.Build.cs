@@ -64,8 +64,22 @@ public class RiveLibrary : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Mac");
+            
+            string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + ".a"; ;
 
-            // NOTE : Link MacOS Libraries
+            string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + ".a"; ;
+
+            string RiveStaticLibName = "librive" + LibPostfix + ".a"; ;
+
+            string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + ".a"; ;
+
+            string RivePlsLibName = "librive_pls_renderer" + LibPostfix + ".a"; ;
+
+            PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
+                , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
+                , Path.Combine(LibDirectory, RiveStaticLibName)
+                , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
+                , Path.Combine(LibDirectory, RivePlsLibName) });
 
             bIsPlatformAdded = true;
         }
