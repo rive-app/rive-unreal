@@ -11,6 +11,7 @@
 namespace rive::pls
 {
 	class PLSRenderTargetD3D;
+    
 	class PLSRenderContextD3DImpl;
 }
 
