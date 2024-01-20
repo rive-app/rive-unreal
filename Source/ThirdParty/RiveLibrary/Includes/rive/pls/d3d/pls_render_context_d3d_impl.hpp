@@ -4,11 +4,10 @@
 
 #pragma once
 
-#if PLATFORM_WINDOWS
-
 #include "rive/pls/d3d/d3d11.hpp"
 #include "rive/pls/pls_render_context_helper_impl.hpp"
 #include <map>
+#include <string>
 
 namespace rive::pls
 {
@@ -20,13 +19,15 @@ class PLSRenderTargetD3D : public PLSRenderTarget
 public:
     ~PLSRenderTargetD3D() override {}
 
-    void setTargetTexture(ID3D11Device*, ComPtr<ID3D11Texture2D> tex);
+    void setTargetTexture(ComPtr<ID3D11Texture2D> tex);
     ID3D11Texture2D* targetTexture() const { return m_targetTexture.Get(); }
 
 private:
     friend class PLSRenderContextD3DImpl;
 
-    PLSRenderTargetD3D(ID3D11Device*, size_t width, size_t height);
+    PLSRenderTargetD3D(PLSRenderContextD3DImpl*, uint32_t width, uint32_t height);
+
+    ComPtr<ID3D11Device> m_gpu;
 
     ComPtr<ID3D11Texture2D> m_targetTexture;
     ComPtr<ID3D11Texture2D> m_coverageTexture;
@@ -47,10 +48,35 @@ public:
                                                          ComPtr<ID3D11DeviceContext>,
                                                          bool isIntel);
 
-    rcp<PLSRenderTargetD3D> makeRenderTarget(size_t width, size_t height);
+    rcp<PLSRenderTargetD3D> makeRenderTarget(uint32_t width, uint32_t height);
+
+    // D3D helpers
+    ID3D11Device* gpu() const { return m_gpu.Get(); }
+    ID3D11DeviceContext* gpuContext() const { return m_gpuContext.Get(); }
+    ComPtr<ID3D11Texture2D> makeSimple2DTexture(DXGI_FORMAT format,
+                                                UINT width,
+                                                UINT height,
+                                                UINT mipLevelCount,
+                                                UINT bindFlags,
+                                                UINT miscFlags = 0);
+    ComPtr<ID3D11UnorderedAccessView> makeSimple2DUAV(ID3D11Texture2D* tex, DXGI_FORMAT format);
+    ComPtr<ID3D11Buffer> makeSimpleImmutableBuffer(size_t sizeInBytes,
+                                                   UINT bindFlags,
+                                                   const void* data);
+    ComPtr<ID3DBlob> compileSourceToBlob(const char* shaderTypeDefineName,
+                                         const std::string& commonSource,
+                                         const char* entrypoint,
+                                         const char* target);
 
 private:
-    PLSRenderContextD3DImpl(ComPtr<ID3D11Device>, ComPtr<ID3D11DeviceContext>, bool isIntel);
+    struct Features
+    {
+        bool rasterizerOrderedViews = false;
+        bool uavRGBA8LoadStore = false;
+        bool isIntel = false;
+    };
+
+    PLSRenderContextD3DImpl(ComPtr<ID3D11Device>, ComPtr<ID3D11DeviceContext>, const Features&);
 
     rcp<RenderBuffer> makeRenderBuffer(RenderBufferType, RenderBufferFlags, size_t) override;
 
@@ -59,30 +85,25 @@ private:
                                      uint32_t mipLevelCount,
                                      const uint8_t imageDataRGBA[]) override;
 
-    std::unique_ptr<TexelBufferRing> makeTexelBufferRing(TexelBufferRing::Format,
-                                                         size_t widthInItems,
-                                                         size_t height,
-                                                         size_t texelsPerItem,
-                                                         int textureIdx,
-                                                         TexelBufferRing::Filter) override;
+    std::unique_ptr<BufferRing> makeUniformBufferRing(size_t capacityInBytes) override;
+    std::unique_ptr<BufferRing> makeStorageBufferRing(size_t capacityInBytes,
+                                                      pls::StorageBufferStructure) override;
+    std::unique_ptr<BufferRing> makeVertexBufferRing(size_t capacityInBytes) override;
+    std::unique_ptr<BufferRing> makeTextureTransferBufferRing(size_t capacityInBytes) override;
 
-    std::unique_ptr<BufferRing> makeVertexBufferRing(size_t capacity,
-                                                     size_t itemSizeInBytes) override;
+    void resizeGradientTexture(uint32_t width, uint32_t height) override;
+    void resizeTessellationTexture(uint32_t width, uint32_t height) override;
 
-    std::unique_ptr<BufferRing> makePixelUnpackBufferRing(size_t capacity,
-                                                          size_t itemSizeInBytes) override;
+    void flush(const FlushDescriptor&) override;
 
-    std::unique_ptr<BufferRing> makeUniformBufferRing(size_t capacity,
-                                                      size_t itemSizeInBytes) override;
+    template <typename HighLevelStruct>
+    ID3D11ShaderResourceView* replaceStructuredBufferSRV(const BufferRing*,
+                                                         UINT highLevelStructCount,
+                                                         UINT firstHighLevelStruct);
 
-    void resizeGradientTexture(size_t height) override;
-    void resizeTessellationTexture(size_t height) override;
+    void setPipelineLayoutAndShaders(DrawType, ShaderFeatures, pls::InterlockMode);
 
-    void flush(const PLSRenderContext::FlushDescriptor&) override;
-
-    void setPipelineLayoutAndShaders(DrawType, ShaderFeatures);
-
-    const bool m_isIntel;
+    const Features m_features;
 
     ComPtr<ID3D11Device> m_gpu;
     ComPtr<ID3D11DeviceContext> m_gpuContext;
@@ -96,7 +117,7 @@ private:
     ComPtr<ID3D11RenderTargetView> m_tessTextureRTV;
 
     ComPtr<ID3D11RasterizerState> m_pathRasterState[2];
-    ComPtr<ID3D11RasterizerState> m_imageMeshRasterState[2];
+    ComPtr<ID3D11RasterizerState> m_imageRasterState[2];
 
     ComPtr<ID3D11InputLayout> m_colorRampLayout;
     ComPtr<ID3D11VertexShader> m_colorRampVertexShader;
@@ -115,8 +136,13 @@ private:
     std::map<uint32_t, DrawVertexShader> m_drawVertexShaders;
     std::map<uint32_t, ComPtr<ID3D11PixelShader>> m_drawPixelShaders;
 
+    // Vertex/index buffers for drawing path patches.
     ComPtr<ID3D11Buffer> m_patchVertexBuffer;
     ComPtr<ID3D11Buffer> m_patchIndexBuffer;
+
+    // Vertex/index buffers for drawing image rects. (Atomic mode only.)
+    ComPtr<ID3D11Buffer> m_imageRectVertexBuffer;
+    ComPtr<ID3D11Buffer> m_imageRectIndexBuffer;
 
     struct DrawUniforms
     {
@@ -130,11 +156,9 @@ private:
 
     ComPtr<ID3D11Buffer> m_flushUniforms;
     ComPtr<ID3D11Buffer> m_drawUniforms;
-    ComPtr<ID3D11Buffer> m_imageMeshUniforms;
+    ComPtr<ID3D11Buffer> m_imageDrawUniforms;
 
     ComPtr<ID3D11SamplerState> m_linearSampler;
     ComPtr<ID3D11SamplerState> m_mipmapSampler;
 };
 } // namespace rive::pls
-
-#endif // PLATFORM_WINDOWS

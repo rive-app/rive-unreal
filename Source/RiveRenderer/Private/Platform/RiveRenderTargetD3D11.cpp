@@ -7,10 +7,7 @@
 #include "RiveRenderer.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Logs/RiveRendererLog.h"
-
-#if PLATFORM_WINDOWS
 #include "ID3D11DynamicRHI.h"
-#endif // PLATFORM_WINDOWS
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START

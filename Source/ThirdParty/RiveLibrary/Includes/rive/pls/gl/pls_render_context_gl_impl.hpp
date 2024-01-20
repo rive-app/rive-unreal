@@ -27,7 +27,7 @@ public:
 
     // Creates a PLSRenderTarget that draws directly into the given GL framebuffer.
     // Returns null if the framebuffer doesn't support pixel local storage.
-    rcp<PLSRenderTargetGL> wrapGLRenderTarget(GLuint framebufferID, size_t width, size_t height)
+    rcp<PLSRenderTargetGL> wrapGLRenderTarget(GLuint framebufferID, uint32_t width, uint32_t height)
     {
         return m_plsImpl->wrapGLRenderTarget(framebufferID, width, height, m_platformFeatures);
     }
@@ -36,8 +36,8 @@ public:
     // guaranteed to succeed, but the caller must call glBlitFramebuffer() to view the rendering
     // results.
     rcp<PLSRenderTargetGL> makeOffscreenRenderTarget(
-        size_t width,
-        size_t height,
+        uint32_t width,
+        uint32_t height,
         PLSRenderTargetGL::TargetTextureOwnership targetTextureOwnership =
             PLSRenderTargetGL::TargetTextureOwnership::internal)
     {
@@ -66,17 +66,16 @@ private:
         virtual void init(rcp<GLState>) {}
 
         virtual rcp<PLSRenderTargetGL> wrapGLRenderTarget(GLuint framebufferID,
-                                                          size_t width,
-                                                          size_t height,
+                                                          uint32_t width,
+                                                          uint32_t height,
                                                           const PlatformFeatures&) = 0;
         virtual rcp<PLSRenderTargetGL> makeOffscreenRenderTarget(
-            size_t width,
-            size_t height,
+            uint32_t width,
+            uint32_t height,
             PLSRenderTargetGL::TargetTextureOwnership,
             const PlatformFeatures&) = 0;
 
-        virtual void activatePixelLocalStorage(PLSRenderContextGLImpl*,
-                                               const PLSRenderContext::FlushDescriptor&) = 0;
+        virtual void activatePixelLocalStorage(PLSRenderContextGLImpl*, const FlushDescriptor&) = 0;
         virtual void deactivatePixelLocalStorage(PLSRenderContextGLImpl*) = 0;
 
         virtual const char* shaderDefineName() const = 0;
@@ -111,16 +110,16 @@ private:
     class PLSImplWebGL;
     class PLSImplRWTexture;
 
-    static std::unique_ptr<PLSImpl> MakePLSImplEXTNative(const GLExtensions&);
-    static std::unique_ptr<PLSImpl> MakePLSImplFramebufferFetch(const GLExtensions&);
+    static std::unique_ptr<PLSImpl> MakePLSImplEXTNative(const GLCapabilities&);
+    static std::unique_ptr<PLSImpl> MakePLSImplFramebufferFetch(const GLCapabilities&);
     static std::unique_ptr<PLSImpl> MakePLSImplWebGL();
     static std::unique_ptr<PLSImpl> MakePLSImplRWTexture();
 
     static std::unique_ptr<PLSRenderContext> MakeContext(const char* rendererString,
-                                                         GLExtensions,
+                                                         GLCapabilities,
                                                          std::unique_ptr<PLSImpl>);
 
-    PLSRenderContextGLImpl(const char* rendererString, GLExtensions, std::unique_ptr<PLSImpl>);
+    PLSRenderContextGLImpl(const char* rendererString, GLCapabilities, std::unique_ptr<PLSImpl>);
 
     // Wraps a compiled and linked GL program of draw_path.glsl or draw_image_mesh.glsl, with a
     // specific set of features enabled via #define. The set of features to enable is dictated by
@@ -130,7 +129,7 @@ private:
     public:
         DrawProgram(const DrawProgram&) = delete;
         DrawProgram& operator=(const DrawProgram&) = delete;
-        DrawProgram(PLSRenderContextGLImpl*, DrawType, ShaderFeatures);
+        DrawProgram(PLSRenderContextGLImpl*, DrawType, ShaderFeatures, pls::InterlockMode);
         ~DrawProgram();
 
         GLuint id() const { return m_id; }
@@ -144,30 +143,18 @@ private:
 
     class DrawShader;
 
-    std::unique_ptr<TexelBufferRing> makeTexelBufferRing(TexelBufferRing::Format,
-                                                         size_t widthInItems,
-                                                         size_t height,
-                                                         size_t texelsPerItem,
-                                                         int textureIdx,
-                                                         TexelBufferRing::Filter) override;
+    std::unique_ptr<BufferRing> makeUniformBufferRing(size_t capacityInBytes) override;
+    std::unique_ptr<BufferRing> makeStorageBufferRing(size_t capacityInBytes,
+                                                      pls::StorageBufferStructure) override;
+    std::unique_ptr<BufferRing> makeVertexBufferRing(size_t capacityInBytes) override;
+    std::unique_ptr<BufferRing> makeTextureTransferBufferRing(size_t capacityInBytes) override;
 
-    std::unique_ptr<BufferRing> makeVertexBufferRing(size_t capacity,
-                                                     size_t itemSizeInBytes) override;
+    void resizeGradientTexture(uint32_t width, uint32_t height) override;
+    void resizeTessellationTexture(uint32_t width, uint32_t height) override;
 
-    std::unique_ptr<BufferRing> makePixelUnpackBufferRing(size_t capacity,
-                                                          size_t itemSizeInBytes) override;
+    void flush(const FlushDescriptor&) override;
 
-    std::unique_ptr<BufferRing> makeUniformBufferRing(size_t capacity, size_t sizeInBytes) override;
-
-    void resizeGradientTexture(size_t height) override;
-    void resizeTessellationTexture(size_t height) override;
-
-    void flush(const PLSRenderContext::FlushDescriptor&) override;
-
-    GLExtensions m_extensions;
-
-    constexpr static size_t kShaderVersionStringBuffSize = sizeof("#version 300 es\n") + 1;
-    char m_shaderVersionString[kShaderVersionStringBuffSize];
+    GLCapabilities m_capabilities;
 
     std::unique_ptr<PLSImpl> m_plsImpl;
 
@@ -187,11 +174,21 @@ private:
     // Not all programs have a unique vertex shader, so we cache and reuse them where possible.
     std::map<uint32_t, DrawShader> m_vertexShaders;
     std::map<uint32_t, DrawProgram> m_drawPrograms;
+
+    // Vertex/index buffers for drawing paths.
     GLuint m_drawVAO = 0;
     GLuint m_patchVerticesBuffer = 0;
     GLuint m_patchIndicesBuffer = 0;
     GLuint m_interiorTrianglesVAO = 0;
+
+    // Vertex/index buffers for drawing image rects. (Atomic mode only, and only used when bindless
+    // textures aren't supported.)
+    GLuint m_imageRectVAO = 0;
+    GLuint m_imageRectVertexBuffer = 0;
+    GLuint m_imageRectIndexBuffer = 0;
+
     GLuint m_imageMeshVAO = 0;
+    GLuint m_plsResolveVAO = 0;
 
     const rcp<GLState> m_state;
 };

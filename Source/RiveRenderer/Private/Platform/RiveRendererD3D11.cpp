@@ -6,12 +6,9 @@
 
 #include "CanvasTypes.h"
 #include "Engine/TextureRenderTarget2D.h"
-
-#if PLATFORM_WINDOWS
 #include "RiveRenderTargetD3D11.h"
 #include "Windows/D3D11ThirdParty.h"
 #include "ID3D11DynamicRHI.h"
-#endif // PLATFORM_WINDOWS
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
