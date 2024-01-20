@@ -8,6 +8,10 @@ class URiveFile;
 class UTextureRenderTarget2D;
 
 #if WITH_RIVE
+THIRD_PARTY_INCLUDES_START
+#include "rive/pls/pls_render_context.hpp"
+#include "rive/pls/pls_renderer.hpp"
+THIRD_PARTY_INCLUDES_END
 
 // just for testig
 namespace rive

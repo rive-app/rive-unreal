@@ -56,17 +56,17 @@ void UE::Rive::Assets::FURFile::PrintStats()
 
     FFormatNamedArguments RiveFileLoadArgs;
 
-    RiveFileLoadArgs.Add(TEXT("Major"), FText::AsNumber(NativeFilePtr->majorVersion));
+    RiveFileLoadArgs.Add(TEXT("Major"), FText::AsNumber((int32)NativeFilePtr->majorVersion));
 
-    RiveFileLoadArgs.Add(TEXT("Minor"), FText::AsNumber(NativeFilePtr->minorVersion));
+    RiveFileLoadArgs.Add(TEXT("Minor"), FText::AsNumber((int32)NativeFilePtr->minorVersion));
 
-    RiveFileLoadArgs.Add(TEXT("NumArtboards"), FText::AsNumber(NativeFilePtr->artboardCount()));
+    RiveFileLoadArgs.Add(TEXT("NumArtboards"), FText::AsNumber((uint64)NativeFilePtr->artboardCount()));
 
-    RiveFileLoadArgs.Add(TEXT("NumAssets"), FText::AsNumber(NativeFilePtr->assets().size()));
+    RiveFileLoadArgs.Add(TEXT("NumAssets"), FText::AsNumber((uint64)NativeFilePtr->assets().size()));
 
     if (const rive::Artboard* NativeArtboard = NativeFilePtr->artboard())
     {
-        RiveFileLoadArgs.Add(TEXT("NumAnimations"), FText::AsNumber(NativeArtboard->animationCount()));
+        RiveFileLoadArgs.Add(TEXT("NumAnimations"), FText::AsNumber((uint64)NativeArtboard->animationCount()));
     }
     else
     {

@@ -5,6 +5,9 @@
 #include "IRiveRenderer.h"
 
 #if WITH_RIVE
+THIRD_PARTY_INCLUDES_START
+#include "rive/pls/pls_render_context.hpp"
+THIRD_PARTY_INCLUDES_END
 
 namespace rive::pls
 {

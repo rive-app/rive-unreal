@@ -2,6 +2,7 @@
 
 #pragma once
 
+#if !PLATFORM_ANDROID
 #include "RiveRenderer.h"
 
 #if WITH_RIVE
@@ -48,3 +49,4 @@ namespace UE::Rive::Renderer::Private
 	};
 }
 
+#endif

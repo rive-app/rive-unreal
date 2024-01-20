@@ -1,5 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
+#if !PLATFORM_ANDROID
 #include "RiveRendererD3D11.h"
 #include "CanvasTypes.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -148,3 +149,5 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderTh
 }
 
 UE_ENABLE_OPTIMIZATION
+
+#endif

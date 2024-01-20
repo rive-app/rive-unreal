@@ -4,7 +4,11 @@
 #include "RiveRenderer.h"
 
 #include "Framework/Application/SlateApplication.h"
-#include "Platform/RiveRendererD3D11.h"
+#if !PLATFORM_ANDROID
+// #include "Platform/RiveRendererD3D11.h"
+#else
+
+#endif
 #define LOCTEXT_NAMESPACE "RiveRendererModule"
 
 void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
@@ -15,7 +19,9 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
     {
     case ERHIInterfaceType::D3D11:
         {
-            RiveRenderer = MakeShared<FRiveRendererD3D11>();
+#if !PLATFORM_ANDROID
+            // RiveRenderer = MakeShared<FRiveRendererD3D11>();
+#endif
             break;
         }
     case ERHIInterfaceType::D3D12:
@@ -24,6 +30,11 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
         }
     case ERHIInterfaceType::Vulkan:
         {
+            break;
+        }
+    case ERHIInterfaceType::OpenGL:
+        {
+            UE_LOG(LogTemp, Error, TEXT("---OPEN GL---"))
             break;
         }
     default:

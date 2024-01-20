@@ -2,6 +2,7 @@
 
 #pragma once
 
+#if !PLATFORM_ANDROID
 #include "RiveRenderTarget.h"
 
 #if WITH_RIVE
@@ -70,3 +71,4 @@ namespace UE::Rive::Renderer::Private
 		mutable bool bIsCleared = false;
 	};
 }
+#endif

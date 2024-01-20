@@ -5,7 +5,9 @@
 
 #include "CanvasItem.h"
 #include "CanvasTypes.h"
+#if WITH_EDITOR
 #include "Texture2DPreview.h"
+#endif
 #include "Rive/RiveFile.h"
 
 UE_DISABLE_OPTIMIZATION
@@ -38,10 +40,12 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 	const float SliceIndex = 1.f;
 	
 	const bool bUsePointSampling = false;
-	
+
+	//todo: how does that work in non-editor builds?
+#if WITH_EDITOR
 	// TODO. check how that removed from memory
 	TRefCountPtr<FBatchedElementParameters> BatchedElementParameters = new FBatchedElementTexture2DPreviewParameters(MipLevel, LayerIndex, SliceIndex, false, false, false, false, false, bUsePointSampling);
-
+#endif
 	// Draw the background checkerboard pattern in the same size/position as the render texture so it will show up anywhere
 	// the texture has transparency
 	// TODO. implement CheckerboardTexture texture in editor mode only, never run it runtime or outside of rive editor
@@ -76,7 +80,9 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		
 		TileItem.BlendMode = RiveFile->GetSimpleElementBlendMode(); // TODO. check blending mode
 		
+#if WITH_EDITOR
 		TileItem.BatchedElementParameters = BatchedElementParameters;
+#endif
 
 		// Tell canvas to Draw
 		Canvas->DrawItem(TileItem);

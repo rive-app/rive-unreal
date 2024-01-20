@@ -1,6 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
-
+#if !PLATFORM_ANDROID
 #include "RiveRenderTargetD3D11.h"
 #include "RiveRenderer.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -249,3 +249,5 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 #endif // WITH_RIVE
 
 UE_ENABLE_OPTIMIZATION
+
+#endif
