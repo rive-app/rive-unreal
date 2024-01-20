@@ -43,15 +43,15 @@ public class RiveLibrary : ModuleRules
 
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Win64");
 
-            string RiveSheenBidiStaticLibName = "rive_sheenbidi" + LibPostfix + ".lib"; ;
+            string RiveSheenBidiStaticLibName = "rive_sheenbidi" + LibPostfix + ".lib";
 
-            string RiveHarfBuzzStaticLibName = "rive_harfbuzz" + LibPostfix + ".lib"; ;
+            string RiveHarfBuzzStaticLibName = "rive_harfbuzz" + LibPostfix + ".lib";
 
             string RiveStaticLibName = "rive" + LibPostfix + ".lib"; ;
 
-            string RiveDecodersStaticLibName = "rive_decoders" + LibPostfix + ".lib"; ;
+            string RiveDecodersStaticLibName = "rive_decoders" + LibPostfix + ".lib";
 
-            string RivePlsLibName = "rive_pls_renderer" + LibPostfix + ".lib"; ;
+            string RivePlsLibName = "rive_pls_renderer" + LibPostfix + ".lib";
 
             PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
                 , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
@@ -67,6 +67,28 @@ public class RiveLibrary : ModuleRules
 
             // NOTE : Link MacOS Libraries
 
+            bIsPlatformAdded = true;
+        } 
+        else if (Target.Platform == UnrealTargetPlatform.Android)
+        {
+            
+            string LibDirectory = Path.Combine(RootDir, "Libraries", "Android");
+            string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + ".a";
+            string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + ".a";
+            string RiveStaticLibName = "librive" + LibPostfix + ".a"; ;
+            string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + ".a";
+            string RivePlsLibName = "librive_pls_renderer" + LibPostfix + ".a";
+
+            PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
+                // , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
+                , Path.Combine(LibDirectory, RiveStaticLibName)
+                , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
+                , Path.Combine(LibDirectory, RivePlsLibName) });
+
+            // RuntimeDependencies.Add(Path.Combine(LibDirectory, RiveStaticLibName));
+            
+            PrecompileForTargets = PrecompileTargetsType.None;
+            
             bIsPlatformAdded = true;
         }
         else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
