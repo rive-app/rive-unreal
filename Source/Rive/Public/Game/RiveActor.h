@@ -71,7 +71,7 @@ private:
 
 public:
 
-	UPROPERTY(EditAnywhere, Category = "Rive")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive")
 	TObjectPtr<URiveFile> RiveFile;
 
 protected:
