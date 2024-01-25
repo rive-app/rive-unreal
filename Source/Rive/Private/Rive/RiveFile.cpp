@@ -444,36 +444,137 @@ ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
     return NewBlendMode;
 }
 
-void URiveFile::Initialize()
+#if UE_EDITOR
+void URiveFile::EditorImport(const FString& InRiveFilePath)
 {
-    if (!LoadNativeFile())
+    RiveFilePath = InRiveFilePath;
+    
+    UnrealRiveFile = MakeUnique<UE::Rive::Assets::FURFile>(TempFileBuffer.GetData(), TempFileBuffer.Num());
+    
+    if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
     {
-        UE_LOG(LogRive, Error, TEXT("Unable to load the native artboard. Check log for more details."));
+        UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
 
         return;
     }
 
-    if (UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+
+    if (!RiveRenderer)
     {
-        if (UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+        UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
+
+        return;
+    }
+
+    if (!RiveRenderer->IsInitialized())
+    {
+        UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer is not initialized."));
+
+        return;
+    }
+    
+#if WITH_RIVE
+
+    if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
+    {
+        rive::ImportResult ImportResult = UnrealRiveFile->EditorImport(RiveFilePath, Assets, PLSRenderContext);
+
+        if (ImportResult != rive::ImportResult::success)
         {
-            const FVector2f ArtboardSize = Artboard->GetSize();
+            UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
 
-            constexpr bool bInForceLinearGamma = false;
-
-            InitCustomFormat(ArtboardSize.X, ArtboardSize.Y, OverrideFormat, bInForceLinearGamma);
-
-            RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
-
-            FlushRenderingCommands();
-
-            RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), RenderTarget);
-
-            RiveRenderTarget->Initialize();
-
-            bIsInitialized = true;
+            return;
         }
     }
+    else
+    {
+        UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
+
+        return;
+    }
+
+    Initialize();
+#endif // WITH_RIVE
+}
+#endif
+
+void URiveFile::Initialize()
+{
+    if (!UnrealRiveFile.IsValid())
+    {
+        if (TempFileBuffer.IsEmpty())
+        {
+            UE_LOG(LogRive, Error, TEXT("Could not load an empty Rive File."));
+
+            return;
+        }
+        
+        UnrealRiveFile = MakeUnique<UE::Rive::Assets::FURFile>(TempFileBuffer.GetData(), TempFileBuffer.Num());
+    }
+        
+    if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
+    {
+        UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
+
+        return;
+    }
+
+    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
+
+        return;
+    }
+
+    if (!RiveRenderer->IsInitialized())
+    {
+        UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer is not initialized."));
+
+        return;
+    }
+    
+#if WITH_RIVE
+
+    if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
+    {
+        rive::ImportResult ImportResult = UnrealRiveFile->Import(Assets, PLSRenderContext);
+
+        if (ImportResult != rive::ImportResult::success)
+        {
+            UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
+
+            return;
+        }
+    }
+    else
+    {
+        UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
+
+        return;
+    }
+
+    if (UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+    {
+        const FVector2f ArtboardSize = Artboard->GetSize();
+
+        constexpr bool bInForceLinearGamma = false;
+
+        InitCustomFormat(ArtboardSize.X, ArtboardSize.Y, OverrideFormat, bInForceLinearGamma);
+
+        RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
+
+        FlushRenderingCommands();
+
+        RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), RenderTarget);
+
+        RiveRenderTarget->Initialize();
+
+        bIsInitialized = true;
+    }
+#endif // WITH_RIVE
 }
 
 void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
@@ -493,61 +594,6 @@ UE::Rive::Core::FURArtboard* URiveFile::GetArtboard() const
     }
 
     return UnrealRiveFile->GetArtboard();
-}
-
-bool URiveFile::LoadNativeFile()
-{
-    if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
-    {
-        UE_LOG(LogRive, Error, TEXT("Could not load native artboard as the required Rive Renderer Module is either missing or not loaded properly."));
-
-        return false;
-    }
-
-    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-
-    if (!RiveRenderer)
-    {
-        UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
-
-        return false;
-    }
-
-    if (!RiveRenderer->IsInitialized())
-    {
-        UE_LOG(LogRive, Error, TEXT("Could not load native artboard as the required Rive Renderer is not initialized."));
-
-        return false;
-    }
-
-    if (!UnrealRiveFile.IsValid())
-    {
-        UnrealRiveFile = MakeUnique<UE::Rive::Assets::FURFile>(TempFileBuffer.GetData(), TempFileBuffer.Num());
-    }
-
-#if WITH_RIVE
-
-    if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
-    {
-        rive::ImportResult ImportResult = UnrealRiveFile->Import(PLSRenderContext);
-
-        if (ImportResult != rive::ImportResult::success)
-        {
-            UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
-
-            return false;
-        }
-    }
-    else
-    {
-        UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
-
-        return false;
-    }
-
-#endif // WITH_RIVE
-
-    return true;
 }
 
 UE_ENABLE_OPTIMIZATION

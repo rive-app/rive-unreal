@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IRiveRenderTarget.h"
+#include "Assets/UREmbeddedAsset.h"
 #include "Assets/URFile.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "RiveFile.generated.h"
@@ -214,6 +215,10 @@ public:
         bIsReceivingInput = false;
     }
 
+#if UE_EDITOR
+    void EditorImport(const FString& InRiveFilePath);
+#endif
+    
     void Initialize();
 
     void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
@@ -221,11 +226,7 @@ public:
     TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
     UE::Rive::Core::FURArtboard* GetArtboard() const;
-
-private:
-
-    bool LoadNativeFile();
-
+    
     /**
      * Attribute(s)
      */
@@ -242,13 +243,18 @@ public:
     UPROPERTY()
     TArray<uint8> TempFileBuffer;
 
+    UPROPERTY()
+    FString RiveFilePath;
+
     UPROPERTY(Transient)
     TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 
     // TODO. REMOVE IT!!, just for testing
     UPROPERTY(EditAnywhere, Category = Rive)
     bool bUseViewportClientTestProperty = true;
-    
+
+    UPROPERTY(VisibleAnywhere, Category=Rive)
+    TMap<uint32, FUREmbeddedAsset> Assets;
 private:
 
     UPROPERTY(EditAnywhere, Category = Rive)
@@ -268,7 +274,7 @@ private:
 
     UPROPERTY(EditAnywhere, Category=Rive)
     TSubclassOf<UUserWidget> WidgetClass;
-
+    
     bool bIsInitialized = false;
 
     bool bIsReceivingInput = false;
