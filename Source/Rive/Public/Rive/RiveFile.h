@@ -177,29 +177,38 @@ public:
     UFUNCTION(BlueprintCallable, Category = Rive)
     void FireTrigger(const FString& InPropertyName) const;
 
-    UFUNCTION(BlueprintPure, Category = Rive)
+    UFUNCTION(BlueprintCallable, Category = Rive)
     bool GetBoolValue(const FString& InPropertyName) const;
 
-    UFUNCTION(BlueprintPure, Category = Rive)
-    int64 GetNumberValue(const FString& InPropertyName) const;
+    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
+    bool GetCustomBoolValue(const FString& InEventName, const FString& InPropertyName) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
+    float GetCustomNumberValue(const FString& InEventName, const FString& InPropertyName) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
+    const FString GetCustomStringValue(const FString& InEventName, const FString& InPropertyName) const;
+
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    float GetNumberValue(const FString& InPropertyName) const;
 
     UFUNCTION(BlueprintPure, Category = Rive)
     FLinearColor GetDebugColor() const;
 
-    UFUNCTION(BlueprintPure, Category = Rive)
+    UFUNCTION(BlueprintCallable, Category = Rive)
     FVector2f GetLocalCoordinates(const FVector2f& InScreenPosition, const FBox2f& InScreenRect, const FIntPoint& InViewportSize) const;
 
     UFUNCTION(BlueprintCallable, Category = Rive)
     void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 
     UFUNCTION(BlueprintCallable, Category = Rive)
-    void SetNumberValue(const FString& InPropertyName, int64 NewValue);
+    void SetNumberValue(const FString& InPropertyName, float NewValue);
 
     // TODO. We need function in URiveFile to calculate it , based on RiveFitType
     FIntPoint CalculateRenderTextureSize(const FIntPoint& InViewportSize) const;
 
     // TODO. We need function in URiveFile to calculate it , based on RiveAlignment
-    FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize) const;
+    FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize, const FIntPoint& InTextureSize) const;
 
     FVector2f GetRiveAlignment() const;
 
@@ -261,11 +270,12 @@ private:
     FLinearColor DebugColor = FLinearColor::Transparent;
 
     UPROPERTY(EditAnywhere, Category = Rive)
-    ERiveFitType RiveFitType = ERiveFitType::Fill;
+    ERiveFitType RiveFitType = ERiveFitType::Contain;
 
-    UPROPERTY(EditAnywhere, Category = Rive)
+    /* This property is not editable via Editor in Unity, so we'll hide it also */
+    UPROPERTY()
     ERiveAlignment RiveAlignment = ERiveAlignment::Center;
-
+    
     UPROPERTY(EditAnywhere, Category = Rive)
     ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_Opaque;
 

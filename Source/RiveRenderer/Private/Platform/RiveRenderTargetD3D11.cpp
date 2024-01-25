@@ -75,8 +75,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 	{
 		ID3D11DynamicRHI* D3D11RHI = GetID3D11DynamicRHI();
 
-		ID3D11Device* D3D11DevicePtr = D3D11RHI->RHIGetDevice();
-
 		ID3D11Texture2D* D3D11ResourcePtr = (ID3D11Texture2D*)D3D11RHI->RHIGetResource(InTexture);
 
 		D3D11_TEXTURE2D_DESC Desc;
@@ -92,7 +90,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 		
 		CachedPLSRenderTargetD3D = PLSRenderContextD3DImpl->makeRenderTarget(Desc.Width, Desc.Height);
 		
-		CachedPLSRenderTargetD3D->setTargetTexture(D3D11DevicePtr, D3D11ResourcePtr);
+		CachedPLSRenderTargetD3D->setTargetTexture(D3D11ResourcePtr);
 
 #endif // WITH_RIVE
 	}
