@@ -83,6 +83,30 @@ public class RiveLibrary : ModuleRules
 
             bIsPlatformAdded = true;
         }
+        else if (Target.Platform == UnrealTargetPlatform.IOS)
+        {
+            string LibDirectory = Path.Combine(RootDir, "Libraries", "IOS");
+         
+            string LibExt = (Target.Architecture == UnrealArch.IOSSimulator) ? ".sim.a" : ".a";
+
+            string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + LibExt; ;
+            
+            string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + LibExt; ;
+            
+            string RiveStaticLibName = "librive" + LibPostfix + LibExt; ;
+            
+            string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + LibExt; ;
+            
+            string RivePlsLibName = "librive_pls_renderer" + LibPostfix + LibExt; ;
+            
+            PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
+                , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
+                , Path.Combine(LibDirectory, RiveStaticLibName)
+                , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
+                , Path.Combine(LibDirectory, RivePlsLibName) });
+            
+            bIsPlatformAdded = true;
+        }
         else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
         {
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Unix");
