@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "URAssetImporter.h"
 #include "Assets/URFileAssetLoader.h"
 #include "Core/URArtboard.h"
 
 #if WITH_RIVE
+class URiveFile;
 THIRD_PARTY_INCLUDES_START
 #include "rive/file.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -13,7 +15,8 @@ THIRD_PARTY_INCLUDES_END
 
 namespace UE::Rive::Assets
 {
-    class FURFile;
+	class FURAsset;
+	class FURFile;
 
     /**
      * Type definition for unique pointer reference to the instance of FURFile.
@@ -47,7 +50,8 @@ namespace UE::Rive::Assets
 
     public:
 
-        rive::ImportResult Import(rive::Factory* InRiveFactory, Assets::FURFileAssetLoader* InAssetLoader = nullptr);
+		rive::ImportResult EditorImport(const FString& InRiveFilePath, TMap<uint32, FUREmbeddedAsset>& InAssetMap, rive::Factory* InRiveFactory);
+        rive::ImportResult Import(TMap<uint32, FUREmbeddedAsset>& InAssetMap, rive::Factory* InRiveFactory);
 
         Core::FURArtboard* GetArtboard() const;
 

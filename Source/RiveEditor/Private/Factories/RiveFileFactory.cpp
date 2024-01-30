@@ -47,10 +47,9 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
 
         return nullptr;
     }
-
-    // Do not Serialize, simple load to ByteArray
-    RiveFile->Initialize();
-
+    
+    RiveFile->EditorImport(InFilename);
+    
     // Create Rive UMG
     if (!FRiveWidgetFactory(RiveFile).Create())
     {
