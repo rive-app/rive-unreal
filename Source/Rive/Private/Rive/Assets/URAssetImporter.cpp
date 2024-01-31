@@ -3,6 +3,8 @@
 #include "Rive/Assets/URAssetImporter.h"
 
 #include "AssetToolsModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/URAssetHelpers.h"
@@ -59,12 +61,29 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 		const UPackage* const RivePackage = RiveFile->GetOutermost();
 		const FString RivePackageName = RivePackage->GetName();
 		const FString RiveFolderName = *FPackageName::GetLongPackagePath(RivePackageName);
-	
-		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-		RiveAsset = Cast<URiveAsset>(AssetToolsModule.Get().CreateAsset(AssetName, RiveFolderName, URiveAsset::StaticClass(), nullptr));
+
+		const FString RiveAssetPath = FString::Printf(TEXT("%s/%s.%s"), *RiveFolderName, *AssetName, *AssetName);
+		
+		// Determine if this asset already exists at this path
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(RiveAssetPath);
+		if (AssetData.IsValid())
+		{
+			RiveAsset = Cast<URiveAsset>(AssetData.GetAsset());
+		} else
+		{
+			FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+			RiveAsset = Cast<URiveAsset>(AssetToolsModule.Get().CreateAsset(AssetName, RiveFolderName, URiveAsset::StaticClass(), nullptr));
+		}
 	} else
 	{
 		RiveAsset = NewObject<URiveAsset>(nullptr, URiveAsset::StaticClass());
+	}
+
+	if (!RiveAsset)
+	{
+		UE_LOG(LogRive, Error, TEXT("Could not load the RiveAsset."));
+		return false;
 	}
 	
 	RiveAsset->Id = InAsset.assetId();
