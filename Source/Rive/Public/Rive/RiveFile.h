@@ -3,10 +3,21 @@
 #pragma once
 
 #include "IRiveRenderTarget.h"
-#include "Assets/UREmbeddedAsset.h"
-#include "Assets/URFile.h"
+#include "Core/URArtboard.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "RiveFile.generated.h"
+
+namespace rive
+{
+    class File;
+}
+
+namespace UE::Rive::Core
+{
+    class FURArtboard;
+}
+
+class URiveAsset;
 
 USTRUCT(Blueprintable)
 struct RIVE_API FRiveStateMachineEvent
@@ -155,9 +166,7 @@ public:
     //~ END : UObject UTexture
 
     //~ BEGIN : UObject Interface
-
-public:
-
+    
     virtual void PostLoad() override;
 
 #if WITH_EDITOR
@@ -225,7 +234,7 @@ public:
     }
 
 #if UE_EDITOR
-    void EditorImport(const FString& InRiveFilePath);
+    bool EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer);
 #endif
     
     void Initialize();
@@ -250,7 +259,7 @@ public:
     FRiveStateMachineDelegate OnRiveStateMachineDelegate;
 
     UPROPERTY()
-    TArray<uint8> TempFileBuffer;
+    TArray<uint8> RiveFileData;
 
     UPROPERTY()
     FString RiveFilePath;
@@ -263,7 +272,7 @@ public:
     bool bUseViewportClientTestProperty = true;
 
     UPROPERTY(VisibleAnywhere, Category=Rive)
-    TMap<uint32, FUREmbeddedAsset> Assets;
+    TMap<uint32, TObjectPtr<URiveAsset>> Assets;
 private:
 
     UPROPERTY(EditAnywhere, Category = Rive)
@@ -293,5 +302,8 @@ private:
 
     bool bDrawOnceTest = false;
 
-    UE::Rive::Assets::FURFilePtr UnrealRiveFile;
+    UE::Rive::Core::FURArtboardPtr Artboard;
+    rive::Span<const uint8> RiveNativeFileSpan;
+    std::unique_ptr<rive::File> RiveNativeFilePtr;
+    void PrintStats();
 };

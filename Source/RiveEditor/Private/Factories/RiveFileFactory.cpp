@@ -41,14 +41,21 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
         return nullptr;
     }
 
-    if (!FFileHelper::LoadFileToArray(RiveFile->TempFileBuffer, *InFilename)) // load entire DNA file into the array
+    TArray<uint8> FileBuffer;
+    if (!FFileHelper::LoadFileToArray(FileBuffer, *InFilename)) // load entire DNA file into the array
     {
         UE_LOG(LogRiveEditor, Error, TEXT("Could not read DNA file %s!"), *InFilename);
 
         return nullptr;
     }
     
-    RiveFile->EditorImport(InFilename);
+    if (!RiveFile->EditorImport(InFilename, FileBuffer))
+    {
+        UE_LOG(LogRiveEditor, Error, TEXT("Could not import riv file"));
+        return nullptr;
+    }
+
+    RiveFile->Initialize();
     
     // Create Rive UMG
     if (!FRiveWidgetFactory(RiveFile).Create())

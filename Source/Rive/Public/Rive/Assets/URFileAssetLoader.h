@@ -4,7 +4,7 @@
 
 #if WITH_RIVE
 
-struct FUREmbeddedAsset;
+class URiveFile;
 
 namespace rive
 {
@@ -29,7 +29,7 @@ namespace UE::Rive::Assets
      * Unreal extension of rive::FileAssetLoader implementation (partial) for the Unreal RHI.
      * This loads assets (either embedded or OOB by using their loaded bytes)
      */
-    class RIVECORE_API FURFileAssetLoader
+    class RIVE_API FURFileAssetLoader
 #if WITH_RIVE
         final : public rive::FileAssetLoader
 #endif // WITH_RIVE
@@ -40,7 +40,7 @@ namespace UE::Rive::Assets
 
     public:
 
-        FURFileAssetLoader(TMap<uint32, FUREmbeddedAsset>& InAssetMap);
+        FURFileAssetLoader(URiveFile* InRiveFile);
 
 #if WITH_RIVE
 
@@ -61,6 +61,6 @@ namespace UE::Rive::Assets
          */
     
     private:
-        TMap<uint32, FUREmbeddedAsset>* AssetMap;
+        URiveFile* RiveFile;
     };
 }
