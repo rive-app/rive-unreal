@@ -1,6 +1,5 @@
 // Copyright Rive, Inc. All rights reserved.
 
-
 #include "RiveRenderTargetD3D11.h"
 #include "RiveRenderer.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -100,7 +99,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 
 #if WITH_RIVE
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::AlignArtboard(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
+void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
 {
 	check(IsInGameThread());
 
@@ -109,74 +108,12 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::AlignArtboard(uint8 In
 	ENQUEUE_RENDER_COMMAND(AlignArtboard)(
 		[this, InFit, AlignX, AlignY, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
 		{
-			AlignArtboard_RenderThread(RHICmdList, InFit, AlignX, AlignY, InNativeArtboard, DebugColor);
+			DrawArtboard_RenderThread(RHICmdList, InFit, AlignX, AlignY, InNativeArtboard, DebugColor);
 		});
-}
-
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard(rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
-{
-	check(IsInGameThread());
-
-	FScopeLock Lock(&ThreadDataCS);
-
-	ENQUEUE_RENDER_COMMAND(DrawArtboard)(
-		[this, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
-		{
-			DrawArtboard_RenderThread(RHICmdList, InNativeArtboard, DebugColor);
-		});
-}
-
-DECLARE_GPU_STAT_NAMED(AlignArtboard, TEXT("FRiveRenderTargetD3D11::AlignArtboard"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::AlignArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
-{
-	SCOPED_GPU_STAT(RHICmdList, AlignArtboard);
-
-	check(IsInRenderingThread());
-
-	FScopeLock Lock(&ThreadDataCS);
-
-	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
-
-	if (PLSRenderContextPtr == nullptr)
-	{
-		return;
-	}
-
-	// Begin Frame
-	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = GetPLSRenderer(DebugColor);
-
-	if (PLSRenderer == nullptr)
-	{
-		return;
-	}
-
-	const rive::Fit& Fit = *reinterpret_cast<rive::Fit*>(&InFit);
-
-	const rive::Alignment& Alignment = rive::Alignment(AlignX, AlignY);
-
-	const uint32 TextureWidth = GetWidth();
-
-	const uint32 TextureHeight = GetHeight();
-
-	rive::Mat2D Transform = rive::computeAlignment(
-		Fit,
-		Alignment,
-		rive::AABB(0.f, 0.f, TextureWidth, TextureHeight),
-		InNativeArtboard->bounds());
-
-	PLSRenderer->transform(Transform);
-
-	{ // End drawing a frame.
-		// Flush
-		PLSRenderContextPtr->flush();
-
-		// Reset
-		PLSRenderContextPtr->resetGPUResources();
-	}
 }
 
 DECLARE_GPU_STAT_NAMED(DrawArtboard, TEXT("FRiveRenderTargetD3D11::DrawArtboard"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
+void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
 {
 	SCOPED_GPU_STAT(RHICmdList, DrawArtboard);
 
@@ -199,6 +136,23 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 		return;
 	}
 
+	// Align Artboard
+	const rive::Fit& Fit = *reinterpret_cast<rive::Fit*>(&InFit);
+
+	const rive::Alignment& Alignment = rive::Alignment(AlignX, AlignY);
+
+	const uint32 TextureWidth = GetWidth();
+
+	const uint32 TextureHeight = GetHeight();
+
+	rive::Mat2D Transform = rive::computeAlignment(
+		Fit,
+		Alignment,
+		rive::AABB(0.f, 0.f, TextureWidth, TextureHeight),
+		InNativeArtboard->bounds());
+
+	PLSRenderer->transform(Transform);
+
 	// Draw Artboard
 	InNativeArtboard->draw(PLSRenderer.get());
 
@@ -206,8 +160,17 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 		// Flush
 		PLSRenderContextPtr->flush();
 
-		// Reset
-		PLSRenderContextPtr->resetGPUResources();
+		const FDateTime Now = FDateTime::Now();
+
+		const int32 TimeElapsed = (Now - LastResetTime).GetSeconds();
+
+		if (TimeElapsed >= ResetTimeLimit.GetSeconds())
+		{
+			// Reset
+			PLSRenderContextPtr->shrinkGPUResourcesToFit();
+
+			LastResetTime = Now;
+		}
 	}
 }
 
