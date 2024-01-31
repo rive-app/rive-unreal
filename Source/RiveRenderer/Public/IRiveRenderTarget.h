@@ -1,3 +1,5 @@
+// Copyright Rive, Inc. All rights reserved.
+
 #pragma once
 
 #if WITH_RIVE

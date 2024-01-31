@@ -36,7 +36,7 @@ public class RiveLibrary : ModuleRules
 
             AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
 
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+            // AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 
             PublicSystemLibraries.Add("d3dcompiler.lib");
 

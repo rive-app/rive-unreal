@@ -1,6 +1,5 @@
 // Copyright Rive, Inc. All rights reserved.
 
-
 #include "RiveSceneViewport.h"
 
 #include "Logs/RiveLog.h"

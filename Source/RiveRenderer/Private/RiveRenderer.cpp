@@ -1,7 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveRenderer.h"
-#include "CanvasTypes.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Logs/RiveRendererLog.h"
 #include "TextureResource.h"
@@ -39,21 +38,6 @@ void UE::Rive::Renderer::Private::FRiveRenderer::QueueTextureRendering(TObjectPt
 
 #if WITH_RIVE
 
-void UE::Rive::Renderer::Private::FRiveRenderer::DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard)
-{
-    check(InTexture);
-
-    FTextureRenderTargetResource* RenderTargetResource = InTexture->GameThread_GetRenderTargetResource();
-
-    ENQUEUE_RENDER_COMMAND(CopyRenderTexture)([this, RenderTargetResource, DebugColor](FRHICommandListImmediate& RHICmdList)
-        {
-            // JUST for testing here
-            FCanvas Canvas(RenderTargetResource, nullptr, FGameTime(), GMaxRHIFeatureLevel);
-
-            Canvas.Clear(DebugColor);
-        });
-}
-
 rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRenderer::GetPLSRenderContextPtr()
 {
     if (!PLSRenderContext)
@@ -83,10 +67,6 @@ rive::pls::PLSRenderer* UE::Rive::Renderer::Private::FRiveRenderer::GetPLSRender
 UTextureRenderTarget2D* UE::Rive::Renderer::Private::FRiveRenderer::CreateDefaultRenderTarget(FIntPoint InTargetSize)
 {
     UTextureRenderTarget2D* const RenderTarget = NewObject<UTextureRenderTarget2D>(GetTransientPackage());
-
-    // RenderTarget->bForceLinearGamma = false;
-    //
-    // RenderTarget->bAutoGenerateMips = false;
 
     RenderTarget->OverrideFormat = EPixelFormat::PF_R8G8B8A8;
 
