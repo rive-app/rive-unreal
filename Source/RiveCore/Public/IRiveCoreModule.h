@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #pragma once
 
@@ -7,8 +7,6 @@
 
 namespace UE::Rive::Core
 {
-    class FUnrealRiveFactory;
-
     class IRiveCoreModule : public IModuleInterface
     {
         /**

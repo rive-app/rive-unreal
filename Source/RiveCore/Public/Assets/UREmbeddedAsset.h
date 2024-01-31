@@ -1,10 +1,15 @@
-﻿#pragma once
+﻿// Copyright Rive, Inc. All rights reserved.
+
+#pragma once
+
 #include "UREmbeddedAsset.generated.h"
 
+#if WITH_RIVE
 namespace rive
 {
 	class Asset;
 }
+#endif // WITH_RIVE
 
 USTRUCT(BlueprintType)
 struct FUREmbeddedAsset
@@ -32,5 +37,7 @@ struct FUREmbeddedAsset
 	UPROPERTY()
 	FString AssetPath;
 
+#if WITH_RIVE
 	rive::Asset* Asset;
+#endif // WITH_RIVE
 };

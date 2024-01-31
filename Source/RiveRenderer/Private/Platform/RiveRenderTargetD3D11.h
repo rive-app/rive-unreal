@@ -4,6 +4,8 @@
 
 #include "RiveRenderTarget.h"
 
+#if PLATFORM_WINDOWS
+
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
@@ -66,3 +68,5 @@ namespace UE::Rive::Renderer::Private
 		mutable bool bIsCleared = false;
 	};
 }
+
+#endif // PLATFORM_WINDOWS
