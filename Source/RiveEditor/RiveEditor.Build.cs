@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 using UnrealBuildTool;
 
@@ -20,12 +20,16 @@ public class RiveEditor : ModuleRules
             {
                 "AssetDefinition",
                 "CoreUObject",
+                "ContentBrowser",
                 "Engine",
+                "PropertyEditor",
                 "Rive",
                 "Slate",
                 "SlateCore",
                 "UnrealEd",
-                "PropertyEditor",
+                "ToolMenus",
+                "UMG",
+                "UMGEditor",
             }
         );
     }

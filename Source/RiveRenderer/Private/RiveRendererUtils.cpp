@@ -6,7 +6,7 @@
 #include "ScreenPass.h"
 #include "Engine/TextureRenderTarget2D.h"
 
-UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget(FIntPoint InTargetSize)
+UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget(FIntPoint InTargetSize, EPixelFormat PixelFormat, bool bCanCreateUAV)
 {
     UTextureRenderTarget2D* const RenderTarget = NewObject<UTextureRenderTarget2D>(GetTransientPackage());
 
@@ -14,8 +14,10 @@ UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRen
 
     RenderTarget->bAutoGenerateMips = false;
 
-    RenderTarget->OverrideFormat = EPixelFormat::PF_B8G8R8A8;
+    RenderTarget->OverrideFormat = PixelFormat;
 
+    RenderTarget->bCanCreateUAV = bCanCreateUAV;
+    
     RenderTarget->ResizeTarget(InTargetSize.X, InTargetSize.Y);
 
     return RenderTarget;
@@ -38,9 +40,9 @@ void UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(FRHICommandListImmed
     // Register an external RDG texture from the output buffer
     FRDGTexture* OutputTexture = GraphBuilder.RegisterExternalTexture(CreateRenderTarget(DestTexture, TEXT("PixelCaptureCopyDestTexture")));
 
-    if (InputTexture->Desc.Format == OutputTexture->Desc.Format &&
-        InputTexture->Desc.Extent.X == OutputTexture->Desc.Extent.X &&
-        InputTexture->Desc.Extent.Y == OutputTexture->Desc.Extent.Y)
+    if (InputTexture->Desc.Format == OutputTexture->Desc.Format
+        && InputTexture->Desc.Extent.X == OutputTexture->Desc.Extent.X
+        && InputTexture->Desc.Extent.Y == OutputTexture->Desc.Extent.Y)
     {
         // The formats are the same and size are the same. simple copy
         AddDrawTexturePass(
@@ -63,6 +65,8 @@ void UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(FRHICommandListImmed
         // The todo is here because there has to be a better way to achieve what we want without
         // all of this song and dance.
 
+        // FIntRect ViewportRect(FIntPoint(150, 150), InputTexture->Desc.Extent);
+
         // The formats or size differ to pixel shader stuff
         //Configure source/output viewport to get the right UV scaling from source texture to output texture
         FScreenPassTextureViewport InputViewport(InputTexture);
@@ -81,7 +85,7 @@ void UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(FRHICommandListImmed
         PermutationVector.Set<FModifyAlphaSwizzleRgbaPS::FConversionOp>(ConversionOperation);
 
         // Rectangle area to use from source
-        const FIntRect ViewRect(FIntPoint(0, 0), InputTexture->Desc.Extent);
+        const FIntRect ViewRect(FIntPoint::ZeroValue, InputTexture->Desc.Extent);
 
         TShaderMapRef<FModifyAlphaSwizzleRgbaPS> PixelShader(GlobalShaderMap, PermutationVector);
 

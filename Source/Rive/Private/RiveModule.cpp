@@ -1,6 +1,8 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #include "RiveModule.h"
+
+#include "Interfaces/IPluginManager.h"
 #include "Logs/RiveLog.h"
 
 #if WITH_RIVE
@@ -15,6 +17,9 @@ THIRD_PARTY_INCLUDES_END
 void UE::Rive::Private::FRiveModule::StartupModule()
 {
     TestRiveIntegration();
+
+    const FString PluginShaderDir = FPaths::Combine(IPluginManager::Get().FindPlugin(TEXT("Rive"))->GetBaseDir(), TEXT("Shaders"));
+    AddShaderSourceDirectoryMapping(TEXT("/Plugin/Rive"), PluginShaderDir);
 }
 
 void UE::Rive::Private::FRiveModule::ShutdownModule()

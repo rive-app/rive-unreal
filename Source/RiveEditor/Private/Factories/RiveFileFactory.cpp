@@ -1,6 +1,8 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveFileFactory.h"
+
+#include "RiveWidgetFactory.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
 
@@ -19,8 +21,6 @@ bool URiveFileFactory::FactoryCanImport(const FString& Filename)
 {
     return FPaths::GetExtension(Filename).Equals(TEXT("riv"));
 }
-
-UE_DISABLE_OPTIMIZATION
 
 UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags InFlags, const FString& InFilename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
@@ -47,13 +47,16 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
 
         return nullptr;
     }
-
-    // Do not Serialize, simple load to BiteArray
-    RiveFile->Initialize();
+    
+    RiveFile->EditorImport(InFilename);
+    
+    // Create Rive UMG
+    if (!FRiveWidgetFactory(RiveFile).Create())
+    {
+        return nullptr;
+    }
 
     GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, RiveFile);
-
+    
     return RiveFile;
 }
-
-UE_ENABLE_OPTIMIZATION

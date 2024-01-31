@@ -2,8 +2,9 @@
 
 #include "Slate/SRiveWidget.h"
 #include "RiveWidgetView.h"
+#include "Rive/RiveFile.h"
 
-void SRiveWidget::Construct(const FArguments& InArgs, TSoftObjectPtr<URiveFile> InRiveFile)
+void SRiveWidget::Construct(const FArguments& InArgs, URiveFile* InRiveFile)
 {
     ChildSlot
         [

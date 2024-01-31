@@ -15,7 +15,7 @@ class FReply;
 class FSlateRenderer;
 
 /**
- *
+ * TODO. That class can be removed
  */
 class RIVE_API FRiveSlateViewport : public ISlateViewport
 {
@@ -25,7 +25,7 @@ class RIVE_API FRiveSlateViewport : public ISlateViewport
 
 public:
 
-    FRiveSlateViewport(TSoftObjectPtr<URiveFile> InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView);
+    FRiveSlateViewport(URiveFile* InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView);
 
     ~FRiveSlateViewport();
 
@@ -92,13 +92,15 @@ private:
 
 private:
 
+    FVector2f LastMousePosition = FVector2f::ZeroVector;
+
     /** Interface to the texture we are rendering to. */
     FSlateUpdatableTexture* ViewportRenderTargetTexture = nullptr;
 
-    TSoftObjectPtr<URiveFile> RiveFile;
+    TObjectPtr<URiveFile> RiveFile;
 
     /** Default Rendering Size */
-    FIntPoint RenderingSize = FIntPoint(1920, 1080);
+    FIntPoint RenderingSize;
 
     /** We can't render directrly to UpdatableTexture slate texture, that is why we need extra texture before CopyTexture */
     TStrongObjectPtr<UTextureRenderTarget2D> RiveSlateRenderTarget;

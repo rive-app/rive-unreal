@@ -1,24 +1,21 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveSlateViewport.h"
-#include "CanvasTypes.h"
-#include "EngineModule.h"
-#include "RenderGraphBuilder.h"
-#include "RenderGraphUtils.h"
+#include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
 #include "RiveWidgetView.h"
 #include "Async/Async.h"
 #include "Slate/SlateTextures.h"
 #include "Textures/SlateUpdatableTexture.h"
-#include "MediaShaders.h"
 #include "RiveRendererUtils.h"
-#include "ScreenPass.h"
 
-FRiveSlateViewport::FRiveSlateViewport(TSoftObjectPtr<URiveFile> InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView)
+FRiveSlateViewport::FRiveSlateViewport(URiveFile* InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView)
 {
     RiveFile = InRiveFile;
 
     WidgetViewWeakPtr = InWidgetView;
+
+    RenderingSize = { RiveFile->SizeX, RiveFile->SizeY };
 
     RiveSlateRenderTarget = TStrongObjectPtr(UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget(RenderingSize));
 
@@ -30,7 +27,7 @@ FRiveSlateViewport::FRiveSlateViewport(TSoftObjectPtr<URiveFile> InRiveFile, con
 
         ViewportRenderTargetTexture = Renderer->CreateUpdatableTexture(RenderingSize.X, RenderingSize.Y);
 
-        ViewportRenderTargetTexture->UpdateTextureThreadSafeRaw(RenderingSize.X, RenderingSize.Y, UpdatableTextureRawData.GetData());
+       // ViewportRenderTargetTexture->UpdateTextureThreadSafeRaw(RenderingSize.X, RenderingSize.Y, UpdatableTextureRawData.GetData());
     }
 
     FlushRenderingCommands();
@@ -100,29 +97,29 @@ void FRiveSlateViewport::Tick(const FGeometry& AllottedGeometry, double InCurren
 
     ResizeRenderingSize(AbsoluteSize.IntPoint());
 
-    if (RiveFile.IsValid())
+    if (RiveFile)
     {
-        RiveFile->RequestRendering();
-
         // Check it later
-        UTextureRenderTarget2D* RiveTexture = RiveFile->GetRenderTarget();
-
-        FTextureRenderTargetResource* RiveRenderTargetResource = RiveTexture->GameThread_GetRenderTargetResource();
+        FTextureRenderTargetResource* RiveRenderTargetResource = RiveFile->GameThread_GetRenderTargetResource();
 
         FTextureRenderTargetResource* RiveSlateRenderTargetResource = RiveSlateRenderTarget->GameThread_GetRenderTargetResource();
 
         ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
             [this, RiveRenderTargetResource, RiveSlateRenderTargetResource](FRHICommandListImmediate& RHICmdList)
             {
-
-                // JUST for testing here
-                // FCanvas Canvas(RiveRenderTargetResource, nullptr, FGameTime(), GMaxRHIFeatureLevel);
-                // Canvas.Clear(DebugColor);
-                //
+                if (!RiveRenderTargetResource || !RiveSlateRenderTargetResource)
+                {
+                    return;
+                }
 
                 UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveRenderTargetResource->TextureRHI, RiveSlateRenderTargetResource->TextureRHI);
 
                 const FSlateTexture2DRHIRef* FinalDestTextureRHITexture = static_cast<FSlateTexture2DRHIRef*>(ViewportRenderTargetTexture);
+
+                if (!FinalDestTextureRHITexture)
+                {
+                    return;
+                }
 
                 const FTexture2DRHIRef FinalDestRHIRef = FinalDestTextureRHITexture->GetRHIRef();
 
@@ -145,11 +142,89 @@ FCursorReply FRiveSlateViewport::OnCursorQuery(const FGeometry& MyGeometry, cons
 
 FReply FRiveSlateViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+    if (!RiveFile)
+    {
+        UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonDown as we have an empty rive file."));
+
+        return FReply::Unhandled();
+    }
+
+    if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+    {
+        return FReply::Unhandled();
+    }
+
+#if WITH_RIVE
+
+    RiveFile->BeginInput();
+
+    if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+    {
+        if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+        {
+            const FSlateRect BoundingRect = MyGeometry.GetRenderBoundingRect();
+
+            const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
+
+            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, FIntPoint::ZeroValue);
+
+            if (StateMachine->OnMouseButtonDown(LocalPosition))
+            {
+                RiveFile->EndInput();
+
+                return FReply::Handled();
+            }
+        }
+    }
+
+    RiveFile->EndInput();
+
+#endif // WITH_RIVE
+
     return FReply::Unhandled();
 }
 
 FReply FRiveSlateViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+    if (!RiveFile)
+    {
+        UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonUp as we have an empty rive file."));
+
+        return FReply::Unhandled();
+    }
+
+    if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+    {
+        return FReply::Unhandled();
+    }
+
+#if WITH_RIVE
+
+    RiveFile->BeginInput();
+
+    if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+    {
+        if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+        {
+            const FSlateRect BoundingRect = MyGeometry.GetRenderBoundingRect();
+
+            const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
+
+            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, FIntPoint::ZeroValue);
+
+            if (StateMachine->OnMouseButtonUp(LocalPosition))
+            {
+                RiveFile->EndInput();
+
+                return FReply::Handled();
+            }
+        }
+    }
+
+    RiveFile->EndInput();
+
+#endif // WITH_RIVE
+
     return FReply::Unhandled();
 }
 
@@ -163,6 +238,47 @@ void FRiveSlateViewport::OnMouseLeave(const FPointerEvent& MouseEvent)
 
 FReply FRiveSlateViewport::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+    if (!RiveFile)
+    {
+        UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseMove as we have an empty rive file."));
+
+        return FReply::Unhandled();
+    }
+
+    if (MouseEvent.GetScreenSpacePosition() == LastMousePosition)
+    {
+        return FReply::Unhandled();
+    }
+
+#if WITH_RIVE
+
+    RiveFile->BeginInput();
+
+    if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+    {
+        if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+        {
+            const FSlateRect BoundingRect = MyGeometry.GetRenderBoundingRect();
+
+            const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
+
+            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, FIntPoint::ZeroValue);
+
+            if (StateMachine->OnMouseMove(LocalPosition))
+            {
+                LastMousePosition = MouseEvent.GetScreenSpacePosition();
+
+                RiveFile->EndInput();
+
+                return FReply::Handled();
+            }
+        }
+    }
+
+    RiveFile->EndInput();
+
+#endif // WITH_RIVE
+
     return FReply::Unhandled();
 }
 

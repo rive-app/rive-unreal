@@ -4,31 +4,66 @@
 #include "RiveSlateViewport.h"
 #include "Widgets/SViewport.h"
 
-void SRiveWidgetView::Construct(const FArguments& InArgs, TSoftObjectPtr<URiveFile> InRiveFile)
+// Replacement for RiveSlateViewport.h
+#include "RiveSceneViewport.h"
+#include "RiveViewportClient.h"
+#include "Rive/RiveFile.h"
+
+void SRiveWidgetView::Construct(const FArguments& InArgs, URiveFile* InRiveFile)
 {
     RiveFile = InRiveFile;
 
-    RiveSlateViewport = MakeShared<FRiveSlateViewport>(InRiveFile, SharedThis(this));
-
+    if (!RiveFile)
+    {
+        return;
+    }
+    
     TSharedRef<SViewport> ViewportRef =
         SNew(SViewport)
         .EnableGammaCorrection(false)
         .EnableBlending(true)
         .IgnoreTextureAlpha(false);
 
-    Viewport = ViewportRef;
+    ViewportWidget = ViewportRef;
 
     ChildSlot
         [
             ViewportRef
         ];
 
-    Viewport->SetViewportInterface(RiveSlateViewport.ToSharedRef());
+
+    if (RiveFile->bUseViewportClientTestProperty)
+    {
+        // TODO. new Implementation
+        RiveViewportClient = MakeShared<FRiveViewportClient>(InRiveFile, SharedThis(this));
+
+        RiveSceneViewport = MakeShared<FRiveSceneViewport>(RiveViewportClient.Get(), ViewportWidget, InRiveFile);
+        
+        ViewportWidget->SetViewportInterface(RiveSceneViewport.ToSharedRef());
+    }
+    else
+    {
+        // TODO. Replacement for RiveSlateViewport
+        RiveSlateViewport = MakeShared<FRiveSlateViewport>(InRiveFile, SharedThis(this));
+
+        ViewportWidget->SetViewportInterface(RiveSlateViewport.ToSharedRef());
+    }
 }
 
 TSharedPtr<SWindow> SRiveWidgetView::GetParentWindow() const
 {
     return SlateParentWindowPtr.Pin();
+}
+
+void SRiveWidgetView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+    if (bIsRenderingEnabled)
+    {
+        if (RiveSceneViewport.IsValid())
+        {
+            RiveSceneViewport->Invalidate();
+        }
+    }
 }
 
 int32 SRiveWidgetView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const

@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 using UnrealBuildTool;
 
@@ -26,29 +26,37 @@ public class Rive : ModuleRules
 			new string[]
 			{
 				"Core",
-				"RHICore",
+				"InputCore",
+                "Projects",
+                "RHICore",
 				"RenderCore",
+				"RiveCore",
                 "RiveLibrary",
-				"Projects"
+                "RiveRenderer",
 				// ... add other public dependencies that you statically link with here ...
 			}
-			);
+            );
 			
 		
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"ApplicationCore",
 				"CoreUObject",
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"Projects",
 				"RiveRenderer",
 				"RHI",
 				"RenderCore",
 				"Renderer",
+				"RiveCore",
+				"RiveLibrary",
+				"Slate",
+				"SlateCore",
 				"UMG",
-				"RiveLibrary"
-			}
+            }
 			);
 		
 		DynamicallyLoadedModuleNames.AddRange(
@@ -57,5 +65,18 @@ public class Rive : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
+		
+		if (Target.Type == TargetType.Editor)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"EditorFramework",
+					"LevelEditor",
+					"UnrealEd",
+					"ViewportInteraction",
+				}
+			);
+		}
 	}
 }
