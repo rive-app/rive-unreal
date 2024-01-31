@@ -1,6 +1,5 @@
 // Copyright Rive, Inc. All rights reserved.
 
-
 #include "RiveViewportClient.h"
 
 #include "CanvasItem.h"

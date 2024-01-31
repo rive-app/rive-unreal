@@ -1,10 +1,17 @@
-﻿#include "Assets/URAssetHelpers.h"
+﻿// Copyright Rive, Inc. All rights reserved.
+
+#include "Assets/URAssetHelpers.h"
 
 #include "Assets/URAssetImporter.h"
 #include "Assets/UREmbeddedAsset.h"
 #include "Logs/RiveCoreLog.h"
+
+#if WITH_RIVE
+THIRD_PARTY_INCLUDES_START
 #include "rive/generated/assets/font_asset_base.hpp"
 #include "rive/generated/assets/image_asset_base.hpp"
+THIRD_PARTY_INCLUDES_END
+#endif // WITH_RIVE
 
 TArray<FString> URAssetHelpers::AssetPaths(const FString& InBasePath, const FString& InAssetName, uint32_t InAssetId,
                                            const TArray<FString>& InExtensions)
@@ -30,13 +37,14 @@ bool URAssetHelpers::FindRegistryAsset(const FString& InRiveAssetPath,
 bool URAssetHelpers::FindDiskAsset(const FString& InBasePath, const FUREmbeddedAsset& InEmbeddedAsset,
 	FString& OutPath)
 {
+#if WITH_RIVE
+
 	// Passed in BasePath will be the Rive file, so we'll parse it out
 	FString Directory;
 	FString FileName;
 	FString Extension;
 	FPaths::Split(InBasePath, Directory, FileName, Extension);
-        
-        
+
 	const TArray<FString>* Extensions = nullptr;
 
 	// Just grab our file file extensions first
@@ -79,7 +87,9 @@ bool URAssetHelpers::FindDiskAsset(const FString& InBasePath, const FUREmbeddedA
 	}
 
 	OutPath = FilePath;
-        
+   
+#endif // WITH_RIVE
+
 	return true;
 }
 

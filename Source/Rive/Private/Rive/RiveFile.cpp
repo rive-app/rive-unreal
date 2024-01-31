@@ -37,47 +37,43 @@ void URiveFile::Tick(float InDeltaSeconds)
 {
     if (bIsInitialized && bIsRendering)
     {
-        // Maybe only once
-        //if (bDrawOnceTest == false)
-        {
 #if WITH_RIVE
 
-            if (const UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+        if (const UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+        {
+            if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
             {
-                if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+                if (!bIsReceivingInput)
                 {
-                    if (!bIsReceivingInput)
-                    {
-                        StateMachine->Advance(InDeltaSeconds);
-                    }
+                    StateMachine->Advance(InDeltaSeconds);
                 }
-
-                const FVector2f RiveAlignmentXY = GetRiveAlignment();
-
-                RiveRenderTarget->AlignArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y, Artboard->GetNativeArtboard(), DebugColor);
-
-                RiveRenderTarget->DrawArtboard(Artboard->GetNativeArtboard(), DebugColor);
-
-                bDrawOnceTest = true;
             }
+
+            const FVector2f RiveAlignmentXY = GetRiveAlignment();
+
+            RiveRenderTarget->AlignArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y, Artboard->GetNativeArtboard(), DebugColor);
+
+            RiveRenderTarget->DrawArtboard(Artboard->GetNativeArtboard(), DebugColor);
+
+            bDrawOnceTest = true;
+        }
             
-            // Copy from render target
-            // TODO. move from here
-            // Separate target might be needed to let Rive draw only to separate texture
-            {
-                FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
+        // Copy from render target
+        // TODO. move from here
+        // Separate target might be needed to let Rive draw only to separate texture
+        {
+            FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
 
-                FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+            FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
 
-                ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
-                    [this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
-                    {
-                        UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
-                    });
-            }
+            ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
+                [this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
+                {
+                    UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
+                });
+        }
 
 #endif // WITH_RIVE
-        }
     }
 }
 

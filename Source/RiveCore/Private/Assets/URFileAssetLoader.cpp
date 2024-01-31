@@ -13,8 +13,8 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(TMap<uint32, FUREmbeddedAsset>& InAssetMap) : AssetMap(
-	&InAssetMap)
+UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(TMap<uint32, FUREmbeddedAsset>& InAssetMap)
+	: AssetMap(&InAssetMap)
 {
 }
 
