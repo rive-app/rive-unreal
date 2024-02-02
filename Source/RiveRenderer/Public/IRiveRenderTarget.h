@@ -55,9 +55,7 @@ namespace UE::Rive::Renderer
 
 #if WITH_RIVE
 
-		virtual void AlignArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) = 0;
-
-		virtual void DrawArtboard(rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) = 0;
+		virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) = 0;
 
 #endif // WITH_RIVE
 
