@@ -225,12 +225,12 @@ void UE::Rive::Core::FURStateMachine::PopulateReportedEvents()
         if (NativeStateMachinePtr)
         {
             const size_t NumReportedEvents = NativeStateMachinePtr->reportedEventCount();
-
-            ReportedEvents.Reset(NumReportedEvents);
-
+            
+            ReportedEvents.Reserve(NumReportedEvents);
+            
             for (size_t EventIndex = 0; EventIndex < NumReportedEvents; ++EventIndex)
             {
-                ReportedEvents[EventIndex] = MakeUnique<FUREvent>(NativeStateMachinePtr->reportedEventAt(EventIndex));
+                ReportedEvents.Add(MakeUnique<FUREvent>(NativeStateMachinePtr->reportedEventAt(EventIndex)));
             }
         }
         else

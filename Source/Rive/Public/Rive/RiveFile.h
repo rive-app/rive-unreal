@@ -47,6 +47,75 @@ enum class ERiveFitType : uint8
 };
 
 USTRUCT()
+struct FRiveEventProperty
+{
+    GENERATED_BODY()
+    
+    UPROPERTY(Blueprintable, EditAnywhere)
+    FString PropertyName;
+};
+
+USTRUCT(Blueprintable)
+struct FRiveEventBoolProperty : public FRiveEventProperty
+{
+    GENERATED_BODY()
+
+    UPROPERTY(Blueprintable, EditAnywhere)
+    bool BoolProperty = false;
+};
+
+USTRUCT(Blueprintable)
+struct FRiveEventNumberProperty : public FRiveEventProperty
+{
+    GENERATED_BODY()
+
+    UPROPERTY(Blueprintable, EditAnywhere)
+    float NumberProperty = 0.f;
+};
+
+USTRUCT(Blueprintable)
+struct FRiveEventStringProperty : public FRiveEventProperty
+{
+    GENERATED_BODY()
+
+    UPROPERTY(Blueprintable, EditAnywhere)
+    FString StringProperty;
+};
+
+UCLASS(Blueprintable, BlueprintType, meta = (DisplayName = "Rive Reported Event"))
+class URiveReportedEvent : public UObject
+{
+    GENERATED_BODY()
+
+    UFUNCTION(BlueprintPure, Category = RiveEvent)
+    const FString& GetReportedEventName() const;
+
+    UFUNCTION(BlueprintPure, Category = RiveEvent)
+    uint8 GetReportedEventType() const;
+
+    UFUNCTION(BlueprintPure, Category = RiveEvent)
+    const TArray<FRiveEventBoolProperty>& GetBoolProperties() const;
+
+    UFUNCTION(BlueprintPure, Category = RiveEvent)
+    const TArray<FRiveEventNumberProperty>& GetNumberProperties() const;
+
+    UFUNCTION(BlueprintPure, Category = RiveEvent)
+    const TArray<FRiveEventStringProperty>& GetStringProperties() const;
+
+public:
+    FString Name;
+
+private:
+    TArray<FRiveEventBoolProperty> RiveEventBoolProperties;
+    
+    TArray<FRiveEventNumberProperty> RiveEventNumberProperties;
+    
+    TArray<FRiveEventStringProperty> RiveEventStringProperty;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, const TArray<URiveReportedEvent*>&, RiveEvents);
+
+USTRUCT()
 struct RIVE_API FRiveAlignment
 {
     GENERATED_BODY()
@@ -273,6 +342,11 @@ public:
 
     UPROPERTY(VisibleAnywhere, Category=Rive)
     TMap<uint32, TObjectPtr<URiveAsset>> Assets;
+
+protected:
+    UPROPERTY(BlueprintAssignable)
+    FRiveEventDelegate RiveEventDelegate;
+    
 private:
 
     UPROPERTY(EditAnywhere, Category = Rive)

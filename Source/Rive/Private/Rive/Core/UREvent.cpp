@@ -47,7 +47,7 @@ UE::Rive::Core::FUREvent::FUREvent(const rive::EventReport& InEventReport)
 							{
 								if (rive::CustomPropertyNumber* NumProperty = Property->as<rive::CustomPropertyNumber>())
 								{
-									NumberProperties.Add(PropertyName, NumProperty->propertyValue());
+									NumberProperties.Add(TPair<FString, float>(PropertyName, NumProperty->propertyValue()));
 								}
 
 								break;
@@ -56,7 +56,7 @@ UE::Rive::Core::FUREvent::FUREvent(const rive::EventReport& InEventReport)
 							{
 								if (rive::CustomPropertyBoolean* BoolProperty = Property->as<rive::CustomPropertyBoolean>())
 								{
-									BoolProperties.Add(PropertyName, BoolProperty->propertyValue());
+									BoolProperties.Add(TPair<FString, bool>(PropertyName, BoolProperty->propertyValue()));
 								}
 
 								break;
@@ -65,7 +65,7 @@ UE::Rive::Core::FUREvent::FUREvent(const rive::EventReport& InEventReport)
 							{
 								if (rive::CustomPropertyString* StrProperty = Property->as<rive::CustomPropertyString>())
 								{
-									StringProperties.Add(PropertyName, StrProperty->propertyValue().c_str());
+									StringProperties.Add(TPair<FString, FString>(PropertyName, StrProperty->propertyValue().c_str()));
 								}
 
 								break;
@@ -78,16 +78,16 @@ UE::Rive::Core::FUREvent::FUREvent(const rive::EventReport& InEventReport)
 	}
 }
 
-bool UE::Rive::Core::FUREvent::GetBoolValue(const FString& InPropertyName) const
-{
-	if (HasBoolValue(InPropertyName))
-	{
-		return BoolProperties[InPropertyName];
-	}
-
-	return false;
-}
-
+// bool UE::Rive::Core::FUREvent::GetBoolValue(const FString& InPropertyName) const
+// {
+// 	if (HasBoolValue(InPropertyName))
+// 	{
+// 		return BoolProperties[InPropertyName];
+// 	}
+//
+// 	return false;
+// }
+//
 const FString& UE::Rive::Core::FUREvent::GetName() const
 {
 	return Name;
@@ -97,45 +97,45 @@ float UE::Rive::Core::FUREvent::GetDelayInSeconds() const
 {
 	return DelayInSeconds;
 }
-
-float UE::Rive::Core::FUREvent::GetNumberValue(const FString& InPropertyName) const
-{
-	if (HasNumberValue(InPropertyName))
-	{
-		return NumberProperties[InPropertyName];
-	}
-
-	return 0.f;
-}
-
-const FString UE::Rive::Core::FUREvent::GetStringValue(const FString& InPropertyName) const
-{
-	if (HasStringValue(InPropertyName))
-	{
-		return StringProperties[InPropertyName];
-	}
-
-	return "None";
-}
-
+//
+// float UE::Rive::Core::FUREvent::GetNumberValue(const FString& InPropertyName) const
+// {
+// 	if (HasNumberValue(InPropertyName))
+// 	{
+// 		return NumberProperties[InPropertyName];
+// 	}
+//
+// 	return 0.f;
+// }
+//
+// const FString UE::Rive::Core::FUREvent::GetStringValue(const FString& InPropertyName) const
+// {
+// 	if (HasStringValue(InPropertyName))
+// 	{
+// 		return StringProperties[InPropertyName];
+// 	}
+//
+// 	return "None";
+// }
+//
 uint8 UE::Rive::Core::FUREvent::GetType() const
 {
 	return Type;
 }
 
-bool UE::Rive::Core::FUREvent::HasBoolValue(const FString& InPropertyName) const
-{
-	return BoolProperties.Contains(InPropertyName);
-}
-
-bool UE::Rive::Core::FUREvent::HasNumberValue(const FString& InPropertyName) const
-{
-	return NumberProperties.Contains(InPropertyName);
-}
-
-bool UE::Rive::Core::FUREvent::HasStringValue(const FString& InPropertyName) const
-{
-	return StringProperties.Contains(InPropertyName);
-}
+// bool UE::Rive::Core::FUREvent::HasBoolValue(const FString& InPropertyName) const
+// {
+// 	return BoolProperties.Contains(InPropertyName);
+// }
+//
+// bool UE::Rive::Core::FUREvent::HasNumberValue(const FString& InPropertyName) const
+// {
+// 	return NumberProperties.Contains(InPropertyName);
+// }
+//
+// bool UE::Rive::Core::FUREvent::HasStringValue(const FString& InPropertyName) const
+// {
+// 	return StringProperties.Contains(InPropertyName);
+// }
 
 #endif // WITH_RIVE

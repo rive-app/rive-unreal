@@ -31,7 +31,7 @@ namespace UE::Rive::Core
 
 		FUREvent() = default;
 
-		~FUREvent() = default;
+		virtual ~FUREvent() = default;
 
 #if WITH_RIVE
 
@@ -43,27 +43,33 @@ namespace UE::Rive::Core
 
 	public:
 
-		bool GetBoolValue(const FString& InPropertyName) const;
-
+		// bool GetBoolValue(const FString& InPropertyName) const;
+		//
 		const FString& GetName() const;
-
+		//
 		float GetDelayInSeconds() const;
-
-		float GetNumberValue(const FString& InPropertyName) const;
-
-		const FString GetStringValue(const FString& InPropertyName) const;
-
+		//
+		// float GetNumberValue(const FString& InPropertyName) const;
+		//
+		// const FString GetStringValue(const FString& InPropertyName) const;
+		//
 		uint8 GetType() const;
-
-		bool HasBoolValue(const FString& InPropertyName) const;
-
-		bool HasNumberValue(const FString& InPropertyName) const;
-
-		bool HasStringValue(const FString& InPropertyName) const;
+		//
+		// bool HasBoolValue(const FString& InPropertyName) const;
+		//
+		// bool HasNumberValue(const FString& InPropertyName) const;
+		//
+		// bool HasStringValue(const FString& InPropertyName) const;
 
 		/**
 		 * Attribute(s)
 		 */
+
+		const TArray<TPair<FString, bool>>& GetBoolProperties() const { return BoolProperties; }
+
+		const TArray<TPair<FString, float>>& GetNumberProperties() const { return NumberProperties; }
+
+		const TArray<TPair<FString, FString>>& GetStringProperties() const { return StringProperties; }
 
 	private:
 
@@ -73,11 +79,11 @@ namespace UE::Rive::Core
 
 		uint8 Type = 0U;
 
-		TMap<FString, bool> BoolProperties;
+		TArray<TPair<FString, bool>> BoolProperties;
 
-		TMap<FString, float> NumberProperties;
+		TArray<TPair<FString, float>> NumberProperties;
 
-		TMap<FString, FString> StringProperties;
+		TArray<TPair<FString, FString>> StringProperties;
 
 #endif // WITH_RIVE
 	};

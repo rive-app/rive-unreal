@@ -16,6 +16,32 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
+
+const FString& URiveReportedEvent::GetReportedEventName() const
+{
+    return Name;
+}
+
+uint8 URiveReportedEvent::GetReportedEventType() const
+{
+    return 0;
+}
+
+const TArray<FRiveEventBoolProperty>& URiveReportedEvent::GetBoolProperties() const
+{
+    return RiveEventBoolProperties;
+}
+
+const TArray<FRiveEventNumberProperty>& URiveReportedEvent::GetNumberProperties() const
+{
+    return RiveEventNumberProperties;
+}
+
+const TArray<FRiveEventStringProperty>& URiveReportedEvent::GetStringProperties() const
+{
+    return RiveEventStringProperty;
+}
+
 URiveFile::URiveFile()
 {
     OverrideFormat = EPixelFormat::PF_R8G8B8A8;
@@ -48,6 +74,22 @@ void URiveFile::Tick(float InDeltaSeconds)
             {
                 if (!bIsReceivingInput)
                 {
+                    const TArray<UE::Rive::Core::FUREventPtr>& ReportedEvents = StateMachine->GetReportedEvents();
+                    if (ReportedEvents.Num() > 0)
+                    {
+                        TArray<URiveReportedEvent*> RiveReportedEvents;
+                        RiveReportedEvents.Reserve(ReportedEvents.Num());
+                        for (int32 Index = 0; Index < ReportedEvents.Num(); ++Index)
+                        {
+                            URiveReportedEvent* RiveReportedEvent = NewObject<URiveReportedEvent>(this);
+                            
+                            const UE::Rive::Core::FUREvent* UREvent = ReportedEvents[Index].Get();
+                            RiveReportedEvent->Name = UREvent->GetName();
+                            RiveReportedEvents.Add(RiveReportedEvent);
+                        }
+                        RiveEventDelegate.Broadcast(RiveReportedEvents);
+                    }
+                    
                     StateMachine->Advance(InDeltaSeconds);
                 }
             }
