@@ -54,7 +54,6 @@ void URiveFile::Tick(float InDeltaSeconds)
 
         const FVector2f RiveAlignmentXY = GetRiveAlignment();
 
-        RiveRenderTarget->AlignArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y, Artboard->GetNativeArtboard(), DebugColor);
 
         RiveRenderTarget->DrawArtboard(Artboard->GetNativeArtboard(), DebugColor);
 
