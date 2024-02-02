@@ -21,7 +21,7 @@ namespace UE::Rive::Core
 	/**
 	 * Represents an event reported by a StateMachine.
 	 */
-	class RIVECORE_API FUREvent
+	class RIVE_API FUREvent
 	{
 		/**
 		 * Structor(s)

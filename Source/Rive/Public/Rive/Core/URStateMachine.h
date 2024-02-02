@@ -23,7 +23,7 @@ namespace UE::Rive::Core
     /**
      * Represents a Rive State Machine from an Artboard. A State Machine contains Inputs.
      */
-    class RIVECORE_API FURStateMachine
+    class RIVE_API FURStateMachine
     {
         /**
          * Structor(s)

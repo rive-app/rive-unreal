@@ -1,10 +1,13 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "Rive/RiveFile.h"
+#include "IRiveRenderTarget.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "IRiveRenderTarget.h"
 #include "Logs/RiveLog.h"
+#include "Rive/Assets/RiveAsset.h"
+#include "Rive/Assets/URAssetImporter.h"
+#include "Rive/Assets/URFileAssetLoader.h"
 #include "RiveRendererUtils.h"
 
 #if WITH_RIVE
@@ -38,8 +41,8 @@ void URiveFile::Tick(float InDeltaSeconds)
     if (bIsInitialized && bIsRendering)
     {
 #if WITH_RIVE
-
-        if (const UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+        
+        if (Artboard)
         {
             if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
             {
@@ -49,29 +52,29 @@ void URiveFile::Tick(float InDeltaSeconds)
                 }
             }
 
-            const FVector2f RiveAlignmentXY = GetRiveAlignment();
+        const FVector2f RiveAlignmentXY = GetRiveAlignment();
 
-            RiveRenderTarget->AlignArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y, Artboard->GetNativeArtboard(), DebugColor);
+        RiveRenderTarget->AlignArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y, Artboard->GetNativeArtboard(), DebugColor);
 
-            RiveRenderTarget->DrawArtboard(Artboard->GetNativeArtboard(), DebugColor);
+        RiveRenderTarget->DrawArtboard(Artboard->GetNativeArtboard(), DebugColor);
 
-            bDrawOnceTest = true;
-        }
-            
-        // Copy from render target
-        // TODO. move from here
-        // Separate target might be needed to let Rive draw only to separate texture
-        {
-            FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
+        bDrawOnceTest = true;
+    }
+        
+    // Copy from render target
+    // TODO. move from here
+    // Separate target might be needed to let Rive draw only to separate texture
+    {
+        FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
 
-            FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+        FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
 
-            ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
-                [this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
-                {
-                    UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
-                });
-        }
+        ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
+            [this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
+            {
+                UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
+            });
+    }
 
 #endif // WITH_RIVE
     }
@@ -116,6 +119,7 @@ void URiveFile::PostLoad()
 void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
     // TODO. WE need custom implementation here to handle the Rive File Editor Changes
+    UObject::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 #endif // WITH_EDITOR
@@ -124,7 +128,7 @@ void URiveFile::FireTrigger(const FString& InPropertyName) const
 {
 #if WITH_RIVE
 
-    if (const UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+    if (Artboard)
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -139,7 +143,7 @@ bool URiveFile::GetBoolValue(const FString& InPropertyName) const
 {
 #if WITH_RIVE
 
-    if (const UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+    if (Artboard)
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -175,7 +179,7 @@ float URiveFile::GetNumberValue(const FString& InPropertyName) const
 {
 #if WITH_RIVE
 
-    if (const UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+    if (Artboard)
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -201,7 +205,7 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InScreenPosition, cons
 {
 #if WITH_RIVE
 
-    if (const UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+    if (Artboard)
     {
         const FVector2f RiveAlignmentXY = GetRiveAlignment();
 
@@ -232,7 +236,7 @@ void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 {
 #if WITH_RIVE
 
-    if (const UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+    if (Artboard)
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -247,7 +251,7 @@ void URiveFile::SetNumberValue(const FString& InPropertyName, float NewValue)
 {
 #if WITH_RIVE
 
-    if (const UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+    if (Artboard)
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -517,17 +521,12 @@ ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
 }
 
 #if UE_EDITOR
-void URiveFile::EditorImport(const FString& InRiveFilePath)
+bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer)
 {
-    RiveFilePath = InRiveFilePath;
-    
-    UnrealRiveFile = MakeUnique<UE::Rive::Assets::FURFile>(TempFileBuffer.GetData(), TempFileBuffer.Num());
-    
     if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
     {
         UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
-
-        return;
+        return false;
     }
 
     UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
@@ -535,56 +534,47 @@ void URiveFile::EditorImport(const FString& InRiveFilePath)
     if (!RiveRenderer)
     {
         UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
-
-        return;
+        return false;
     }
 
     if (!RiveRenderer->IsInitialized())
     {
         UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer is not initialized."));
-
-        return;
+        return false;
     }
     
 #if WITH_RIVE
 
-    if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
-    {
-        rive::ImportResult ImportResult = UnrealRiveFile->EditorImport(RiveFilePath, Assets, PLSRenderContext);
-
-        if (ImportResult != rive::ImportResult::success)
-        {
-            UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
-
-            return;
-        }
-    }
-    else
+    rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
+    if (!PLSRenderContext)
     {
         UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
+        return false;
+    }
+    
+    RiveFilePath = InRiveFilePath;
+    RiveFileData = MoveTemp(InRiveFileBuffer);
+    RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
+    
+    TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(this);
 
-        return;
+    rive::ImportResult ImportResult;
+    RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext,
+                                                                  &ImportResult, AssetImporter.Get());
+    if (ImportResult != rive::ImportResult::success)
+    {
+        UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
+
+        return false;
     }
 
-    Initialize();
+    return true;
 #endif // WITH_RIVE
 }
 #endif
 
 void URiveFile::Initialize()
 {
-    if (!UnrealRiveFile.IsValid())
-    {
-        if (TempFileBuffer.IsEmpty())
-        {
-            UE_LOG(LogRive, Error, TEXT("Could not load an empty Rive File."));
-
-            return;
-        }
-        
-        UnrealRiveFile = MakeUnique<UE::Rive::Assets::FURFile>(TempFileBuffer.GetData(), TempFileBuffer.Num());
-    }
-        
     if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
     {
         UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
@@ -610,16 +600,30 @@ void URiveFile::Initialize()
     
 #if WITH_RIVE
 
+    if (RiveNativeFileSpan.empty())
+    {
+        RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
+    }
+    
     if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
     {
-        rive::ImportResult ImportResult = UnrealRiveFile->Import(Assets, PLSRenderContext);
-
+        TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
+            UE::Rive::Assets::FURFileAssetLoader>(this);
+    
+        rive::ImportResult ImportResult;
+        
+        RiveNativeFilePtr = rive::File::import(
+            RiveNativeFileSpan, PLSRenderContext, &ImportResult, FileAssetLoader.Get());
+        
         if (ImportResult != rive::ImportResult::success)
         {
             UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
 
             return;
         }
+
+        Artboard = MakeUnique<UE::Rive::Core::FURArtboard>(RiveNativeFilePtr.get());
+        PrintStats();
     }
     else
     {
@@ -628,7 +632,7 @@ void URiveFile::Initialize()
         return;
     }
 
-    if (UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
+    if (Artboard)
     {
         const FVector2f ArtboardSize = Artboard->GetSize();
 
@@ -658,14 +662,47 @@ UE_DISABLE_OPTIMIZATION
 
 UE::Rive::Core::FURArtboard* URiveFile::GetArtboard() const
 {
-    if (!UnrealRiveFile)
+    if (!Artboard)
     {
-        UE_LOG(LogRive, Error, TEXT("Could not retrieve native artboard as we have detected an empty rive file."));
+        UE_LOG(LogRive, Error, TEXT("Could not retrieve native artboard."));
 
         return nullptr;
     }
 
-    return UnrealRiveFile->GetArtboard();
+    return Artboard.Get();
+}
+
+void URiveFile::PrintStats()
+{
+    if (!RiveNativeFilePtr)
+    {
+        UE_LOG(LogRive, Error, TEXT("Could not print statistics as we have detected an empty rive file."));
+
+        return;
+    }
+
+    FFormatNamedArguments RiveFileLoadArgs;
+
+    RiveFileLoadArgs.Add(TEXT("Major"), FText::AsNumber(RiveNativeFilePtr->majorVersion));
+
+    RiveFileLoadArgs.Add(TEXT("Minor"), FText::AsNumber(RiveNativeFilePtr->minorVersion));
+
+    RiveFileLoadArgs.Add(TEXT("NumArtboards"), FText::AsNumber(RiveNativeFilePtr->artboardCount()));
+
+    RiveFileLoadArgs.Add(TEXT("NumAssets"), FText::AsNumber(RiveNativeFilePtr->assets().size()));
+
+    if (const rive::Artboard* NativeArtboard = RiveNativeFilePtr->artboard())
+    {
+        RiveFileLoadArgs.Add(TEXT("NumAnimations"), FText::AsNumber(NativeArtboard->animationCount()));
+    }
+    else
+    {
+        RiveFileLoadArgs.Add(TEXT("NumAnimations"), FText::AsNumber(0));
+    }
+
+    const FText RiveFileLoadMsg = FText::Format(NSLOCTEXT("FURFile", "RiveFileLoadMsg", "Using Rive Runtime : {Major}.{Minor}; Artboard(s) Count : {NumArtboards}; Asset(s) Count : {NumAssets}; Animation(s) Count : {NumAnimations}"), RiveFileLoadArgs);
+
+    UE_LOG(LogRive, Display, TEXT("%s"), *RiveFileLoadMsg.ToString());
 }
 
 UE_ENABLE_OPTIMIZATION

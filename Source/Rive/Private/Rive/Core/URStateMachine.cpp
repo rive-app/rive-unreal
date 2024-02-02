@@ -1,7 +1,10 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "Core/URStateMachine.h"
-#include "Logs/RiveCoreLog.h"
+#include "Rive/Core/URStateMachine.h"
+
+#include <Rive/Core/UREvent.h>
+
+#include "Logs/RiveLog.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -30,7 +33,7 @@ bool UE::Rive::Core::FURStateMachine::Advance(float InSeconds)
         return NativeStateMachinePtr->advanceAndApply(InSeconds);
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not advance state machine as we have detected an empty state machine."));
+    UE_LOG(LogRive, Error, TEXT("Could not advance state machine as we have detected an empty state machine."));
 
     return false;
 }
@@ -42,7 +45,7 @@ uint32 UE::Rive::Core::FURStateMachine::GetInputCount() const
         return NativeStateMachinePtr->inputCount();
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not get input count as we have detected an empty state machine."));
+    UE_LOG(LogRive, Error, TEXT("Could not get input count as we have detected an empty state machine."));
 
     return 0;
 }
@@ -54,7 +57,7 @@ rive::SMIInput* UE::Rive::Core::FURStateMachine::GetInput(uint32 AtIndex) const
         return NativeStateMachinePtr->input(AtIndex);
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not get input count as we have detected an empty state machine."));
+    UE_LOG(LogRive, Error, TEXT("Could not get input count as we have detected an empty state machine."));
 
     return nullptr;
 }
@@ -69,13 +72,13 @@ void UE::Rive::Core::FURStateMachine::FireTrigger(const FString& InPropertyName)
         }
         else
         {
-            UE_LOG(LogRiveCore, Error, TEXT("Could not fire the trigger with given name '%s' as we could not find it."), *InPropertyName);
+            UE_LOG(LogRive, Error, TEXT("Could not fire the trigger with given name '%s' as we could not find it."), *InPropertyName);
         }
 
         return;
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not fire the trigger with given name '%s' as we have detected an empty state machine."), *InPropertyName);
+    UE_LOG(LogRive, Error, TEXT("Could not fire the trigger with given name '%s' as we have detected an empty state machine."), *InPropertyName);
 }
 
 bool UE::Rive::Core::FURStateMachine::GetBoolValue(const FString& InPropertyName) const
@@ -87,12 +90,12 @@ bool UE::Rive::Core::FURStateMachine::GetBoolValue(const FString& InPropertyName
             return BoolProperty->value();
         }
         
-        UE_LOG(LogRiveCore, Error, TEXT("Could not get the boolean property with given name '%s' as we could not find it."), *InPropertyName);
+        UE_LOG(LogRive, Error, TEXT("Could not get the boolean property with given name '%s' as we could not find it."), *InPropertyName);
 
         return false;
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not get the boolean property with given name '%s' as we have detected an empty state machine."), *InPropertyName);
+    UE_LOG(LogRive, Error, TEXT("Could not get the boolean property with given name '%s' as we have detected an empty state machine."), *InPropertyName);
 
     return false;
 }
@@ -106,12 +109,12 @@ float UE::Rive::Core::FURStateMachine::GetNumberValue(const FString& InPropertyN
             return NumberProperty->value();
         }
 
-        UE_LOG(LogRiveCore, Error, TEXT("Could not get the number property with given name '%s' as we could not find it."), *InPropertyName);
+        UE_LOG(LogRive, Error, TEXT("Could not get the number property with given name '%s' as we could not find it."), *InPropertyName);
 
         return 0;
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not get the number property with given name '%s' as we have detected an empty state machine."), *InPropertyName);
+    UE_LOG(LogRive, Error, TEXT("Could not get the number property with given name '%s' as we have detected an empty state machine."), *InPropertyName);
 
     return 0;
 }
@@ -126,13 +129,13 @@ void UE::Rive::Core::FURStateMachine::SetBoolValue(const FString& InPropertyName
         }
         else
         {
-            UE_LOG(LogRiveCore, Error, TEXT("Could not get the boolean property with given name '%s' as we could not find it."), *InPropertyName);
+            UE_LOG(LogRive, Error, TEXT("Could not get the boolean property with given name '%s' as we could not find it."), *InPropertyName);
         }
 
         return;
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not get the boolean property with given name '%s' as we have detected an empty state machine."), *InPropertyName);
+    UE_LOG(LogRive, Error, TEXT("Could not get the boolean property with given name '%s' as we have detected an empty state machine."), *InPropertyName);
 }
 
 void UE::Rive::Core::FURStateMachine::SetNumberValue(const FString& InPropertyName, float NewValue)
@@ -145,13 +148,13 @@ void UE::Rive::Core::FURStateMachine::SetNumberValue(const FString& InPropertyNa
         }
         else
         {
-            UE_LOG(LogRiveCore, Error, TEXT("Could not get the number property with given name '%s' as we could not find it."), *InPropertyName);
+            UE_LOG(LogRive, Error, TEXT("Could not get the number property with given name '%s' as we could not find it."), *InPropertyName);
         }
 
         return;
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not get the number property with given name '%s' as we have detected an empty state machine."), *InPropertyName);
+    UE_LOG(LogRive, Error, TEXT("Could not get the number property with given name '%s' as we have detected an empty state machine."), *InPropertyName);
 }
 
 bool UE::Rive::Core::FURStateMachine::OnMouseButtonDown(const FVector2f& NewPosition)
@@ -163,7 +166,7 @@ bool UE::Rive::Core::FURStateMachine::OnMouseButtonDown(const FVector2f& NewPosi
         return true;
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not update state machine with mouse button down event as we have detected an empty state machine."));
+    UE_LOG(LogRive, Error, TEXT("Could not update state machine with mouse button down event as we have detected an empty state machine."));
 
     return false;
 }
@@ -177,7 +180,7 @@ bool UE::Rive::Core::FURStateMachine::OnMouseMove(const FVector2f& NewPosition)
         return true;
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not update state machine with mouse move event as we have detected an empty state machine."));
+    UE_LOG(LogRive, Error, TEXT("Could not update state machine with mouse move event as we have detected an empty state machine."));
 
     return false;
 }
@@ -191,7 +194,7 @@ bool UE::Rive::Core::FURStateMachine::OnMouseButtonUp(const FVector2f& NewPositi
         return true;
     }
 
-    UE_LOG(LogRiveCore, Error, TEXT("Could not update state machine with mouse button up event as we have detected an empty state machine."));
+    UE_LOG(LogRive, Error, TEXT("Could not update state machine with mouse button up event as we have detected an empty state machine."));
 
     return false;
 }
@@ -210,7 +213,7 @@ bool UE::Rive::Core::FURStateMachine::HasAnyReportedEvents() const
         return NativeStateMachinePtr->reportedEventCount() != 0;
     }
  
-    UE_LOG(LogRiveCore, Warning, TEXT("Could not check for reported event(s) as we have detected an empty state machine."));
+    UE_LOG(LogRive, Warning, TEXT("Could not check for reported event(s) as we have detected an empty state machine."));
 
     return false;
 }
@@ -232,7 +235,7 @@ void UE::Rive::Core::FURStateMachine::PopulateReportedEvents()
         }
         else
         {
-            UE_LOG(LogRiveCore, Warning, TEXT("Could not get reported event(s) as we have detected an empty state machine."));
+            UE_LOG(LogRive, Warning, TEXT("Could not get reported event(s) as we have detected an empty state machine."));
         }
     }
     else

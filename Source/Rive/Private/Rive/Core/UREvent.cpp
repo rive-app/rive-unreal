@@ -1,6 +1,5 @@
 // Copyright Rive, Inc. All rights reserved.
-
-#include "Core/UREvent.h"
+#include "Rive/Core/UREvent.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
