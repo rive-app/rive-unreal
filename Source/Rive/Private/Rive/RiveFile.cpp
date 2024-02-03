@@ -24,7 +24,7 @@ const FString& URiveReportedEvent::GetReportedEventName() const
 
 uint8 URiveReportedEvent::GetReportedEventType() const
 {
-    return 0;
+    return Type;
 }
 
 const TArray<FRiveEventBoolProperty>& URiveReportedEvent::GetBoolProperties() const
@@ -39,7 +39,7 @@ const TArray<FRiveEventNumberProperty>& URiveReportedEvent::GetNumberProperties(
 
 const TArray<FRiveEventStringProperty>& URiveReportedEvent::GetStringProperties() const
 {
-    return RiveEventStringProperty;
+    return RiveEventStringProperties;
 }
 
 URiveFile::URiveFile()
@@ -85,6 +85,10 @@ void URiveFile::Tick(float InDeltaSeconds)
                             
                             const UE::Rive::Core::FUREvent* UREvent = ReportedEvents[Index].Get();
                             RiveReportedEvent->Name = UREvent->GetName();
+                            RiveReportedEvent->Type = UREvent->GetType();
+                            RiveReportedEvent->ParseProperties<bool>(UREvent->GetBoolProperties());
+                            RiveReportedEvent->ParseProperties<float>(UREvent->GetNumberProperties());
+                            RiveReportedEvent->ParseProperties<FString>(UREvent->GetStringProperties());
                             RiveReportedEvents.Add(RiveReportedEvent);
                         }
                         RiveEventDelegate.Broadcast(RiveReportedEvents);

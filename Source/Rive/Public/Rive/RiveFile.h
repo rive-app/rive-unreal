@@ -46,30 +46,49 @@ enum class ERiveFitType : uint8
     ScaleDown = 6
 };
 
-USTRUCT()
+USTRUCT(Blueprintable)
 struct FRiveEventProperty
 {
     GENERATED_BODY()
+
+    FRiveEventProperty() {}
+    FRiveEventProperty(const FString& InName)
+        : PropertyName(InName)
+    {}
     
-    UPROPERTY(Blueprintable, EditAnywhere)
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | EventProperty")
     FString PropertyName;
 };
 
-USTRUCT(Blueprintable)
+USTRUCT()
 struct FRiveEventBoolProperty : public FRiveEventProperty
 {
     GENERATED_BODY()
 
-    UPROPERTY(Blueprintable, EditAnywhere)
+    FRiveEventBoolProperty() {}
+
+    FRiveEventBoolProperty(const FString& InName, bool InProperty)
+        : FRiveEventProperty(InName)
+        , BoolProperty(InProperty)
+    {}
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | EventProperty")
     bool BoolProperty = false;
 };
 
-USTRUCT(Blueprintable)
+USTRUCT()
 struct FRiveEventNumberProperty : public FRiveEventProperty
 {
     GENERATED_BODY()
 
-    UPROPERTY(Blueprintable, EditAnywhere)
+    FRiveEventNumberProperty() {}
+
+    FRiveEventNumberProperty(const FString& InName, float InProperty)
+        : FRiveEventProperty(InName)
+        , NumberProperty(InProperty)
+    {}
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | EventProperty")
     float NumberProperty = 0.f;
 };
 
@@ -78,7 +97,14 @@ struct FRiveEventStringProperty : public FRiveEventProperty
 {
     GENERATED_BODY()
 
-    UPROPERTY(Blueprintable, EditAnywhere)
+    FRiveEventStringProperty() {}
+
+    FRiveEventStringProperty(const FString& InName, const FString& InProperty)
+        : FRiveEventProperty(InName)
+        , StringProperty(InProperty)
+    {}
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | EventProperty")
     FString StringProperty;
 };
 
@@ -103,15 +129,51 @@ class URiveReportedEvent : public UObject
     const TArray<FRiveEventStringProperty>& GetStringProperties() const;
 
 public:
+    template <typename TPropertyType>
+    void ParseProperties(const TArray<TPair<FString, TPropertyType>> InPropertyArray);
+    
+    void ParseBoolProperties(const TArray<TPair<FString, bool>> InPropertyArray);
+    void ParseNumberProperties(const TArray<TPair<FString, float>> InPropertyArray);
+    void ParseStringProperties(const TArray<TPair<FString, FString>> InPropertyArray);
+
+
+public:
     FString Name;
+
+    uint8 Type;
 
 private:
     TArray<FRiveEventBoolProperty> RiveEventBoolProperties;
     
     TArray<FRiveEventNumberProperty> RiveEventNumberProperties;
     
-    TArray<FRiveEventStringProperty> RiveEventStringProperty;
+    TArray<FRiveEventStringProperty> RiveEventStringProperties;
 };
+
+#define PARSE_PROPERTIES(Type, TPropertyType, InPropertyArray) \
+RiveEvent##Type##Properties.Reset(); \
+RiveEvent##Type##Properties.Reserve(InPropertyArray.Num()); \
+for (const TTuple<FString, TPropertyType>& PropertyPair : InPropertyArray) \
+{ \
+    RiveEvent##Type##Properties.Add({PropertyPair.Key, PropertyPair.Value}); \
+} 
+
+template <typename TPropertyType>
+void URiveReportedEvent::ParseProperties(const TArray<TPair<FString, TPropertyType>> InPropertyArray)
+{
+    if constexpr (std::is_same_v<TPropertyType, bool>) 
+    {
+        PARSE_PROPERTIES(Bool, bool, InPropertyArray);
+    }
+    else if constexpr (std::is_same_v<TPropertyType, float>) 
+    {
+        PARSE_PROPERTIES(Number, TPropertyType, InPropertyArray);
+    }
+    else if constexpr (std::is_same_v<TPropertyType, FString>) 
+    {
+        PARSE_PROPERTIES(String, TPropertyType, InPropertyArray);
+    }
+}
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, const TArray<URiveReportedEvent*>&, RiveEvents);
 
