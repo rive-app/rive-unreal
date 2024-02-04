@@ -168,6 +168,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 		{
 			// Reset
 			PLSRenderContextPtr->shrinkGPUResourcesToFit();
+
 			PLSRenderContextPtr->resetGPUResources();
 
 			LastResetTime = Now;
