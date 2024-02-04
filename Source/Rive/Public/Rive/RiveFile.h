@@ -305,8 +305,6 @@ private:
     UPROPERTY(EditAnywhere, Category=Rive)
     TSubclassOf<UUserWidget> WidgetClass;
     
-    TArray<URiveEvent*> RiveEvents;
-
     bool bIsInitialized = false;
 
     bool bIsReceivingInput = false;

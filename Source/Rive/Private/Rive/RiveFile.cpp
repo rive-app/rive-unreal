@@ -52,8 +52,6 @@ void URiveFile::Tick(float InDeltaSeconds)
                     if (StateMachine->HasAnyReportedEvents())
                     {
                         PopulateReportedEvents();
-
-                        RiveEventDelegate.Broadcast(RiveEvents);
                     }
                     
                     StateMachine->Advance(InDeltaSeconds);
@@ -667,13 +665,13 @@ UE::Rive::Core::FURArtboard* URiveFile::GetArtboard() const
 
 void URiveFile::PopulateReportedEvents()
 {
-    RiveEvents.Reset();
-
 #if WITH_RIVE
 
     if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
     {
         const int32 NumReportedEvents = StateMachine->GetReportedEventsCount();
+
+        TArray<URiveEvent*> RiveEvents;
 
         RiveEvents.Reserve(NumReportedEvents);
 
@@ -683,12 +681,17 @@ void URiveFile::PopulateReportedEvents()
 
             if (ReportedEvent.event() != nullptr)
             {
-                URiveEvent* RiveEvent = NewObject<URiveEvent>(this);
+                URiveEvent* RiveEvent = NewObject<URiveEvent>(GetTransientPackage());
 
                 RiveEvent->Initialize(ReportedEvent);
 
                 RiveEvents.Add(RiveEvent);
             }
+        }
+
+        if (!RiveEvents.IsEmpty())
+        {
+            RiveEventDelegate.Broadcast(RiveEvents);
         }
     }
     else
