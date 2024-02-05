@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #pragma once
 
@@ -23,15 +23,23 @@ namespace UE::Rive::Renderer::Private
     public:
 
         virtual IRiveRenderer* GetRenderer() override;
-
         //~ END : IRiveRendererModule Interface
 
+        void CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate&& Delegate);
+        
         /**
          * Attribute(s)
          */
 
     private:
+        bool LoadDll();
+        void ReleaseDll();
+#if PLATFORM_ANDROID
+        void* RiveHarfbuzzDllHandle = nullptr;
+        void* libGLESv2DllHandle = nullptr;
+#endif
 
         TSharedPtr<IRiveRenderer> RiveRenderer;
+        FSimpleMulticastDelegate OnRendererInitializedDelegate;
     };
 }

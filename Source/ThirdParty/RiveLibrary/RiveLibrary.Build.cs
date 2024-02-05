@@ -16,7 +16,6 @@ public class RiveLibrary : ModuleRules
 
         AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
 
-        AddEngineThirdPartyPrivateStaticDependencies(Target, "UElibPNG");
 
         AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
 
@@ -37,29 +36,36 @@ public class RiveLibrary : ModuleRules
 
             AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
 
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+            // AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 
             PublicSystemLibraries.Add("d3dcompiler.lib");
 
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Win64");
 
+            string RiveLibPng = "rive_libpng" + LibPostfix + ".lib";
+
             string RiveSheenBidiStaticLibName = "rive_sheenbidi" + LibPostfix + ".lib";
 
             string RiveHarfBuzzStaticLibName = "rive_harfbuzz" + LibPostfix + ".lib";
 
-            string RiveStaticLibName = "rive" + LibPostfix + ".lib"; ;
+            string RiveStaticLibName = "rive" + LibPostfix + ".lib";
 
             string RiveDecodersStaticLibName = "rive_decoders" + LibPostfix + ".lib";
 
             string RivePlsLibName = "rive_pls_renderer" + LibPostfix + ".lib";
 
-            PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
-                , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
-                , Path.Combine(LibDirectory, RiveStaticLibName)
-                , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
-                , Path.Combine(LibDirectory, RivePlsLibName) });
+            PublicAdditionalLibraries.AddRange(new string[]
+                {
+                    Path.Combine(LibDirectory, RiveSheenBidiStaticLibName),
+                    Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName),
+                    Path.Combine(LibDirectory, RiveStaticLibName),
+                    Path.Combine(LibDirectory, RiveDecodersStaticLibName),
+                    Path.Combine(LibDirectory, RivePlsLibName),
+                    Path.Combine(LibDirectory, RiveLibPng)
+                }
+            );
 
-            bIsPlatformAdded = true;
+        bIsPlatformAdded = true;
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
@@ -68,28 +74,51 @@ public class RiveLibrary : ModuleRules
             // NOTE : Link MacOS Libraries
 
             bIsPlatformAdded = true;
-        } 
+        }
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {
+            PrivateDependencyModuleNames.Add("ApplicationCore");
+            PrivateDependencyModuleNames.Add("Launch");
+            
+            PrivateDependencyModuleNames.Add("OpenGLDrv"); // todo: check OpenGLDrv.Build.cs:61 : PublicDefinitions.Add(Target.Platform == UnrealTargetPlatform.Android ? "USE_ANDROID_OPENGL=1" : "USE_ANDROID_OPENGL=0");
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+            // PrivateDependencyModuleNames.Add("CEF3Utils");
+            // AddEngineThirdPartyPrivateStaticDependencies(Target, "CEF3");
             
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Android");
             string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + ".a";
-            string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + ".a";
+            // string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + ".a";
+            string RiveHarfBuzzSharedLibName = "librive_harfbuzz" + LibPostfix + ".so";
             string RiveStaticLibName = "librive" + LibPostfix + ".a"; ;
             string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + ".a";
             string RivePlsLibName = "librive_pls_renderer" + LibPostfix + ".a";
+            string RiveLibPng = "liblibpng" + LibPostfix + ".a";
 
-            PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
-                // , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
-                , Path.Combine(LibDirectory, RiveStaticLibName)
-                , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
-                , Path.Combine(LibDirectory, RivePlsLibName) });
-
-            // RuntimeDependencies.Add(Path.Combine(LibDirectory, RiveStaticLibName));
+            PublicRuntimeLibraryPaths.Add(LibDirectory);
+            // PrivateRuntimeLibraryPaths.Add(LibDirectory); //todo: check UnrealUSDWrapper.build.cs
+            PublicAdditionalLibraries.AddRange(new string[] 
+                { 
+                    Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
+                    , Path.Combine(LibDirectory, RiveHarfBuzzSharedLibName)
+                    , Path.Combine(LibDirectory, RiveStaticLibName)
+                    , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
+                    , Path.Combine(LibDirectory, RivePlsLibName)
+                    , Path.Combine(LibDirectory, RiveLibPng)
+                }
+            );
+            // PublicSystemLibraryPaths.Add(LibDirectory);
+            RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", RiveHarfBuzzSharedLibName),Path.Combine(LibDirectory, RiveHarfBuzzSharedLibName));
+            //CopyToBinaries(Path.Combine(LibDirectory, RiveHarfBuzzSharedLibName), Target);
+            // RuntimeDependencies.Add(Path.Combine(LibDirectory, RiveHarfBuzzSharedLibName), StagedFileType.NonUFS);
             
-            PrecompileForTargets = PrecompileTargetsType.None;
             
+            string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
+            AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "RiveLibrary_APL.xml"));
+            
+            // PrecompileForTargets = PrecompileTargetsType.None;
             bIsPlatformAdded = true;
+            // bUseRTTI = true;
+            // bUsePrecompiled = false;
         }
         else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
         {

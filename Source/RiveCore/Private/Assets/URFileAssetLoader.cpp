@@ -1,6 +1,9 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "Assets/URFileAssetLoader.h"
+#include "Assets/UREmbeddedAsset.h"
+#include "Logs/RiveCoreLog.h"
+#include "rive/factory.hpp"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -10,65 +13,83 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(const FString& InRiveFilePath)
-    : RelativePath(InRiveFilePath)
+UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(TMap<uint32, FUREmbeddedAsset>& InAssetMap)
+	: AssetMap(&InAssetMap)
 {
-    if (!InRiveFilePath.IsEmpty())
-    {
-        RelativePath = FPaths::GetPath(InRiveFilePath);
-    }
 }
 
 #if WITH_RIVE
 
-bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes, rive::Factory* InFactory)
+bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes,
+                                                        rive::Factory* InFactory)
 {
-    bool bDidLoad = false;
+	bool bDidLoad = false;
 
-    FAssetRef* AssetIter = nullptr;
+	rive::Span<const uint8>* AssetBytes = &InBandBytes;
+	bool bUseInBand = InBandBytes.size() > 0;
 
-    if (Assets.Contains(InAsset.assetId()))
-    {
-        AssetIter = Assets.Find(InAsset.assetId());
-    }
-    else
-    {
-        FAssetRef NewAsset = {InAsset.coreType(), FString(InAsset.uniqueFilename().c_str()), InAsset.as<rive::Asset>()};
 
-        AssetIter = &Assets.Add(InAsset.assetId(), NewAsset);
-    }
+	// We can take two paths here
+	// 1. Either search for a file to load off disk (or in the Unreal registry)
+	// 2. Or use InBandbytes if no other options are found to load
+	// Unity version prefers disk assets, over InBand, if they exist, allowing overrides
 
-    if (rive::Asset* Asset = static_cast<rive::Asset*>(AssetIter->Asset))
-    {
-        if (Asset->coreType() == AssetIter->Type)
-        {
-            switch (Asset->coreType())
-            {
-                case rive::FontAssetBase::typeKey:
-                {
-                    rive::FontAsset* FontAsset = Asset->as<rive::FontAsset>();
+	FUREmbeddedAsset* Asset = AssetMap->Find(InAsset.assetId());
+	if (Asset == nullptr)
+	{
+		UE_LOG(LogRiveCore, Error, TEXT("Could not find pre-loaded asset. This means the initial import probably failed."));
+		return false;
+	}
 
-                    FontAsset->font(rive::ref_rcp(static_cast<rive::Font*>(AssetIter->Asset)));
+	rive::Span<const uint8> OutOfBandBytes;
+	if (!bUseInBand)
+	{
+		OutOfBandBytes = rive::make_span(Asset->Bytes.GetData(), Asset->Bytes.Num());
+		AssetBytes = &OutOfBandBytes;
+	}
+	
+	switch (Asset->Type)
+	{
+	case rive::FontAssetBase::typeKey:
+		{
+			rive::rcp<rive::Font> DecodedFont = InFactory->decodeFont(*AssetBytes);
 
-                    bDidLoad = true;
+			if (DecodedFont == nullptr)
+			{
+				UE_LOG(LogRiveCore, Error, TEXT("Could not decode font asset: %s"), *Asset->Name);
+				break;
+			}
 
-                    break;
-                }
-                case rive::ImageAssetBase::typeKey:
-                {
-                    rive::ImageAsset* ImageAsset = Asset->as<rive::ImageAsset>();
+			rive::FontAsset* FontAsset = InAsset.as<rive::FontAsset>();
+			FontAsset->font(DecodedFont);
+			// EmbeddedAsset.Asset = FontAsset;
+			Asset->Asset = FontAsset;
+			bDidLoad = true;
+			break;
+		}
+	case rive::ImageAssetBase::typeKey:
+		{
+			rive::rcp<rive::RenderImage> DecodedImage = InFactory->decodeImage(*AssetBytes);
 
-                    ImageAsset->renderImage(rive::ref_rcp(static_cast<rive::RenderImage*>(AssetIter->Asset)));
+			if (DecodedImage == nullptr)
+			{
+				UE_LOG(LogRiveCore, Error, TEXT("Could not decode image asset: %s"), *Asset->Name);
+				break;
+			}
 
-                    bDidLoad = true;
+			rive::ImageAsset* ImageAsset = InAsset.as<rive::ImageAsset>();
+			ImageAsset->renderImage(DecodedImage);
+			Asset->Asset = ImageAsset;
+			bDidLoad = true;
+			break;
+		}
+	}
 
-                    break;
-                }
-            }
-        }
-    }
-
-    return bDidLoad;
+	if (bDidLoad)
+	{
+		UE_LOG(LogRiveCore, Log, TEXT("Loaded Asset: %s"), *Asset->Name);
+	}
+	return bDidLoad;
 }
 
 #endif // WITH_RIVE

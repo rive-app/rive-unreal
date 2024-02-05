@@ -6,7 +6,6 @@
 
 #include "rive/pls/gl/gl_state.hpp"
 #include "rive/pls/pls_render_context_helper_impl.hpp"
-#include "rive/pls/gl/pls_render_target_gl.hpp"
 #include <map>
 
 namespace rive::pls
@@ -24,28 +23,6 @@ public:
 
     // Called when the GL context has been modified outside of Rive.
     void resetGLState();
-
-    // Creates a PLSRenderTarget that draws directly into the given GL framebuffer.
-    // Returns null if the framebuffer doesn't support pixel local storage.
-    rcp<PLSRenderTargetGL> wrapGLRenderTarget(GLuint framebufferID, uint32_t width, uint32_t height)
-    {
-        return m_plsImpl->wrapGLRenderTarget(framebufferID, width, height, m_platformFeatures);
-    }
-
-    // Creates a PLSRenderTarget that draws to a new, offscreen GL framebuffer. This method is
-    // guaranteed to succeed, but the caller must call glBlitFramebuffer() to view the rendering
-    // results.
-    rcp<PLSRenderTargetGL> makeOffscreenRenderTarget(
-        uint32_t width,
-        uint32_t height,
-        PLSRenderTargetGL::TargetTextureOwnership targetTextureOwnership =
-            PLSRenderTargetGL::TargetTextureOwnership::internal)
-    {
-        return m_plsImpl->makeOffscreenRenderTarget(width,
-                                                    height,
-                                                    targetTextureOwnership,
-                                                    m_platformFeatures);
-    }
 
     rcp<RenderBuffer> makeRenderBuffer(RenderBufferType, RenderBufferFlags, size_t) override;
 
@@ -65,18 +42,20 @@ private:
     public:
         virtual void init(rcp<GLState>) {}
 
-        virtual rcp<PLSRenderTargetGL> wrapGLRenderTarget(GLuint framebufferID,
-                                                          uint32_t width,
-                                                          uint32_t height,
-                                                          const PlatformFeatures&) = 0;
-        virtual rcp<PLSRenderTargetGL> makeOffscreenRenderTarget(
-            uint32_t width,
-            uint32_t height,
-            PLSRenderTargetGL::TargetTextureOwnership,
-            const PlatformFeatures&) = 0;
-
         virtual void activatePixelLocalStorage(PLSRenderContextGLImpl*, const FlushDescriptor&) = 0;
-        virtual void deactivatePixelLocalStorage(PLSRenderContextGLImpl*) = 0;
+        virtual void deactivatePixelLocalStorage(PLSRenderContextGLImpl*,
+                                                 const FlushDescriptor&) = 0;
+
+        // Optimization for when rendering to an offscreen framebuffer in atomic mode.
+        //
+        // It renders the final PLS resolve operation to the destination framebuffer in a single
+        // pass, instead of (1) resolving the offscreen framebuffer, and (2) blitting offscreen
+        // framebuffer to the destination framebuffer.
+        virtual bool supportsCoalescedPLSResolveAndTransfer(const PLSRenderTargetGL*) const
+        {
+            return false;
+        }
+        virtual void setupCoalescedPLSResolveAndTransfer(PLSRenderTargetGL*) {}
 
         virtual const char* shaderDefineName() const = 0;
 
@@ -121,6 +100,11 @@ private:
 
     PLSRenderContextGLImpl(const char* rendererString, GLCapabilities, std::unique_ptr<PLSImpl>);
 
+    uint32_t getFragmentShaderKey(pls::DrawType,
+                                  pls::ShaderFeatures,
+                                  pls::InterlockMode,
+                                  const PLSRenderTargetGL*) const;
+
     // Wraps a compiled and linked GL program of draw_path.glsl or draw_image_mesh.glsl, with a
     // specific set of features enabled via #define. The set of features to enable is dictated by
     // ShaderFeatures.
@@ -129,7 +113,11 @@ private:
     public:
         DrawProgram(const DrawProgram&) = delete;
         DrawProgram& operator=(const DrawProgram&) = delete;
-        DrawProgram(PLSRenderContextGLImpl*, DrawType, ShaderFeatures, pls::InterlockMode);
+        DrawProgram(PLSRenderContextGLImpl*,
+                    DrawType,
+                    ShaderFeatures,
+                    pls::InterlockMode,
+                    uint32_t fragmentShaderKey);
         ~DrawProgram();
 
         GLuint id() const { return m_id; }

@@ -5,9 +5,6 @@
 #include "IRiveRenderer.h"
 
 #if WITH_RIVE
-THIRD_PARTY_INCLUDES_START
-#include "rive/pls/pls_render_context.hpp"
-THIRD_PARTY_INCLUDES_END
 
 namespace rive::pls
 {
@@ -31,7 +28,7 @@ namespace UE::Rive::Renderer::Private
 
         FRiveRenderer();
 
-        virtual ~FRiveRenderer();
+        virtual ~FRiveRenderer() override;
 
         //~ BEGIN : IRiveRenderer Interface
     
@@ -48,8 +45,6 @@ namespace UE::Rive::Renderer::Private
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) override;
 
 #if WITH_RIVE
-
-        virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard) override;
 
         virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() override;
         
@@ -79,7 +74,7 @@ namespace UE::Rive::Renderer::Private
 
         mutable FCriticalSection ThreadDataCS;
 
-    private:
+    protected:
 
         bool bIsInitialized = false;
     };

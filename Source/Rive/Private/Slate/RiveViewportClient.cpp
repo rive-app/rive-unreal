@@ -1,13 +1,9 @@
 // Copyright Rive, Inc. All rights reserved.
 
-
 #include "RiveViewportClient.h"
 
 #include "CanvasItem.h"
 #include "CanvasTypes.h"
-#if WITH_EDITOR
-#include "Texture2DPreview.h"
-#endif
 #include "Rive/RiveFile.h"
 
 UE_DISABLE_OPTIMIZATION
@@ -31,21 +27,6 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 	
 	Canvas->Clear(FLinearColor::Transparent);
 
-	// Now we can draw
-
-	const float MipLevel = 1.f;
-
-	const float LayerIndex = 1.f;
-	
-	const float SliceIndex = 1.f;
-	
-	const bool bUsePointSampling = false;
-
-	//todo: how does that work in non-editor builds?
-#if WITH_EDITOR
-	// TODO. check how that removed from memory
-	TRefCountPtr<FBatchedElementParameters> BatchedElementParameters = new FBatchedElementTexture2DPreviewParameters(MipLevel, LayerIndex, SliceIndex, false, false, false, false, false, bUsePointSampling);
-#endif
 	// Draw the background checkerboard pattern in the same size/position as the render texture so it will show up anywhere
 	// the texture has transparency
 	// TODO. implement CheckerboardTexture texture in editor mode only, never run it runtime or outside of rive editor
@@ -70,21 +51,12 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		
 		const FIntPoint RiveTextureSize = RiveFile->CalculateRenderTextureSize(ViewportSize);
 
-		const FIntPoint RiveTexturePosition = RiveFile->CalculateRenderTexturePosition(ViewportSize);
+		const FIntPoint RiveTexturePosition = RiveFile->CalculateRenderTexturePosition(ViewportSize, RiveTextureSize);
 		
-		FTexturePlatformData** RunningPlatformDataPtr = RiveFile->GetRunningPlatformData();
-
-		const float Exposure = RunningPlatformDataPtr && *RunningPlatformDataPtr && IsHDR((*RunningPlatformDataPtr)->PixelFormat) ? FMath::Pow(2.f, 0.f) : 1.f;
-		
-		FCanvasTileItem TileItem(FVector2D(RiveTexturePosition.X, RiveTexturePosition.Y), RiveFile->GetResource(), FVector2D(RiveTextureSize.X, RiveTextureSize.Y), FLinearColor(Exposure, Exposure, Exposure));
-		
+		FCanvasTileItem TileItem(FVector2D(RiveTexturePosition.X, RiveTexturePosition.Y), RiveFile->GetResource(), FVector2D(RiveTextureSize.X, RiveTextureSize.Y), FLinearColor::White);
 		TileItem.BlendMode = RiveFile->GetSimpleElementBlendMode(); // TODO. check blending mode
-		
-#if WITH_EDITOR
-		TileItem.BatchedElementParameters = BatchedElementParameters;
-#endif
+		TileItem.BatchedElementParameters = nullptr;
 
-		// Tell canvas to Draw
 		Canvas->DrawItem(TileItem);
 	}
 }

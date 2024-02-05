@@ -28,7 +28,7 @@ namespace UE::Rive::Renderer::Private
 	public:
 
 		FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
-		
+		virtual ~FRiveRenderTarget() override;
 		//~ BEGIN : IRiveRenderTarget Interface
 
 	public:

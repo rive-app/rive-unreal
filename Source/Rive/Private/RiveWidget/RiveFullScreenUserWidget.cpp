@@ -1,6 +1,5 @@
 // Copyright Rive, Inc. All rights reserved.
 
-
 #include "RiveWidget/RiveFullScreenUserWidget.h"
 
 #include "Blueprint/UserWidget.h"
@@ -17,7 +16,7 @@
 #include "LevelEditor.h"
 #include "LevelEditorViewport.h"
 #include "SLevelViewport.h"
-#endif
+#endif // WITH_EDITOR
 
 /////////////////////////////////////////////////////
 // Internal helper

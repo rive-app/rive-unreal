@@ -1,14 +1,13 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#if !PLATFORM_ANDROID
 #include "RiveRenderTargetD3D11.h"
-#include "RiveRenderer.h"
-#include "Engine/TextureRenderTarget2D.h"
-#include "Logs/RiveRendererLog.h"
 
 #if PLATFORM_WINDOWS
+
+#include "Engine/TextureRenderTarget2D.h"
 #include "ID3D11DynamicRHI.h"
-#endif // PLATFORM_WINDOWS
+#include "Logs/RiveRendererLog.h"
+#include "RiveRenderer.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -44,8 +43,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Initialize()
 DECLARE_GPU_STAT_NAMED(CacheTextureTarget, TEXT("FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
 {
-#if PLATFORM_WINDOWS
-
 	check(IsInRenderingThread());
 
 	FScopeLock Lock(&ThreadDataCS);
@@ -94,8 +91,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 
 #endif // WITH_RIVE
 	}
-
-#endif // PLATFORM_WINDOWS
 }
 
 #if WITH_RIVE
@@ -250,4 +245,4 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 
 UE_ENABLE_OPTIMIZATION
 
-#endif
+#endif // PLATFORM_WINDOWS

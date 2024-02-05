@@ -1,19 +1,16 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#if !PLATFORM_ANDROID
 #include "RiveRendererD3D11.h"
-#include "CanvasTypes.h"
-#include "Engine/TextureRenderTarget2D.h"
 
 #if PLATFORM_WINDOWS
+
+#include "Engine/TextureRenderTarget2D.h"
 #include "RiveRenderTargetD3D11.h"
 #include "Windows/D3D11ThirdParty.h"
 #include "ID3D11DynamicRHI.h"
-#endif // PLATFORM_WINDOWS
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
-#include "rive/artboard.hpp"
 #include "rive/pls/d3d/pls_render_context_d3d_impl.hpp"
 #include "rive/pls/pls_renderer.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -23,29 +20,6 @@ UE_DISABLE_OPTIMIZATION
 
 UE::Rive::Renderer::Private::FRiveRendererD3D11::FRiveRendererD3D11()
 {
-}
-
-UE::Rive::Renderer::Private::FRiveRendererD3D11::~FRiveRendererD3D11()
-{
-}
-
-DECLARE_GPU_STAT_NAMED(DebugColorDraw, TEXT("FRiveRendererD3D11::DebugColorDraw"));
-void UE::Rive::Renderer::Private::FRiveRendererD3D11::DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard)
-{
-	check(IsInGameThread());
-
-	FScopeLock Lock(&ThreadDataCS);
-
-	FTextureRenderTargetResource* RenderTargetResource = InTexture->GameThread_GetRenderTargetResource();
-
-	ENQUEUE_RENDER_COMMAND(DebugColorDraw)(
-	[this, RenderTargetResource, DebugColor](FRHICommandListImmediate& RHICmdList)
-	{
-		// JUST for testing here
-		FCanvas Canvas(RenderTargetResource, nullptr, FGameTime(), GMaxRHIFeatureLevel);
-
-		Canvas.Clear(DebugColor);
-	});
 }
 
 TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererD3D11::CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
@@ -62,8 +36,6 @@ TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::F
 DECLARE_GPU_STAT_NAMED(CreatePLSContext, TEXT("CreatePLSContext_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
-#if PLATFORM_WINDOWS
-
 	check(IsInRenderingThread());
 
 	FScopeLock Lock(&ThreadDataCS);
@@ -107,13 +79,12 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 
 #endif // WITH_RIVE
 	}
-
-#endif // PLATFORM_WINDOWS
 }
 
 DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
+	return;
 #if WITH_RIVE
 
 	if (PLSRenderContext == nullptr)
@@ -150,4 +121,4 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderTh
 
 UE_ENABLE_OPTIMIZATION
 
-#endif
+#endif // PLATFORM_WINDOWS

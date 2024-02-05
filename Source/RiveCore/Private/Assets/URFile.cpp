@@ -1,6 +1,8 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "Assets/URFile.h"
+
+#include "Assets/URAssetImporter.h"
 #include "Logs/RiveCoreLog.h"
 
 UE::Rive::Assets::FURFile::FURFile(const TArray<uint8>& InBuffer)
@@ -13,18 +15,27 @@ UE::Rive::Assets::FURFile::FURFile(const uint8* InBytes, uint32 InSize)
     : NativeFileSpan(InBytes, InSize)
 #endif // WITH_RIVE
 {
-#if WITH_RIVE
-    FileAssetLoader = MakeUnique<FURFileAssetLoader>("");
-#endif // WITH_RIVE
 }
 
 #if WITH_RIVE
 
-rive::ImportResult UE::Rive::Assets::FURFile::Import(rive::Factory* InRiveFactory, Assets::FURFileAssetLoader* InAssetLoader)
+rive::ImportResult UE::Rive::Assets::FURFile::EditorImport(const FString& InRiveFilePath, TMap<uint32, FUREmbeddedAsset>& InAssetMap, rive::Factory* InRiveFactory)
 {
+    TUniquePtr<FURAssetImporter> AssetImporter = MakeUnique<FURAssetImporter>(InRiveFilePath, InAssetMap);
+    
+    rive::ImportResult ImportResult;
+    std::unique_ptr<rive::File> tempFile = rive::File::import(NativeFileSpan, InRiveFactory, &ImportResult, AssetImporter.Get());
+    
+    return ImportResult;
+}
+
+rive::ImportResult UE::Rive::Assets::FURFile::Import(TMap<uint32, FUREmbeddedAsset>& InAssetMap, rive::Factory* InRiveFactory)
+{
+    FileAssetLoader = MakeUnique<FURFileAssetLoader>(InAssetMap);
+    
     rive::ImportResult ImportResult;
 
-    NativeFilePtr = rive::File::import(NativeFileSpan, InRiveFactory, &ImportResult, InAssetLoader == nullptr ? FileAssetLoader.Get() : InAssetLoader);
+    NativeFilePtr = rive::File::import(NativeFileSpan, InRiveFactory, &ImportResult, FileAssetLoader.Get());
 
     Artboard = MakeUnique<Core::FURArtboard>(NativeFilePtr.get());
 

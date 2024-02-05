@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #pragma once
 
@@ -40,10 +40,14 @@ namespace UE::Rive::Renderer
 
 		virtual IRiveRenderer* GetRenderer() = 0;
 
+		virtual void CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate&& Delegate) = 0;
+
 		/**
 		 * Attribute(s)
 		 */
-
+		static bool RunInGameThread() { return true; }
+		static bool DrawStraightOnRiveFile() { return true; }
+		static bool ReCacheTextureEveryFrame() { return true; }
 	private:
 
 		static constexpr const TCHAR* ModuleName = TEXT("RiveRenderer");

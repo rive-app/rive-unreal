@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #pragma once
 
@@ -8,10 +8,6 @@ class URiveFile;
 class UTextureRenderTarget2D;
 
 #if WITH_RIVE
-THIRD_PARTY_INCLUDES_START
-#include "rive/pls/pls_render_context.hpp"
-#include "rive/pls/pls_renderer.hpp"
-THIRD_PARTY_INCLUDES_END
 
 // just for testig
 namespace rive
@@ -72,9 +68,6 @@ namespace UE::Rive::Renderer
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) = 0;
     
 #if WITH_RIVE
-
-        // just  for testing, we should not pass native artboard
-        virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard) = 0;
 
         virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() = 0;
     

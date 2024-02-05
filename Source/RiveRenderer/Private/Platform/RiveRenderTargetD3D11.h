@@ -2,8 +2,9 @@
 
 #pragma once
 
-#if !PLATFORM_ANDROID
 #include "RiveRenderTarget.h"
+
+#if PLATFORM_WINDOWS
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -71,4 +72,5 @@ namespace UE::Rive::Renderer::Private
 		mutable bool bIsCleared = false;
 	};
 }
-#endif
+
+#endif // PLATFORM_WINDOWS
