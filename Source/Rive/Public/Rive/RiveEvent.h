@@ -93,8 +93,7 @@ class RIVE_API URiveEvent : public UObject
      */
 
 public:
-
-    URiveEvent();
+    ~URiveEvent();
 
     /**
      * Implementation(s)
@@ -148,6 +147,11 @@ private:
     TArray<FRiveEventNumberProperty> RiveEventNumberProperties;
 
     TArray<FRiveEventStringProperty> RiveEventStringProperties;
+
+private:
+    static constexpr int32 NumberProperty   = 127;
+    static constexpr int32 BooleanProperty  = 129;
+    static constexpr int32 StringProperty   = 130;
 };
 
 #define PARSE_PROPERTIES(Type, TPropertyType, InPropertyPair) \
@@ -170,3 +174,5 @@ void URiveEvent::ParseProperties(const TPair<FString, TPropertyType>& InProperty
         PARSE_PROPERTIES(String, TPropertyType, InPropertyPair);
     }
 }
+
+#undef PARSE_PROPERTIES
