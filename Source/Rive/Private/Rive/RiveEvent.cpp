@@ -11,10 +11,6 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-URiveEvent::URiveEvent()
-{
-}
-
 const FString& URiveEvent::GetName() const
 {
 	return Name;
@@ -82,7 +78,7 @@ void URiveEvent::Initialize(const rive::EventReport& InEventReport)
 
 						switch (Property->coreType())
 						{
-							case 127: // Number Property
+							case NumberProperty: // Number Property
 							{
 								if (rive::CustomPropertyNumber* NumProperty = Property->as<rive::CustomPropertyNumber>())
 								{
@@ -91,7 +87,7 @@ void URiveEvent::Initialize(const rive::EventReport& InEventReport)
 
 								break;
 							}
-							case 129: // Boolean Property
+							case BooleanProperty: // Boolean Property
 							{
 								if (rive::CustomPropertyBoolean* BoolProperty = Property->as<rive::CustomPropertyBoolean>())
 								{
@@ -100,7 +96,7 @@ void URiveEvent::Initialize(const rive::EventReport& InEventReport)
 
 								break;
 							}
-							case 130: // String Property
+							case StringProperty: // String Property
 							{
 								if (rive::CustomPropertyString* StrProperty = Property->as<rive::CustomPropertyString>())
 								{

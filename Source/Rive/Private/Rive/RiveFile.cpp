@@ -681,7 +681,7 @@ void URiveFile::PopulateReportedEvents()
 
             if (ReportedEvent.event() != nullptr)
             {
-                URiveEvent* RiveEvent = NewObject<URiveEvent>(GetTransientPackage());
+                URiveEvent* RiveEvent = NewObject<URiveEvent>(GetTransientPackage(), NAME_None, RF_Transient);
 
                 RiveEvent->Initialize(ReportedEvent);
 
@@ -692,6 +692,11 @@ void URiveFile::PopulateReportedEvents()
         if (!RiveEvents.IsEmpty())
         {
             RiveEventDelegate.Broadcast(RiveEvents);
+
+            for (URiveEvent* RiveEvent : RiveEvents)
+            {
+                RiveEvent->MarkAsGarbage();
+            }
         }
     }
     else
