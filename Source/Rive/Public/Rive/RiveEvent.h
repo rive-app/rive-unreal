@@ -93,8 +93,6 @@ class RIVE_API URiveEvent : public UObject
      */
 
 public:
-    ~URiveEvent();
-
     /**
      * Implementation(s)
      */

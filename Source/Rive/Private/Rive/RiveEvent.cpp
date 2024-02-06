@@ -11,11 +11,6 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-URiveEvent::~URiveEvent()
-{
-	UE_LOG(LogTemp, Warning, TEXT("URiveEvent Destructor"));
-}
-
 const FString& URiveEvent::GetName() const
 {
 	return Name;
