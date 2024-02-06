@@ -7,10 +7,14 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "RiveFile.generated.h"
 
+#if WITH_RIVE
+
 namespace rive
 {
     class File;
 }
+
+#endif // WITH_RIVE
 
 namespace UE::Rive::Core
 {
@@ -18,6 +22,7 @@ namespace UE::Rive::Core
 }
 
 class URiveAsset;
+class URiveEvent;
 
 USTRUCT(Blueprintable)
 struct RIVE_API FRiveStateMachineEvent
@@ -130,6 +135,8 @@ class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameOb
 
     DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveStateMachineDelegate, FRiveStateMachineEvent, RiveStateMachineEvent);
 
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, const TArray<URiveEvent*>&, RiveEvents);
+
     /**
      * Structor(s)
      */
@@ -152,6 +159,7 @@ public:
     {
         return true;
     }
+
     virtual ETickableTickType GetTickableTickType() const override
     {
         return ETickableTickType::Conditional;
@@ -189,15 +197,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = Rive)
     bool GetBoolValue(const FString& InPropertyName) const;
 
-    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
-    bool GetCustomBoolValue(const FString& InEventName, const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
-    float GetCustomNumberValue(const FString& InEventName, const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
-    const FString GetCustomStringValue(const FString& InEventName, const FString& InPropertyName) const;
-
     UFUNCTION(BlueprintCallable, Category = Rive)
     float GetNumberValue(const FString& InPropertyName) const;
 
@@ -233,9 +232,11 @@ public:
         bIsReceivingInput = false;
     }
 
-#if UE_EDITOR
+#if WITH_EDITOR
+
     bool EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer);
-#endif
+
+#endif // WITH_EDITOR
     
     void Initialize();
 
@@ -244,7 +245,11 @@ public:
     TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
     UE::Rive::Core::FURArtboard* GetArtboard() const;
-    
+
+private:
+
+    void PopulateReportedEvents();
+
     /**
      * Attribute(s)
      */
@@ -273,6 +278,12 @@ public:
 
     UPROPERTY(VisibleAnywhere, Category=Rive)
     TMap<uint32, TObjectPtr<URiveAsset>> Assets;
+
+protected:
+
+    UPROPERTY(BlueprintAssignable)
+    FRiveEventDelegate RiveEventDelegate;
+    
 private:
 
     UPROPERTY(EditAnywhere, Category = Rive)
@@ -303,7 +314,10 @@ private:
     bool bDrawOnceTest = false;
 
     UE::Rive::Core::FURArtboardPtr Artboard;
+
     rive::Span<const uint8> RiveNativeFileSpan;
+
     std::unique_ptr<rive::File> RiveNativeFilePtr;
+
     void PrintStats();
 };

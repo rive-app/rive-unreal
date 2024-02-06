@@ -8,6 +8,7 @@
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/URAssetImporter.h"
 #include "Rive/Assets/URFileAssetLoader.h"
+#include "Rive/RiveEvent.h"
 #include "RiveRendererUtils.h"
 
 #if WITH_RIVE
@@ -47,7 +48,12 @@ void URiveFile::Tick(float InDeltaSeconds)
             if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
             {
                 if (!bIsReceivingInput)
-                {
+                {                    
+                    if (StateMachine->HasAnyReportedEvents())
+                    {
+                        PopulateReportedEvents();
+                    }
+                    
                     StateMachine->Advance(InDeltaSeconds);
                 }
             }
@@ -156,21 +162,6 @@ bool URiveFile::GetBoolValue(const FString& InPropertyName) const
     return false;
 
 #endif // !WITH_RIVE
-}
-
-bool URiveFile::GetCustomBoolValue(const FString& InEventName, const FString& InPropertyName) const
-{
-    return false;
-}
-
-float URiveFile::GetCustomNumberValue(const FString& InEventName, const FString& InPropertyName) const
-{
-    return 0.0f;
-}
-
-const FString URiveFile::GetCustomStringValue(const FString& InEventName, const FString& InPropertyName) const
-{
-    return FString();
 }
 
 float URiveFile::GetNumberValue(const FString& InPropertyName) const
@@ -518,7 +509,8 @@ ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
     return NewBlendMode;
 }
 
-#if UE_EDITOR
+#if WITH_EDITOR
+
 bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer)
 {
     if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
@@ -569,7 +561,8 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
     return true;
 #endif // WITH_RIVE
 }
-#endif
+
+#endif // WITH_EDITOR
 
 void URiveFile::Initialize()
 {
@@ -668,6 +661,45 @@ UE::Rive::Core::FURArtboard* URiveFile::GetArtboard() const
     }
 
     return Artboard.Get();
+}
+
+void URiveFile::PopulateReportedEvents()
+{
+#if WITH_RIVE
+
+    if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+    {
+        const int32 NumReportedEvents = StateMachine->GetReportedEventsCount();
+
+        TArray<URiveEvent*> RiveEvents;
+
+        RiveEvents.Reserve(NumReportedEvents);
+
+        for (int32 EventIndex = 0; EventIndex < NumReportedEvents; EventIndex++)
+        {
+            const rive::EventReport ReportedEvent = StateMachine->GetReportedEvent(EventIndex);
+
+            if (ReportedEvent.event() != nullptr)
+            {
+                URiveEvent* RiveEvent = NewObject<URiveEvent>(GetTransientPackage());
+
+                RiveEvent->Initialize(ReportedEvent);
+
+                RiveEvents.Add(RiveEvent);
+            }
+        }
+
+        if (!RiveEvents.IsEmpty())
+        {
+            RiveEventDelegate.Broadcast(RiveEvents);
+        }
+    }
+    else
+    {
+        UE_LOG(LogRive, Error, TEXT("Failed to populate reported event(s) as we could not retrieve native state machine."));
+    }
+
+#endif // WITH_RIVE
 }
 
 void URiveFile::PrintStats()

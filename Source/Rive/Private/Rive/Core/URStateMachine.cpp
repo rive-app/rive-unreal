@@ -1,9 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "Rive/Core/URStateMachine.h"
-
-#include <Rive/Core/UREvent.h>
-
 #include "Logs/RiveLog.h"
 
 #if WITH_RIVE
@@ -13,6 +10,8 @@ THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
 #if WITH_RIVE
+
+rive::EventReport UE::Rive::Core::FURStateMachine::NullEvent = rive::EventReport(nullptr, 0.f);
 
 UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativeArtboardInst)
 {
@@ -199,11 +198,38 @@ bool UE::Rive::Core::FURStateMachine::OnMouseButtonUp(const FVector2f& NewPositi
     return false;
 }
 
-const TArray<UE::Rive::Core::FUREventPtr>& UE::Rive::Core::FURStateMachine::GetReportedEvents()
+const rive::EventReport UE::Rive::Core::FURStateMachine::GetReportedEvent(int32 AtIndex) const
 {
-    PopulateReportedEvents();
+    if (HasAnyReportedEvents()) // Only populate when we have atleast one reported event.
+    {
+        if (NativeStateMachinePtr)
+        {
+            return NativeStateMachinePtr->reportedEventAt(AtIndex);
+        }
+        else
+        {
+            UE_LOG(LogRive, Warning, TEXT("Could not get reported event(s) as we have detected an empty state machine."));
+        }
+    }
 
-    return ReportedEvents;
+    return NullEvent;
+}
+
+int32 UE::Rive::Core::FURStateMachine::GetReportedEventsCount() const
+{
+    if (HasAnyReportedEvents()) // Only populate when we have atleast one reported event.
+    {
+        if (NativeStateMachinePtr)
+        {
+            return NativeStateMachinePtr->reportedEventCount();
+        }
+        else
+        {
+            UE_LOG(LogRive, Warning, TEXT("Could not get reported event(s) count as we have detected an empty state machine."));
+        }
+    }
+
+    return 0;
 }
 
 bool UE::Rive::Core::FURStateMachine::HasAnyReportedEvents() const
@@ -216,32 +242,6 @@ bool UE::Rive::Core::FURStateMachine::HasAnyReportedEvents() const
     UE_LOG(LogRive, Warning, TEXT("Could not check for reported event(s) as we have detected an empty state machine."));
 
     return false;
-}
-
-void UE::Rive::Core::FURStateMachine::PopulateReportedEvents()
-{
-    if (HasAnyReportedEvents()) // Only populate when we have atleast one reported event.
-    {
-        if (NativeStateMachinePtr)
-        {
-            const size_t NumReportedEvents = NativeStateMachinePtr->reportedEventCount();
-
-            ReportedEvents.Reset(NumReportedEvents);
-
-            for (size_t EventIndex = 0; EventIndex < NumReportedEvents; ++EventIndex)
-            {
-                ReportedEvents[EventIndex] = MakeUnique<FUREvent>(NativeStateMachinePtr->reportedEventAt(EventIndex));
-            }
-        }
-        else
-        {
-            UE_LOG(LogRive, Warning, TEXT("Could not get reported event(s) as we have detected an empty state machine."));
-        }
-    }
-    else
-    {
-        ReportedEvents.Empty();
-    }
 }
 
 UE_ENABLE_OPTIMIZATION

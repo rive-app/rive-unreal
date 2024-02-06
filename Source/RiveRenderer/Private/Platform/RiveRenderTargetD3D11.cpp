@@ -2,6 +2,8 @@
 
 #include "RiveRenderTargetD3D11.h"
 
+#include "RenderGraphBuilder.h"
+
 #if PLATFORM_WINDOWS
 
 #include "Engine/TextureRenderTarget2D.h"
@@ -111,6 +113,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard(uint8 InF
 DECLARE_GPU_STAT_NAMED(DrawArtboard, TEXT("FRiveRenderTargetD3D11::DrawArtboard"));
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
 {
+	FRDGBuilder GraphBuilder(RHICmdList);
+	
 	SCOPED_GPU_STAT(RHICmdList, DrawArtboard);
 
 	check(IsInRenderingThread());
@@ -165,9 +169,13 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 			// Reset
 			PLSRenderContextPtr->shrinkGPUResourcesToFit();
 
+			PLSRenderContextPtr->resetGPUResources();
+
 			LastResetTime = Now;
 		}
 	}
+
+	GraphBuilder.Execute();
 }
 
 std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetPLSRenderer(const FLinearColor DebugColor) const
