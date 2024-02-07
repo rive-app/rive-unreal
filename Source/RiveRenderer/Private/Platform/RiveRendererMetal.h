@@ -38,12 +38,6 @@ namespace UE::Rive::Renderer::Private
         
     public:
         
-#if WITH_RIVE
-        
-        virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard) override;
-        
-#endif // WITH_RIVE
-        
         virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) override;
         
         virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;

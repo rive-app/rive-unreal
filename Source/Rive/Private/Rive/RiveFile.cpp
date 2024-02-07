@@ -47,6 +47,7 @@ void URiveFile::Tick(float InDeltaSeconds)
         {
             if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
             {
+                FScopeLock Lock(&RiveRenderTarget->GetThreadDataCS());
                 if (!bIsReceivingInput)
                 {                    
                     if (StateMachine->HasAnyReportedEvents())
@@ -722,13 +723,13 @@ void URiveFile::PrintStats()
 
     RiveFileLoadArgs.Add(TEXT("Minor"), FText::AsNumber(RiveNativeFilePtr->minorVersion));
 
-    RiveFileLoadArgs.Add(TEXT("NumArtboards"), FText::AsNumber(RiveNativeFilePtr->artboardCount()));
+    RiveFileLoadArgs.Add(TEXT("NumArtboards"), FText::AsNumber((int32)RiveNativeFilePtr->artboardCount()));
 
-    RiveFileLoadArgs.Add(TEXT("NumAssets"), FText::AsNumber(RiveNativeFilePtr->assets().size()));
+    RiveFileLoadArgs.Add(TEXT("NumAssets"), FText::AsNumber((int32)RiveNativeFilePtr->assets().size()));
 
     if (const rive::Artboard* NativeArtboard = RiveNativeFilePtr->artboard())
     {
-        RiveFileLoadArgs.Add(TEXT("NumAnimations"), FText::AsNumber(NativeArtboard->animationCount()));
+        RiveFileLoadArgs.Add(TEXT("NumAnimations"), FText::AsNumber((int32)NativeArtboard->animationCount()));
     }
     else
     {

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Core/URStateMachine.h"
+#include "Rive/Core/URStateMachine.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START

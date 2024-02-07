@@ -80,12 +80,15 @@ public class RiveLibrary : ModuleRules
             string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + ".a"; ;
 
             string RivePlsLibName = "librive_pls_renderer" + LibPostfix + ".a"; ;
+            
+            string RiveLibPng = "liblibpng" + LibPostfix + ".a";
 
             PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
                 , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
                 , Path.Combine(LibDirectory, RiveStaticLibName)
                 , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
-                , Path.Combine(LibDirectory, RivePlsLibName) });
+                , Path.Combine(LibDirectory, RivePlsLibName)
+                , Path.Combine(LibDirectory, RiveLibPng) });
 
             bIsPlatformAdded = true;
         }

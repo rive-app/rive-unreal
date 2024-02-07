@@ -55,13 +55,6 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
         {
             break;
         }
-
-#endif // PLATFORM_WINDOWS
-
-    case ERHIInterfaceType::Vulkan:
-        {
-            break;
-        }
     default:
         break;
     }

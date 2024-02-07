@@ -48,6 +48,8 @@ namespace UE::Rive::Renderer::Private
 		virtual uint32 GetWidth() const;
 		
 		virtual uint32 GetHeight() const;
+        
+        virtual FCriticalSection& GetThreadDataCS() { return ThreadDataCS; }
 	
 		//~ END : IRiveRenderTarget Interface
 
@@ -70,7 +72,7 @@ namespace UE::Rive::Renderer::Private
 		 * Attribute(s)
 		 */
 
-	protected:
+    protected:
 
 		mutable FCriticalSection ThreadDataCS;
 

@@ -28,24 +28,6 @@ UE::Rive::Renderer::Private::FRiveRendererMetal::~FRiveRendererMetal()
 {
 }
 
-DECLARE_GPU_STAT_NAMED(DebugColorDraw, TEXT("FRiveRendererMetal::DebugColorDraw"));
-void UE::Rive::Renderer::Private::FRiveRendererMetal::DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard)
-{
-    check(IsInGameThread());
-    
-    FScopeLock Lock(&ThreadDataCS);
-    
-    FTextureRenderTargetResource* RenderTargetResource = InTexture->GameThread_GetRenderTargetResource();
-    
-    ENQUEUE_RENDER_COMMAND(DebugColorDraw)(
-    [this, RenderTargetResource, DebugColor](FRHICommandListImmediate& RHICmdList)
-    {
-        // JUST for testing here
-        FCanvas Canvas(RenderTargetResource, nullptr, FGameTime(), GMaxRHIFeatureLevel);
-
-        Canvas.Clear(DebugColor);
-    });
-}
 
 TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererMetal::CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
 {
@@ -101,22 +83,6 @@ void UE::Rive::Renderer::Private::FRiveRendererMetal::CreatePLSRenderer_RenderTh
     FScopeLock Lock(&ThreadDataCS);
     
     SCOPED_GPU_STAT(RHICmdList, CreatePLSRenderer);
-    
-    rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
-    
-    FrameDescriptor.renderTarget = nullptr;
-    
-    FrameDescriptor.loadAction = rive::pls::LoadAction::clear;
-    
-    FrameDescriptor.clearColor = 0x00000000;
-    
-    FrameDescriptor.wireframe = false;
-    
-    FrameDescriptor.fillsDisabled = false;
-    
-    FrameDescriptor.strokesDisabled = false;
-    
-    PLSRenderContext->beginFrame(std::move(FrameDescriptor));
     
     PLSRenderer = std::make_unique<rive::pls::PLSRenderer>(PLSRenderContext.get());
     

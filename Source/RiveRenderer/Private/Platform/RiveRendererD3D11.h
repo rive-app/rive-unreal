@@ -6,7 +6,7 @@
 
 #include "RiveRenderer.h"
 
-#if PLATFORM_WINDOWS
+
 
 #if WITH_RIVE
 

@@ -94,39 +94,28 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
 
 #if WITH_RIVE
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::AlignArtboard(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
+
+void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::DrawArtboard(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
 {
     check(IsInGameThread());
-    
+
     FScopeLock Lock(&ThreadDataCS);
-    
+
     ENQUEUE_RENDER_COMMAND(AlignArtboard)(
-    [this, InFit, AlignX, AlignY, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
-    {
-        AlignArtboard_RenderThread(RHICmdList, InFit, AlignX, AlignY, InNativeArtboard, DebugColor);
-    });
+        [this, InFit, AlignX, AlignY, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
+        {
+            DrawArtboard_RenderThread(RHICmdList, InFit, AlignX, AlignY, InNativeArtboard, DebugColor);
+        });
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::DrawArtboard(rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
+DECLARE_GPU_STAT_NAMED(DrawArtboard, TEXT("FRiveRenderTargetMetal::DrawArtboard"));
+void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
 {
-    check(IsInGameThread());
-    
-    FScopeLock Lock(&ThreadDataCS);
-    
-    ENQUEUE_RENDER_COMMAND(DrawArtboard)(
-    [this, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
-    {
-        DrawArtboard_RenderThread(RHICmdList, InNativeArtboard, DebugColor);
-    });
-}
+    SCOPED_GPU_STAT(RHICmdList, DrawArtboard);
 
-DECLARE_GPU_STAT_NAMED(AlignArtboard, TEXT("FRiveRenderTargetMetal::AlignArtboard"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::AlignArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
-{
-    SCOPED_GPU_STAT(RHICmdList, AlignArtboard);
-    
     check(IsInRenderingThread());
     
+
     FScopeLock Lock(&ThreadDataCS);
     
     rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
@@ -138,70 +127,49 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::AlignArtboard_RenderTh
     
     // Begin Frame
     std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = GetPLSRenderer(DebugColor);
-    
+
     if (PLSRenderer == nullptr)
     {
         return;
     }
-    
+
+    // Align Artboard
     const rive::Fit& Fit = *reinterpret_cast<rive::Fit*>(&InFit);
-    
+
     const rive::Alignment& Alignment = rive::Alignment(AlignX, AlignY);
-    
+
     const uint32 TextureWidth = GetWidth();
-    
+
     const uint32 TextureHeight = GetHeight();
-    
+
     rive::Mat2D Transform = rive::computeAlignment(
         Fit,
         Alignment,
         rive::AABB(0.f, 0.f, TextureWidth, TextureHeight),
         InNativeArtboard->bounds());
-    
-    PLSRenderer->transform(Transform);
-    
-    { // End drawing a frame.
-        // Flush
-        PLSRenderContextPtr->flush();
-        
-        // Reset
-        PLSRenderContextPtr->resetGPUResources();
-    }
-}
 
-DECLARE_GPU_STAT_NAMED(DrawArtboard, TEXT("FRiveRenderTargetMetal::DrawArtboard"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
-{
-    SCOPED_GPU_STAT(RHICmdList, DrawArtboard);
-    
-    check(IsInRenderingThread());
-    
-    FScopeLock Lock(&ThreadDataCS);
-    
-    rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
-    
-    if (PLSRenderContextPtr == nullptr)
-    {
-        return;
-    }
-    
-    // Begin Frame
-    std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = GetPLSRenderer(DebugColor);
-    
-    if (PLSRenderer == nullptr)
-    {
-        return;
-    }
-    
+    PLSRenderer->transform(Transform);
+
     // Draw Artboard
     InNativeArtboard->draw(PLSRenderer.get());
-    
+
     { // End drawing a frame.
         // Flush
         PLSRenderContextPtr->flush();
-        
-        // Reset
-        PLSRenderContextPtr->resetGPUResources();
+
+        const FDateTime Now = FDateTime::Now();
+
+        const int32 TimeElapsed = (Now - LastResetTime).GetSeconds();
+
+        if (TimeElapsed >= ResetTimeLimit.GetSeconds())
+        {
+            // Reset
+            PLSRenderContextPtr->shrinkGPUResourcesToFit();
+
+            PLSRenderContextPtr->resetGPUResources();
+
+            LastResetTime = Now;
+        }
     }
 }
 
@@ -235,9 +203,10 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
         bIsCleared = true;
     }
     
+    // flush all the time
     PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
     
-    return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
+    return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);;
 }
 
 #endif // WITH_RIVE
