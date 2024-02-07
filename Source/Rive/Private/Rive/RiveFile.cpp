@@ -47,6 +47,7 @@ void URiveFile::Tick(float InDeltaSeconds)
         {
             if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
             {
+                FScopeLock Lock(&RiveRenderTarget->GetThreadDataCS());
                 if (!bIsReceivingInput)
                 {                    
                     if (StateMachine->HasAnyReportedEvents())
