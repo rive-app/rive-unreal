@@ -21,7 +21,7 @@ namespace UE::Rive::Core
     /**
      * Represents a Rive State Machine from an Artboard. A State Machine contains Inputs.
      */
-    class RIVECORE_API FURStateMachine
+    class RIVE_API FURStateMachine
     {
         /**
          * Structor(s)
@@ -53,17 +53,23 @@ namespace UE::Rive::Core
 
         bool GetBoolValue(const FString& InPropertyName) const;
 
-        uint32 GetNumberValue(const FString& InPropertyName) const;
+        float GetNumberValue(const FString& InPropertyName) const;
 
         void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 
-        void SetNumberValue(const FString& InPropertyName, uint32 NewValue);
+        void SetNumberValue(const FString& InPropertyName, float NewValue);
 
         bool OnMouseButtonDown(const FVector2f& NewPosition);
 
         bool OnMouseMove(const FVector2f& NewPosition);
 
         bool OnMouseButtonUp(const FVector2f& NewPosition);
+
+        const rive::EventReport GetReportedEvent(int32 AtIndex) const;
+
+        int32 GetReportedEventsCount() const;
+
+        bool HasAnyReportedEvents() const;
 
         /**
          * Attribute(s)
@@ -72,6 +78,8 @@ namespace UE::Rive::Core
     private:
 
         std::unique_ptr<rive::StateMachineInstance> NativeStateMachinePtr = nullptr;
+
+        static rive::EventReport NullEvent;
 
 #endif // WITH_RIVE
     };

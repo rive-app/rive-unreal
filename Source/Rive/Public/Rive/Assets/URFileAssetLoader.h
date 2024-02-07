@@ -3,6 +3,14 @@
 #pragma once
 
 #if WITH_RIVE
+
+class URiveFile;
+
+namespace rive
+{
+    class Asset;
+}
+
 THIRD_PARTY_INCLUDES_START
 #include "rive/file_asset_loader.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -17,19 +25,11 @@ namespace UE::Rive::Assets
      */
     using FURFileAssetLoaderPtr = TUniquePtr<FURFileAssetLoader>;
 
-    struct FAssetRef
-    {
-        uint16 Type;
-
-        FString Name;
-
-        void* Asset;
-    };
-
     /**
      * Unreal extension of rive::FileAssetLoader implementation (partial) for the Unreal RHI.
+     * This loads assets (either embedded or OOB by using their loaded bytes)
      */
-    class RIVECORE_API FURFileAssetLoader
+    class RIVE_API FURFileAssetLoader
 #if WITH_RIVE
         final : public rive::FileAssetLoader
 #endif // WITH_RIVE
@@ -40,7 +40,7 @@ namespace UE::Rive::Assets
 
     public:
 
-        FURFileAssetLoader(const FString& InRiveFilePath);
+        FURFileAssetLoader(URiveFile* InRiveFile);
 
 #if WITH_RIVE
 
@@ -54,14 +54,13 @@ namespace UE::Rive::Assets
 
 #endif // WITH_RIVE
 
+    public:
+
         /**
          * Attribute(s)
          */
-
+    
     private:
-
-        TMap<uint32, FAssetRef> Assets;
-
-        FString RelativePath;
+        URiveFile* RiveFile;
     };
 }

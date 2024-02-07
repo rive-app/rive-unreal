@@ -1,3 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #include "RiveStats.h"

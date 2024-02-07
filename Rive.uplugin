@@ -16,11 +16,6 @@
 	"Installed": false,
 	"Modules": [
 		{
-			"Name": "RiveCore",
-			"Type": "Runtime",
-			"LoadingPhase": "Default"
-		},
-		{
 			"Name": "Rive",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit"

@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #pragma once
 
@@ -68,9 +68,6 @@ namespace UE::Rive::Renderer
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) = 0;
     
 #if WITH_RIVE
-
-        // just  for testing, we should not pass native artboard
-        virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard) = 0;
 
         virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() = 0;
     

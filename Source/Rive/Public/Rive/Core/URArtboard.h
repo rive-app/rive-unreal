@@ -22,7 +22,7 @@ namespace UE::Rive::Core
     /**
      * Represents a Rive Artboard with a File. An Artboard contains State Machines and Animations.
      */
-    class RIVECORE_API FURArtboard
+    class RIVE_API FURArtboard
     {
         /**
          * Structor(s)

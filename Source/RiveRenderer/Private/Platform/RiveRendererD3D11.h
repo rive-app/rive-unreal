@@ -6,6 +6,8 @@
 
 #include "RiveRenderer.h"
 
+#if PLATFORM_WINDOWS
+
 #if WITH_RIVE
 
 namespace rive::pls
@@ -29,17 +31,11 @@ namespace UE::Rive::Renderer::Private
 		
 		FRiveRendererD3D11();
 
-		~FRiveRendererD3D11();
+		~FRiveRendererD3D11() = default;
 
 		//~ BEGIN : IRiveRenderer Interface
 
 	public:
-
-#if WITH_RIVE
-
-		virtual void DebugColorDraw(UTextureRenderTarget2D* InTexture, const FLinearColor DebugColor, rive::Artboard* InNativeArtboard) override;
-		
-#endif // WITH_RIVE
 
 		virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) override;
 		

@@ -3,9 +3,26 @@
 #pragma once
 
 #include "IRiveRenderTarget.h"
-#include "Assets/URFile.h"
+#include "Core/URArtboard.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "RiveFile.generated.h"
+
+#if WITH_RIVE
+
+namespace rive
+{
+    class File;
+}
+
+#endif // WITH_RIVE
+
+namespace UE::Rive::Core
+{
+    class FURArtboard;
+}
+
+class URiveAsset;
+class URiveEvent;
 
 USTRUCT(Blueprintable)
 struct RIVE_API FRiveStateMachineEvent
@@ -118,6 +135,8 @@ class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameOb
 
     DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveStateMachineDelegate, FRiveStateMachineEvent, RiveStateMachineEvent);
 
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, const TArray<URiveEvent*>&, RiveEvents);
+
     /**
      * Structor(s)
      */
@@ -140,6 +159,7 @@ public:
     {
         return true;
     }
+
     virtual ETickableTickType GetTickableTickType() const override
     {
         return ETickableTickType::Conditional;
@@ -154,9 +174,7 @@ public:
     //~ END : UObject UTexture
 
     //~ BEGIN : UObject Interface
-
-public:
-
+    
     virtual void PostLoad() override;
 
 #if WITH_EDITOR
@@ -176,29 +194,29 @@ public:
     UFUNCTION(BlueprintCallable, Category = Rive)
     void FireTrigger(const FString& InPropertyName) const;
 
-    UFUNCTION(BlueprintPure, Category = Rive)
+    UFUNCTION(BlueprintCallable, Category = Rive)
     bool GetBoolValue(const FString& InPropertyName) const;
 
-    UFUNCTION(BlueprintPure, Category = Rive)
-    int64 GetNumberValue(const FString& InPropertyName) const;
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    float GetNumberValue(const FString& InPropertyName) const;
 
     UFUNCTION(BlueprintPure, Category = Rive)
     FLinearColor GetDebugColor() const;
 
-    UFUNCTION(BlueprintPure, Category = Rive)
+    UFUNCTION(BlueprintCallable, Category = Rive)
     FVector2f GetLocalCoordinates(const FVector2f& InScreenPosition, const FBox2f& InScreenRect, const FIntPoint& InViewportSize) const;
 
     UFUNCTION(BlueprintCallable, Category = Rive)
     void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 
     UFUNCTION(BlueprintCallable, Category = Rive)
-    void SetNumberValue(const FString& InPropertyName, int64 NewValue);
+    void SetNumberValue(const FString& InPropertyName, float NewValue);
 
     // TODO. We need function in URiveFile to calculate it , based on RiveFitType
     FIntPoint CalculateRenderTextureSize(const FIntPoint& InViewportSize) const;
 
     // TODO. We need function in URiveFile to calculate it , based on RiveAlignment
-    FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize) const;
+    FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize, const FIntPoint& InTextureSize) const;
 
     FVector2f GetRiveAlignment() const;
 
@@ -214,6 +232,12 @@ public:
         bIsReceivingInput = false;
     }
 
+#if WITH_EDITOR
+
+    bool EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer);
+
+#endif // WITH_EDITOR
+    
     void Initialize();
 
     void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
@@ -224,7 +248,7 @@ public:
 
 private:
 
-    bool LoadNativeFile();
+    void PopulateReportedEvents();
 
     /**
      * Attribute(s)
@@ -240,7 +264,10 @@ public:
     FRiveStateMachineDelegate OnRiveStateMachineDelegate;
 
     UPROPERTY()
-    TArray<uint8> TempFileBuffer;
+    TArray<uint8> RiveFileData;
+
+    UPROPERTY()
+    FString RiveFilePath;
 
     UPROPERTY(Transient)
     TObjectPtr<UTextureRenderTarget2D> RenderTarget;
@@ -248,6 +275,14 @@ public:
     // TODO. REMOVE IT!!, just for testing
     UPROPERTY(EditAnywhere, Category = Rive)
     bool bUseViewportClientTestProperty = true;
+
+    UPROPERTY(VisibleAnywhere, Category=Rive)
+    TMap<uint32, TObjectPtr<URiveAsset>> Assets;
+
+protected:
+
+    UPROPERTY(BlueprintAssignable)
+    FRiveEventDelegate RiveEventDelegate;
     
 private:
 
@@ -255,11 +290,12 @@ private:
     FLinearColor DebugColor = FLinearColor::Transparent;
 
     UPROPERTY(EditAnywhere, Category = Rive)
-    ERiveFitType RiveFitType = ERiveFitType::Fill;
+    ERiveFitType RiveFitType = ERiveFitType::Contain;
 
-    UPROPERTY(EditAnywhere, Category = Rive)
+    /* This property is not editable via Editor in Unity, so we'll hide it also */
+    UPROPERTY()
     ERiveAlignment RiveAlignment = ERiveAlignment::Center;
-
+    
     UPROPERTY(EditAnywhere, Category = Rive)
     ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_Opaque;
 
@@ -268,7 +304,7 @@ private:
 
     UPROPERTY(EditAnywhere, Category=Rive)
     TSubclassOf<UUserWidget> WidgetClass;
-
+    
     bool bIsInitialized = false;
 
     bool bIsReceivingInput = false;
@@ -277,5 +313,11 @@ private:
 
     bool bDrawOnceTest = false;
 
-    UE::Rive::Assets::FURFilePtr UnrealRiveFile;
+    UE::Rive::Core::FURArtboardPtr Artboard;
+
+    rive::Span<const uint8> RiveNativeFileSpan;
+
+    std::unique_ptr<rive::File> RiveNativeFilePtr;
+
+    void PrintStats();
 };

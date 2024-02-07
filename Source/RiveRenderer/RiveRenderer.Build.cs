@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 using EpicGames.Core;
 using UnrealBuildTool;
@@ -45,11 +45,10 @@ public class RiveRenderer : ModuleRules
 		
 		if (Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
 		{
-			PublicIncludePathModuleNames.AddAll("D3D11RHI", "D3D12RHI");
+			PublicIncludePathModuleNames.AddAll("D3D11RHI"); // , "D3D12RHI");
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
-			
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+            // AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 		}
         
         if (Target.Platform.IsInGroup(UnrealPlatformGroup.Apple))

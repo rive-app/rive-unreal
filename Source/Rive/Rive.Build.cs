@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 using UnrealBuildTool;
 
@@ -26,11 +26,12 @@ public class Rive : ModuleRules
 			new string[]
 			{
 				"Core",
+				"CoreUObject",
 				"InputCore",
                 "Projects",
                 "RHICore",
+                "RHI",
 				"RenderCore",
-				"RiveCore",
                 "RiveLibrary",
                 "RiveRenderer",
 				// ... add other public dependencies that you statically link with here ...
@@ -51,7 +52,6 @@ public class Rive : ModuleRules
 				"RHI",
 				"RenderCore",
 				"Renderer",
-				"RiveCore",
 				"RiveLibrary",
 				"Slate",
 				"SlateCore",

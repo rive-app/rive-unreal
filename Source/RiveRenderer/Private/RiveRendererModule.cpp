@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #include "RiveRendererModule.h"
 #include "Framework/Application/SlateApplication.h"
@@ -8,6 +8,9 @@
 #include "Platform/RiveRendererD3D11.h"
 #elif PLATFORM_APPLE
 #include "Platform/RiveRendererMetal.h"
+
+#include "Framework/Application/SlateApplication.h"
+
 #endif // PLATFORM_WINDOWS
 
 #define LOCTEXT_NAMESPACE "RiveRendererModule"
@@ -21,13 +24,14 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
     {
 #if PLATFORM_WINDOWS
 
-        case ERHIInterfaceType::D3D11:
+
+
+    case ERHIInterfaceType::D3D11:
         {
             RiveRenderer = MakeShared<FRiveRendererD3D11>();
             
             break;
         }
-        
         case ERHIInterfaceType::D3D12:
         {
             break;
@@ -46,7 +50,15 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 
 #endif // PLATFORM_APPLE
             
-        case ERHIInterfaceType::Vulkan:
+    case ERHIInterfaceType::Vulkan:
+    case ERHIInterfaceType::D3D12:
+        {
+            break;
+        }
+
+#endif // PLATFORM_WINDOWS
+
+    case ERHIInterfaceType::Vulkan:
         {
             break;
         }
