@@ -5,6 +5,7 @@
 #include "IRiveRenderTarget.h"
 #include "Core/URArtboard.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Rive/RiveEvent.h"
 #include "RiveFile.generated.h"
 
 #if WITH_RIVE
@@ -22,7 +23,6 @@ namespace UE::Rive::Core
 }
 
 class URiveAsset;
-class URiveEvent;
 
 USTRUCT(Blueprintable)
 struct RIVE_API FRiveStateMachineEvent
@@ -135,7 +135,7 @@ class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameOb
 
     DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveStateMachineDelegate, FRiveStateMachineEvent, RiveStateMachineEvent);
 
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, const TArray<URiveEvent*>&, RiveEvents);
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, int32, NumEvents);
 
     /**
      * Structor(s)
@@ -283,6 +283,9 @@ protected:
 
     UPROPERTY(BlueprintAssignable)
     FRiveEventDelegate RiveEventDelegate;
+
+    UPROPERTY(BlueprintReadWrite, Category = Rive)
+    TArray<FRiveEvent> TickRiveReportedEvents;
     
 private:
 

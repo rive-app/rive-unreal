@@ -8,7 +8,6 @@
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/URAssetImporter.h"
 #include "Rive/Assets/URFileAssetLoader.h"
-#include "Rive/RiveEvent.h"
 #include "RiveRendererUtils.h"
 
 #if WITH_RIVE
@@ -42,6 +41,9 @@ void URiveFile::Tick(float InDeltaSeconds)
     if (bIsInitialized && bIsRendering)
     {
 #if WITH_RIVE
+
+        // Empty reported events at the begining
+        TickRiveReportedEvents.Empty();
         
         if (Artboard)
         {
@@ -672,9 +674,7 @@ void URiveFile::PopulateReportedEvents()
     {
         const int32 NumReportedEvents = StateMachine->GetReportedEventsCount();
 
-        TArray<URiveEvent*> RiveEvents;
-
-        RiveEvents.Reserve(NumReportedEvents);
+        TickRiveReportedEvents.Reserve(NumReportedEvents);
 
         for (int32 EventIndex = 0; EventIndex < NumReportedEvents; EventIndex++)
         {
@@ -682,22 +682,15 @@ void URiveFile::PopulateReportedEvents()
 
             if (ReportedEvent.event() != nullptr)
             {
-                URiveEvent* RiveEvent = NewObject<URiveEvent>(GetTransientPackage(), NAME_None, RF_Transient);
-
-                RiveEvent->Initialize(ReportedEvent);
-
-                RiveEvents.Add(RiveEvent);
+                FRiveEvent RiveEvent;
+                RiveEvent.Initialize(ReportedEvent);
+                TickRiveReportedEvents.Add(MoveTemp(RiveEvent));
             }
         }
 
-        if (!RiveEvents.IsEmpty())
+        if (!TickRiveReportedEvents.IsEmpty())
         {
-            RiveEventDelegate.Broadcast(RiveEvents);
-
-            for (URiveEvent* RiveEvent : RiveEvents)
-            {
-                RiveEvent->MarkAsGarbage();
-            }
+            RiveEventDelegate.Broadcast(TickRiveReportedEvents.Num());
         }
     }
     else
