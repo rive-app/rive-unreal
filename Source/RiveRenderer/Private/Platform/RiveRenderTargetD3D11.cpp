@@ -146,13 +146,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::AlignArtboard_RenderTh
 	}
 
 	const rive::Fit& Fit = *reinterpret_cast<rive::Fit*>(&InFit);
-
 	const rive::Alignment& Alignment = rive::Alignment(AlignX, AlignY);
-
 	const uint32 TextureWidth = GetWidth();
-
 	const uint32 TextureHeight = GetHeight();
-
 	rive::Mat2D Transform = rive::computeAlignment(
 		Fit,
 		Alignment,

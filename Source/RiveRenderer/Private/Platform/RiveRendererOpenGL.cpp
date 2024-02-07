@@ -2,16 +2,11 @@
 
 #include "RiveRendererOpenGL.h"
 
+#if PLATFORM_ANDROID
 #include "IRiveRendererModule.h"
 #include "OpenGLDrv.h"
 #include "RenderGraphBuilder.h"
 #include "RenderGraphUtils.h"
-
-
-// #undef PLATFORM_ANDROID
-// #define PLATFORM_ANDROID 1
-#if PLATFORM_ANDROID
-
 #include "OpenGLDrv/Public/IOpenGLDynamicRHI.h"
 #include "CanvasTypes.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -22,14 +17,11 @@
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
-// #include "GLES3/gl3.h"
 #include "rive/artboard.hpp"
 #include "rive/pls/gl/pls_render_context_gl_impl.hpp"
 #include "rive/pls/pls_renderer.hpp"
 #include "rive/file.hpp"
 #include "rive/pls/pls_image.hpp"
-// #include "rive/decoders/bitmap_decoder.hpp"
-// #include <GL/glcorearb.h>
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
@@ -130,10 +122,10 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreatePLSContext_RenderTh
 	UE_LOG(LogRiveRenderer, Warning, TEXT("%s-- FRiveRendererOpenGL::CreatePLSContext_RenderThread"), FDebugLogger::Ind()); FScopeLogIndent LogIndent{};
 
 	RHICmdList.EnqueueLambda(
-		GET_FUNCTION_NAME_STRING_CHECKED(FRiveRendererOpenGL,GetOrCreatePLSRenderContextPtr_RHIThread),
+		GET_FUNCTION_NAME_STRING_CHECKED(FRiveRendererOpenGL,GetOrCreatePLSRenderContextPtr_Internal),
 		[this](FRHICommandListImmediate& RHICmdList)
 		{
-			GetOrCreatePLSRenderContextPtr_RHIThread(RHICmdList);
+			GetOrCreatePLSRenderContextPtr_Internal();
 		});
 }
 
@@ -142,7 +134,7 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreatePLSContext_GameThre
 	check(IsInGameThread());
 	UE_LOG(LogRiveRenderer, Warning, TEXT("%s-- FRiveRendererOpenGL::CreatePLSContext_GameThread"), FDebugLogger::Ind()); FScopeLogIndent LogIndent{};
 	
-	GetOrCreatePLSRenderContextPtr_GameThread();
+	GetOrCreatePLSRenderContextPtr_Internal();
 }
 
 DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread"));
@@ -151,10 +143,12 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreatePLSRenderer_RenderT
 	UE_LOG(LogRiveRenderer, Warning, TEXT("%s-- FRiveRendererOpenGL::CreatePLSRenderer_RenderThread -skipping"), FDebugLogger::Ind()); FScopeLogIndent LogIndent{};
 }
 
-rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::GetOrCreatePLSRenderContextPtr_RHIThread(FRHICommandListImmediate& RHICmdList)
+rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::GetOrCreatePLSRenderContextPtr_Internal()
 {
-	check(IsInRHIThread());
-
+	UE_LOG(LogRiveRenderer, Warning, TEXT("%s-- FRiveRendererOpenGL::CreatePLSContext_Internal  [%s]"), FDebugLogger::Ind(), *FDebugLogger::CurrentThread()); FScopeLogIndent LogIndent{};
+	check(IsInGameThread() || IsInRHIThread());
+	ENABLE_VERIFY_GL_THREAD;
+	
 	if (ensure(IsRHIOpenGL()))
 	{
 #if WITH_RIVE
@@ -163,48 +157,41 @@ rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::G
 		{
 			return PLSRenderContext.get();
 		}
-
-		// RHICmdList.GetContext().RHIPostExternalCommandsReset();
+		
 		auto Context = GetIOpenGLDynamicRHI()->RHIGetEGLContext();
+		
+		UE_LOG(LogRiveRenderer, Warning, TEXT("%s   --- OpenGL Console Variables ---"), FDebugLogger::Ind(), Context);
+		bool bSupportsBufferStorage = FOpenGL::SupportsBufferStorage();
+		UE_LOG(LogRiveRenderer, Display, TEXT("%s - FOpenGL::SupportsBufferStorage():  %s"), FDebugLogger::Ind(), bSupportsBufferStorage ? TEXT("TRUE") : TEXT("false"));
+		bool bDiscardFrameBufferToResize = FOpenGL::DiscardFrameBufferToResize();
+		UE_LOG(LogRiveRenderer, Display, TEXT("%s - FOpenGL::DiscardFrameBufferToResize():  %s"), FDebugLogger::Ind(), bDiscardFrameBufferToResize ? TEXT("TRUE") : TEXT("false"));
+		if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UsePersistentMappingStagingBuffer")))
+		{
+			UE_LOG(LogRiveRenderer, Display, TEXT("%s - `OpenGL.UsePersistentMappingStagingBuffer`:  %s"), FDebugLogger::Ind(), CVar->GetBool() ? TEXT("TRUE") : TEXT("false"));
+		}
+		if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UseStagingBuffer")))
+		{
+			UE_LOG(LogRiveRenderer, Display, TEXT("%s - `OpenGL.UseStagingBuffer`:  %s"), FDebugLogger::Ind(), CVar->GetBool() ? TEXT("TRUE") : TEXT("false"));
+		}
+		if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UBODirectWrite")))
+		{
+			UE_LOG(LogRiveRenderer, Display, TEXT("%s - `OpenGL.UBODirectWrite`:  %s"), FDebugLogger::Ind(), CVar->GetBool() ? TEXT("TRUE") : TEXT("false"));
+		}
+		if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UseMapBuffer")))
+		{
+			UE_LOG(LogRiveRenderer, Display, TEXT("%s - `OpenGL.UseMapBuffer`:  %s"), FDebugLogger::Ind(), CVar->GetBool() ? TEXT("TRUE") : TEXT("false"));
+		}
+		if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UseBufferDiscard")))
+		{
+			UE_LOG(LogRiveRenderer, Display, TEXT("%s - `OpenGL.UseBufferDiscard`:  %s"), FDebugLogger::Ind(), CVar->GetBool() ? TEXT("TRUE") : TEXT("false"));
+		}
+		
+		UE_LOG(LogRiveRenderer, Display, TEXT("%s - `GUseThreadedRendering`:  %s"), FDebugLogger::Ind(), GUseThreadedRendering ? TEXT("TRUE") : TEXT("false"));
+		
+		
 		UE_LOG(LogRiveRenderer, Display, TEXT("%s Dynamic OpenGL RHI: Creating PLS Render Context in EGL Context: %p on RHI THREAD"), FDebugLogger::Ind(), Context);
-		
 		PLSRenderContext = rive::pls::PLSRenderContextGLImpl::MakeContext();
 		UE_LOG(LogRiveRenderer, Display, TEXT("%s PLSRenderContext: %p"), FDebugLogger::Ind(), PLSRenderContext.get());
-		// RHICmdList.GetContext().RHIPostExternalCommandsReset();
-		// RHICmdList.AllocCommand<FRHICommandPostExternalCommandsReset>();
-		// FRHICommandPostExternalCommandsReset().Execute(RHICmdList);
-		// static_cast<FOpenGLDynamicRHI*>(GetIOpenGLDynamicRHI())->RHIPostExternalCommandsReset();
-		
-		if (!ensure(PLSRenderContext.get() != nullptr))
-		{
-			UE_LOG(LogRiveRenderer, Error, TEXT("Not able to create an OpenGL PLS Render Context"))
-		}
-		return PLSRenderContext.get();
-#endif // WITH_RIVE
-	}
-	return nullptr;
-}
-
-rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::GetOrCreatePLSRenderContextPtr_GameThread()
-{
-	check(IsInGameThread());
-
-	if (ensure(IsRHIOpenGL()))
-	{
-#if WITH_RIVE
-		FScopeLock Lock(&ContextsCS);
-		if (PLSRenderContext)
-		{
-			return PLSRenderContext.get();
-		}
-
-		// RHICmdList.GetContext().RHIPostExternalCommandsReset();
-		auto Context = GetIOpenGLDynamicRHI()->RHIGetEGLContext();
-		UE_LOG(LogRiveRenderer, Display, TEXT("%s Dynamic OpenGL RHI: Creating PLS Render Context in EGL Context: %p on GAME THREAD"), FDebugLogger::Ind(), Context);
-		
-		PLSRenderContext = rive::pls::PLSRenderContextGLImpl::MakeContext();
-		UE_LOG(LogRiveRenderer, Display, TEXT("%s PLSRenderContext: %p"), FDebugLogger::Ind(), PLSRenderContext.get());
-		// RHICmdList.GetContext().RHIPostExternalCommandsReset();
 		
 		if (!ensure(PLSRenderContext.get() != nullptr))
 		{

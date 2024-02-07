@@ -41,19 +41,15 @@ public class RiveLibrary : ModuleRules
             PublicSystemLibraries.Add("d3dcompiler.lib");
 
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Win64");
-
             string RiveLibPng = "rive_libpng" + LibPostfix + ".lib";
-
             string RiveSheenBidiStaticLibName = "rive_sheenbidi" + LibPostfix + ".lib";
-
             string RiveHarfBuzzStaticLibName = "rive_harfbuzz" + LibPostfix + ".lib";
-
+            // string RiveHarfBuzzDynamicLibName = "rive_harfbuzz" + LibPostfix + ".dll";
             string RiveStaticLibName = "rive" + LibPostfix + ".lib";
-
             string RiveDecodersStaticLibName = "rive_decoders" + LibPostfix + ".lib";
-
             string RivePlsLibName = "rive_pls_renderer" + LibPostfix + ".lib";
 
+            PublicRuntimeLibraryPaths.Add(LibDirectory);
             PublicAdditionalLibraries.AddRange(new string[]
                 {
                     Path.Combine(LibDirectory, RiveSheenBidiStaticLibName),
@@ -64,8 +60,12 @@ public class RiveLibrary : ModuleRules
                     Path.Combine(LibDirectory, RiveLibPng)
                 }
             );
+            // PrivateRuntimeLibraryPaths.Add(LibDirectory);
+            // PublicDelayLoadDLLs.Add(RiveHarfBuzzDynamicLibName);
+            // RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", RiveHarfBuzzDynamicLibName),Path.Combine(LibDirectory, RiveHarfBuzzDynamicLibName));
+            // RuntimeDependencies.Add(RiveHarfBuzzDynamicLibName);
 
-        bIsPlatformAdded = true;
+            bIsPlatformAdded = true;
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
@@ -77,13 +77,8 @@ public class RiveLibrary : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {
-            PrivateDependencyModuleNames.Add("ApplicationCore");
-            PrivateDependencyModuleNames.Add("Launch");
-            
-            PrivateDependencyModuleNames.Add("OpenGLDrv"); // todo: check OpenGLDrv.Build.cs:61 : PublicDefinitions.Add(Target.Platform == UnrealTargetPlatform.Android ? "USE_ANDROID_OPENGL=1" : "USE_ANDROID_OPENGL=0");
+            PrivateDependencyModuleNames.Add("OpenGLDrv");
             AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
-            // PrivateDependencyModuleNames.Add("CEF3Utils");
-            // AddEngineThirdPartyPrivateStaticDependencies(Target, "CEF3");
             
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Android");
             string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + ".a";
@@ -95,7 +90,6 @@ public class RiveLibrary : ModuleRules
             string RiveLibPng = "liblibpng" + LibPostfix + ".a";
 
             PublicRuntimeLibraryPaths.Add(LibDirectory);
-            // PrivateRuntimeLibraryPaths.Add(LibDirectory); //todo: check UnrealUSDWrapper.build.cs
             PublicAdditionalLibraries.AddRange(new string[] 
                 { 
                     Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
@@ -106,19 +100,13 @@ public class RiveLibrary : ModuleRules
                     , Path.Combine(LibDirectory, RiveLibPng)
                 }
             );
-            // PublicSystemLibraryPaths.Add(LibDirectory);
             RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", RiveHarfBuzzSharedLibName),Path.Combine(LibDirectory, RiveHarfBuzzSharedLibName));
-            //CopyToBinaries(Path.Combine(LibDirectory, RiveHarfBuzzSharedLibName), Target);
-            // RuntimeDependencies.Add(Path.Combine(LibDirectory, RiveHarfBuzzSharedLibName), StagedFileType.NonUFS);
-            
             
             string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
             AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "RiveLibrary_APL.xml"));
             
-            // PrecompileForTargets = PrecompileTargetsType.None;
+            PrecompileForTargets = PrecompileTargetsType.None;
             bIsPlatformAdded = true;
-            // bUseRTTI = true;
-            // bUsePrecompiled = false;
         }
         else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
         {

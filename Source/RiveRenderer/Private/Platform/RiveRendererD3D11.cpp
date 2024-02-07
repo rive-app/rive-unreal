@@ -44,29 +44,23 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 
 	if (IsRHID3D11())
 	{
-		bool bIsIntel = false;
+		rive::pls::PLSRenderContextD3DImpl::ContextOptions ContextOptions;
 
 		ID3D11DynamicRHI* D3D11RHI = GetID3D11DynamicRHI();
-
 		ID3D11Device* D3D11DevicePtr = D3D11RHI->RHIGetDevice();
-
 		ID3D11DeviceContext* D3D11DeviceContext = nullptr;
-
 		D3D11DevicePtr->GetImmediateContext(&D3D11DeviceContext);
 
 		IDXGIDevice* DXGIDevice;
-
 		if (SUCCEEDED(D3D11DevicePtr->QueryInterface(__uuidof(IDXGIDevice), (void**)&DXGIDevice)))
 		{
 			IDXGIAdapter* DXGIAdapter;
-
-			DXGI_ADAPTER_DESC AdapterDesc;
-
 			if (SUCCEEDED(DXGIDevice->GetAdapter(&DXGIAdapter)))
 			{
+				DXGI_ADAPTER_DESC AdapterDesc;
 				DXGIAdapter->GetDesc(&AdapterDesc);
 
-				bIsIntel = AdapterDesc.VendorId == 0x163C ||
+				ContextOptions.isIntel = AdapterDesc.VendorId == 0x163C ||
 						  AdapterDesc.VendorId == 0x8086 || AdapterDesc.VendorId == 0x8087;
 
 				DXGIAdapter->Release();
@@ -75,7 +69,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 
 #if WITH_RIVE
 
-		PLSRenderContext = rive::pls::PLSRenderContextD3DImpl::MakeContext(D3D11DevicePtr, D3D11DeviceContext, bIsIntel);
+		PLSRenderContext = rive::pls::PLSRenderContextD3DImpl::MakeContext(D3D11DevicePtr, D3D11DeviceContext, ContextOptions);
 
 #endif // WITH_RIVE
 	}
@@ -112,7 +106,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderTh
 	
 	FrameDescriptor.strokesDisabled = false;
 
-	PLSRenderContext->beginFrame(std::move(FrameDescriptor));
+	// PLSRenderContext->beginFrame(std::move(FrameDescriptor));
 
 	PLSRenderer = std::make_unique<rive::pls::PLSRenderer>(PLSRenderContext.get());
 

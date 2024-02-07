@@ -36,7 +36,6 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
     case ERHIInterfaceType::OpenGL:
         {
             UE_LOG(LogRiveRenderer, Warning, TEXT("RHIGetInterfaceType returned 'OpenGL'"))
-            UE_LOG(LogTemp, Error, TEXT("---OPEN GL---"))
             RiveRenderer = MakeShared<FRiveRendererOpenGL>();
             break;
         }
@@ -50,13 +49,15 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
     }
 
 
-    FCoreDelegates::OnFEngineLoopInitComplete.AddLambda([this]()
+    // OnBeginFrameHandle = FCoreDelegates::OnFEngineLoopInitComplete.AddLambda([this]()  // Crashes sometimes when on GameThread
+    OnBeginFrameHandle = FCoreDelegates::OnBeginFrame.AddLambda([this]()
     {
         if (RiveRenderer.IsValid())
         {
             RiveRenderer->Initialize();
             OnRendererInitializedDelegate.Broadcast();
         }
+        FCoreDelegates::OnBeginFrame.Remove(OnBeginFrameHandle);
     });
 }
 
@@ -84,10 +85,23 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::CallOrRegister_OnRenderer
 
 bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
 {
-#if PLATFORM_ANDROID
+#if PLATFORM_WINDOWS
+    // {
+    //     FString Path = TEXT("rive_harfbuzz.dll");
+    //     RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*Path);
+    //     if (RiveHarfbuzzDllHandle != nullptr)
+    //     {
+    //         UE_LOG(LogRiveRenderer, Warning, TEXT("Loaded RiveHarfbuzz from '%s'"), *Path);
+    //     }
+    //     else
+    //     {
+    //         UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *Path);
+    //         return false;
+    //     }
+    // }
+#elif PLATFORM_ANDROID
     FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
     {
-        const FString WwisePath = FPaths::ProjectDir() / FString::Printf(TEXT("Binaries/Android/"));
         FString Path = TEXT("librive_harfbuzz.so");
         RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*Path);
         if (RiveHarfbuzzDllHandle != nullptr)
@@ -120,13 +134,13 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
 
 void UE::Rive::Renderer::Private::FRiveRendererModule::ReleaseDll()
 {
-#if PLATFORM_ANDROID
     if (RiveHarfbuzzDllHandle)
     {
         UE_LOG(LogRiveRenderer, Warning, TEXT("Releasing RiveHarfbuzz Dll..."));
         FPlatformProcess::FreeDllHandle(RiveHarfbuzzDllHandle);
         RiveHarfbuzzDllHandle = nullptr;
     }
+#if PLATFORM_ANDROID
     if (libGLESv2DllHandle)
     {
         UE_LOG(LogRiveRenderer, Warning, TEXT("Releasing libGLESv2 Dll..."));

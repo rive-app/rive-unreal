@@ -39,6 +39,23 @@ public:
 	{
 		return *Get().CurrentIndent();
 	}
+
+	static FString CurrentThread()
+	{
+		if (IsInGameThread())
+		{
+			return {TEXT("GameThread")};
+		}
+		else if (IsInRHIThread())
+		{
+			return {TEXT("RHIThread")};
+		}
+		else if (IsInRenderingThread())
+		{
+			return {TEXT("RenderThread")};
+		}
+		return {TEXT("UnknownThread")};
+	}
 };
 
 class FScopeLogIndent

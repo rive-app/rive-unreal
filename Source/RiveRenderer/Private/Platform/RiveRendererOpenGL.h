@@ -56,8 +56,7 @@ namespace UE::Rive::Renderer::Private
 		virtual void CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList) override;
 		//~ END : IRiveRenderer Interface
 		
-		virtual rive::pls::PLSRenderContext* GetOrCreatePLSRenderContextPtr_RHIThread(FRHICommandListImmediate& RHICmdList);
-		virtual rive::pls::PLSRenderContext* GetOrCreatePLSRenderContextPtr_GameThread();
+		virtual rive::pls::PLSRenderContext* GetOrCreatePLSRenderContextPtr_Internal();
 #endif // WITH_RIVE
 		static bool IsRHIOpenGL();
 	private:

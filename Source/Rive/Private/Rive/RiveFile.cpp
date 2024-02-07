@@ -38,8 +38,6 @@ TStatId URiveFile::GetStatId() const
     RETURN_QUICK_DECLARE_CYCLE_STAT(URiveFile, STATGROUP_Tickables);
 }
 
-UE_DISABLE_OPTIMIZATION
-
 void URiveFile::Tick(float InDeltaSeconds)
 {
     if (bIsInitialized && bIsRendering)
@@ -65,6 +63,7 @@ void URiveFile::Tick(float InDeltaSeconds)
                             RHICmdList.EnqueueLambda(TEXT("StateMachine->Advance"), [this, StateMachine, InDeltaSeconds](FRHICommandListImmediate& RHICmdList)
                             {
     #endif
+                                UE_LOG(LogRive, Warning, TEXT("StateMachine->Advance  [%s]"), IsInRHIThread() ? TEXT("RHIThread") : (IsInRenderingThread() ? TEXT("RenderThread") : TEXT("OtherThread")));
                                 StateMachine->Advance(InDeltaSeconds);
     #if PLATFORM_ANDROID
                             });
@@ -104,12 +103,10 @@ void URiveFile::Tick(float InDeltaSeconds)
         if (UE::Rive::Core::FURArtboard* Artboard = GetArtboard())
         {
             UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+
+            const FVector2f ArtboardSize = Artboard->GetSize();
+            constexpr bool bInForceLinearGamma = true; // needed to be true for Android
             
-            FVector2f ArtboardSize = Artboard->GetSize();
-            constexpr bool bInForceLinearGamma = true; // needed to be true
-
-
-            ArtboardSize = {1024,1024};
             OverrideFormat = PF_R8G8B8A8;
             SRGB = false;
             RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
@@ -125,20 +122,7 @@ void URiveFile::Tick(float InDeltaSeconds)
             bIsFileImported = false;
         }
     }
-    else
-    {
-        if(bIsRendering)
-        {
-            // UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-            // if (!bIsInitialized)
-            // {
-            //     Initialize();
-            // }
-        }
-    }
 }
-
-UE_ENABLE_OPTIMIZATION
 
 bool URiveFile::IsTickable() const
 {
@@ -667,10 +651,11 @@ void URiveFile::Initialize()
     
 #if WITH_RIVE
 
-#if PLATFORM_ANDROID
-    ENQUEUE_RENDER_COMMAND(DrawArtboard)(
+
+    ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
     [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
     {
+#if PLATFORM_ANDROID
         RHICmdList.EnqueueLambda(TEXT("URiveFile::Initialize"), [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
         {
 #endif // PLATFORM_ANDROID
@@ -693,8 +678,8 @@ void URiveFile::Initialize()
     
 #if PLATFORM_ANDROID
         });
-    });
 #endif // PLATFORM_ANDROID
+    });
     
 #endif // WITH_RIVE
 }

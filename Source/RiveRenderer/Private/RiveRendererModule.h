@@ -11,10 +11,9 @@ namespace UE::Rive::Renderer::Private
         //~ BEGIN : IModuleInterface Interface
 
     public:
+        virtual void StartupModule() override;
 
-        void StartupModule() override;
-
-        void ShutdownModule() override;
+        virtual void ShutdownModule() override;
 
         //~ END : IModuleInterface Interface
 
@@ -25,7 +24,7 @@ namespace UE::Rive::Renderer::Private
         virtual IRiveRenderer* GetRenderer() override;
         //~ END : IRiveRendererModule Interface
 
-        void CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate&& Delegate);
+        virtual void CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate&& Delegate) override;
         
         /**
          * Attribute(s)
@@ -34,12 +33,14 @@ namespace UE::Rive::Renderer::Private
     private:
         bool LoadDll();
         void ReleaseDll();
-#if PLATFORM_ANDROID
+
         void* RiveHarfbuzzDllHandle = nullptr;
+#if PLATFORM_ANDROID
         void* libGLESv2DllHandle = nullptr;
 #endif
 
         TSharedPtr<IRiveRenderer> RiveRenderer;
         FSimpleMulticastDelegate OnRendererInitializedDelegate;
+        FDelegateHandle OnBeginFrameHandle;
     };
 }

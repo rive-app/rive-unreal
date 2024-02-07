@@ -44,7 +44,7 @@ namespace UE::Rive::Renderer::Private
 		//~ BEGIN : FRiveRenderTarget Interface
 	protected:
 		virtual void AlignArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
-		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
+		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override {};
 
 		// It Might need to be on rendering thread, render QUEUE is required
 		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const override
@@ -55,15 +55,9 @@ namespace UE::Rive::Renderer::Private
 		//~ END : FRiveRenderTarget Interface
 
 	private:
-		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer_GameThread(const FLinearColor DebugColor) const;
-		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer_RHIThread(const FLinearColor DebugColor) const;
-		
-		
-		
-		virtual void CacheTextureTarget_GameThread(const FTexture2DRHIRef& InRHIResource);
-		virtual void CacheTextureTarget_RHIThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource);
-		virtual void AlignArtboard_GameThread(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor);
-		virtual void AlignArtboard_RHIThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor);
+		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer_Internal(const FLinearColor DebugColor) const;
+		virtual void CacheTextureTarget_Internal(const FTexture2DRHIRef& InRHIResource);
+		virtual void AlignArtboard_Internal(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor);
 		
 		/**
 		 * Attribute(s)

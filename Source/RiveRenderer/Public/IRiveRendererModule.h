@@ -47,7 +47,7 @@ namespace UE::Rive::Renderer
 		 */
 		static bool RunInGameThread() { return true; }
 		static bool DrawStraightOnRiveFile() { return true; }
-		static bool ReCacheTextureEveryFrame() { return true; }
+		static bool ReCacheTextureEveryFrame() { return false; }
 	private:
 
 		static constexpr const TCHAR* ModuleName = TEXT("RiveRenderer");
