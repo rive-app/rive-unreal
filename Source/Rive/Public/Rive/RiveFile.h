@@ -4,10 +4,26 @@
 
 #include "IRiveRendererModule.h"
 #include "IRiveRenderTarget.h"
-#include "Assets/UREmbeddedAsset.h"
-#include "Assets/URFile.h"
+#include "Core/URArtboard.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "RiveFile.generated.h"
+
+#if WITH_RIVE
+
+namespace rive
+{
+    class File;
+}
+
+#endif // WITH_RIVE
+
+namespace UE::Rive::Core
+{
+    class FURArtboard;
+}
+
+class URiveAsset;
+class URiveEvent;
 
 USTRUCT(Blueprintable)
 struct RIVE_API FRiveStateMachineEvent
@@ -120,6 +136,8 @@ class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameOb
 
     DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveStateMachineDelegate, FRiveStateMachineEvent, RiveStateMachineEvent);
 
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, const TArray<URiveEvent*>&, RiveEvents);
+
     /**
      * Structor(s)
      */
@@ -142,6 +160,7 @@ public:
     {
         return true;
     }
+
     virtual ETickableTickType GetTickableTickType() const override
     {
         return ETickableTickType::Conditional;
@@ -156,9 +175,7 @@ public:
     //~ END : UObject UTexture
 
     //~ BEGIN : UObject Interface
-
-public:
-
+    
     virtual void PostLoad() override;
 
 #if WITH_EDITOR
@@ -180,15 +197,6 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = Rive)
     bool GetBoolValue(const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
-    bool GetCustomBoolValue(const FString& InEventName, const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
-    float GetCustomNumberValue(const FString& InEventName, const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
-    const FString GetCustomStringValue(const FString& InEventName, const FString& InPropertyName) const;
 
     UFUNCTION(BlueprintCallable, Category = Rive)
     float GetNumberValue(const FString& InPropertyName) const;
@@ -225,9 +233,11 @@ public:
         bIsReceivingInput = false;
     }
 
-#if UE_EDITOR
-    void EditorImport(const FString& InRiveFilePath);
-#endif
+#if WITH_EDITOR
+
+    bool EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer);
+
+#endif // WITH_EDITOR
     
     void Initialize();
 
@@ -236,16 +246,19 @@ public:
     TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
     UE::Rive::Core::FURArtboard* GetArtboard() const;
-    
+
+private:
+
+    void PopulateReportedEvents();
+
     /**
      * Attribute(s)
      */
 
-   TObjectPtr<UTextureRenderTarget2D> GetRenderTargetToDrawOnto()
-   {
-       return UE::Rive::Renderer::IRiveRendererModule::DrawStraightOnRiveFile() ? this : RenderTarget;
-   }
-    
+    TObjectPtr<UTextureRenderTarget2D> GetRenderTargetToDrawOnto()
+    {
+        return UE::Rive::Renderer::IRiveRendererModule::DrawStraightOnRiveFile() ? this : RenderTarget;
+    }
 public:
 
     UPROPERTY(EditAnywhere, Category = Rive)
@@ -256,7 +269,7 @@ public:
     FRiveStateMachineDelegate OnRiveStateMachineDelegate;
 
     UPROPERTY()
-    TArray<uint8> TempFileBuffer;
+    TArray<uint8> RiveFileData;
 
     UPROPERTY()
     FString RiveFilePath;
@@ -269,7 +282,13 @@ public:
     bool bUseViewportClientTestProperty = true;
 
     UPROPERTY(VisibleAnywhere, Category=Rive)
-    TMap<uint32, FUREmbeddedAsset> Assets;
+    TMap<uint32, TObjectPtr<URiveAsset>> Assets;
+
+protected:
+
+    UPROPERTY(BlueprintAssignable)
+    FRiveEventDelegate RiveEventDelegate;
+    
 private:
 
     UPROPERTY(EditAnywhere, Category = Rive)
@@ -300,5 +319,11 @@ private:
 
     bool bDrawOnceTest = false;
 
-    UE::Rive::Assets::FURFilePtr UnrealRiveFile;
+    UE::Rive::Core::FURArtboardPtr Artboard;
+
+    rive::Span<const uint8> RiveNativeFileSpan;
+
+    std::unique_ptr<rive::File> RiveNativeFilePtr;
+
+    void PrintStats();
 };

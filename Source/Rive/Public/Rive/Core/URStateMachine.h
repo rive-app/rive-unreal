@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "Core/UREvent.h"
-
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
@@ -23,7 +21,7 @@ namespace UE::Rive::Core
     /**
      * Represents a Rive State Machine from an Artboard. A State Machine contains Inputs.
      */
-    class RIVECORE_API FURStateMachine
+    class RIVE_API FURStateMachine
     {
         /**
          * Structor(s)
@@ -67,13 +65,11 @@ namespace UE::Rive::Core
 
         bool OnMouseButtonUp(const FVector2f& NewPosition);
 
-        const TArray<FUREventPtr>& GetReportedEvents();
+        const rive::EventReport GetReportedEvent(int32 AtIndex) const;
+
+        int32 GetReportedEventsCount() const;
 
         bool HasAnyReportedEvents() const;
-
-    private:
-
-        void PopulateReportedEvents();
 
         /**
          * Attribute(s)
@@ -83,7 +79,7 @@ namespace UE::Rive::Core
 
         std::unique_ptr<rive::StateMachineInstance> NativeStateMachinePtr = nullptr;
 
-        TArray<FUREventPtr> ReportedEvents;
+        static rive::EventReport NullEvent;
 
 #endif // WITH_RIVE
     };

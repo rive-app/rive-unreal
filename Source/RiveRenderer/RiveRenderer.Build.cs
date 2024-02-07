@@ -60,14 +60,14 @@ public class RiveRenderer : ModuleRules
 			PublicIncludePathModuleNames.AddAll("RHICore", "OpenGLDrv");
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
 			
-			string engine_path = Path.GetFullPath(Target.RelativeEnginePath);
-			string srcrt_path = Path.Combine(engine_path, "Source", "Runtime/");
+			// The below is needed to include private headers from OpenGLDrv, allowing us to call directly some OpenGL functions
+			string enginePath = Path.GetFullPath(Target.RelativeEnginePath);
+			string sourcePath = Path.Combine(enginePath, "Source", "Runtime", "OpenGLDrv", "Private");
 			
-			PrivateIncludePaths.Add(Path.Combine(srcrt_path, "OpenGLDrv", "Private"));
-			PrivateIncludePaths.Add(Path.Combine(srcrt_path, "OpenGLDrv", "Private", "Android"));
-			PublicIncludePaths.Add(Path.Combine(srcrt_path, "OpenGLDrv", "Private"));
-			PublicIncludePaths.Add(Path.Combine(srcrt_path, "OpenGLDrv", "Private", "Android"));
-			// bUseRTTI = true;
+			PrivateIncludePaths.Add(Path.Combine(sourcePath));
+			PrivateIncludePaths.Add(Path.Combine(sourcePath, "Android"));
+			PublicIncludePaths.Add(Path.Combine(sourcePath));
+			PublicIncludePaths.Add(Path.Combine(sourcePath, "Android"));
 		}
 	}
 }

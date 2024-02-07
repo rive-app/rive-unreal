@@ -6,6 +6,8 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Logs/RiveRendererLog.h"
 
+FTimespan UE::Rive::Renderer::Private::FRiveRenderTarget::ResetTimeLimit = FTimespan(0, 0, 20);
+
 UE_DISABLE_OPTIMIZATION
 
 UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)

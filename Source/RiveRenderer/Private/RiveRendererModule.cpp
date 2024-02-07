@@ -4,10 +4,11 @@
 #include "RiveRenderer.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Logs/RiveRendererLog.h"
-#include "Platform/RiveRendererOpenGL.h"
 
 #if PLATFORM_WINDOWS
 #include "Platform/RiveRendererD3D11.h"
+#elif PLATFORM_ANDROID
+#include "Platform/RiveRendererOpenGL.h"
 #endif // PLATFORM_WINDOWS
 
 #define LOCTEXT_NAMESPACE "RiveRendererModule"
@@ -19,18 +20,15 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
     switch (RHIGetInterfaceType())
     {
 #if PLATFORM_WINDOWS
-
     case ERHIInterfaceType::D3D11:
         {
             RiveRenderer = MakeShared<FRiveRendererD3D11>();
             break;
         }
-
     case ERHIInterfaceType::D3D12:
         {
             break;
         }
-
 #endif // PLATFORM_WINDOWS
 #if PLATFORM_ANDROID
     case ERHIInterfaceType::OpenGL:
@@ -47,8 +45,7 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
     default:
         break;
     }
-
-
+    
     // OnBeginFrameHandle = FCoreDelegates::OnFEngineLoopInitComplete.AddLambda([this]()  // Crashes sometimes when on GameThread
     OnBeginFrameHandle = FCoreDelegates::OnBeginFrame.AddLambda([this]()
     {

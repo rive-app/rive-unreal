@@ -77,7 +77,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_Re
 
 #if WITH_RIVE
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::AlignArtboard(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
+void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
 {
 	check(IsInGameThread());
 
@@ -91,45 +91,37 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::AlignArtboard(uint8 I
 		{
 			CacheTextureTarget_Internal(RenderTarget->GameThread_GetRenderTargetResource()->TextureRHI);
 		}
-		AlignArtboard_Internal(InFit, AlignX, AlignY, InNativeArtboard, DebugColor);
+		DrawArtboard_Internal(Fit, AlignX, AlignY, InNativeArtboard, DebugColor);
 	}
 	else
 	{
 		ENQUEUE_RENDER_COMMAND(AlignArtboard)(
-		[this, RenderTarget = RenderTarget, InFit, AlignX, AlignY, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
+		[this, RenderTarget = RenderTarget, Fit, AlignX, AlignY, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
 		{
 			if (IRiveRendererModule::ReCacheTextureEveryFrame())
 			{
 				CacheTextureTarget_RenderThread(RHICmdList, RenderTarget->GetResource()->TextureRHI);
 			}
-			AlignArtboard_RenderThread(RHICmdList, InFit, AlignX, AlignY, InNativeArtboard, DebugColor);
+			DrawArtboard_RenderThread(RHICmdList, Fit, AlignX, AlignY, InNativeArtboard, DebugColor);
 		});
 	}
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard(rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
+DECLARE_GPU_STAT_NAMED(DrawArtboard, TEXT("FRiveRenderTargetOpenGL::DrawArtboard_RenderThread"));
+void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
 {
-	UE_LOG(LogRiveRenderer, Warning, TEXT("%s-- FRiveRenderTargetOpenGL::DrawArtboard -skipped"), FDebugLogger::Ind()); FScopeLogIndent LogIndent{};
-	check(IsInGameThread());
-}
-
-DECLARE_GPU_STAT_NAMED(AlignArtboard, TEXT("FRiveRenderTargetOpenGL::AlignArtboard"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::AlignArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
-{
-	UE_LOG(LogRiveRenderer, Warning, TEXT("%s-- FRiveRenderTargetOpenGL::AlignArtboard_RenderThread"), FDebugLogger::Ind()); FScopeLogIndent LogIndent{};
-	SCOPED_GPU_STAT(RHICmdList, AlignArtboard);
+	UE_LOG(LogRiveRenderer, Warning, TEXT("%s-- FRiveRenderTargetOpenGL::DrawArtboard_RenderThread"), FDebugLogger::Ind()); FScopeLogIndent LogIndent{};
+	SCOPED_GPU_STAT(RHICmdList, DrawArtboard);
 
 	RHICmdList.EnqueueLambda([this, InFit, AlignX, AlignY, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
 	{
-		AlignArtboard_Internal(InFit, AlignX, AlignY, InNativeArtboard, DebugColor);
+		DrawArtboard_Internal(InFit, AlignX, AlignY, InNativeArtboard, DebugColor);
 	});
 }
 
-DECLARE_GPU_STAT_NAMED(DrawArtboard, TEXT("FRiveRenderTargetOpenGL::DrawArtboard"));
-
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::AlignArtboard_Internal(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
+void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard_Internal(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor& DebugColor)
 {
-	UE_LOG(LogRiveRenderer, Warning, TEXT("%s-- FRiveRenderTargetOpenGL::AlignArtboard_Internal  [%s]"), FDebugLogger::Ind(), *FDebugLogger::CurrentThread()); FScopeLogIndent LogIndent{};
+	UE_LOG(LogRiveRenderer, Warning, TEXT("%s-- FRiveRenderTargetOpenGL::DrawArtboard_Internal  [%s]"), FDebugLogger::Ind(), *FDebugLogger::CurrentThread()); FScopeLogIndent LogIndent{};
 	check(IsInGameThread() || IsInRHIThread());
 	ENABLE_VERIFY_GL_THREAD;
 	

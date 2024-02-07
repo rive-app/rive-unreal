@@ -78,7 +78,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
-	return;
+	return; // When is this function needed?
 #if WITH_RIVE
 
 	if (PLSRenderContext == nullptr)

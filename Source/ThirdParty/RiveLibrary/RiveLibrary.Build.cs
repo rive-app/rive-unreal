@@ -48,7 +48,7 @@ public class RiveLibrary : ModuleRules
             string RiveStaticLibName = "rive" + LibPostfix + ".lib";
             string RiveDecodersStaticLibName = "rive_decoders" + LibPostfix + ".lib";
             string RivePlsLibName = "rive_pls_renderer" + LibPostfix + ".lib";
-
+            
             PublicRuntimeLibraryPaths.Add(LibDirectory);
             PublicAdditionalLibraries.AddRange(new string[]
                 {
@@ -64,8 +64,8 @@ public class RiveLibrary : ModuleRules
             // PublicDelayLoadDLLs.Add(RiveHarfBuzzDynamicLibName);
             // RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", RiveHarfBuzzDynamicLibName),Path.Combine(LibDirectory, RiveHarfBuzzDynamicLibName));
             // RuntimeDependencies.Add(RiveHarfBuzzDynamicLibName);
-
-            bIsPlatformAdded = true;
+            
+         bIsPlatformAdded = true;
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {

@@ -2,19 +2,13 @@
 
 #pragma once
 
-// #undef PLATFORM_ANDROID
-// #define PLATFORM_ANDROID 1
 #if PLATFORM_ANDROID
 
 #include "RiveRenderer.h"
 
 #if WITH_RIVE
 #include "IOpenGLDynamicRHI.h"
-// #include <GL/glcorearb.h>
-// #include "OpenGLUtil.h"
-// #include "OpenGLState.h"
 THIRD_PARTY_INCLUDES_START
-// #include "rive/decoders/bitmap_decoder.hpp"
 #include "rive/pls/gl/pls_render_context_gl_impl.hpp"
 THIRD_PARTY_INCLUDES_END
 
