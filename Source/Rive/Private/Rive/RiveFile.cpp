@@ -66,7 +66,7 @@ void URiveFile::Tick(float InDeltaSeconds)
         {
             if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
             {
-                FScopeLock Lock(&RiveRenderTarget->GetThreadDataCS());
+                // FScopeLock Lock(&RiveRenderTarget->GetThreadDataCS()); //todo: if uncommented, the packaging for Android fails for some reason. To be looked at
                 if (!bIsReceivingInput)
                 {
                     auto AdvanceStateMachine = [this, StateMachine, InDeltaSeconds]()
@@ -133,7 +133,7 @@ UE_ENABLE_OPTIMIZATION
 
 bool URiveFile::IsTickable() const
 {
-    return FTickableGameObject::IsTickable();
+    return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
 }
 
 uint32 URiveFile::CalcTextureMemorySizeEnum(ETextureMipCount Enum) const

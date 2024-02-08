@@ -45,11 +45,11 @@ namespace UE::Rive::Renderer::Private
 
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override {}
 		
-		virtual uint32 GetWidth() const;
+		virtual uint32 GetWidth() const override;
 		
-		virtual uint32 GetHeight() const;
+		virtual uint32 GetHeight() const override;
 
-		virtual FCriticalSection& GetThreadDataCS() { return ThreadDataCS; }
+		// virtual FCriticalSection& GetThreadDataCS() override { return ThreadDataCS; }
 	
 		//~ END : IRiveRenderTarget Interface
 
