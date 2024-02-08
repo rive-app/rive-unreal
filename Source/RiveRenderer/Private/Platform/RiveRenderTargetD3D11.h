@@ -2,9 +2,9 @@
 
 #pragma once
 
-#if PLATFORM_WINDOWS
-
 #include "RiveRenderTarget.h"
+
+#if PLATFORM_WINDOWS
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -52,9 +52,9 @@ namespace UE::Rive::Renderer::Private
 
 		// It Might need to be on rendering thread, render QUEUE is required
 		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const override;
-		
+
 		//~ END : FRiveRenderTarget Interface
-		
+
 		/**
 		 * Attribute(s)
 		 */

@@ -51,7 +51,6 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 #endif // PLATFORM_APPLE
             
     case ERHIInterfaceType::Vulkan:
-    case ERHIInterfaceType::D3D12:
         {
             break;
         }
