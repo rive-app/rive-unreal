@@ -5,6 +5,7 @@
 #if WITH_RIVE
 
 THIRD_PARTY_INCLUDES_START
+#undef  PI // redefined in rive/math/math_types.hpp
 #include "rive/pls/pls.hpp"
 THIRD_PARTY_INCLUDES_END
 
