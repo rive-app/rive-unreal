@@ -80,48 +80,21 @@ struct FRiveEventStringProperty : public FRiveEventProperty
     FString StringProperty = "None";
 };
 
-/**
- * 
- */
-UCLASS(Blueprintable, BlueprintType, Meta = (DisplayName = "Rive Event"))
-class RIVE_API URiveEvent : public UObject
+
+USTRUCT(Blueprintable, Meta = (DisplayName = "Rive Event"))
+struct RIVE_API FRiveEvent
 {
-	GENERATED_BODY()
-
-    /**
-     * Structor(s)
-     */
-
-public:
-    /**
-     * Implementation(s)
-     */
-
-public:
-
-    UFUNCTION(BlueprintPure, Category = "Rive | Events")
-    const FString& GetName() const;
-
-    UFUNCTION(BlueprintPure, Category = "Rive | Events")
-    uint8 GetType() const;
-
-    UFUNCTION(BlueprintPure, Category = "Rive | Events")
-    float GetDelayInSeconds() const;
-
-    UFUNCTION(BlueprintPure, Category = "Rive | Events")
-    const TArray<FRiveEventBoolProperty>& GetBoolProperties() const;
-
-    UFUNCTION(BlueprintPure, Category = "Rive | Events")
-    const TArray<FRiveEventNumberProperty>& GetNumberProperties() const;
-
-    UFUNCTION(BlueprintPure, Category = "Rive | Events")
-    const TArray<FRiveEventStringProperty>& GetStringProperties() const;
+    GENERATED_BODY()
 
 #if WITH_RIVE
 
     void Initialize(const rive::EventReport& InEventReport);
 
 #endif // WITH_RIVE
+
+    bool operator==(const FRiveEvent& InRiveFile) const;
+    bool operator==(FGuid InEntityId) const;
+    friend uint32 GetTypeHash(const FRiveEvent& InRiveFile);
 
 private:
 
@@ -132,32 +105,41 @@ private:
      * Attribute(s)
      */
 
-private:
 
+public:
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
     float DelayInSeconds = 0.f;
 
-    FString Name = "None";
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
+    FString Name = TEXT("None");
 
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
     uint8 Type = 0;
 
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
     TArray<FRiveEventBoolProperty> RiveEventBoolProperties;
 
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
     TArray<FRiveEventNumberProperty> RiveEventNumberProperties;
 
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
     TArray<FRiveEventStringProperty> RiveEventStringProperties;
 
 private:
-    static constexpr int32 NumberProperty   = 127;
-    static constexpr int32 BooleanProperty  = 129;
-    static constexpr int32 StringProperty   = 130;
+    static constexpr int32 NumberProperty = 127;
+    static constexpr int32 BooleanProperty = 129;
+    static constexpr int32 StringProperty = 130;
+
+    // UPROPERTY()
+    FGuid Id = FGuid::NewGuid();
 };
 
 #define PARSE_PROPERTIES(Type, TPropertyType, InPropertyPair) \
 FRiveEvent##Type##Property NewRiveEvent(InPropertyPair.Key, InPropertyPair.Value); \
 RiveEvent##Type##Properties.Add(NewRiveEvent); \
 
-template <typename TPropertyType>
-void URiveEvent::ParseProperties(const TPair<FString, TPropertyType>& InPropertyPair)
+template<typename TPropertyType>
+inline void FRiveEvent::ParseProperties(const TPair<FString, TPropertyType>& InPropertyPair)
 {
     if constexpr (std::is_same_v<TPropertyType, bool>)
     {

@@ -17,7 +17,7 @@ public:
 
     explicit FRiveAssetToolkit(UAssetEditor* InOwningAssetEditor);
 
-    virtual ~FRiveAssetToolkit();
+    virtual ~FRiveAssetToolkit() override;
 
     //~ BEGIN : FBaseAssetToolkit Interface
 

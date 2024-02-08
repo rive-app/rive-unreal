@@ -15,6 +15,8 @@
 
 void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 {
+    RIVE_DEBUG_FUNCTION_INDENT;
+    
     // Create Platform Specific Renderer
     RiveRenderer = nullptr;
     switch (RHIGetInterfaceType())
@@ -33,7 +35,7 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 #if PLATFORM_ANDROID
     case ERHIInterfaceType::OpenGL:
         {
-            UE_LOG(LogRiveRenderer, Warning, TEXT("RHIGetInterfaceType returned 'OpenGL'"))
+            RIVE_DEBUG_VERBOSE("RHIGetInterfaceType returned 'OpenGL'")
             RiveRenderer = MakeShared<FRiveRendererOpenGL>();
             break;
         }
@@ -46,7 +48,7 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
         break;
     }
     
-    // OnBeginFrameHandle = FCoreDelegates::OnFEngineLoopInitComplete.AddLambda([this]()  // Crashes sometimes when on GameThread
+    // OnBeginFrameHandle = FCoreDelegates::OnFEngineLoopInitComplete.AddLambda([this]()  // Crashes sometimes on Android when on GameThread
     OnBeginFrameHandle = FCoreDelegates::OnBeginFrame.AddLambda([this]()
     {
         if (RiveRenderer.IsValid())
@@ -82,7 +84,9 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::CallOrRegister_OnRenderer
 
 bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
 {
+    RIVE_DEBUG_FUNCTION_INDENT;
 #if PLATFORM_WINDOWS
+    //todo: check if we need to have harfbuzz as a dynamic dll for windows
     // {
     //     FString Path = TEXT("rive_harfbuzz.dll");
     //     RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*Path);
@@ -99,11 +103,11 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
 #elif PLATFORM_ANDROID
     FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
     {
-        FString Path = TEXT("librive_harfbuzz.so");
+        const FString Path = TEXT("librive_harfbuzz.so");
         RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*Path);
         if (RiveHarfbuzzDllHandle != nullptr)
         {
-            UE_LOG(LogRiveRenderer, Warning, TEXT("Loaded RiveHarfbuzz from '%s'"), *Path);
+            RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *Path);
         }
         else
         {
@@ -112,11 +116,11 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
         }
     }
     {
-        FString Path = TEXT("libGLESv2.so");
+        const FString Path = TEXT("libGLESv2.so"); //todo: check if needed
         libGLESv2DllHandle = FPlatformProcess::GetDllHandle(*Path);
         if (libGLESv2DllHandle != nullptr)
         {
-            UE_LOG(LogRiveRenderer, Warning, TEXT("Loaded libGLESv2 from '%s'"), *Path);
+             RIVE_DEBUG_VERBOSE("Loaded libGLESv2 from '%s'", *Path);
         }
         else
         {
@@ -131,16 +135,17 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
 
 void UE::Rive::Renderer::Private::FRiveRendererModule::ReleaseDll()
 {
+    RIVE_DEBUG_FUNCTION_INDENT;
     if (RiveHarfbuzzDllHandle)
     {
-        UE_LOG(LogRiveRenderer, Warning, TEXT("Releasing RiveHarfbuzz Dll..."));
+         RIVE_DEBUG_VERBOSE("Releasing RiveHarfbuzz Dll...");
         FPlatformProcess::FreeDllHandle(RiveHarfbuzzDllHandle);
         RiveHarfbuzzDllHandle = nullptr;
     }
 #if PLATFORM_ANDROID
     if (libGLESv2DllHandle)
     {
-        UE_LOG(LogRiveRenderer, Warning, TEXT("Releasing libGLESv2 Dll..."));
+        RIVE_DEBUG_VERBOSE("Releasing libGLESv2 Dll...");
         FPlatformProcess::FreeDllHandle(libGLESv2DllHandle);
         libGLESv2DllHandle = nullptr;
     }

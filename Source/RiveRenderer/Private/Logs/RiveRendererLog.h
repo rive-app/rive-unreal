@@ -70,3 +70,15 @@ public:
 		FDebugLogger::Get().UnIndent();
 	}
 };
+
+/**
+* Logs the current function name with thread information and indents the next call to RIVE_DEBUG_
+*/
+#define RIVE_DEBUG_FUNCTION_INDENT \
+	UE_LOG(LogRiveRenderer, Verbose, TEXT("[%s]%s-- %hs"), *FDebugLogger::CurrentThread(), FDebugLogger::Ind(), __FUNCTION__); FScopeLogIndent MacroLogIndent{};
+
+/**
+* Logs the the given message indented with thread information
+*/
+#define RIVE_DEBUG_VERBOSE(Format, ...) \
+	UE_LOG(LogRiveRenderer, Verbose, TEXT("[%s]%s %s"), *FDebugLogger::CurrentThread(), FDebugLogger::Ind(), *FString::Printf(TEXT(Format), ##__VA_ARGS__));

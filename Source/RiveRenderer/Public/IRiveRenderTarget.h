@@ -7,7 +7,6 @@
 THIRD_PARTY_INCLUDES_START
 #undef  PI // redefined in rive/math/math_types.hpp
 #include "rive/pls/pls.hpp"
-#include "rive/pls/pls_render_context.hpp"
 THIRD_PARTY_INCLUDES_END
 
 namespace rive
@@ -64,7 +63,8 @@ namespace UE::Rive::Renderer
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) = 0;
 		
 		virtual uint32 GetWidth() const = 0;
-		
 		virtual uint32 GetHeight() const = 0;
+
+		virtual FCriticalSection& GetThreadDataCS() = 0;
 	};
 }

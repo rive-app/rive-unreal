@@ -60,12 +60,8 @@ public class RiveLibrary : ModuleRules
                     Path.Combine(LibDirectory, RiveLibPng)
                 }
             );
-            // PrivateRuntimeLibraryPaths.Add(LibDirectory);
-            // PublicDelayLoadDLLs.Add(RiveHarfBuzzDynamicLibName);
-            // RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", RiveHarfBuzzDynamicLibName),Path.Combine(LibDirectory, RiveHarfBuzzDynamicLibName));
-            // RuntimeDependencies.Add(RiveHarfBuzzDynamicLibName);
-            
-         bIsPlatformAdded = true;
+
+            bIsPlatformAdded = true;
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {

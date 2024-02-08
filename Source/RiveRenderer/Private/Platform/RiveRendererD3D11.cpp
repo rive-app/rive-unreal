@@ -78,7 +78,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
-	return; // When is this function needed?
+	return; // TODO: When is this function needed?
 #if WITH_RIVE
 
 	if (PLSRenderContext == nullptr)
@@ -106,7 +106,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderTh
 	
 	FrameDescriptor.strokesDisabled = false;
 
-	// PLSRenderContext->beginFrame(std::move(FrameDescriptor));
+	// PLSRenderContext->beginFrame(std::move(FrameDescriptor)); // calling begin without flush, what is this for?
 
 	PLSRenderer = std::make_unique<rive::pls::PLSRenderer>(PLSRenderContext.get());
 

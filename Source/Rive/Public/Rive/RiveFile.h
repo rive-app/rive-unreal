@@ -6,6 +6,7 @@
 #include "IRiveRenderTarget.h"
 #include "Core/URArtboard.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Rive/RiveEvent.h"
 #include "RiveFile.generated.h"
 
 #if WITH_RIVE
@@ -23,7 +24,6 @@ namespace UE::Rive::Core
 }
 
 class URiveAsset;
-class URiveEvent;
 
 USTRUCT(Blueprintable)
 struct RIVE_API FRiveStateMachineEvent
@@ -136,7 +136,7 @@ class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameOb
 
     DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveStateMachineDelegate, FRiveStateMachineEvent, RiveStateMachineEvent);
 
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, const TArray<URiveEvent*>&, RiveEvents);
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, int32, NumEvents);
 
     /**
      * Structor(s)
@@ -255,6 +255,7 @@ private:
      * Attribute(s)
      */
 
+    // TODO. REMOVE IT!! Temporary switches for Android testng
     TObjectPtr<UTextureRenderTarget2D> GetRenderTargetToDrawOnto()
     {
         return UE::Rive::Renderer::IRiveRendererModule::DrawStraightOnRiveFile() ? this : RenderTarget;
@@ -288,6 +289,9 @@ protected:
 
     UPROPERTY(BlueprintAssignable)
     FRiveEventDelegate RiveEventDelegate;
+
+    UPROPERTY(BlueprintReadWrite, Category = Rive)
+    TArray<FRiveEvent> TickRiveReportedEvents;
     
 private:
 
@@ -310,7 +314,7 @@ private:
     UPROPERTY(EditAnywhere, Category=Rive)
     TSubclassOf<UUserWidget> WidgetClass;
 
-    bool bIsFileImported = false;
+    bool bIsFileImported = false; //todo: find a better way to do this
     bool bIsInitialized = false;
 
     bool bIsReceivingInput = false;

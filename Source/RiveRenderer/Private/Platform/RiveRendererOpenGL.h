@@ -8,9 +8,6 @@
 
 #if WITH_RIVE
 #include "IOpenGLDynamicRHI.h"
-THIRD_PARTY_INCLUDES_START
-#include "rive/pls/gl/pls_render_context_gl_impl.hpp"
-THIRD_PARTY_INCLUDES_END
 
 class FOpenGLBase;
 

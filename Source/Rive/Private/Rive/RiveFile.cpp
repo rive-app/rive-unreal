@@ -8,15 +8,8 @@
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/URAssetImporter.h"
 #include "Rive/Assets/URFileAssetLoader.h"
-#include "Rive/RiveEvent.h"
 #include "RiveRendererUtils.h"
 
-#if PLATFORM_ANDROID
-#include "IOpenGLDynamicRHI.h"
-THIRD_PARTY_INCLUDES_START
-// #include <GL/glcorearb.h>
-THIRD_PARTY_INCLUDES_END
-#endif
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -44,43 +37,68 @@ TStatId URiveFile::GetStatId() const
 
 void URiveFile::Tick(float InDeltaSeconds)
 {
+#if WITH_RIVE
+    if (!bIsInitialized && bIsFileImported && Artboard)
+    {
+        UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+
+        const FVector2f ArtboardSize = Artboard->GetSize();
+        constexpr bool bInForceLinearGamma = true; // needed to be true for Android
+
+        OverrideFormat = PF_R8G8B8A8;
+        SRGB = false;
+        RenderTargetFormat = RTF_RGBA8;
+        InitCustomFormat(ArtboardSize.X, ArtboardSize.Y, OverrideFormat, bInForceLinearGamma);
+        UpdateResourceImmediate(true);
+
+        RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
+        FlushRenderingCommands();
+        RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTargetToDrawOnto());
+        RiveRenderTarget->Initialize();
+
+        bIsInitialized = true;
+    }
     if (bIsInitialized && bIsRendering)
     {
-#if WITH_RIVE
+        // Empty reported events at the beginning
+        TickRiveReportedEvents.Empty();
         if (Artboard)
         {
             if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
             {
+                FScopeLock Lock(&RiveRenderTarget->GetThreadDataCS());
                 if (!bIsReceivingInput)
                 {
-                    if (UE::Rive::Renderer::IRiveRendererModule::RunInGameThread())
+                    auto AdvanceStateMachine = [this, StateMachine, InDeltaSeconds]()
                     {
                         if (StateMachine->HasAnyReportedEvents())
                         {
                             PopulateReportedEvents();
                         }
-
+#if PLATFORM_ANDROID
+                        UE_LOG(LogRive, Verbose, TEXT("[%s] StateMachine->Advance"), IsInRHIThread() ? TEXT("RHIThread") : (IsInRenderingThread() ? TEXT("RenderThread") : TEXT("OtherThread")));
+#endif
                         StateMachine->Advance(InDeltaSeconds);
+                    };
+                    if (UE::Rive::Renderer::IRiveRendererModule::RunInGameThread())
+                    {
+                        AdvanceStateMachine();
                     }
                     else
                     {
                         ENQUEUE_RENDER_COMMAND(DrawArtboard)(
-                            [this, StateMachine, InDeltaSeconds](FRHICommandListImmediate& RHICmdList)
-                            {
+                        [AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](FRHICommandListImmediate& RHICmdList) mutable
+                        {
 #if PLATFORM_ANDROID
-                                   RHICmdList.EnqueueLambda(TEXT("StateMachine->Advance"), [this, StateMachine, InDeltaSeconds](FRHICommandListImmediate& RHICmdList)
-                                   {
-#endif
-                                if (StateMachine->HasAnyReportedEvents())
+                                RHICmdList.EnqueueLambda(TEXT("StateMachine->Advance"),
+                                    [AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](FRHICommandListImmediate& RHICmdList)
                                 {
-                                    PopulateReportedEvents();
-                                }
-                                UE_LOG(LogRive, Warning, TEXT("StateMachine->Advance  [%s]"), IsInRHIThread() ? TEXT("RHIThread") : (IsInRenderingThread() ? TEXT("RenderThread") : TEXT("OtherThread")));
-                                StateMachine->Advance(InDeltaSeconds);
-#if PLATFORM_ANDROID
-                                   });
 #endif
-                            });
+                                    AdvanceStateMachine();
+#if PLATFORM_ANDROID
+                                });
+#endif
+                        });
                     }
                 }
             }
@@ -103,37 +121,15 @@ void URiveFile::Tick(float InDeltaSeconds)
                 [this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
                 {
                     UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
-                    RHICmdList.CopyTexture(RenderTarget->GetResource()->TextureRHI, GetResource()->TextureRHI, FRHICopyTextureInfo());
+                    // RHICmdList.CopyTexture(RenderTarget->GetResource()->TextureRHI, GetResource()->TextureRHI, FRHICopyTextureInfo());
                 });
         }
-        FlushRenderingCommands();
+        // FlushRenderingCommands();
     }
-    else if (bIsFileImported)
-    {
-        if (Artboard)
-        {
-            UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-
-            const FVector2f ArtboardSize = Artboard->GetSize();
-            constexpr bool bInForceLinearGamma = true; // needed to be true for Android
-
-            OverrideFormat = PF_R8G8B8A8;
-            SRGB = false;
-            RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
-            InitCustomFormat(ArtboardSize.X, ArtboardSize.Y, OverrideFormat, bInForceLinearGamma);
-            UpdateResourceImmediate(true);
-
-            RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
-            FlushRenderingCommands();
-            RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTargetToDrawOnto());
-            RiveRenderTarget->Initialize();
-
-            bIsInitialized = true;
-            bIsFileImported = false;
-        }
 #endif // WITH_RIVE
-    }
 }
+
+UE_ENABLE_OPTIMIZATION
 
 bool URiveFile::IsTickable() const
 {
@@ -156,8 +152,7 @@ uint32 URiveFile::CalcTextureMemorySizeEnum(ETextureMipCount Enum) const
 void URiveFile::PostLoad()
 {
     UObject::PostLoad();
-
-    UE_LOG(LogRive, Warning, TEXT("URiveFile::PostLoad()  %p"), this)
+    
     UE::Rive::Renderer::IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &URiveFile::Initialize));
 }
 
@@ -669,7 +664,6 @@ void URiveFile::Initialize()
             else
             {
                 UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
-                return;
             }
 #if PLATFORM_ANDROID
         });
@@ -705,27 +699,23 @@ void URiveFile::PopulateReportedEvents()
     if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
     {
         const int32 NumReportedEvents = StateMachine->GetReportedEventsCount();
-        TArray<URiveEvent*> RiveEvents;
-        RiveEvents.Reserve(NumReportedEvents);
+
+        TickRiveReportedEvents.Reserve(NumReportedEvents);
 
         for (int32 EventIndex = 0; EventIndex < NumReportedEvents; EventIndex++)
         {
             const rive::EventReport ReportedEvent = StateMachine->GetReportedEvent(EventIndex);
             if (ReportedEvent.event() != nullptr)
             {
-                URiveEvent* RiveEvent = NewObject<URiveEvent>(GetTransientPackage(), NAME_None, RF_Transient);
-                RiveEvent->Initialize(ReportedEvent);
-                RiveEvents.Add(RiveEvent);
+                FRiveEvent RiveEvent;
+                RiveEvent.Initialize(ReportedEvent);
+                TickRiveReportedEvents.Add(MoveTemp(RiveEvent));
             }
         }
 
-        if (!RiveEvents.IsEmpty())
+        if (!TickRiveReportedEvents.IsEmpty())
         {
-            RiveEventDelegate.Broadcast(RiveEvents);
-            for (URiveEvent* RiveEvent : RiveEvents)
-            {
-                RiveEvent->MarkAsGarbage();
-            }
+            RiveEventDelegate.Broadcast(TickRiveReportedEvents.Num());
         }
     }
     else

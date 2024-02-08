@@ -45,9 +45,9 @@ namespace UE::Rive::Renderer
 		/**
 		 * Attribute(s)
 		 */
+		// TODO. REMOVE IT!! Temporary switches for Android testng
 		static bool RunInGameThread() { return true; }
 		static bool DrawStraightOnRiveFile() { return true; }
-		static bool ReCacheTextureEveryFrame() { return false; }
 	private:
 
 		static constexpr const TCHAR* ModuleName = TEXT("RiveRenderer");

@@ -7,12 +7,12 @@
 
 UE::Rive::Renderer::Private::FRiveRenderer::FRiveRenderer()
 {
-    UE_LOG(LogRiveRenderer, Warning, TEXT("%s === FRiveRenderer::FRiveRenderer"), FDebugLogger::Ind());
+    RIVE_DEBUG_FUNCTION_INDENT;
 }
 
 UE::Rive::Renderer::Private::FRiveRenderer::~FRiveRenderer()
 {
-    UE_LOG(LogRiveRenderer, Warning, TEXT("%s ~~~ FRiveRenderer::~FRiveRenderer"), FDebugLogger::Ind());
+    RIVE_DEBUG_FUNCTION_INDENT;
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()

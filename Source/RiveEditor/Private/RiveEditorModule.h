@@ -11,10 +11,9 @@ namespace UE::Rive::Editor::Private
         //~ BEGIN : IModuleInterface Interface
 
     public:
+        virtual void StartupModule() override;
 
-        void StartupModule() override;
-
-        void ShutdownModule() override;
+        virtual void ShutdownModule() override;
 
         //~ END : IModuleInterface Interface
     };

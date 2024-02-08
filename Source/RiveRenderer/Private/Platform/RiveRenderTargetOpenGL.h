@@ -2,8 +2,6 @@
 
 #pragma once
 
-// #undef PLATFORM_ANDROID
-// #define PLATFORM_ANDROID 1
 #if PLATFORM_ANDROID
 #include "RiveRenderTarget.h"
 
@@ -43,25 +41,17 @@ namespace UE::Rive::Renderer::Private
 		//~ BEGIN : FRiveRenderTarget Interface
 	protected:
 		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
-
-		// It Might need to be on rendering thread, render QUEUE is required
-		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const override
-		{
-			check(false); // we don't want this called from any thread
-			return nullptr;
-		}
+		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const override;
 		//~ END : FRiveRenderTarget Interface
 		
 	private:
-		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer_Internal(const FLinearColor DebugColor) const;
-		virtual void CacheTextureTarget_Internal(const FTexture2DRHIRef& InRHIResource);
-		virtual void DrawArtboard_Internal(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor& DebugColor);
+		void CacheTextureTarget_Internal(const FTexture2DRHIRef& InRHIResource);
+		void DrawArtboard_Internal(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor& DebugColor);
 		
 		/**
 		 * Attribute(s)
 		 */
-
-	
+		
 		rive::rcp<rive::pls::TextureRenderTargetGL> CachedPLSRenderTargetOpenGL;
 		TSharedPtr<FRiveRendererOpenGL> RiveRendererGL;
 

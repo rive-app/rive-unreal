@@ -15,12 +15,12 @@ UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedR
 	, RiveName(InRiveName)
 	, RenderTarget(InRenderTarget)
 {
-	UE_LOG(LogRiveRenderer, Warning, TEXT("%s   FRiveRenderTarget::FRiveRenderTarget"), FDebugLogger::Ind());
+	RIVE_DEBUG_FUNCTION_INDENT;
 }
 
 UE::Rive::Renderer::Private::FRiveRenderTarget::~FRiveRenderTarget()
 {
-	UE_LOG(LogRiveRenderer, Warning, TEXT("%s   FRiveRenderTarget::~FRiveRenderTargetL"), FDebugLogger::Ind());
+	RIVE_DEBUG_FUNCTION_INDENT;
 }
 
 uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetWidth() const

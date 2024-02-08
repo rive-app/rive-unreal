@@ -10,7 +10,7 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/assets/font_asset.hpp"
 #include "rive/assets/image_asset.hpp"
 THIRD_PARTY_INCLUDES_END
-#endif
+#endif // WITH_RIVE
 #include "RiveAsset.generated.h"
 
 UENUM(BlueprintType)

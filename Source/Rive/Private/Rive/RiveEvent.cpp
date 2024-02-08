@@ -11,39 +11,9 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-const FString& URiveEvent::GetName() const
-{
-	return Name;
-}
-
-uint8 URiveEvent::GetType() const
-{
-	return Type;
-}
-
-float URiveEvent::GetDelayInSeconds() const
-{
-	return DelayInSeconds;
-}
-
-const TArray<FRiveEventBoolProperty>& URiveEvent::GetBoolProperties() const
-{
-	return RiveEventBoolProperties;
-}
-
-const TArray<FRiveEventNumberProperty>& URiveEvent::GetNumberProperties() const
-{
-	return RiveEventNumberProperties;
-}
-
-const TArray<FRiveEventStringProperty>& URiveEvent::GetStringProperties() const
-{
-	return RiveEventStringProperties;
-}
-
 #if WITH_RIVE
 
-void URiveEvent::Initialize(const rive::EventReport& InEventReport)
+void FRiveEvent::Initialize(const rive::EventReport& InEventReport)
 {
 	DelayInSeconds = InEventReport.secondsDelay();
 
@@ -111,6 +81,21 @@ void URiveEvent::Initialize(const rive::EventReport& InEventReport)
 			}
 		}
 	}
+}
+
+bool FRiveEvent::operator==(const FRiveEvent& InRiveFile) const
+{
+	return Id == InRiveFile.Id;
+}
+
+bool FRiveEvent::operator==(FGuid InEntityId) const
+{
+	return Id == InEntityId;
+}
+
+uint32 GetTypeHash(const FRiveEvent& InRiveFile)
+{
+	return GetTypeHash(InRiveFile.Id);
 }
 
 #endif // WITH_RIVE
