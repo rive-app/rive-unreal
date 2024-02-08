@@ -70,9 +70,50 @@ public class RiveLibrary : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Mac");
+            
+            string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + ".a"; ;
 
-            // NOTE : Link MacOS Libraries
+            string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + ".a"; ;
 
+            string RiveStaticLibName = "librive" + LibPostfix + ".a"; ;
+
+            string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + ".a"; ;
+
+            string RivePlsLibName = "librive_pls_renderer" + LibPostfix + ".a"; ;
+            
+            string RiveLibPng = "liblibpng" + LibPostfix + ".a";
+
+            PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
+                , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
+                , Path.Combine(LibDirectory, RiveStaticLibName)
+                , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
+                , Path.Combine(LibDirectory, RivePlsLibName)
+                , Path.Combine(LibDirectory, RiveLibPng) });
+
+            bIsPlatformAdded = true;
+        }
+        else if (Target.Platform == UnrealTargetPlatform.IOS)
+        {
+            string LibDirectory = Path.Combine(RootDir, "Libraries", "IOS");
+         
+            string LibExt = (Target.Architecture == UnrealArch.IOSSimulator) ? ".sim.a" : ".a";
+
+            string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + LibExt; ;
+            
+            string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + LibExt; ;
+            
+            string RiveStaticLibName = "librive" + LibPostfix + LibExt; ;
+            
+            string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + LibExt; ;
+            
+            string RivePlsLibName = "librive_pls_renderer" + LibPostfix + LibExt; ;
+            
+            PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
+                , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
+                , Path.Combine(LibDirectory, RiveStaticLibName)
+                , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
+                , Path.Combine(LibDirectory, RivePlsLibName) });
+            
             bIsPlatformAdded = true;
         }
         else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))

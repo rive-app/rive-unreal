@@ -2,15 +2,18 @@
 
 #pragma once
 
+#if PLATFORM_WINDOWS
+
 #include "RiveRenderer.h"
 
-#if PLATFORM_WINDOWS
+
 
 #if WITH_RIVE
 
 namespace rive::pls
 {
 	class PLSRenderTargetD3D;
+    
 	class PLSRenderContextD3DImpl;
 }
 

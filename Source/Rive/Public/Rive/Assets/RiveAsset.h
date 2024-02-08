@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -10,7 +10,7 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/assets/font_asset.hpp"
 #include "rive/assets/image_asset.hpp"
 THIRD_PARTY_INCLUDES_END
-#endif WITH_RIVE
+#endif // WITH_RIVE
 #include "RiveAsset.generated.h"
 
 UENUM(BlueprintType)

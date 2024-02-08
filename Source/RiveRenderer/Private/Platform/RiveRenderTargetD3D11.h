@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "RiveRenderTarget.h"
-
 #if PLATFORM_WINDOWS
+
+#include "RiveRenderTarget.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START

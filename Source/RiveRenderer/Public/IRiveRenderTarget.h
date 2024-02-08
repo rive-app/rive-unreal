@@ -67,5 +67,6 @@ namespace UE::Rive::Renderer
 		virtual uint32 GetHeight() const = 0;
 
 		virtual FCriticalSection& GetThreadDataCS() = 0;
+
 	};
 }

@@ -48,8 +48,14 @@ public class RiveRenderer : ModuleRules
 			PublicIncludePathModuleNames.AddAll("D3D11RHI"); // , "D3D12RHI");
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
-			
-			// AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+            // AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 		}
+        
+        if (Target.Platform.IsInGroup(UnrealPlatformGroup.Apple))
+        {
+            PublicIncludePathModuleNames.AddAll("MetalRHI");
+            
+            PublicDependencyModuleNames.Add("MetalRHI");
+        }
 	}
 }
