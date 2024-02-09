@@ -104,7 +104,7 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
         RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*Path);
         if (RiveHarfbuzzDllHandle != nullptr)
         {
-            UE_LOG(LogRiveRenderer, Warning, TEXT("Loaded RiveHarfbuzz from '%s'"), *Path);
+            RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *Path);
         }
         else
         {
@@ -127,20 +127,6 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
             return false;
         }
     }
-    // {
-    //     const FString Path = TEXT("libGLESv2.so"); //todo: check if needed
-    //     libGLESv2DllHandle = FPlatformProcess::GetDllHandle(*Path);
-    //     if (libGLESv2DllHandle != nullptr)
-    //     {
-    //          RIVE_DEBUG_VERBOSE("Loaded libGLESv2 from '%s'", *Path);
-    //     }
-    //     else
-    //     {
-    //         UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load libGLESv2 from '%s'"), *Path);
-    //         return false;
-    //     }
-    // }
-    
 #endif
     return true;
 }
@@ -154,14 +140,6 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::ReleaseDll()
         FPlatformProcess::FreeDllHandle(RiveHarfbuzzDllHandle);
         RiveHarfbuzzDllHandle = nullptr;
     }
-#if PLATFORM_ANDROID
-    if (libGLESv2DllHandle)
-    {
-        RIVE_DEBUG_VERBOSE("Releasing libGLESv2 Dll...");
-        FPlatformProcess::FreeDllHandle(libGLESv2DllHandle);
-        libGLESv2DllHandle = nullptr;
-    }
-#endif
 }
 
 #undef LOCTEXT_NAMESPACE

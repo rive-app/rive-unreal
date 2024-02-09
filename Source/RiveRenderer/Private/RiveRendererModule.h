@@ -35,9 +35,6 @@ namespace UE::Rive::Renderer::Private
         void ReleaseDll();
 
         void* RiveHarfbuzzDllHandle = nullptr;
-#if PLATFORM_ANDROID
-        void* libGLESv2DllHandle = nullptr;
-#endif
 
         TSharedPtr<IRiveRenderer> RiveRenderer;
         FSimpleMulticastDelegate OnRendererInitializedDelegate;
