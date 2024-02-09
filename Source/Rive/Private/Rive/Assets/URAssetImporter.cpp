@@ -4,7 +4,7 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #if WITH_EDITOR
-#include "AssetTools/Public/AssetToolsModule.h"
+#include "AssetToolsModule.h"
 #endif
 #include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
