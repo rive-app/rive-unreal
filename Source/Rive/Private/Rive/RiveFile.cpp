@@ -43,7 +43,11 @@ void URiveFile::Tick(float InDeltaSeconds)
         UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 
         const FVector2f ArtboardSize = Artboard->GetSize();
+#if PLATFORM_ANDROID
         constexpr bool bInForceLinearGamma = true; // needed to be true for Android
+#else
+        constexpr bool bInForceLinearGamma = false; // needed to be true for Android
+#endif
 
         OverrideFormat = PF_R8G8B8A8;
         SRGB = false;
