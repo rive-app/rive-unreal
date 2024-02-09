@@ -130,7 +130,7 @@ private:
     static constexpr int32 BooleanProperty = 129;
     static constexpr int32 StringProperty = 130;
 
-    // UPROPERTY()
+    UPROPERTY()
     FGuid Id = FGuid::NewGuid();
 };
 

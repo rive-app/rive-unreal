@@ -3,12 +3,12 @@
 #include "RiveRenderTargetD3D11.h"
 
 #if PLATFORM_WINDOWS
-
+#include "RiveRendererD3D11.h"
+#include "RenderGraphBuilder.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderer.h"
-#include "RenderGraphBuilder.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -20,8 +20,8 @@ THIRD_PARTY_INCLUDES_END
 
 UE_DISABLE_OPTIMIZATION
 
-UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
-	: FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget)
+UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+	: FRiveRenderTarget(InRiveRendererD3D11, InRiveName, InRenderTarget), RiveRendererD3D11(InRiveRendererD3D11)
 {
 }
 
@@ -156,9 +156,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 			LastResetTime = Now;
 		}
 	}
-
+	
 	GraphBuilder.Execute();
-	RHICmdList.PostExternalCommandsReset();
+	
+	ResetBlendState();
 }
 
 std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetPLSRenderer(const FLinearColor DebugColor) const
@@ -175,7 +176,7 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
 	FrameDescriptor.renderTarget = CachedPLSRenderTargetD3D;
 	FrameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
-	FrameDescriptor.clearColor = rive::colorARGB(ClearColor.A, ClearColor.R,ClearColor.G,ClearColor.B);
+	FrameDescriptor.clearColor = rive::colorARGB(ClearColor.A, ClearColor.R, ClearColor.G, ClearColor.B);
 	FrameDescriptor.wireframe = false;
 	FrameDescriptor.fillsDisabled = false;
 	FrameDescriptor.strokesDisabled = false;
@@ -188,6 +189,13 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
 
 	return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
+}
+
+void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::ResetBlendState() const
+{
+	check(IsInRenderingThread());
+
+	RiveRendererD3D11->ResetBlendState();
 }
 
 #endif // WITH_RIVE
