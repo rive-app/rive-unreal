@@ -6,11 +6,28 @@
 
 #if WITH_RIVE
 
-UE::Rive::Core::FURArtboard::FURArtboard(rive::File* InNativeFilePtr)
+UE::Rive::Core::FURArtboard::FURArtboard(rive::File* InNativeFilePtr) : FURArtboard(InNativeFilePtr, 0) { }
+
+UE::Rive::Core::FURArtboard::FURArtboard(rive::File* InNativeFilePtr, int32 InIndex)
 {
     if (!InNativeFilePtr) return;
     
-    if (rive::Artboard* NativeArtboard = InNativeFilePtr->artboard())
+    if (rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(InIndex))
+    {
+        NativeArtboardPtr = NativeArtboard->instance();
+
+        NativeArtboardPtr->advance(0);
+
+        
+        DefaultStateMachinePtr = MakeUnique<Core::FURStateMachine>(NativeArtboardPtr.get());
+    }
+}
+
+UE::Rive::Core::FURArtboard::FURArtboard(rive::File* InNativeFilePtr, const FString& InName)
+{
+    if (!InNativeFilePtr) return;
+    
+    if (rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(std::string(TCHAR_TO_UTF8(*InName))))
     {
         NativeArtboardPtr = NativeArtboard->instance();
 
@@ -60,8 +77,7 @@ UE::Rive::Core::FURStateMachine* UE::Rive::Core::FURArtboard::GetStateMachine() 
 {
     if (!DefaultStateMachinePtr)
     {
-        UE_LOG(LogRive, Error, TEXT("Could not retrieve state machine as we have detected an empty rive artboard."));
-
+        // Not all artboards have state machines, so let's not error it out
         return nullptr;
     }
 

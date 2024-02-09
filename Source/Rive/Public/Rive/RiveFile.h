@@ -192,6 +192,10 @@ public:
 
 public:
 
+    // Called to create a new rive file instance at runtime
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    URiveFile* CreateInstance(UObject* InOuter);
+    
     UFUNCTION(BlueprintCallable, Category = Rive)
     void FireTrigger(const FString& InPropertyName) const;
 
@@ -240,6 +244,7 @@ public:
 #endif // WITH_EDITOR
     
     void Initialize();
+    void InstanceArtboard();
 
     void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
@@ -285,6 +290,19 @@ public:
     UPROPERTY(VisibleAnywhere, Category=Rive)
     TMap<uint32, TObjectPtr<URiveAsset>> Assets;
 
+    TMap<uint32, TObjectPtr<URiveAsset>>& GetAssets()
+    {
+        if (ParentRiveFile)
+        {
+            return ParentRiveFile->GetAssets();
+        }
+
+        return Assets;
+    }
+    
+    UPROPERTY(VisibleAnywhere)
+    TObjectPtr<URiveFile> ParentRiveFile;
+
 protected:
 
     UPROPERTY(BlueprintAssignable)
@@ -292,6 +310,12 @@ protected:
 
     UPROPERTY(BlueprintReadWrite, Category = Rive)
     TArray<FRiveEvent> TickRiveReportedEvents;
+
+public:
+
+    // Index of the artboard this Rive file instance will default to
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
+    int32 ArtboardIndex;
     
 private:
 
@@ -324,10 +348,34 @@ private:
     bool bDrawOnceTest = false;
 
     UE::Rive::Core::FURArtboardPtr Artboard;
-
+    
     rive::Span<const uint8> RiveNativeFileSpan;
+    rive::Span<const uint8>& GetNativeFileSpan()
+    {
+        if (ParentRiveFile)
+        {
+            return ParentRiveFile->GetNativeFileSpan();
+        }
 
+        return RiveNativeFileSpan;
+    }
+
+    
     std::unique_ptr<rive::File> RiveNativeFilePtr;
+    rive::File* GetNativeFile() const
+    {
+        if (ParentRiveFile)
+        {
+            return ParentRiveFile->GetNativeFile();
+        }
+
+        if (RiveNativeFilePtr)
+        {
+            return RiveNativeFilePtr.get();
+        }
+
+        return nullptr;
+    }
 
     void PrintStats();
 };

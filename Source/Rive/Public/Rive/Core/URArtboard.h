@@ -36,8 +36,9 @@ namespace UE::Rive::Core
 
 #if WITH_RIVE
 
-        explicit FURArtboard(rive::File* InNativeFilePtr);
-
+    	FURArtboard(rive::File* InNativeFilePtr);
+		FURArtboard(rive::File* InNativeFilePtr, int32 InIndex);
+    	FURArtboard(rive::File* InNativeFilePtr, const FString& InName);
         /**
          * Implementation(s)
          */

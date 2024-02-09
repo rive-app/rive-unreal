@@ -33,6 +33,10 @@ namespace UE::Rive::Core
 
         ~FURStateMachine() = default;
 
+    	bool IsValid()
+    	{
+    		return NativeStateMachinePtr != nullptr;
+    	}
 #if WITH_RIVE
 
         explicit FURStateMachine(rive::ArtboardInstance* InNativeArtboardInst);

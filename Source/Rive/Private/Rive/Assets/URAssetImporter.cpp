@@ -46,7 +46,7 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 	// TODO: We should just go ahead and search Registry for this asset, and load it here
 	{
 		// There shouldn't be anything in RiveFile->Assets, as this AssetImporter is meant to only be called on the Riv first load.
-		TObjectPtr<URiveAsset>* RiveAssetPtr = RiveFile->Assets.Find(InAsset.assetId());
+		TObjectPtr<URiveAsset>* RiveAssetPtr = RiveFile->GetAssets().Find(InAsset.assetId());
 
 		if (RiveAssetPtr)
 		{
@@ -99,7 +99,7 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 	
 	if (bIsInBand)
 	{
-		RiveFile->Assets.Add(InAsset.assetId(), RiveAsset);
+		RiveFile->GetAssets().Add(InAsset.assetId(), RiveAsset);
 		return true;
 	}
 	
@@ -109,7 +109,7 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 		RiveAsset->LoadFromDisk();
 	}
 
-	RiveFile->Assets.Add(InAsset.assetId(), RiveAsset);
+	RiveFile->GetAssets().Add(InAsset.assetId(), RiveAsset);
 	return true;
 }
 
