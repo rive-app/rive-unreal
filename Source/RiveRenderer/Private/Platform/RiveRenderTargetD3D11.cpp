@@ -1,11 +1,10 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveRenderTargetD3D11.h"
-#include "RiveRendererD3D11.h"
-#include "RenderGraphBuilder.h"
 
 #if PLATFORM_WINDOWS
-
+#include "RiveRendererD3D11.h"
+#include "RenderGraphBuilder.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
@@ -21,10 +20,9 @@ THIRD_PARTY_INCLUDES_END
 
 UE_DISABLE_OPTIMIZATION
 
-UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedPtr<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
-	: FRiveRenderTarget(InRiveRendererD3D11, InRiveName, InRenderTarget)
+UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+	: FRiveRenderTarget(InRiveRendererD3D11, InRiveName, InRenderTarget), RiveRendererD3D11(InRiveRendererD3D11)
 {
-	RiveRendererD3D11 = InRiveRendererD3D11;
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Initialize()
@@ -175,10 +173,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 			LastResetTime = Now;
 		}
 	}
-
-	ResetBlendState();
 	
 	GraphBuilder.Execute();
+	
+	ResetBlendState();
 }
 
 std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetPLSRenderer(const FLinearColor DebugColor) const

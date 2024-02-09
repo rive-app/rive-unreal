@@ -30,7 +30,7 @@ namespace UE::Rive::Renderer::Private
 
 	public:
 
-		FRiveRenderTargetD3D11(const TSharedPtr<FRiveRendererD3D11>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
+		FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
 
 		//~ BEGIN : IRiveRenderTarget Interface
 
@@ -65,7 +65,7 @@ namespace UE::Rive::Renderer::Private
 		void ResetBlendState() const;
 
 	private:
-		TSharedPtr<FRiveRendererD3D11> RiveRendererD3D11;
+		TSharedRef<FRiveRendererD3D11> RiveRendererD3D11;
 
 		rive::rcp<rive::pls::PLSRenderTargetD3D> CachedPLSRenderTargetD3D;
 
