@@ -25,7 +25,7 @@ namespace UE::Rive::Renderer::Private
 		 */
 
 	public:
-		
+
 		FRiveRendererD3D11();
 
 		~FRiveRendererD3D11() = default;
@@ -35,7 +35,7 @@ namespace UE::Rive::Renderer::Private
 	public:
 
 		virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) override;
-		
+
 		virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
 
 		virtual void CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList) override;

@@ -7,6 +7,8 @@
 
 #if PLATFORM_WINDOWS
 #include "Platform/RiveRendererD3D11.h"
+#elif PLATFORM_APPLE
+#include "Platform/RiveRendererMetal.h"
 #elif PLATFORM_ANDROID
 #include "Platform/RiveRendererOpenGL.h"
 #endif // PLATFORM_WINDOWS
@@ -17,6 +19,9 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
     
+    LoadDll();
+    
+    check(GDynamicRHI);
     // Create Platform Specific Renderer
     RiveRenderer = nullptr;
     switch (RHIGetInterfaceType())
@@ -40,6 +45,14 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
             break;
         }
 #endif // PLATFORM_ANDROID
+#if PLATFORM_APPLE
+        case ERHIInterfaceType::Metal:
+        {
+            RiveRenderer = MakeShared<FRiveRendererMetal>();
+            
+            break;
+        }
+#endif // PLATFORM_APPLE
     case ERHIInterfaceType::Vulkan:
         {
             break;
@@ -86,20 +99,19 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
 #if PLATFORM_WINDOWS
-    //todo: check if we need to have harfbuzz as a dynamic dll for windows
-    // {
-    //     FString Path = TEXT("rive_harfbuzz.dll");
-    //     RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*Path);
-    //     if (RiveHarfbuzzDllHandle != nullptr)
-    //     {
-    //         UE_LOG(LogRiveRenderer, Warning, TEXT("Loaded RiveHarfbuzz from '%s'"), *Path);
-    //     }
-    //     else
-    //     {
-    //         UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *Path);
-    //         return false;
-    //     }
-    // }
+    {
+        FString Path = TEXT("rive_harfbuzz.dll");
+        RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*Path);
+        if (RiveHarfbuzzDllHandle != nullptr)
+        {
+            UE_LOG(LogRiveRenderer, Warning, TEXT("Loaded RiveHarfbuzz from '%s'"), *Path);
+        }
+        else
+        {
+            UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *Path);
+            return false;
+        }
+    }
 #elif PLATFORM_ANDROID
     FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
     {
@@ -115,19 +127,19 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
             return false;
         }
     }
-    {
-        const FString Path = TEXT("libGLESv2.so"); //todo: check if needed
-        libGLESv2DllHandle = FPlatformProcess::GetDllHandle(*Path);
-        if (libGLESv2DllHandle != nullptr)
-        {
-             RIVE_DEBUG_VERBOSE("Loaded libGLESv2 from '%s'", *Path);
-        }
-        else
-        {
-            UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load libGLESv2 from '%s'"), *Path);
-            return false;
-        }
-    }
+    // {
+    //     const FString Path = TEXT("libGLESv2.so"); //todo: check if needed
+    //     libGLESv2DllHandle = FPlatformProcess::GetDllHandle(*Path);
+    //     if (libGLESv2DllHandle != nullptr)
+    //     {
+    //          RIVE_DEBUG_VERBOSE("Loaded libGLESv2 from '%s'", *Path);
+    //     }
+    //     else
+    //     {
+    //         UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load libGLESv2 from '%s'"), *Path);
+    //         return false;
+    //     }
+    // }
     
 #endif
     return true;

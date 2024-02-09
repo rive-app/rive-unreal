@@ -44,7 +44,7 @@ public class RiveLibrary : ModuleRules
             string RiveLibPng = "rive_libpng" + LibPostfix + ".lib";
             string RiveSheenBidiStaticLibName = "rive_sheenbidi" + LibPostfix + ".lib";
             string RiveHarfBuzzStaticLibName = "rive_harfbuzz" + LibPostfix + ".lib";
-            // string RiveHarfBuzzDynamicLibName = "rive_harfbuzz" + LibPostfix + ".dll";
+            string RiveHarfBuzzDynamicLibName = "rive_harfbuzz" + LibPostfix + ".dll";
             string RiveStaticLibName = "rive" + LibPostfix + ".lib";
             string RiveDecodersStaticLibName = "rive_decoders" + LibPostfix + ".lib";
             string RivePlsLibName = "rive_pls_renderer" + LibPostfix + ".lib";
@@ -60,15 +60,46 @@ public class RiveLibrary : ModuleRules
                     Path.Combine(LibDirectory, RiveLibPng)
                 }
             );
+            PublicDelayLoadDLLs.Add(RiveHarfBuzzDynamicLibName);
+            RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", RiveHarfBuzzDynamicLibName),Path.Combine(LibDirectory, RiveHarfBuzzDynamicLibName));
 
             bIsPlatformAdded = true;
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Mac");
+            string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + ".a"; ;
+            string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + ".a"; ;
+            string RiveStaticLibName = "librive" + LibPostfix + ".a"; ;
+            string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + ".a"; ;
+            string RivePlsLibName = "librive_pls_renderer" + LibPostfix + ".a"; ;
+            string RiveLibPng = "liblibpng" + LibPostfix + ".a";
 
-            // NOTE : Link MacOS Libraries
+            PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
+                , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
+                , Path.Combine(LibDirectory, RiveStaticLibName)
+                , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
+                , Path.Combine(LibDirectory, RivePlsLibName)
+                , Path.Combine(LibDirectory, RiveLibPng) });
 
+            bIsPlatformAdded = true;
+        }
+        else if (Target.Platform == UnrealTargetPlatform.IOS)
+        {
+            string LibDirectory = Path.Combine(RootDir, "Libraries", "IOS");
+            string LibExt = (Target.Architecture == UnrealArch.IOSSimulator) ? ".sim.a" : ".a";
+            string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + LibExt; ;
+            string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + LibExt; ;
+            string RiveStaticLibName = "librive" + LibPostfix + LibExt; ;
+            string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + LibExt; ;
+            string RivePlsLibName = "librive_pls_renderer" + LibPostfix + LibExt; ;
+            
+            PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
+                , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
+                , Path.Combine(LibDirectory, RiveStaticLibName)
+                , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
+                , Path.Combine(LibDirectory, RivePlsLibName) });
+            
             bIsPlatformAdded = true;
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
@@ -78,7 +109,6 @@ public class RiveLibrary : ModuleRules
             
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Android");
             string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + ".a";
-            // string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + ".a";
             string RiveHarfBuzzSharedLibName = "librive_harfbuzz" + LibPostfix + ".so";
             string RiveStaticLibName = "librive" + LibPostfix + ".a"; ;
             string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + ".a";

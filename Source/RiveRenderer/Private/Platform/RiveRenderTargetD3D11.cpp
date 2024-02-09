@@ -28,16 +28,16 @@ UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(cons
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Initialize()
 {
 	check(IsInGameThread());
-	
+
 	FScopeLock Lock(&ThreadDataCS);
 
 	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
-	
+
 	ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)(
-	[RenderTargetResource, this](FRHICommandListImmediate& RHICmdList)
-	{
-		CacheTextureTarget_RenderThread(RHICmdList, RenderTargetResource->TextureRHI->GetTexture2D());
-	});
+		[RenderTargetResource, this](FRHICommandListImmediate& RHICmdList)
+		{
+			CacheTextureTarget_RenderThread(RHICmdList, RenderTargetResource->TextureRHI->GetTexture2D());
+		});
 
 }
 
@@ -106,7 +106,7 @@ DECLARE_GPU_STAT_NAMED(DrawArtboard, TEXT("FRiveRenderTargetD3D11::DrawArtboard"
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
 {
 	FRDGBuilder GraphBuilder(RHICmdList);
-	
+
 	SCOPED_GPU_STAT(RHICmdList, DrawArtboard);
 
 	check(IsInRenderingThread());
@@ -170,7 +170,7 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	}
 
 	FColor ClearColor = DebugColor.ToRGBE();
-	
+
 	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
 	FrameDescriptor.renderTarget = CachedPLSRenderTargetD3D;
 	FrameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;

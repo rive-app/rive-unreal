@@ -1,5 +1,6 @@
-#include "Rive/Assets/RiveAsset.h"
+// Copyright Rive, Inc. All rights reserved.
 
+#include "Rive/Assets/RiveAsset.h"
 #include "Logs/RiveLog.h"
 #include "rive/factory.hpp"
 

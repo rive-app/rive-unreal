@@ -66,7 +66,7 @@ void URiveFile::Tick(float InDeltaSeconds)
         {
             if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
             {
-                // FScopeLock Lock(&RiveRenderTarget->GetThreadDataCS()); //todo: if uncommented, the packaging for Android fails for some reason. To be looked at
+                FScopeLock Lock(&RiveRenderTarget->GetThreadDataCS());
                 if (!bIsReceivingInput)
                 {
                     auto AdvanceStateMachine = [this, StateMachine, InDeltaSeconds]()

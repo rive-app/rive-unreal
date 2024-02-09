@@ -1,4 +1,6 @@
-﻿#include "Rive/Assets/URAssetHelpers.h"
+﻿// Copyright Rive, Inc. All rights reserved.
+
+#include "Rive/Assets/URAssetHelpers.h"
 #include "Rive/Assets/RiveAsset.h"
 
 TArray<FString> URAssetHelpers::AssetPaths(const FString& InBasePath, URiveAsset* InRiveAsset, const TArray<FString>& InExtensions)

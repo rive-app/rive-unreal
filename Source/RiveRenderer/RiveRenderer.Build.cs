@@ -49,8 +49,7 @@ public class RiveRenderer : ModuleRules
 			PublicIncludePathModuleNames.AddAll("D3D11RHI"); // , "D3D12RHI");
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
-			
-			// AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+            // AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 		}
 		else if (Target.Platform.IsInGroup(UnrealPlatformGroup.Android))
 		{
@@ -69,5 +68,11 @@ public class RiveRenderer : ModuleRules
 			PublicIncludePaths.Add(Path.Combine(sourcePath));
 			PublicIncludePaths.Add(Path.Combine(sourcePath, "Android"));
 		}
+        else if (Target.Platform.IsInGroup(UnrealPlatformGroup.Apple))
+        {
+            PublicIncludePathModuleNames.AddAll("MetalRHI");
+            
+            PublicDependencyModuleNames.Add("MetalRHI");
+        }
 	}
 }

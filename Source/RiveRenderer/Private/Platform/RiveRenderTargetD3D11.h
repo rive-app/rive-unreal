@@ -52,9 +52,9 @@ namespace UE::Rive::Renderer::Private
 
 		// It Might need to be on rendering thread, render QUEUE is required
 		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const override;
-		
+
 		//~ END : FRiveRenderTarget Interface
-		
+
 		/**
 		 * Attribute(s)
 		 */

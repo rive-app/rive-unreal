@@ -25,9 +25,9 @@ UE::Rive::Renderer::Private::FRiveRendererD3D11::FRiveRendererD3D11()
 TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererD3D11::CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
 {
 	check(IsInGameThread());
-	
+
 	const TSharedPtr<FRiveRenderTargetD3D11> RiveRenderTarget = MakeShared<FRiveRenderTargetD3D11>(SharedThis(this), InRiveName, InRenderTarget);
-	
+
 	RenderTargets.Add(InRiveName, RiveRenderTarget);
 
 	return RiveRenderTarget;
@@ -61,16 +61,14 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 				DXGIAdapter->GetDesc(&AdapterDesc);
 
 				ContextOptions.isIntel = AdapterDesc.VendorId == 0x163C ||
-						  AdapterDesc.VendorId == 0x8086 || AdapterDesc.VendorId == 0x8087;
+					AdapterDesc.VendorId == 0x8086 || AdapterDesc.VendorId == 0x8087;
 
 				DXGIAdapter->Release();
 			}
 		}
 
 #if WITH_RIVE
-
 		PLSRenderContext = rive::pls::PLSRenderContextD3DImpl::MakeContext(D3D11DevicePtr, D3D11DeviceContext, ContextOptions);
-
 #endif // WITH_RIVE
 	}
 }
@@ -93,21 +91,13 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderTh
 	SCOPED_GPU_STAT(RHICmdList, CreatePLSRenderer);
 
 	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
-
 	FrameDescriptor.renderTarget = nullptr;
-	
 	FrameDescriptor.loadAction = rive::pls::LoadAction::clear;
-	
 	FrameDescriptor.clearColor = 0x00000000;
-	
 	FrameDescriptor.wireframe = false;
-	
 	FrameDescriptor.fillsDisabled = false;
-	
 	FrameDescriptor.strokesDisabled = false;
-
-	// PLSRenderContext->beginFrame(std::move(FrameDescriptor)); // calling begin without flush, what is this for?
-
+	
 	PLSRenderer = std::make_unique<rive::pls::PLSRenderer>(PLSRenderContext.get());
 
 #endif // WITH_RIVE

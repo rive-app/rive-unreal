@@ -48,8 +48,8 @@ namespace UE::Rive::Renderer::Private
 		virtual uint32 GetWidth() const override;
 		
 		virtual uint32 GetHeight() const override;
-
-		// virtual FCriticalSection& GetThreadDataCS() override { return ThreadDataCS; }
+		
+		virtual FCriticalSection& GetThreadDataCS() override { return ThreadDataCS; }
 	
 		//~ END : IRiveRenderTarget Interface
 
