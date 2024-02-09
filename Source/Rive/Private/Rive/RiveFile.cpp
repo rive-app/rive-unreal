@@ -296,41 +296,55 @@ FIntPoint URiveFile::CalculateRenderTextureSize(const FIntPoint& InViewportSize)
 #if WITH_RIVE
     const FVector2f ArtboardSize = GetArtboard()->GetSize();
     const float TextureAspectRatio = ArtboardSize.X / ArtboardSize.Y;
+    const float ViewportAspectRatio = static_cast<float>(InViewportSize.X) / InViewportSize.Y;
     
     switch (RiveFitType)
     {
         case ERiveFitType::Fill:
             NewSize = InViewportSize;
             break;
+        case ERiveFitType::ScaleDown:  // Take up maximum texture size, or scale it down while containing the texture
         case ERiveFitType::Contain:
-            // Ensures one dimension takes up the container space fully, without clipping
-            if (InViewportSize.X > InViewportSize.Y)
             {
-                NewSize = {
-                    static_cast<int>(InViewportSize.Y / TextureAspectRatio),
-                    InViewportSize.Y
-                };
-            } else
-            {
-                NewSize = {
-                    static_cast<int>(InViewportSize.X / TextureAspectRatio),
-                    InViewportSize.X
-                };
-            }
-            break;
-        case ERiveFitType::Cover:
-            {
-                // This Ensures one of the dimensions will always take up container space fully, with clipping
-                if (InViewportSize.X > InViewportSize.Y)
+                // Ensures one dimension takes up the container space fully, without clipping
+                if (ViewportAspectRatio > TextureAspectRatio)
+                {
+                    NewSize = {
+                        static_cast<int>(InViewportSize.Y * TextureAspectRatio),
+                        InViewportSize.Y
+                    };
+                }
+                else
                 {
                     NewSize = {
                         InViewportSize.X,
                         static_cast<int>(InViewportSize.X / TextureAspectRatio)
                     };
-                } else
+                }
+                // If we want to scale down and the contain size is bigger, revert to the Artboard size
+                if (RiveFitType == ERiveFitType::ScaleDown)
+                {
+                    if (NewSize.X > SizeX || NewSize.Y > SizeY)
+                    {
+                        NewSize = { SizeX, SizeY };
+                    }
+                }
+                break;
+            }
+        case ERiveFitType::Cover:
+            {
+                // This Ensures one of the dimensions will always take up container space fully, with clipping
+                if (ViewportAspectRatio > TextureAspectRatio)
                 {
                     NewSize = {
-                        static_cast<int>(InViewportSize.Y / TextureAspectRatio),
+                        InViewportSize.X,
+                        static_cast<int>(InViewportSize.X / TextureAspectRatio)
+                    };
+                }
+                else
+                {
+                    NewSize = {
+                        static_cast<int>(InViewportSize.Y * TextureAspectRatio),
                         InViewportSize.Y
                     };
                 }
@@ -346,28 +360,16 @@ FIntPoint URiveFile::CalculateRenderTextureSize(const FIntPoint& InViewportSize)
         case ERiveFitType::FitHeight:
             // Force to take up the screenspace height; Maintain aspect ratio, can clip
             NewSize = {
-                static_cast<int>(InViewportSize.Y / TextureAspectRatio),
+                static_cast<int>(InViewportSize.Y * TextureAspectRatio),
                 InViewportSize.Y
             };
             break;
         case ERiveFitType::None:
             NewSize = { SizeX, SizeY };
             break;
-        case ERiveFitType::ScaleDown:
-            // Take up maximum texture size, or scale it down
-            if (InViewportSize.X < SizeX)
-            {
-                NewSize = {
-                    InViewportSize.X,
-                    static_cast<int>(InViewportSize.X / TextureAspectRatio)
-                };
-            } else if (InViewportSize.Y < SizeY)
-            {
-                NewSize = {
-                    InViewportSize.Y,
-                    static_cast<int>(InViewportSize.Y / TextureAspectRatio)
-                };
-            }
+        default:
+            NewSize = { SizeX, SizeY };
+            UE_LOG(LogRive, Error, TEXT("Unknown Fit Type for Rive File"))
             break;
     }
 #endif // WITH_RIVE
