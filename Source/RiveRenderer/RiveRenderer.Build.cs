@@ -1,5 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
+using System.IO;
 using EpicGames.Core;
 using UnrealBuildTool;
 
@@ -50,8 +51,24 @@ public class RiveRenderer : ModuleRules
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
             // AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 		}
-        
-        if (Target.Platform.IsInGroup(UnrealPlatformGroup.Apple))
+		else if (Target.Platform.IsInGroup(UnrealPlatformGroup.Android))
+		{
+			PublicDependencyModuleNames.Add("OpenGLDrv");
+			PublicDependencyModuleNames.Add("OpenGL");
+			
+			PublicIncludePathModuleNames.AddAll("RHICore", "OpenGLDrv");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+			
+			// The below is needed to include private headers from OpenGLDrv, allowing us to call directly some OpenGL functions
+			string enginePath = Path.GetFullPath(Target.RelativeEnginePath);
+			string sourcePath = Path.Combine(enginePath, "Source", "Runtime", "OpenGLDrv", "Private");
+			
+			PrivateIncludePaths.Add(Path.Combine(sourcePath));
+			PrivateIncludePaths.Add(Path.Combine(sourcePath, "Android"));
+			PublicIncludePaths.Add(Path.Combine(sourcePath));
+			PublicIncludePaths.Add(Path.Combine(sourcePath, "Android"));
+		}
+        else if (Target.Platform.IsInGroup(UnrealPlatformGroup.Apple))
         {
             PublicIncludePathModuleNames.AddAll("MetalRHI");
             

@@ -15,6 +15,7 @@ namespace rive
 
 namespace math
 {
+constexpr float PI = 3.14159265f;
 constexpr float SQRT2 = 1.41421356f;
 constexpr float EPSILON = 1.f / (1 << 12); // Common threshold for detecting values near zero.
 

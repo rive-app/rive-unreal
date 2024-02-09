@@ -151,6 +151,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
+	return; // TODO: When is this function needed?
 #if WITH_RIVE
 
 	if (PLSRenderContext == nullptr)
@@ -171,7 +172,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderTh
 	FrameDescriptor.wireframe = false;
 	FrameDescriptor.fillsDisabled = false;
 	FrameDescriptor.strokesDisabled = false;
-
+	
 	PLSRenderer = std::make_unique<rive::pls::PLSRenderer>(PLSRenderContext.get());
 }
 

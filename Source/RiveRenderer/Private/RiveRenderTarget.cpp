@@ -4,6 +4,7 @@
 
 #include "RiveRenderer.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Logs/RiveRendererLog.h"
 
 FTimespan UE::Rive::Renderer::Private::FRiveRenderTarget::ResetTimeLimit = FTimespan(0, 0, 20);
 
@@ -14,6 +15,12 @@ UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedR
 	, RiveName(InRiveName)
 	, RenderTarget(InRenderTarget)
 {
+	RIVE_DEBUG_FUNCTION_INDENT;
+}
+
+UE::Rive::Renderer::Private::FRiveRenderTarget::~FRiveRenderTarget()
+{
+	RIVE_DEBUG_FUNCTION_INDENT;
 }
 
 uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetWidth() const

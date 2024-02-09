@@ -28,7 +28,7 @@ namespace UE::Rive::Renderer::Private
 
         FRiveRenderer();
 
-        virtual ~FRiveRenderer();
+        virtual ~FRiveRenderer() override;
 
         //~ BEGIN : IRiveRenderer Interface
     
@@ -74,7 +74,7 @@ namespace UE::Rive::Renderer::Private
 
         mutable FCriticalSection ThreadDataCS;
 
-    private:
+    protected:
 
         bool bIsInitialized = false;
     };

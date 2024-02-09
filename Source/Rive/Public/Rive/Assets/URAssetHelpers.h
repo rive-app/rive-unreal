@@ -1,4 +1,6 @@
-﻿#pragma once
+// Copyright Rive, Inc. All rights reserved.
+
+#pragma once
 
 class URiveAsset;
 struct FURAsset;

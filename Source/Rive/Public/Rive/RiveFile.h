@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IRiveRendererModule.h"
 #include "IRiveRenderTarget.h"
 #include "Core/URArtboard.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -254,6 +255,11 @@ private:
      * Attribute(s)
      */
 
+    // TODO. REMOVE IT!! Temporary switches for Android testng
+    TObjectPtr<UTextureRenderTarget2D> GetRenderTargetToDrawOnto()
+    {
+        return UE::Rive::Renderer::IRiveRendererModule::DrawStraightOnRiveFile() ? this : RenderTarget;
+    }
 public:
 
     UPROPERTY(EditAnywhere, Category = Rive)
@@ -307,7 +313,8 @@ private:
 
     UPROPERTY(EditAnywhere, Category=Rive)
     TSubclassOf<UUserWidget> WidgetClass;
-    
+
+    bool bIsFileImported = false; //todo: find a better way to do this
     bool bIsInitialized = false;
 
     bool bIsReceivingInput = false;

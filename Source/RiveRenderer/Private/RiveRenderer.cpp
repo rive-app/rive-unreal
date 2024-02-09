@@ -7,10 +7,12 @@
 
 UE::Rive::Renderer::Private::FRiveRenderer::FRiveRenderer()
 {
+    RIVE_DEBUG_FUNCTION_INDENT;
 }
 
 UE::Rive::Renderer::Private::FRiveRenderer::~FRiveRenderer()
 {
+    RIVE_DEBUG_FUNCTION_INDENT;
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
@@ -23,7 +25,6 @@ void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
     [this](FRHICommandListImmediate& RHICmdList)
     {
         CreatePLSContext_RenderThread(RHICmdList);
-
         CreatePLSRenderer_RenderThread(RHICmdList);
     });
 
