@@ -1,7 +1,7 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveRenderTargetD3D11.h"
-
+#include "RiveRendererD3D11.h"
 #include "RenderGraphBuilder.h"
 
 #if PLATFORM_WINDOWS
@@ -21,9 +21,10 @@ THIRD_PARTY_INCLUDES_END
 
 UE_DISABLE_OPTIMIZATION
 
-UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
-	: FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget)
+UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedPtr<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+	: FRiveRenderTarget(InRiveRendererD3D11, InRiveName, InRenderTarget)
 {
+	RiveRendererD3D11 = InRiveRendererD3D11;
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Initialize()
@@ -175,6 +176,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 		}
 	}
 
+	ResetBlendState();
+	
 	GraphBuilder.Execute();
 }
 
@@ -211,6 +214,13 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
 
 	return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
+}
+
+void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::ResetBlendState() const
+{
+	check(IsInRenderingThread());
+
+	RiveRendererD3D11->ResetBlendState();
 }
 
 #endif // WITH_RIVE

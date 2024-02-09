@@ -9,7 +9,7 @@ FTimespan UE::Rive::Renderer::Private::FRiveRenderTarget::ResetTimeLimit = FTime
 
 UE_DISABLE_OPTIMIZATION
 
-UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedPtr<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
 	: RiveRenderer(InRiveRenderer)
 	, RiveName(InRiveName)
 	, RenderTarget(InRenderTarget)
