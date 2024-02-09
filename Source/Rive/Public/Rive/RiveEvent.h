@@ -111,7 +111,7 @@ public:
     float DelayInSeconds = 0.f;
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
-    FString Name = "None";
+    FString Name = TEXT("None");
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
     uint8 Type = 0;
@@ -130,7 +130,7 @@ private:
     static constexpr int32 BooleanProperty = 129;
     static constexpr int32 StringProperty = 130;
 
-    UPROPERTY()
+    // UPROPERTY()
     FGuid Id = FGuid::NewGuid();
 };
 

@@ -63,10 +63,8 @@ namespace UE::Rive::Renderer
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) = 0;
 		
 		virtual uint32 GetWidth() const = 0;
-		
 		virtual uint32 GetHeight() const = 0;
-
+		
 		virtual FCriticalSection& GetThreadDataCS() = 0;
-
 	};
 }

@@ -40,10 +40,14 @@ namespace UE::Rive::Renderer
 
 		virtual IRiveRenderer* GetRenderer() = 0;
 
+		virtual void CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate&& Delegate) = 0;
+
 		/**
 		 * Attribute(s)
 		 */
-
+		// TODO. REMOVE IT!! Temporary switches for Android testng
+		static bool RunInGameThread() { return true; }
+		static bool DrawStraightOnRiveFile() { return true; }
 	private:
 
 		static constexpr const TCHAR* ModuleName = TEXT("RiveRenderer");

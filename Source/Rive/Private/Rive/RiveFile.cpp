@@ -10,6 +10,7 @@
 #include "Rive/Assets/URFileAssetLoader.h"
 #include "RiveRendererUtils.h"
 
+
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
 #include "rive/pls/pls_render_context.hpp"
@@ -20,7 +21,7 @@ URiveFile::URiveFile()
 {
     OverrideFormat = EPixelFormat::PF_R8G8B8A8;
 
-    bCanCreateUAV = true;
+    bCanCreateUAV = false;
 
     // TODO. We might need extra texture to Draw rive separately and copy to this
 
@@ -34,91 +35,125 @@ TStatId URiveFile::GetStatId() const
     RETURN_QUICK_DECLARE_CYCLE_STAT(URiveFile, STATGROUP_Tickables);
 }
 
-UE_DISABLE_OPTIMIZATION
-
 void URiveFile::Tick(float InDeltaSeconds)
 {
+#if WITH_RIVE
+    if (!bIsInitialized && bIsFileImported && Artboard)
+    {
+        UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+
+        const FVector2f ArtboardSize = Artboard->GetSize();
+        constexpr bool bInForceLinearGamma = true; // needed to be true for Android
+
+        OverrideFormat = PF_R8G8B8A8;
+        SRGB = false;
+        RenderTargetFormat = RTF_RGBA8;
+        InitCustomFormat(ArtboardSize.X, ArtboardSize.Y, OverrideFormat, bInForceLinearGamma);
+        UpdateResourceImmediate(true);
+
+        RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
+        FlushRenderingCommands();
+        RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTargetToDrawOnto());
+        RiveRenderTarget->Initialize();
+
+        bIsInitialized = true;
+    }
     if (bIsInitialized && bIsRendering)
     {
-#if WITH_RIVE
-
-        // Empty reported events at the begining
+        // Empty reported events at the beginning
         TickRiveReportedEvents.Empty();
-        
         if (Artboard)
         {
             if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
             {
                 FScopeLock Lock(&RiveRenderTarget->GetThreadDataCS());
                 if (!bIsReceivingInput)
-                {                    
-                    if (StateMachine->HasAnyReportedEvents())
+                {
+                    auto AdvanceStateMachine = [this, StateMachine, InDeltaSeconds]()
                     {
-                        PopulateReportedEvents();
+                        if (StateMachine->HasAnyReportedEvents())
+                        {
+                            PopulateReportedEvents();
+                        }
+#if PLATFORM_ANDROID
+                        UE_LOG(LogRive, Verbose, TEXT("[%s] StateMachine->Advance"), IsInRHIThread() ? TEXT("RHIThread") : (IsInRenderingThread() ? TEXT("RenderThread") : TEXT("OtherThread")));
+#endif
+                        StateMachine->Advance(InDeltaSeconds);
+                    };
+                    if (UE::Rive::Renderer::IRiveRendererModule::RunInGameThread())
+                    {
+                        AdvanceStateMachine();
                     }
-                    
-                    StateMachine->Advance(InDeltaSeconds);
+                    else
+                    {
+                        ENQUEUE_RENDER_COMMAND(DrawArtboard)(
+                        [AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](FRHICommandListImmediate& RHICmdList) mutable
+                        {
+#if PLATFORM_ANDROID
+                                RHICmdList.EnqueueLambda(TEXT("StateMachine->Advance"),
+                                    [AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](FRHICommandListImmediate& RHICmdList)
+                                {
+#endif
+                                    AdvanceStateMachine();
+#if PLATFORM_ANDROID
+                                });
+#endif
+                        });
+                    }
                 }
             }
 
-        const FVector2f RiveAlignmentXY = GetRiveAlignment();
 
-        RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y, Artboard->GetNativeArtboard(), DebugColor);
+            const FVector2f RiveAlignmentXY = GetRiveAlignment();
+            RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y, Artboard->GetNativeArtboard(), DebugColor);
+            bDrawOnceTest = true;
+        }
 
-        bDrawOnceTest = true;
+        // Copy from render target
+        // TODO. move from here
+        // Separate target might be needed to let Rive draw only to separate texture
+        if (GetRenderTargetToDrawOnto() != this)
+        {
+            FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
+            FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+
+            ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
+                [this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
+                {
+                    UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
+                    // RHICmdList.CopyTexture(RenderTarget->GetResource()->TextureRHI, GetResource()->TextureRHI, FRHICopyTextureInfo());
+                });
+        }
+        // FlushRenderingCommands();
     }
-        
-    // Copy from render target
-    // TODO. move from here
-    // Separate target might be needed to let Rive draw only to separate texture
-    {
-        FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
-
-        FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
-
-        ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
-            [this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
-            {
-                UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
-            });
-    }
-
 #endif // WITH_RIVE
-    }
 }
 
 UE_ENABLE_OPTIMIZATION
 
 bool URiveFile::IsTickable() const
 {
-    return FTickableGameObject::IsTickable();
+    return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
 }
 
 uint32 URiveFile::CalcTextureMemorySizeEnum(ETextureMipCount Enum) const
 {
     // Calculate size based on format.  All mips are resident on render targets so we always return the same value.
     EPixelFormat Format = GetFormat();
-
     int32 BlockSizeX = GPixelFormats[Format].BlockSizeX;
-
     int32 BlockSizeY = GPixelFormats[Format].BlockSizeY;
-
     int32 BlockBytes = GPixelFormats[Format].BlockBytes;
-
     int32 NumBlocksX = (SizeX + BlockSizeX - 1) / BlockSizeX;
-
     int32 NumBlocksY = (SizeY + BlockSizeY - 1) / BlockSizeY;
-
     int32 NumBytes = NumBlocksX * NumBlocksY * BlockBytes;
-
     return NumBytes;
 }
 
 void URiveFile::PostLoad()
 {
     UObject::PostLoad();
-
-    Initialize();
+    
+    UE::Rive::Renderer::IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &URiveFile::Initialize));
 }
 
 #if WITH_EDITOR
@@ -258,6 +293,7 @@ FIntPoint URiveFile::CalculateRenderTextureSize(const FIntPoint& InViewportSize)
 {
     FIntPoint NewSize = { SizeX, SizeY };
 
+#if WITH_RIVE
     const FVector2f ArtboardSize = GetArtboard()->GetSize();
     const float TextureAspectRatio = ArtboardSize.X / ArtboardSize.Y;
     
@@ -334,7 +370,7 @@ FIntPoint URiveFile::CalculateRenderTextureSize(const FIntPoint& InViewportSize)
             }
             break;
     }
-   
+#endif // WITH_RIVE
     return NewSize;
 }
 
@@ -572,7 +608,6 @@ void URiveFile::Initialize()
     if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
     {
         UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
-
         return;
     }
 
@@ -581,14 +616,12 @@ void URiveFile::Initialize()
     if (!RiveRenderer)
     {
         UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
-
         return;
     }
 
     if (!RiveRenderer->IsInitialized())
     {
         UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer is not initialized."));
-
         return;
     }
     
@@ -596,54 +629,47 @@ void URiveFile::Initialize()
 
     if (RiveNativeFileSpan.empty())
     {
-        RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
-    }
-    
-    if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
-    {
-        TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
-            UE::Rive::Assets::FURFileAssetLoader>(this);
-    
-        rive::ImportResult ImportResult;
-        
-        RiveNativeFilePtr = rive::File::import(
-            RiveNativeFileSpan, PLSRenderContext, &ImportResult, FileAssetLoader.Get());
-        
-        if (ImportResult != rive::ImportResult::success)
+        if (RiveFileData.IsEmpty())
         {
-            UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
-
+            UE_LOG(LogRive, Error, TEXT("Could not load an empty Rive File Data."));
             return;
         }
-
-        Artboard = MakeUnique<UE::Rive::Core::FURArtboard>(RiveNativeFilePtr.get());
-        PrintStats();
+        RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
     }
-    else
+
+    ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
+    [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
     {
-        UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
+#if PLATFORM_ANDROID
+       RHICmdList.EnqueueLambda(TEXT("URiveFile::Initialize"), [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
+       {
+#endif // PLATFORM_ANDROID
+            if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
+            {
+                const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<UE::Rive::Assets::FURFileAssetLoader>(this);
+                rive::ImportResult ImportResult;
 
-        return;
-    }
+                RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult, FileAssetLoader.Get());
 
-    if (Artboard)
-    {
-        const FVector2f ArtboardSize = Artboard->GetSize();
+                if (ImportResult != rive::ImportResult::success)
+                {
+                    UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
+                    return;
+                }
 
-        constexpr bool bInForceLinearGamma = false;
+                Artboard = MakeUnique<UE::Rive::Core::FURArtboard>(RiveNativeFilePtr.get());
+                PrintStats();
+                bIsFileImported = true;
+            }
+            else
+            {
+                UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
+            }
+#if PLATFORM_ANDROID
+        });
+#endif // PLATFORM_ANDROID
+    });
 
-        InitCustomFormat(ArtboardSize.X, ArtboardSize.Y, OverrideFormat, bInForceLinearGamma);
-
-        RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
-
-        FlushRenderingCommands();
-
-        RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), RenderTarget);
-
-        RiveRenderTarget->Initialize();
-
-        bIsInitialized = true;
-    }
 #endif // WITH_RIVE
 }
 
@@ -656,14 +682,14 @@ UE_DISABLE_OPTIMIZATION
 
 UE::Rive::Core::FURArtboard* URiveFile::GetArtboard() const
 {
-    if (!Artboard)
+#if WITH_RIVE
+    if (Artboard)
     {
-        UE_LOG(LogRive, Error, TEXT("Could not retrieve native artboard."));
-
-        return nullptr;
+        return Artboard.Get();
     }
-
-    return Artboard.Get();
+#endif // WITH_RIVE
+    UE_LOG(LogRive, Error, TEXT("Could not retrieve native artboard."));
+    return nullptr;
 }
 
 void URiveFile::PopulateReportedEvents()
@@ -679,7 +705,6 @@ void URiveFile::PopulateReportedEvents()
         for (int32 EventIndex = 0; EventIndex < NumReportedEvents; EventIndex++)
         {
             const rive::EventReport ReportedEvent = StateMachine->GetReportedEvent(EventIndex);
-
             if (ReportedEvent.event() != nullptr)
             {
                 FRiveEvent RiveEvent;
@@ -706,23 +731,18 @@ void URiveFile::PrintStats()
     if (!RiveNativeFilePtr)
     {
         UE_LOG(LogRive, Error, TEXT("Could not print statistics as we have detected an empty rive file."));
-
         return;
     }
 
     FFormatNamedArguments RiveFileLoadArgs;
-
-    RiveFileLoadArgs.Add(TEXT("Major"), FText::AsNumber(RiveNativeFilePtr->majorVersion));
-
-    RiveFileLoadArgs.Add(TEXT("Minor"), FText::AsNumber(RiveNativeFilePtr->minorVersion));
-
-    RiveFileLoadArgs.Add(TEXT("NumArtboards"), FText::AsNumber((int32)RiveNativeFilePtr->artboardCount()));
-
-    RiveFileLoadArgs.Add(TEXT("NumAssets"), FText::AsNumber((int32)RiveNativeFilePtr->assets().size()));
+    RiveFileLoadArgs.Add(TEXT("Major"), FText::AsNumber(static_cast<int>(RiveNativeFilePtr->majorVersion)));
+    RiveFileLoadArgs.Add(TEXT("Minor"), FText::AsNumber(static_cast<int>(RiveNativeFilePtr->minorVersion)));
+    RiveFileLoadArgs.Add(TEXT("NumArtboards"), FText::AsNumber(static_cast<uint32>(RiveNativeFilePtr->artboardCount())));
+    RiveFileLoadArgs.Add(TEXT("NumAssets"), FText::AsNumber(static_cast<uint32>(RiveNativeFilePtr->assets().size())));
 
     if (const rive::Artboard* NativeArtboard = RiveNativeFilePtr->artboard())
     {
-        RiveFileLoadArgs.Add(TEXT("NumAnimations"), FText::AsNumber((int32)NativeArtboard->animationCount()));
+        RiveFileLoadArgs.Add(TEXT("NumAnimations"), FText::AsNumber(static_cast<uint32>(NativeArtboard->animationCount())));
     }
     else
     {

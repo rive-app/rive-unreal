@@ -2,14 +2,13 @@
 
 #include "RiveRenderTargetD3D11.h"
 
-#include "RenderGraphBuilder.h"
-
 #if PLATFORM_WINDOWS
 
 #include "Engine/TextureRenderTarget2D.h"
 #include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderer.h"
+#include "RenderGraphBuilder.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -73,24 +72,17 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 	if (IsRHID3D11() && InTexture.IsValid())
 	{
 		ID3D11DynamicRHI* D3D11RHI = GetID3D11DynamicRHI();
-
 		ID3D11Texture2D* D3D11ResourcePtr = (ID3D11Texture2D*)D3D11RHI->RHIGetResource(InTexture);
 
 		D3D11_TEXTURE2D_DESC Desc;
-
 		D3D11ResourcePtr->GetDesc(&Desc);
-
 		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11ResourcePtr texture %dx%d"), Desc.Width, Desc.Height);
 
 #if WITH_RIVE
-
 		// For now we just set one renderer and one texture
 		rive::pls::PLSRenderContextD3DImpl* const PLSRenderContextD3DImpl = PLSRenderContext->static_impl_cast<rive::pls::PLSRenderContextD3DImpl>();
-
 		CachedPLSRenderTargetD3D = PLSRenderContextD3DImpl->makeRenderTarget(Desc.Width, Desc.Height);
-
 		CachedPLSRenderTargetD3D->setTargetTexture(D3D11ResourcePtr);
-
 #endif // WITH_RIVE
 	}
 }
@@ -122,7 +114,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 	FScopeLock Lock(&ThreadDataCS);
 
 	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
-
 	if (PLSRenderContextPtr == nullptr)
 	{
 		return;
@@ -130,7 +121,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 
 	// Begin Frame
 	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = GetPLSRenderer(DebugColor);
-
 	if (PLSRenderer == nullptr)
 	{
 		return;
@@ -138,13 +128,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 
 	// Align Artboard
 	const rive::Fit& Fit = *reinterpret_cast<rive::Fit*>(&InFit);
-
 	const rive::Alignment& Alignment = rive::Alignment(AlignX, AlignY);
-
 	const uint32 TextureWidth = GetWidth();
-
 	const uint32 TextureHeight = GetHeight();
-
 	rive::Mat2D Transform = rive::computeAlignment(
 		Fit,
 		Alignment,
@@ -161,21 +147,18 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::DrawArtboard_RenderThr
 		PLSRenderContextPtr->flush();
 
 		const FDateTime Now = FDateTime::Now();
-
 		const int32 TimeElapsed = (Now - LastResetTime).GetSeconds();
-
 		if (TimeElapsed >= ResetTimeLimit.GetSeconds())
 		{
 			// Reset
 			PLSRenderContextPtr->shrinkGPUResourcesToFit();
-
 			PLSRenderContextPtr->resetGPUResources();
-
 			LastResetTime = Now;
 		}
 	}
 
 	GraphBuilder.Execute();
+	RHICmdList.PostExternalCommandsReset();
 }
 
 std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetPLSRenderer(const FLinearColor DebugColor) const
@@ -190,17 +173,11 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	FColor ClearColor = DebugColor.ToRGBE();
 
 	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
-
 	FrameDescriptor.renderTarget = CachedPLSRenderTargetD3D;
-
 	FrameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
-
-	FrameDescriptor.clearColor = rive::colorARGB(ClearColor.A, ClearColor.R, ClearColor.G, ClearColor.B);
-
+	FrameDescriptor.clearColor = rive::colorARGB(ClearColor.A, ClearColor.R,ClearColor.G,ClearColor.B);
 	FrameDescriptor.wireframe = false;
-
 	FrameDescriptor.fillsDisabled = false;
-
 	FrameDescriptor.strokesDisabled = false;
 
 	if (bIsCleared == false)

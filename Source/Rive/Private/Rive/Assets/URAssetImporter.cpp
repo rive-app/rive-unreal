@@ -2,8 +2,10 @@
 
 #include "Rive/Assets/URAssetImporter.h"
 
-#include "AssetToolsModule.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#if WITH_EDITOR
+#include "AssetTools/Public/AssetToolsModule.h"
+#endif
 #include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
 #include "Rive/Assets/RiveAsset.h"
@@ -70,10 +72,13 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 		if (AssetData.IsValid())
 		{
 			RiveAsset = Cast<URiveAsset>(AssetData.GetAsset());
-		} else
+		}
+		else
 		{
+#if WITH_EDITOR
 			FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
 			RiveAsset = Cast<URiveAsset>(AssetToolsModule.Get().CreateAsset(AssetName, RiveFolderName, URiveAsset::StaticClass(), nullptr));
+#endif
 		}
 	} else
 	{

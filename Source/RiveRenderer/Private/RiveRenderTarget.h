@@ -28,7 +28,7 @@ namespace UE::Rive::Renderer::Private
 	public:
 
 		FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
-		
+		virtual ~FRiveRenderTarget() override;
 		//~ BEGIN : IRiveRenderTarget Interface
 
 	public:
@@ -45,11 +45,11 @@ namespace UE::Rive::Renderer::Private
 
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override {}
 		
-		virtual uint32 GetWidth() const;
+		virtual uint32 GetWidth() const override;
 		
-		virtual uint32 GetHeight() const;
-
-        virtual FCriticalSection& GetThreadDataCS() { return ThreadDataCS; }
+		virtual uint32 GetHeight() const override;
+		
+		virtual FCriticalSection& GetThreadDataCS() override { return ThreadDataCS; }
 	
 		//~ END : IRiveRenderTarget Interface
 
@@ -72,7 +72,7 @@ namespace UE::Rive::Renderer::Private
 		 * Attribute(s)
 		 */
 
-    protected:
+	protected:
 
 		mutable FCriticalSection ThreadDataCS;
 
