@@ -16,7 +16,6 @@ public class RiveLibrary : ModuleRules
 
         AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
 
-
         AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
 
         string RootDir = ModuleDirectory;
@@ -50,6 +49,7 @@ public class RiveLibrary : ModuleRules
             string RivePlsLibName = "rive_pls_renderer" + LibPostfix + ".lib";
             
             PublicRuntimeLibraryPaths.Add(LibDirectory);
+
             PublicAdditionalLibraries.AddRange(new string[]
                 {
                     Path.Combine(LibDirectory, RiveSheenBidiStaticLibName),
@@ -60,7 +60,9 @@ public class RiveLibrary : ModuleRules
                     Path.Combine(LibDirectory, RiveLibPng)
                 }
             );
+
             PublicDelayLoadDLLs.Add(RiveHarfBuzzDynamicLibName);
+
             RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", RiveHarfBuzzDynamicLibName),Path.Combine(LibDirectory, RiveHarfBuzzDynamicLibName));
 
             bIsPlatformAdded = true;
@@ -73,14 +75,14 @@ public class RiveLibrary : ModuleRules
             string RiveStaticLibName = "librive" + LibPostfix + ".a"; ;
             string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + ".a"; ;
             string RivePlsLibName = "librive_pls_renderer" + LibPostfix + ".a"; ;
-            string RiveLibPng = "liblibpng" + LibPostfix + ".a";
+            string RivePngLibName = "liblibpng" + LibPostfix + ".a";
 
             PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
                 , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
                 , Path.Combine(LibDirectory, RiveStaticLibName)
                 , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
                 , Path.Combine(LibDirectory, RivePlsLibName)
-                , Path.Combine(LibDirectory, RiveLibPng) });
+                , Path.Combine(LibDirectory, RivePngLibName) });
 
             bIsPlatformAdded = true;
         }
@@ -93,13 +95,15 @@ public class RiveLibrary : ModuleRules
             string RiveStaticLibName = "librive" + LibPostfix + LibExt; ;
             string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + LibExt; ;
             string RivePlsLibName = "librive_pls_renderer" + LibPostfix + LibExt; ;
-            
+            string RivePngLibName = "liblibpng" + LibPostfix + LibExt;
+
             PublicAdditionalLibraries.AddRange(new string[] { Path.Combine(LibDirectory, RiveSheenBidiStaticLibName)
                 , Path.Combine(LibDirectory, RiveHarfBuzzStaticLibName)
                 , Path.Combine(LibDirectory, RiveStaticLibName)
                 , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
-                , Path.Combine(LibDirectory, RivePlsLibName) });
-            
+                , Path.Combine(LibDirectory, RivePlsLibName)
+                , Path.Combine(LibDirectory, RivePngLibName) });
+
             bIsPlatformAdded = true;
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
