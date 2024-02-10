@@ -117,7 +117,7 @@ public class RiveLibrary : ModuleRules
             string RiveStaticLibName = "librive" + LibPostfix + ".a"; ;
             string RiveDecodersStaticLibName = "librive_decoders" + LibPostfix + ".a";
             string RivePlsLibName = "librive_pls_renderer" + LibPostfix + ".a";
-            string RiveLibPng = "liblibpng" + LibPostfix + ".a";
+            string RivePngLibName = "liblibpng" + LibPostfix + ".a";
 
             PublicRuntimeLibraryPaths.Add(LibDirectory);
             PublicAdditionalLibraries.AddRange(new string[] 
@@ -127,7 +127,7 @@ public class RiveLibrary : ModuleRules
                     , Path.Combine(LibDirectory, RiveStaticLibName)
                     , Path.Combine(LibDirectory, RiveDecodersStaticLibName)
                     , Path.Combine(LibDirectory, RivePlsLibName)
-                    , Path.Combine(LibDirectory, RiveLibPng)
+                    , Path.Combine(LibDirectory, RivePngLibName)
                 }
             );
             RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", RiveHarfBuzzSharedLibName),Path.Combine(LibDirectory, RiveHarfBuzzSharedLibName));
