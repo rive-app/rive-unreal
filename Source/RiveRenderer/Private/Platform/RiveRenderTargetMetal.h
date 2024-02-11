@@ -32,7 +32,7 @@ namespace UE::Rive::Renderer::Private
     public:
         
         FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
-
+        virtual ~FRiveRenderTargetMetal() override;
         //~ BEGIN : IRiveRenderTarget Interface
         
     public:

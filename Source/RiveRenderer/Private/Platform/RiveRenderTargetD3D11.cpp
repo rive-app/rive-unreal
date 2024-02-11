@@ -25,6 +25,12 @@ UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(cons
 {
 }
 
+UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::~FRiveRenderTargetD3D11()
+{
+	RIVE_DEBUG_FUNCTION_INDENT
+	CachedPLSRenderTargetD3D.release();
+}
+
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Initialize()
 {
 	check(IsInGameThread());
