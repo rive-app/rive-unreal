@@ -47,6 +47,8 @@ TStatId URiveFile::GetStatId() const
 
 void URiveFile::Tick(float InDeltaSeconds)
 {
+    if (!IsValidChecked(this)) return;
+    
 #if WITH_RIVE
     if (!bIsInitialized && bIsFileImported && Artboard)
     {
