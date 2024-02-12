@@ -13,9 +13,15 @@ THIRD_PARTY_INCLUDES_END
 
 rive::EventReport UE::Rive::Core::FURStateMachine::NullEvent = rive::EventReport(nullptr, 0.f);
 
-UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativeArtboardInst)
+UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativeArtboardInst, const FString& InStateMachineName)
 {
-    NativeStateMachinePtr = InNativeArtboardInst->defaultStateMachine();
+    if (InStateMachineName.IsEmpty())
+    {
+        NativeStateMachinePtr = InNativeArtboardInst->defaultStateMachine();
+    } else
+    {
+        NativeStateMachinePtr = InNativeArtboardInst->stateMachineNamed(std::string(TCHAR_TO_UTF8(*InStateMachineName)));
+    }
     
     if (NativeStateMachinePtr == nullptr)
     {

@@ -9,6 +9,7 @@
 #include "Rive/Assets/URAssetImporter.h"
 #include "Rive/Assets/URFileAssetLoader.h"
 #include "RiveRendererUtils.h"
+#include "Rive/RiveArtboard.h"
 
 
 #if WITH_RIVE
@@ -50,7 +51,7 @@ void URiveFile::Tick(float InDeltaSeconds)
     if (!IsValidChecked(this)) return;
     
 #if WITH_RIVE
-    if (!bIsInitialized && bIsFileImported && Artboard)
+    if (!bIsInitialized && bIsFileImported && GetArtboard())
     {
         UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 
@@ -78,7 +79,7 @@ void URiveFile::Tick(float InDeltaSeconds)
     {
         // Empty reported events at the beginning
         TickRiveReportedEvents.Empty();
-        if (Artboard)
+        if (GetArtboard())
         {
             UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine();
             if (StateMachine && StateMachine->IsValid())
@@ -183,7 +184,7 @@ void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
     {
         const FName PropertyName = PropertyChangedEvent.Property->GetFName();
 
-        if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardIndex))
+        if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardIndex) || PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardName))
         {
             InstanceArtboard();
         }
@@ -196,7 +197,7 @@ void URiveFile::FireTrigger(const FString& InPropertyName) const
 {
 #if WITH_RIVE
 
-    if (Artboard)
+    if (GetArtboard())
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -211,7 +212,7 @@ bool URiveFile::GetBoolValue(const FString& InPropertyName) const
 {
 #if WITH_RIVE
 
-    if (Artboard)
+    if (GetArtboard())
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -232,7 +233,7 @@ float URiveFile::GetNumberValue(const FString& InPropertyName) const
 {
 #if WITH_RIVE
 
-    if (Artboard)
+    if (GetArtboard())
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -258,7 +259,7 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InScreenPosition, cons
 {
 #if WITH_RIVE
 
-    if (Artboard)
+    if (GetArtboard())
     {
         const FVector2f RiveAlignmentXY = GetRiveAlignment();
 
@@ -289,7 +290,7 @@ void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 {
 #if WITH_RIVE
 
-    if (Artboard)
+    if (GetArtboard())
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -304,7 +305,7 @@ void URiveFile::SetNumberValue(const FString& InPropertyName, float NewValue)
 {
 #if WITH_RIVE
 
-    if (Artboard)
+    if (GetArtboard())
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -697,8 +698,8 @@ void URiveFile::Initialize()
                         return;
                     }
                 }
-
-                Artboard = MakeUnique<UE::Rive::Core::FURArtboard>(GetNativeFile(), ArtboardIndex);
+                
+                InstanceArtboard();
                 PrintStats();
                 bIsFileImported = true;
             }
@@ -716,14 +717,6 @@ void URiveFile::Initialize()
 
 void URiveFile::InstanceArtboard()
 {
-    bIsInitialized = false;
-    bIsFileImported = false;
-    
-    if (Artboard != nullptr)
-    {
-        Artboard.Reset();
-    }
-    
     if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
     {
         UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
@@ -749,6 +742,9 @@ void URiveFile::InstanceArtboard()
         UE_LOG(LogRive, Error, TEXT("Could not instance artboard as our native rive file is invalid."));
         return;
     }
+
+    bIsInitialized = false;
+    bIsFileImported = false;
     
     ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
     [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
@@ -757,9 +753,21 @@ void URiveFile::InstanceArtboard()
        RHICmdList.EnqueueLambda(TEXT("URiveFile::Initialize"), [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
        {
 #endif // PLATFORM_ANDROID
+
+           RiveRenderTarget.Reset();
+           RenderTarget = nullptr;
+           
             if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
             {
-                Artboard = MakeUnique<UE::Rive::Core::FURArtboard>(GetNativeFile(), ArtboardIndex);
+                Artboard = NewObject<URiveArtboard>(this);
+                if (ArtboardName.IsEmpty())
+                {
+                    Artboard->Initialize(GetNativeFile(), ArtboardIndex, StateMachineName);
+                } else
+                {
+                    Artboard->Initialize(GetNativeFile(), ArtboardName, StateMachineName);
+                }
+                
                 PrintStats();
                 bIsFileImported = true;
             }
@@ -780,15 +788,14 @@ void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
 
 UE_DISABLE_OPTIMIZATION
 
-UE::Rive::Core::FURArtboard* URiveFile::GetArtboard() const
+const URiveArtboard* URiveFile::GetArtboard() const
 {
 #if WITH_RIVE
-    if (Artboard)
+    if (Artboard && Artboard->IsInitialized())
     {
-        return Artboard.Get();
+        return Artboard;
     }
 #endif // WITH_RIVE
-    UE_LOG(LogRive, Error, TEXT("Could not retrieve native artboard."));
     return nullptr;
 }
 
@@ -796,7 +803,7 @@ void URiveFile::PopulateReportedEvents()
 {
 #if WITH_RIVE
 
-    if (!Artboard) return;
+    if (!GetArtboard()) return;
     
     if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
     {

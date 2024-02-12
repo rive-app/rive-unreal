@@ -4,12 +4,13 @@
 
 #include "IRiveRendererModule.h"
 #include "IRiveRenderTarget.h"
-#include "Core/URArtboard.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Rive/RiveEvent.h"
 #include "RiveFile.generated.h"
 
 #if WITH_RIVE
+
+class URiveArtboard;
 
 namespace rive
 {
@@ -17,11 +18,6 @@ namespace rive
 }
 
 #endif // WITH_RIVE
-
-namespace UE::Rive::Core
-{
-    class FURArtboard;
-}
 
 class URiveAsset;
 
@@ -250,7 +246,7 @@ public:
 
     TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
-    UE::Rive::Core::FURArtboard* GetArtboard() const;
+    const URiveArtboard* GetArtboard() const;
 
 private:
 
@@ -316,7 +312,16 @@ public:
     // Index of the artboard this Rive file instance will default to
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
     int32 ArtboardIndex;
+
+    // Artboard Name is used if specified, otherwise ArtboardIndex will always be used
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
+    FString ArtboardName;
+
+    // StateMachine name to pass into our default artboard instance
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
+    FString StateMachineName;
     
+    // TArray<TUniquePtr<UE::Rive::Core::FURArtboard>> Artboards;
 private:
 
     UPROPERTY(EditAnywhere, Category = Rive)
@@ -347,7 +352,7 @@ private:
 
     bool bDrawOnceTest = false;
 
-    UE::Rive::Core::FURArtboardPtr Artboard;
+    URiveArtboard* Artboard;
     
     rive::Span<const uint8> RiveNativeFileSpan;
     rive::Span<const uint8>& GetNativeFileSpan()
