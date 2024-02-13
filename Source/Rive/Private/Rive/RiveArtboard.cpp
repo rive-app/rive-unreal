@@ -6,10 +6,6 @@
 
 #if WITH_RIVE
 
-URiveArtboard::URiveArtboard()
-{
-}
-
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr)
 {
 	Initialize(InNativeFilePtr, 0);
@@ -17,7 +13,10 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr)
 
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr, int32 InIndex, const FString& InStateMachineName)
 {
-	if (!InNativeFilePtr) return;
+	if (!InNativeFilePtr)
+	{
+		return;
+	}
 
 	StateMachineName = InStateMachineName;
 

@@ -20,7 +20,7 @@ UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativ
         NativeStateMachinePtr = InNativeArtboardInst->defaultStateMachine();
     } else
     {
-        NativeStateMachinePtr = InNativeArtboardInst->stateMachineNamed(std::string(TCHAR_TO_UTF8(*InStateMachineName)));
+        NativeStateMachinePtr = InNativeArtboardInst->stateMachineNamed(TCHAR_TO_UTF8(*InStateMachineName));
     }
     
     if (NativeStateMachinePtr == nullptr)

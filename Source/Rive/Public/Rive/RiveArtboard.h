@@ -14,8 +14,6 @@ class RIVE_API URiveArtboard : public UObject
 	GENERATED_BODY()
 
 public:
-	URiveArtboard();
-
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
 	FString StateMachineName;
 
