@@ -140,10 +140,13 @@ uint32 URiveFile::CalcTextureMemorySizeEnum(ETextureMipCount Enum) const
 void URiveFile::PostLoad()
 {
     UObject::PostLoad();
-
-    InitializeUnrealResources();
     
-    UE::Rive::Renderer::IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &URiveFile::InitializeRive));
+    if (!IsRunningCommandlet())
+    {
+        InitializeUnrealResources();
+        
+        UE::Rive::Renderer::IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &URiveFile::InitializeRive));
+    }
 }
 
 #if WITH_EDITOR
@@ -600,8 +603,6 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 
 void URiveFile::InitializeUnrealResources()
 {
-    check(IsInGameThread());
-
     CreateRenderTargets();
 }
 
@@ -729,8 +730,6 @@ void URiveFile::PopulateReportedEvents()
 
 void URiveFile::CreateRenderTargets()
 {
-    check(IsInGameThread());
-
 #if PLATFORM_ANDROID
     constexpr bool bInForceLinearGamma = true; // needed to be true for Android
 #else
@@ -754,8 +753,6 @@ void URiveFile::CreateRenderTargets()
 
 void URiveFile::ResizeRenderTargets(const FVector2f InNewSize)
 {
-    check(IsInGameThread());
-    
     ResizeTarget(InNewSize.X, InNewSize.Y);
     UpdateResourceImmediate(true);
 
