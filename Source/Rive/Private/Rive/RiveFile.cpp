@@ -596,14 +596,14 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 #endif // WITH_RIVE
 }
 
+#endif // WITH_EDITOR
+
 void URiveFile::InitializeUnrealResources()
 {
     check(IsInGameThread());
 
     CreateRenderTargets();
 }
-
-#endif // WITH_EDITOR
 
 void URiveFile::InitializeRive()
 {
@@ -732,6 +732,7 @@ void URiveFile::PopulateReportedEvents()
 void URiveFile::CreateRenderTargets()
 {
     check(IsInGameThread());
+#if WITH_RIVE
 
     UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 
@@ -750,6 +751,7 @@ void URiveFile::CreateRenderTargets()
 
     // Flush resources
     FlushRenderingCommands();
+#endif // WITH_RIVE
 }
 
 void URiveFile::ResizeRenderTargets(const FVector2f InNewSize)
