@@ -19,14 +19,11 @@ THIRD_PARTY_INCLUDES_END
 
 URiveFile::URiveFile()
 {
-    OverrideFormat = EPixelFormat::PF_R8G8B8A8;
-
+    OverrideFormat = PF_R8G8B8A8;
     bCanCreateUAV = false;
-
-    // TODO. We might need extra texture to Draw rive separately and copy to this
-
+    SRGB = false;
+    RenderTargetFormat = RTF_RGBA8;
     SizeX = 500;
-
     SizeY = 500;
 }
 
@@ -40,26 +37,15 @@ void URiveFile::Tick(float InDeltaSeconds)
 #if WITH_RIVE
     if (!bIsInitialized && bIsFileImported && Artboard)
     {
+        // Resize textures and Flush
+        ResizeRenderTargets(Artboard->GetSize());
+        
+        // Initialize Rive Render Target Only after we resize the texture
         UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-
-        const FVector2f ArtboardSize = Artboard->GetSize();
-#if PLATFORM_ANDROID
-        constexpr bool bInForceLinearGamma = true; // needed to be true for Android
-#else
-        constexpr bool bInForceLinearGamma = false; // needed to be true for Android
-#endif
-
-        OverrideFormat = PF_R8G8B8A8;
-        SRGB = false;
-        RenderTargetFormat = RTF_RGBA8;
-        InitCustomFormat(ArtboardSize.X, ArtboardSize.Y, OverrideFormat, bInForceLinearGamma);
-        UpdateResourceImmediate(true);
-
-        RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
-        FlushRenderingCommands();
         RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTargetToDrawOnto());
         RiveRenderTarget->Initialize();
 
+        // Ok, now we good, we can start Rive Rendering
         bIsInitialized = true;
     }
     if (bIsInitialized && bIsRendering)
@@ -113,7 +99,7 @@ void URiveFile::Tick(float InDeltaSeconds)
             bDrawOnceTest = true;
         }
 
-        // Copy from render target
+        // Copy from render target, Maybe we can remove this code and render only to Rive Texture
         // TODO. move from here
         // Separate target might be needed to let Rive draw only to separate texture
         if (GetRenderTargetToDrawOnto() != this)
@@ -125,10 +111,8 @@ void URiveFile::Tick(float InDeltaSeconds)
                 [this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
                 {
                     UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
-                    // RHICmdList.CopyTexture(RenderTarget->GetResource()->TextureRHI, GetResource()->TextureRHI, FRHICopyTextureInfo());
                 });
         }
-        // FlushRenderingCommands();
     }
 #endif // WITH_RIVE
 }
@@ -156,8 +140,10 @@ uint32 URiveFile::CalcTextureMemorySizeEnum(ETextureMipCount Enum) const
 void URiveFile::PostLoad()
 {
     UObject::PostLoad();
+
+    InitializeUnrealResources();
     
-    UE::Rive::Renderer::IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &URiveFile::Initialize));
+    UE::Rive::Renderer::IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &URiveFile::InitializeRive));
 }
 
 #if WITH_EDITOR
@@ -298,83 +284,86 @@ FIntPoint URiveFile::CalculateRenderTextureSize(const FIntPoint& InViewportSize)
     FIntPoint NewSize = { SizeX, SizeY };
 
 #if WITH_RIVE
-    const FVector2f ArtboardSize = GetArtboard()->GetSize();
-    const float TextureAspectRatio = ArtboardSize.X / ArtboardSize.Y;
-    const float ViewportAspectRatio = static_cast<float>(InViewportSize.X) / InViewportSize.Y;
-    
-    switch (RiveFitType)
+    if (const UE::Rive::Core::FURArtboard* NativeArtboard = GetArtboard())
     {
-        case ERiveFitType::Fill:
-            NewSize = InViewportSize;
-            break;
-        case ERiveFitType::ScaleDown:  // Take up maximum texture size, or scale it down while containing the texture
-        case ERiveFitType::Contain:
-            {
-                // Ensures one dimension takes up the container space fully, without clipping
-                if (ViewportAspectRatio > TextureAspectRatio)
+        const FVector2f ArtboardSize = NativeArtboard->GetSize();
+        const float TextureAspectRatio = ArtboardSize.X / ArtboardSize.Y;
+        const float ViewportAspectRatio = static_cast<float>(InViewportSize.X) / InViewportSize.Y;
+        
+        switch (RiveFitType)
+        {
+            case ERiveFitType::Fill:
+                NewSize = InViewportSize;
+                break;
+            case ERiveFitType::ScaleDown:  // Take up maximum texture size, or scale it down while containing the texture
+            case ERiveFitType::Contain:
                 {
-                    NewSize = {
-                        static_cast<int>(InViewportSize.Y * TextureAspectRatio),
-                        InViewportSize.Y
-                    };
-                }
-                else
-                {
-                    NewSize = {
-                        InViewportSize.X,
-                        static_cast<int>(InViewportSize.X / TextureAspectRatio)
-                    };
-                }
-                // If we want to scale down and the contain size is bigger, revert to the Artboard size
-                if (RiveFitType == ERiveFitType::ScaleDown)
-                {
-                    if (NewSize.X > SizeX || NewSize.Y > SizeY)
+                    // Ensures one dimension takes up the container space fully, without clipping
+                    if (ViewportAspectRatio > TextureAspectRatio)
                     {
-                        NewSize = { SizeX, SizeY };
+                        NewSize = {
+                            static_cast<int>(InViewportSize.Y * TextureAspectRatio),
+                            InViewportSize.Y
+                        };
                     }
+                    else
+                    {
+                        NewSize = {
+                            InViewportSize.X,
+                            static_cast<int>(InViewportSize.X / TextureAspectRatio)
+                        };
+                    }
+                    // If we want to scale down and the contain size is bigger, revert to the Artboard size
+                    if (RiveFitType == ERiveFitType::ScaleDown)
+                    {
+                        if (NewSize.X > SizeX || NewSize.Y > SizeY)
+                        {
+                            NewSize = { SizeX, SizeY };
+                        }
+                    }
+                    break;
                 }
-                break;
-            }
-        case ERiveFitType::Cover:
-            {
-                // This Ensures one of the dimensions will always take up container space fully, with clipping
-                if (ViewportAspectRatio > TextureAspectRatio)
+            case ERiveFitType::Cover:
                 {
-                    NewSize = {
-                        InViewportSize.X,
-                        static_cast<int>(InViewportSize.X / TextureAspectRatio)
-                    };
+                    // This Ensures one of the dimensions will always take up container space fully, with clipping
+                    if (ViewportAspectRatio > TextureAspectRatio)
+                    {
+                        NewSize = {
+                            InViewportSize.X,
+                            static_cast<int>(InViewportSize.X / TextureAspectRatio)
+                        };
+                    }
+                    else
+                    {
+                        NewSize = {
+                            static_cast<int>(InViewportSize.Y * TextureAspectRatio),
+                            InViewportSize.Y
+                        };
+                    }
+                    break;
                 }
-                else
-                {
-                    NewSize = {
-                        static_cast<int>(InViewportSize.Y * TextureAspectRatio),
-                        InViewportSize.Y
-                    };
-                }
+            case ERiveFitType::FitWidth:
+                // Force Width to take up the screenspace width; Maintain aspect ratio, can clip
+                NewSize = {
+                    InViewportSize.X,
+                    static_cast<int>(InViewportSize.X / TextureAspectRatio)
+                };
                 break;
-            }
-        case ERiveFitType::FitWidth:
-            // Force Width to take up the screenspace width; Maintain aspect ratio, can clip
-            NewSize = {
-                InViewportSize.X,
-                static_cast<int>(InViewportSize.X / TextureAspectRatio)
-            };
-            break;
-        case ERiveFitType::FitHeight:
-            // Force to take up the screenspace height; Maintain aspect ratio, can clip
-            NewSize = {
-                static_cast<int>(InViewportSize.Y * TextureAspectRatio),
-                InViewportSize.Y
-            };
-            break;
-        case ERiveFitType::None:
-            NewSize = { SizeX, SizeY };
-            break;
-        default:
-            NewSize = { SizeX, SizeY };
-            UE_LOG(LogRive, Error, TEXT("Unknown Fit Type for Rive File"))
-            break;
+            case ERiveFitType::FitHeight:
+                // Force to take up the screenspace height; Maintain aspect ratio, can clip
+                NewSize = {
+                    static_cast<int>(InViewportSize.Y * TextureAspectRatio),
+                    InViewportSize.Y
+                };
+                break;
+            case ERiveFitType::None:
+                NewSize = { SizeX, SizeY };
+                break;
+            default:
+                NewSize = { SizeX, SizeY };
+                UE_LOG(LogRive, Error, TEXT("Unknown Fit Type for Rive File"))
+                break;
+        }
     }
 #endif // WITH_RIVE
     return NewSize;
@@ -607,9 +596,16 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 #endif // WITH_RIVE
 }
 
+void URiveFile::InitializeUnrealResources()
+{
+    check(IsInGameThread());
+
+    CreateRenderTargets();
+}
+
 #endif // WITH_EDITOR
 
-void URiveFile::Initialize()
+void URiveFile::InitializeRive()
 {
     if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
     {
@@ -664,6 +660,7 @@ void URiveFile::Initialize()
                 }
 
                 Artboard = MakeUnique<UE::Rive::Core::FURArtboard>(RiveNativeFilePtr.get());
+                
                 PrintStats();
                 bIsFileImported = true;
             }
@@ -674,7 +671,7 @@ void URiveFile::Initialize()
 #if PLATFORM_ANDROID
         });
 #endif // PLATFORM_ANDROID
-    });
+   });
 
 #endif // WITH_RIVE
 }
@@ -730,6 +727,45 @@ void URiveFile::PopulateReportedEvents()
     }
 
 #endif // WITH_RIVE
+}
+
+void URiveFile::CreateRenderTargets()
+{
+    check(IsInGameThread());
+
+    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+
+#if PLATFORM_ANDROID
+    constexpr bool bInForceLinearGamma = true; // needed to be true for Android
+#else
+    constexpr bool bInForceLinearGamma = false; // default false for the rest of the platforms
+#endif
+
+    // Initialize resource for this texture
+    InitCustomFormat(SizeX, SizeY, OverrideFormat, bInForceLinearGamma);
+    UpdateResourceImmediate(true);
+
+    // Initialize copy texture
+    RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(SizeX, SizeY));
+
+    // Flush resources
+    FlushRenderingCommands();
+}
+
+void URiveFile::ResizeRenderTargets(const FVector2f InNewSize)
+{
+    check(IsInGameThread());
+    
+    ResizeTarget(InNewSize.X, InNewSize.Y);
+    UpdateResourceImmediate(true);
+
+    if (RenderTarget)
+    {
+        RenderTarget->ResizeTarget(InNewSize.X, InNewSize.Y);
+        RenderTarget->UpdateResourceImmediate(true);
+    }
+
+    FlushRenderingCommands();
 }
 
 void URiveFile::PrintStats()

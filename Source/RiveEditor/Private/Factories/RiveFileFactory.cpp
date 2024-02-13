@@ -55,7 +55,7 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
         return nullptr;
     }
 
-    RiveFile->Initialize();
+    RiveFile->InitializeUnrealResources();
     
     // Create Rive UMG
     if (!FRiveWidgetFactory(RiveFile).Create())

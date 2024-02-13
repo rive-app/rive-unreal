@@ -239,7 +239,12 @@ public:
 
 #endif // WITH_EDITOR
     
-    void Initialize();
+    /**
+     * That should be called from game thread all the time and init texture resources
+     */
+    void InitializeUnrealResources();
+    
+    void InitializeRive();
 
     void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
@@ -250,6 +255,16 @@ public:
 private:
 
     void PopulateReportedEvents();
+
+    /**
+     * Create render resources after loading the UObject
+     */
+    void CreateRenderTargets();
+
+    /**
+     * Resize render resources after loading artboard but before start Rive Rendering
+     */
+    void ResizeRenderTargets(const FVector2f InNewSize);
 
     /**
      * Attribute(s)
