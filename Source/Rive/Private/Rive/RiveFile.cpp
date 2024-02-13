@@ -20,9 +20,11 @@ THIRD_PARTY_INCLUDES_END
 URiveFile::URiveFile()
 {
     OverrideFormat = PF_R8G8B8A8;
+    RenderTargetFormat = RTF_RGBA8;
+
     bCanCreateUAV = false;
     SRGB = false;
-    RenderTargetFormat = RTF_RGBA8;
+    
     SizeX = 500;
     SizeY = 500;
 }
@@ -116,8 +118,6 @@ void URiveFile::Tick(float InDeltaSeconds)
     }
 #endif // WITH_RIVE
 }
-
-UE_ENABLE_OPTIMIZATION
 
 bool URiveFile::IsTickable() const
 {
@@ -669,7 +669,7 @@ void URiveFile::InitializeRive()
                 UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
             }
 #if PLATFORM_ANDROID
-        });
+       });
 #endif // PLATFORM_ANDROID
    });
 
@@ -680,8 +680,6 @@ void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
 {
     WidgetClass = InWidgetClass;
 }
-
-UE_DISABLE_OPTIMIZATION
 
 UE::Rive::Core::FURArtboard* URiveFile::GetArtboard() const
 {
@@ -732,15 +730,15 @@ void URiveFile::PopulateReportedEvents()
 void URiveFile::CreateRenderTargets()
 {
     check(IsInGameThread());
-#if WITH_RIVE
-
-    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 
 #if PLATFORM_ANDROID
     constexpr bool bInForceLinearGamma = true; // needed to be true for Android
 #else
     constexpr bool bInForceLinearGamma = false; // default false for the rest of the platforms
 #endif
+
+#if WITH_RIVE
+    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 
     // Initialize resource for this texture
     InitCustomFormat(SizeX, SizeY, OverrideFormat, bInForceLinearGamma);
@@ -798,4 +796,3 @@ void URiveFile::PrintStats()
     UE_LOG(LogRive, Display, TEXT("%s"), *RiveFileLoadMsg.ToString());
 }
 
-UE_ENABLE_OPTIMIZATION
