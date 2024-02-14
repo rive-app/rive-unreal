@@ -8,6 +8,8 @@
 #include "Slate/SlateTextures.h"
 #include "Textures/SlateUpdatableTexture.h"
 #include "RiveRendererUtils.h"
+#include "Rive/RiveArtboard.h"
+#include "Rive/Core/URStateMachine.h"
 
 FRiveSlateViewport::FRiveSlateViewport(URiveFile* InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView)
 {
@@ -158,7 +160,7 @@ FReply FRiveSlateViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 
     RiveFile->BeginInput();
 
-    if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+    if (const URiveArtboard* Artboard = RiveFile->GetArtboard())
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -202,7 +204,7 @@ FReply FRiveSlateViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 
     RiveFile->BeginInput();
 
-    if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+    if (const URiveArtboard* Artboard = RiveFile->GetArtboard())
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
@@ -254,7 +256,7 @@ FReply FRiveSlateViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 
     RiveFile->BeginInput();
 
-    if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+    if (const URiveArtboard* Artboard = RiveFile->GetArtboard())
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
