@@ -173,7 +173,7 @@ void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardIndex) || PropertyName ==
 			GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardName))
 		{
-			InstanceArtboard();
+			InstantiateArtboard();
 		}
 	}
 }
@@ -658,8 +658,8 @@ void URiveFile::Initialize()
 	}
 	
 	ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
-		[this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
-		{
+	[this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
+	{
 #if PLATFORM_ANDROID
 	   RHICmdList.EnqueueLambda(TEXT("URiveFile::Initialize"), [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
 	   {
@@ -682,8 +682,7 @@ void URiveFile::Initialize()
 					}
 				}
 				
-				InstanceArtboard();
-				bIsFileImported = true;
+				InstantiateArtboard_Internal();
 			}
 			else
 			{
@@ -696,7 +695,7 @@ void URiveFile::Initialize()
 #endif // WITH_RIVE
 }
 
-void URiveFile::InstanceArtboard()
+void URiveFile::InstantiateArtboard()
 {
 	if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
 	{
@@ -728,38 +727,17 @@ void URiveFile::InstanceArtboard()
 	bIsFileImported = false;
 
 	ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
-		[this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
-		{
+	[this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
+	{
 #if PLATFORM_ANDROID
 	   RHICmdList.EnqueueLambda(TEXT("URiveFile::Initialize"), [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
 	   {
 #endif // PLATFORM_ANDROID
-	   	
-			RiveRenderTarget.Reset();
-
-			if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
-			{
-				Artboard = NewObject<URiveArtboard>(this);
-				if (ArtboardName.IsEmpty())
-				{
-					Artboard->Initialize(GetNativeFile(), ArtboardIndex, StateMachineName);
-				}
-				else
-				{
-					Artboard->Initialize(GetNativeFile(), ArtboardName, StateMachineName);
-				}
-
-				PrintStats();
-				bIsFileImported = true;
-			}
-			else
-			{
-				UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
-			}
+			InstantiateArtboard_Internal();
 #if PLATFORM_ANDROID
 		});
 #endif // PLATFORM_ANDROID
-		});
+	});
 }
 
 void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
@@ -839,6 +817,29 @@ void URiveFile::CreateRenderTargets()
 	// Flush resources
 	FlushRenderingCommands();
 #endif // WITH_RIVE
+}
+
+URiveArtboard* URiveFile::InstantiateArtboard_Internal()
+{
+	RiveRenderTarget.Reset();
+
+	if (GetNativeFile())
+	{
+		Artboard = NewObject<URiveArtboard>(this);
+		if (ArtboardName.IsEmpty())
+		{
+			Artboard->Initialize(GetNativeFile(), ArtboardIndex, StateMachineName);
+		}
+		else
+		{
+			Artboard->Initialize(GetNativeFile(), ArtboardName, StateMachineName);
+		}
+
+		PrintStats();
+		bIsFileImported = true;
+		return Artboard;
+	}
+	return nullptr;
 }
 
 void URiveFile::ResizeRenderTargets(const FVector2f InNewSize)
