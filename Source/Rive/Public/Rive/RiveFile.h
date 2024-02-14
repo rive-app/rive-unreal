@@ -34,17 +34,11 @@ UENUM(BlueprintType)
 enum class ERiveFitType : uint8
 {
 	Fill = 0,
-
 	Contain = 1,
-
 	Cover = 2,
-
 	FitWidth = 3,
-
 	FitHeight = 4,
-
 	None = 5,
-
 	ScaleDown = 6
 };
 
@@ -55,21 +49,13 @@ struct RIVE_API FRiveAlignment
 
 public:
 	inline static FVector2f TopLeft = FVector2f(-1.f, -1.f);
-
 	inline static FVector2f TopCenter = FVector2f(0.f, -1.f);
-
 	inline static FVector2f TopRight = FVector2f(1.f, -1.f);
-
 	inline static FVector2f CenterLeft = FVector2f(-1.f, 0.f);
-
 	inline static FVector2f Center = FVector2f(0.f, 0.f);
-
 	inline static FVector2f CenterRight = FVector2f(1.f, 0.f);
-
 	inline static FVector2f BottomLeft = FVector2f(-1.f, 1.f);
-
 	inline static FVector2f BottomCenter = FVector2f(0.f, 1.f);
-
 	inline static FVector2f BottomRight = FVector2f(1.f, 1.f);
 };
 
@@ -77,21 +63,13 @@ UENUM(BlueprintType)
 enum class ERiveAlignment : uint8
 {
 	TopLeft = 0,
-
 	TopCenter = 1,
-
 	TopRight = 2,
-
 	CenterLeft = 3,
-
 	Center = 4,
-
 	CenterRight = 5,
-
 	BottomLeft = 6,
-
 	BottomCenter = 7,
-
 	BottomRight = 8,
 };
 
@@ -99,25 +77,15 @@ UENUM(BlueprintType)
 enum class ERiveBlendMode : uint8
 {
 	SE_BLEND_Opaque = 0 UMETA(DisplayName = "Opaque"),
-
 	SE_BLEND_Masked UMETA(DisplayName = "Masked"),
-
 	SE_BLEND_Translucent UMETA(DisplayName = "Translucent"),
-
 	SE_BLEND_Additive UMETA(DisplayName = "Additive"),
-
 	SE_BLEND_Modulate UMETA(DisplayName = "Modulate"),
-
 	SE_BLEND_MaskedDistanceField UMETA(DisplayName = "Masked Distance Field"),
-
 	SE_BLEND_MaskedDistanceFieldShadowed UMETA(DisplayName = "Masked Distance Field Shadowed"),
-
 	SE_BLEND_TranslucentDistanceField UMETA(DisplayName = "Translucent Distance Field"),
-
 	SE_BLEND_TranslucentDistanceFieldShadowed UMETA(DisplayName = "Translucent Distance Field Shadowed"),
-
 	SE_BLEND_AlphaComposite UMETA(DisplayName = "Alpha Composite"),
-
 	SE_BLEND_AlphaHoldout UMETA(DisplayName = "Alpha Holdout"),
 };
 
@@ -130,7 +98,7 @@ class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameOb
 	GENERATED_BODY()
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveStateMachineDelegate, FRiveStateMachineEvent,
-	                                            RiveStateMachineEvent);
+												RiveStateMachineEvent);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, int32, NumEvents);
 
@@ -203,7 +171,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinates(const FVector2f& InScreenPosition, const FBox2f& InScreenRect,
-	                              const FIntPoint& InViewportSize) const;
+								  const FIntPoint& InViewportSize) const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
@@ -237,8 +205,10 @@ public:
 
 #endif // WITH_EDITOR
 
+	/**
+	 * Initialize this Rive file by creating the Render Targets and importing the native Rive File 
+	 */
 	void Initialize();
-	void InstanceArtboard();
 
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
@@ -246,13 +216,26 @@ public:
 
 	const URiveArtboard* GetArtboard() const;
 
+protected:
+	void InstantiateArtboard();
 private:
 	void PopulateReportedEvents();
 
 	/**
+	 * Create render resources after loading the UObject
+	 */
+	void CreateRenderTargets();
+	
+	URiveArtboard* InstantiateArtboard_Internal();
+	
+	/**
+	 * Resize render resources after loading artboard but before start Rive Rendering
+	 */
+	void ResizeRenderTargets(const FVector2f InNewSize);
+
+	/**
 	 * Attribute(s)
 	 */
-
 	// TODO. REMOVE IT!! Temporary switches for Android testng
 	TObjectPtr<UTextureRenderTarget2D> GetRenderTargetToDrawOnto()
 	{
@@ -346,7 +329,8 @@ private:
 
 	bool bDrawOnceTest = false;
 
-	URiveArtboard* Artboard;
+	UPROPERTY(Transient)
+	URiveArtboard* Artboard = nullptr;
 
 	rive::Span<const uint8> RiveNativeFileSpan;
 
@@ -378,5 +362,5 @@ private:
 		return nullptr;
 	}
 
-	void PrintStats();
+	void PrintStats() const;
 };
