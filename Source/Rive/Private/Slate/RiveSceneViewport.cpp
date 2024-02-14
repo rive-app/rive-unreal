@@ -4,6 +4,8 @@
 
 #include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
+#include "Rive/RiveArtboard.h"
+#include "Rive/Core/URStateMachine.h"
 
 FRiveSceneViewport::FRiveSceneViewport(FViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveFile* InRiveFile)
 	: FSceneViewport(InViewportClient, InViewportWidget)
@@ -36,7 +38,7 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 
 	RiveFile->BeginInput();
 
-	if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+	if (const URiveArtboard* Artboard = RiveFile->GetArtboard())
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
@@ -83,7 +85,7 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 
 	RiveFile->BeginInput();
 
-	if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+	if (const URiveArtboard* Artboard = RiveFile->GetArtboard())
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
@@ -130,7 +132,7 @@ FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 
 	RiveFile->BeginInput();
 
-	if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+	if (const URiveArtboard* Artboard = RiveFile->GetArtboard())
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{

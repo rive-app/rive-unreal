@@ -34,7 +34,7 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 	// Unity version prefers disk assets, over InBand, if they exist, allowing overrides
 
 	URiveAsset* RiveAsset = nullptr;
-	TObjectPtr<URiveAsset>* RiveAssetPtr = RiveFile->Assets.Find(InAsset.assetId());
+	TObjectPtr<URiveAsset>* RiveAssetPtr = RiveFile->GetAssets().Find(InAsset.assetId());
 	if (RiveAssetPtr == nullptr)
 	{
 		if (!bUseInBand)

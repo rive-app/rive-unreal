@@ -25,6 +25,12 @@ UE::Rive::Renderer::Private::FRiveRenderTargetMetal::FRiveRenderTargetMetal(cons
 {
 }
 
+UE::Rive::Renderer::Private::FRiveRenderTargetMetal::~FRiveRenderTargetMetal()
+{
+    RIVE_DEBUG_FUNCTION_INDENT
+    CachedPLSRenderTargetMetal.release();
+}
+
 void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::Initialize()
 {
     check(IsInGameThread());

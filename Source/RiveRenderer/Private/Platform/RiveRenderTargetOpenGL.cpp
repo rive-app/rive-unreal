@@ -31,6 +31,7 @@ UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::FRiveRenderTargetOpenGL(co
 UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::~FRiveRenderTargetOpenGL()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
+	CachedPLSRenderTargetOpenGL.release();
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Initialize()
