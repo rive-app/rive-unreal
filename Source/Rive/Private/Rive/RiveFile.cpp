@@ -189,6 +189,8 @@ void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 	}
 }
 
+#endif // WITH_EDITOR
+
 URiveFile* URiveFile::CreateInstance(const FString& InArtboardName, const FString& InStateMachineName)
 {
 	auto NewRiveFileInstance = NewObject<
@@ -200,8 +202,6 @@ URiveFile* URiveFile::CreateInstance(const FString& InArtboardName, const FStrin
 	NewRiveFileInstance->Initialize();
 	return NewRiveFileInstance;
 }
-
-#endif // WITH_EDITOR
 
 void URiveFile::FireTrigger(const FString& InPropertyName) const
 {
