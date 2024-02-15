@@ -2,34 +2,36 @@
 
 #include "Rive/RiveArtboard.h"
 #include "Logs/RiveLog.h"
+#include "Rive/RiveFile.h"
 #include "Rive/Core/URStateMachine.h"
 
 #if WITH_RIVE
 
-void URiveArtboard::Initialize(rive::File* InNativeFilePtr)
+void URiveArtboard::Initialize(URiveFile* InRiveFile)
 {
-	Initialize(InNativeFilePtr, 0);
+	Initialize(InRiveFile, 0);
 }
 
-void URiveArtboard::Initialize(rive::File* InNativeFilePtr, int32 InIndex, const FString& InStateMachineName)
+void URiveArtboard::Initialize(URiveFile* InRiveFile, int32 InIndex, const FString& InStateMachineName)
 {
-	if (!InNativeFilePtr)
+	rive::File* NativeFilePtr = InRiveFile->GetNativeFile();
+	if (!NativeFilePtr)
 	{
 		return;
 	}
-
+	
 	StateMachineName = InStateMachineName;
 
-	if (InIndex >= InNativeFilePtr->artboardCount())
+	if (InIndex >= NativeFilePtr->artboardCount())
 	{
-		InIndex = InNativeFilePtr->artboardCount() - 1;
+		InIndex = NativeFilePtr->artboardCount() - 1;
 		UE_LOG(LogRive, Warning,
 		       TEXT(
 			       "Artboard index specified is out of bounds, using the last available artboard index instead, which is %d"
 		       ), InIndex);
 	}
 
-	if (rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(InIndex))
+	if (rive::Artboard* NativeArtboard = NativeFilePtr->artboard(InIndex))
 	{
 		NativeArtboardPtr = NativeArtboard->instance();
 
@@ -41,19 +43,23 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, int32 InIndex, const
 	bIsInitialized = true;
 }
 
-void URiveArtboard::Initialize(rive::File* InNativeFilePtr, const FString& InName, const FString& InStateMachineName)
+void URiveArtboard::Initialize(URiveFile* InRiveFile, const FString& InName, const FString& InStateMachineName)
 {
-	if (!InNativeFilePtr) return;
+	rive::File* NativeFilePtr = InRiveFile->GetNativeFile();
+	if (!NativeFilePtr)
+	{
+		return;
+	}
 
 	StateMachineName = InStateMachineName;
-	rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(std::string(TCHAR_TO_UTF8(*InName)));
+	rive::Artboard* NativeArtboard = NativeFilePtr->artboard(TCHAR_TO_UTF8(*InName));
 
 	if (!NativeArtboard)
 	{
 		UE_LOG(LogRive, Error,
 		       TEXT("Could not initialize the artboard by the name '%s'. Initializing with default artboard instead"),
 		       *InName);
-		NativeArtboard = InNativeFilePtr->artboard();
+		NativeArtboard = NativeFilePtr->artboard();
 	}
 
 	NativeArtboardPtr = NativeArtboard->instance();

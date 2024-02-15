@@ -6,6 +6,8 @@
 
 #if WITH_RIVE
 
+struct FRiveRenderCommand;
+
 namespace rive::pls
 {
 	class PLSRenderer;
@@ -18,72 +20,41 @@ class UTextureRenderTarget2D;
 namespace UE::Rive::Renderer::Private
 {
 	class FRiveRenderer;
-
 	class FRiveRenderTarget : public IRiveRenderTarget
 	{
-		/**
-		 * Structor(s)
-		 */
-
 	public:
-
 		FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
 		virtual ~FRiveRenderTarget() override;
-		//~ BEGIN : IRiveRenderTarget Interface
-
-	public:
 
 		virtual void Initialize() override {}
-
-#if WITH_RIVE
-
-		virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override
-		{
-		}
-
-#endif // WITH_RIVE
-
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override {}
-		
 		virtual uint32 GetWidth() const override;
-		
 		virtual uint32 GetHeight() const override;
-		
 		virtual FCriticalSection& GetThreadDataCS() override { return ThreadDataCS; }
-	
-		//~ END : IRiveRenderTarget Interface
-
-		/**
-		 * Implementation(s)
-		 */
-
+		virtual void SetClearColor(const FLinearColor& InColor) override { ClearColor = InColor; }
+		
 #if WITH_RIVE
-
+		virtual void Submit() override;
+		virtual void Save() override;
+		virtual void Restore() override;
+		virtual void Transform(float X1, float Y1, float X2, float Y2, float TX, float TY) override;
+		virtual void Draw(rive::Artboard* InArtboard) override;
+		virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
+		
 	protected:
-
-		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) = 0;
-
-		// It Might need to be on rendering thread, render QUEUE is required
-		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const = 0;
-
+		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame() const = 0;
+		virtual void EndFrame() const = 0;
+		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList);
 #endif // WITH_RIVE
-
-		/**
-		 * Attribute(s)
-		 */
-
+	
 	protected:
-
-		mutable FCriticalSection ThreadDataCS;
-
-		TSharedPtr<FRiveRenderer> RiveRenderer;
-		
+		FLinearColor ClearColor = FLinearColor::Transparent;
 		FName RiveName;
-		
 		TObjectPtr<UTextureRenderTarget2D> RenderTarget;
-
+		TQueue<FRiveRenderCommand> RenderCommands;
+		TSharedPtr<FRiveRenderer> RiveRenderer;
+		mutable FCriticalSection ThreadDataCS;
 		mutable FDateTime LastResetTime = FDateTime::Now();
-
 		static FTimespan ResetTimeLimit;
 	};
 }

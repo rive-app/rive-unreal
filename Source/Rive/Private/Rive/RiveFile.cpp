@@ -4,6 +4,7 @@
 #include "IRiveRenderTarget.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "Rive/RiveArtboard.h"
 #include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/URAssetImporter.h"
@@ -53,6 +54,7 @@ void URiveFile::Tick(float InDeltaSeconds)
 		// Initialize Rive Render Target Only after we resize the texture
 		UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTargetToDrawOnto());
+		RiveRenderTarget->SetClearColor(DebugColor);
 		RiveRenderTarget->Initialize();
 
 		// Everything is now ready, we can start Rive Rendering
@@ -87,7 +89,7 @@ void URiveFile::Tick(float InDeltaSeconds)
 					}
 					else
 					{
-						ENQUEUE_RENDER_COMMAND(DrawArtboard)(
+						ENQUEUE_RENDER_COMMAND(StateMachineAdvance)(
 							[AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](
 							FRHICommandListImmediate& RHICmdList) mutable
 							{
@@ -104,10 +106,13 @@ void URiveFile::Tick(float InDeltaSeconds)
 					}
 				}
 			}
+			
+			RiveRenderTarget->Align(RiveFitType, GetRiveAlignment(), Artboard->GetNativeArtboard());
+			RiveRenderTarget->Draw(Artboard->GetNativeArtboard());
 
-			const FVector2f RiveAlignmentXY = GetRiveAlignment();
-			RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y,
-										   Artboard->GetNativeArtboard(), DebugColor);
+			RiveRenderTarget->Submit();
+			// RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y,
+			// 							   Artboard->GetNativeArtboard(), DebugColor);
 			bDrawOnceTest = true;
 		}
 
@@ -828,11 +833,11 @@ URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 		Artboard = NewObject<URiveArtboard>(this);
 		if (ArtboardName.IsEmpty())
 		{
-			Artboard->Initialize(GetNativeFile(), ArtboardIndex, StateMachineName);
+			Artboard->Initialize(this, ArtboardIndex, StateMachineName);
 		}
 		else
 		{
-			Artboard->Initialize(GetNativeFile(), ArtboardName, StateMachineName);
+			Artboard->Initialize(this, ArtboardName, StateMachineName);
 		}
 
 		PrintStats();
