@@ -17,9 +17,14 @@ class RIVE_API SRiveWidgetView : public SCompoundWidget
 public:
 
     SLATE_BEGIN_ARGS(SRiveWidgetView)
+#if WITH_EDITOR
+	: _bDrawCheckerboardInEditor(false)
+#endif
         {
         }
-
+#if WITH_EDITOR
+	SLATE_ARGUMENT(bool, bDrawCheckerboardInEditor)
+#endif
     SLATE_END_ARGS()
 
     //~ BEGIN : SWidget Interface

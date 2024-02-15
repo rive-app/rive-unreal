@@ -36,7 +36,10 @@ void SRiveWidgetView::Construct(const FArguments& InArgs, URiveFile* InRiveFile)
     {
         // TODO. new Implementation
         RiveViewportClient = MakeShared<FRiveViewportClient>(InRiveFile, SharedThis(this));
-
+#if WITH_EDITOR
+        RiveViewportClient->bDrawCheckeredTexture = InArgs._bDrawCheckerboardInEditor;
+#endif
+        
         RiveSceneViewport = MakeShared<FRiveSceneViewport>(RiveViewportClient.Get(), ViewportWidget, InRiveFile);
         
         ViewportWidget->SetViewportInterface(RiveSceneViewport.ToSharedRef());

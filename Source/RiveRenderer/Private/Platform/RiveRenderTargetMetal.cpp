@@ -86,6 +86,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
         UE_LOG(LogRiveRenderer, Warning, TEXT("MetalTexture texture %dx%d"), MetalTexture.width, MetalTexture.height);
 
 #if WITH_RIVE
+        if (CachedPLSRenderTargetMetal)
+        {
+            CachedPLSRenderTargetMetal.release();
+        }
         
         // For now we just set one renderer and one texture
         rive::pls::PLSRenderContextMetalImpl* const PLSRenderContextMetalImpl = PLSRenderContext->static_impl_cast<rive::pls::PLSRenderContextMetalImpl>();

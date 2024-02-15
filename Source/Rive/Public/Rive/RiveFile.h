@@ -170,8 +170,8 @@ public:
 	FLinearColor GetDebugColor() const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinates(const FVector2f& InScreenPosition, const FBox2f& InScreenRect,
-								  const FIntPoint& InViewportSize) const;
+	FVector2f GetLocalCoordinates(const FVector2f& InViewportPosition,
+		const FVector2f& InViewportSize) const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
@@ -179,8 +179,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
 
-	// TODO. We need function in URiveFile to calculate it , based on RiveFitType
+	/**
+	 * Calculates the size the RenderTarget of this RiveFile should have to be 'Contained' within the given viewport
+	 */
 	FIntPoint CalculateRenderTextureSize(const FIntPoint& InViewportSize) const;
+	/**
+	 * Kind of the opposite of CalculateRenderTextureSize, where we want to know the size the Viewport should have to
+	 * contain the full sized RenderTarget, while keeping the proportion of the given ViewportSize
+	 */
+	FVector2f CalculateViewportSizeToContainRenderTexture(const FVector2f& InViewportSize) const;
 
 	// TODO. We need function in URiveFile to calculate it , based on RiveAlignment
 	FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize, const FIntPoint& InTextureSize) const;

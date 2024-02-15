@@ -42,13 +42,9 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FSlateRect BoundingRect = MyGeometry.GetLayoutBoundingRect();
-
-			const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
-
-			const FIntPoint ViewportSize = GetSizeXY();
-
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, ViewportSize);
+			const FVector2f MousePixel = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+			const FVector2f ViewportSize = MyGeometry.GetLocalSize();
+			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MousePixel, ViewportSize);
 
 			if (StateMachine->OnMouseButtonDown(LocalPosition))
 			{
@@ -89,13 +85,9 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FSlateRect BoundingRect = MyGeometry.GetLayoutBoundingRect();
-
-			const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
-
-			const FIntPoint ViewportSize = GetSizeXY();
-
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, ViewportSize);
+			const FVector2f MousePixel = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+			const FVector2f ViewportSize = MyGeometry.GetLocalSize();
+			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MousePixel, ViewportSize);
 
 			if (StateMachine->OnMouseButtonUp(LocalPosition))
 			{
@@ -136,13 +128,9 @@ FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FSlateRect BoundingRect = MyGeometry.GetLayoutBoundingRect();
-
-			const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
-
-			const FIntPoint ViewportSize = GetSizeXY();
-
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, ViewportSize);
+			const FVector2f MousePixel = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+			const FVector2f ViewportSize = MyGeometry.GetLocalSize();
+			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MousePixel, ViewportSize);
 
 			if (StateMachine->OnMouseMove(LocalPosition))
 			{

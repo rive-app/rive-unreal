@@ -28,15 +28,15 @@ public class Rive : ModuleRules
 				"Core",
 				"CoreUObject",
 				"InputCore",
-                "Projects",
-                "RHICore",
-                "RHI",
+				"Projects",
+				"RHICore",
+				"RHI",
 				"RenderCore",
-                "RiveLibrary",
-                "RiveRenderer",
+				"RiveLibrary",
+				"RiveRenderer",
 				// ... add other public dependencies that you statically link with here ...
 			}
-        );
+		);
 			
 		
 		PrivateDependencyModuleNames.AddRange(
@@ -76,6 +76,7 @@ public class Rive : ModuleRules
 					"UnrealEd",
 					"ViewportInteraction",
 					"AssetTools",
+					"TextureEditor",
 				}
 			);
 		}

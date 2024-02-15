@@ -85,6 +85,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11ResourcePtr texture %dx%d"), Desc.Width, Desc.Height);
 
 #if WITH_RIVE
+		if (CachedPLSRenderTargetD3D)
+		{
+			CachedPLSRenderTargetD3D.release();
+		}
 		// For now we just set one renderer and one texture
 		rive::pls::PLSRenderContextD3DImpl* const PLSRenderContextD3DImpl = PLSRenderContext->static_impl_cast<rive::pls::PLSRenderContextD3DImpl>();
 		CachedPLSRenderTargetD3D = PLSRenderContextD3DImpl->makeRenderTarget(Desc.Width, Desc.Height);
