@@ -35,7 +35,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::Initialize()
 {
     check(IsInGameThread());
     
-    FScopeLock Lock(&ThreadDataCS);
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
     
@@ -51,7 +51,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
 {
     check(IsInRenderingThread());
     
-    FScopeLock Lock(&ThreadDataCS);
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
 #if WITH_RIVE
     
@@ -105,7 +105,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::DrawArtboard(uint8 InF
 {
     check(IsInGameThread());
 
-    FScopeLock Lock(&ThreadDataCS);
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
     ENQUEUE_RENDER_COMMAND(AlignArtboard)(
         [this, InFit, AlignX, AlignY, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
@@ -120,9 +120,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::DrawArtboard_RenderThr
     SCOPED_GPU_STAT(RHICmdList, DrawArtboard);
 
     check(IsInRenderingThread());
-    
 
-    FScopeLock Lock(&ThreadDataCS);
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
     

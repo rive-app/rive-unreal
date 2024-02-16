@@ -44,6 +44,8 @@ void URiveFile::Tick(float InDeltaSeconds)
 		return;
 	}
 
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+
 #if WITH_RIVE
 	if (!bIsInitialized && bIsFileImported && GetArtboard()) //todo: move away from Tick
 	{
@@ -51,7 +53,6 @@ void URiveFile::Tick(float InDeltaSeconds)
 		ResizeRenderTargets(Artboard->GetSize());
 		
 		// Initialize Rive Render Target Only after we resize the texture
-		UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTargetToDrawOnto());
 		RiveRenderTarget->Initialize();
 
@@ -67,7 +68,7 @@ void URiveFile::Tick(float InDeltaSeconds)
 			UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine();
 			if (StateMachine && StateMachine->IsValid() && ensure(RiveRenderTarget))
 			{
-				FScopeLock Lock(&RiveRenderTarget->GetThreadDataCS());
+				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 				if (!bIsReceivingInput)
 				{
 					auto AdvanceStateMachine = [this, StateMachine, InDeltaSeconds]()

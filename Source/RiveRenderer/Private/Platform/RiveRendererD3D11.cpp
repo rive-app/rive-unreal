@@ -119,6 +119,8 @@ TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::F
 {
 	check(IsInGameThread());
 
+	FScopeLock Lock(&ThreadDataCS);
+
 	const TSharedPtr<FRiveRenderTargetD3D11> RiveRenderTarget = MakeShared<FRiveRenderTargetD3D11>(SharedThis(this), InRiveName, InRenderTarget);
 
 	RenderTargets.Add(InRiveName, RiveRenderTarget);
