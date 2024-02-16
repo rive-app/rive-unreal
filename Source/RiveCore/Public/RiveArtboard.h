@@ -1,6 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 #pragma once
-#include "Core/URStateMachine.h"
+#include "URStateMachine.h"
 #if WITH_RIVE
 class URiveFile;
 THIRD_PARTY_INCLUDES_START
@@ -10,7 +10,7 @@ THIRD_PARTY_INCLUDES_END
 #include "RiveArtboard.generated.h"
 
 UCLASS()
-class RIVE_API URiveArtboard : public UObject
+class RIVECORE_API URiveArtboard : public UObject
 {
 	GENERATED_BODY()
 
@@ -22,9 +22,9 @@ public:
 
 #if WITH_RIVE
 
-	void Initialize(URiveFile* InRiveFile);
-	void Initialize(URiveFile* InRiveFile, int32 InIndex, const FString& InStateMachineName = TEXT_EMPTY);
-	void Initialize(URiveFile* InRiveFile, const FString& InName, const FString& InStateMachineName = TEXT_EMPTY);
+	void Initialize(rive::File* InNativeFilePtr);
+	void Initialize(rive::File* InNativeFilePtr, int32 InIndex, const FString& InStateMachineName = TEXT_EMPTY);
+	void Initialize(rive::File* InNativeFilePtr, const FString& InName, const FString& InStateMachineName = TEXT_EMPTY);
 
 	bool IsInitialized() { return bIsInitialized; }
 	/**

@@ -26,7 +26,7 @@ enum class ERiveAssetType : uint8
  * 
  */
 UCLASS(BlueprintType)
-class RIVE_API URiveAsset : public UObject
+class RIVECORE_API URiveAsset : public UObject
 {
 	GENERATED_BODY()
 

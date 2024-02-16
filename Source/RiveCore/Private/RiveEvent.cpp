@@ -1,6 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "Rive/RiveEvent.h"
+#include "RiveEvent.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START

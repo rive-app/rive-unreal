@@ -1,7 +1,7 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "Rive/Core/URStateMachine.h"
-#include "Logs/RiveLog.h"
+#include "URStateMachine.h"
+#include "Logs\RiveCoreLog.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -76,7 +76,7 @@ void UE::Rive::Core::FURStateMachine::FireTrigger(const FString& InPropertyName)
         return;
     }
 
-    UE_LOG(LogRive, Error, TEXT("Could not fire the trigger with given name '%s' as we could not find it."), *InPropertyName);
+    UE_LOG(LogRiveCore, Error, TEXT("Could not fire the trigger with given name '%s' as we could not find it."), *InPropertyName);
 }
 
 bool UE::Rive::Core::FURStateMachine::GetBoolValue(const FString& InPropertyName) const
@@ -91,7 +91,7 @@ bool UE::Rive::Core::FURStateMachine::GetBoolValue(const FString& InPropertyName
         return BoolProperty->value();
     }
 
-    UE_LOG(LogRive, Error, TEXT("Could not get the boolean property with given name '%s' as we could not find it."), *InPropertyName);
+    UE_LOG(LogRiveCore, Error, TEXT("Could not get the boolean property with given name '%s' as we could not find it."), *InPropertyName);
     return false;
 }
 
@@ -107,7 +107,7 @@ float UE::Rive::Core::FURStateMachine::GetNumberValue(const FString& InPropertyN
         return NumberProperty->value();
     }
     
-    UE_LOG(LogRive, Error, TEXT("Could not get the number property with given name '%s' as we could not find it."), *InPropertyName);
+    UE_LOG(LogRiveCore, Error, TEXT("Could not get the number property with given name '%s' as we could not find it."), *InPropertyName);
     return 0;
 }
 
@@ -124,7 +124,7 @@ void UE::Rive::Core::FURStateMachine::SetBoolValue(const FString& InPropertyName
         return;
     }
     
-    UE_LOG(LogRive, Error, TEXT("Could not get the boolean property with given name '%s' as we could not find it."), *InPropertyName);
+    UE_LOG(LogRiveCore, Error, TEXT("Could not get the boolean property with given name '%s' as we could not find it."), *InPropertyName);
 }
 
 void UE::Rive::Core::FURStateMachine::SetNumberValue(const FString& InPropertyName, float NewValue)
@@ -140,7 +140,7 @@ void UE::Rive::Core::FURStateMachine::SetNumberValue(const FString& InPropertyNa
         return;
     }
  
-    UE_LOG(LogRive, Error, TEXT("Could not get the number property with given name '%s' as we could not find it."), *InPropertyName);
+    UE_LOG(LogRiveCore, Error, TEXT("Could not get the number property with given name '%s' as we could not find it."), *InPropertyName);
 }
 
 bool UE::Rive::Core::FURStateMachine::OnMouseButtonDown(const FVector2f& NewPosition)

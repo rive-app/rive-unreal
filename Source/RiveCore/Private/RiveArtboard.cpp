@@ -1,9 +1,8 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "Rive/RiveArtboard.h"
-#include "Logs/RiveLog.h"
-#include "Rive/RiveFile.h"
-#include "Rive/Core/URStateMachine.h"
+#include "RiveArtboard.h"
+#include "Logs\RiveCoreLog.h"
+#include "URStateMachine.h"
 
 #if WITH_RIVE
 
@@ -17,31 +16,30 @@ void URiveArtboard::BeginDestroy()
 	UObject::BeginDestroy();
 }
 
-void URiveArtboard::Initialize(URiveFile* InRiveFile)
+void URiveArtboard::Initialize(rive::File* InNativeFilePtr)
 {
-	Initialize(InRiveFile, 0);
+	Initialize(InNativeFilePtr, 0);
 }
 
-void URiveArtboard::Initialize(URiveFile* InRiveFile, int32 InIndex, const FString& InStateMachineName)
+void URiveArtboard::Initialize(rive::File* InNativeFilePtr, int32 InIndex, const FString& InStateMachineName)
 {
-	rive::File* NativeFilePtr = InRiveFile->GetNativeFile();
-	if (!NativeFilePtr)
+	if (!InNativeFilePtr)
 	{
 		return;
 	}
 	
 	StateMachineName = InStateMachineName;
 
-	if (InIndex >= NativeFilePtr->artboardCount())
+	if (InIndex >= InNativeFilePtr->artboardCount())
 	{
-		InIndex = NativeFilePtr->artboardCount() - 1;
-		UE_LOG(LogRive, Warning,
+		InIndex = InNativeFilePtr->artboardCount() - 1;
+		UE_LOG(LogRiveCore, Warning,
 		       TEXT(
 			       "Artboard index specified is out of bounds, using the last available artboard index instead, which is %d"
 		       ), InIndex);
 	}
 
-	if (rive::Artboard* NativeArtboard = NativeFilePtr->artboard(InIndex))
+	if (rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(InIndex))
 	{
 		NativeArtboardPtr = NativeArtboard->instance();
 
@@ -53,23 +51,22 @@ void URiveArtboard::Initialize(URiveFile* InRiveFile, int32 InIndex, const FStri
 	bIsInitialized = true;
 }
 
-void URiveArtboard::Initialize(URiveFile* InRiveFile, const FString& InName, const FString& InStateMachineName)
+void URiveArtboard::Initialize(rive::File* InNativeFilePtr, const FString& InName, const FString& InStateMachineName)
 {
-	rive::File* NativeFilePtr = InRiveFile->GetNativeFile();
-	if (!NativeFilePtr)
+	if (!InNativeFilePtr)
 	{
 		return;
 	}
 
 	StateMachineName = InStateMachineName;
-	rive::Artboard* NativeArtboard = NativeFilePtr->artboard(TCHAR_TO_UTF8(*InName));
+	rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(TCHAR_TO_UTF8(*InName));
 
 	if (!NativeArtboard)
 	{
-		UE_LOG(LogRive, Error,
+		UE_LOG(LogRiveCore, Error,
 		       TEXT("Could not initialize the artboard by the name '%s'. Initializing with default artboard instead"),
 		       *InName);
-		NativeArtboard = NativeFilePtr->artboard();
+		NativeArtboard = InNativeFilePtr->artboard();
 	}
 
 	NativeArtboardPtr = NativeArtboard->instance();
@@ -85,7 +82,7 @@ rive::Artboard* URiveArtboard::GetNativeArtboard() const
 {
 	if (!NativeArtboardPtr)
 	{
-		UE_LOG(LogRive, Error, TEXT("Could not retrieve artboard as we have detected an empty rive atrboard."));
+		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard as we have detected an empty rive atrboard."));
 
 		return nullptr;
 	}
@@ -97,7 +94,7 @@ rive::AABB URiveArtboard::GetBounds() const
 {
 	if (!NativeArtboardPtr)
 	{
-		UE_LOG(LogRive, Error, TEXT("Could not retrieve artboard bounds as we have detected an empty rive atrboard."));
+		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard bounds as we have detected an empty rive atrboard."));
 
 		return {0, 0, 0, 0};
 	}
@@ -109,7 +106,7 @@ FVector2f URiveArtboard::GetSize() const
 {
 	if (!NativeArtboardPtr)
 	{
-		UE_LOG(LogRive, Error, TEXT("Could not retrieve artboard size as we have detected an empty rive atrboard."));
+		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard size as we have detected an empty rive atrboard."));
 
 		return FVector2f::ZeroVector;
 	}

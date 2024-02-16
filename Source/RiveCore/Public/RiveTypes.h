@@ -2,6 +2,32 @@
 #include "CoreMinimal.h"
 #include "RiveTypes.generated.h"
 
+USTRUCT(Blueprintable)
+struct RIVECORE_API FRiveStateMachineEvent
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+	FIntPoint MousePosition = FIntPoint(0, 0);
+};
+
+USTRUCT(BlueprintType)
+struct RIVECORE_API FRiveAlignment
+{
+	GENERATED_BODY()
+
+public:
+	inline static FVector2f TopLeft = FVector2f(-1.f, -1.f);
+	inline static FVector2f TopCenter = FVector2f(0.f, -1.f);
+	inline static FVector2f TopRight = FVector2f(1.f, -1.f);
+	inline static FVector2f CenterLeft = FVector2f(-1.f, 0.f);
+	inline static FVector2f Center = FVector2f(0.f, 0.f);
+	inline static FVector2f CenterRight = FVector2f(1.f, 0.f);
+	inline static FVector2f BottomLeft = FVector2f(-1.f, 1.f);
+	inline static FVector2f BottomCenter = FVector2f(0.f, 1.f);
+	inline static FVector2f BottomRight = FVector2f(1.f, 1.f);
+};
+
 UENUM(BlueprintType)
 enum class ERiveFitType : uint8
 {

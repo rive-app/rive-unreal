@@ -1,16 +1,12 @@
 ﻿// Copyright Rive, Inc. All rights reserved.
 
-#include "Rive/Assets/URAssetImporter.h"
-
+#include "Assets/URAssetImporter.h"
+#include "Logs/RiveCoreLog.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#if WITH_EDITOR
 #include "AssetToolsModule.h"
-#endif
-#include "Logs/RiveLog.h"
-#include "Rive/RiveFile.h"
-#include "Rive/Assets/RiveAsset.h"
-#include "Rive/Assets/URAssetHelpers.h"
-#include "Rive/Assets/URFileAssetLoader.h"
+#include "Assets/RiveAsset.h"
+#include "Assets/URAssetHelpers.h"
+#include "Assets/URFileAssetLoader.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -20,7 +16,7 @@ THIRD_PARTY_INCLUDES_END
 
 #if WITH_RIVE
 
-UE::Rive::Assets::FURAssetImporter::FURAssetImporter(URiveFile* InRiveFile) : RiveFile(InRiveFile)
+UE::Rive::Assets::FURAssetImporter::FURAssetImporter(UPackage* InPackage, const FString& InRiveFilePath, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets) : RivePackage(InPackage), RiveFilePath(InRiveFilePath), Assets(InAssets)
 {
 }
 
@@ -46,7 +42,7 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 	// TODO: We should just go ahead and search Registry for this asset, and load it here
 	{
 		// There shouldn't be anything in RiveFile->Assets, as this AssetImporter is meant to only be called on the Riv first load.
-		TObjectPtr<URiveAsset>* RiveAssetPtr = RiveFile->GetAssets().Find(InAsset.assetId());
+		TObjectPtr<URiveAsset>* RiveAssetPtr = Assets.Find(InAsset.assetId());
 
 		if (RiveAssetPtr)
 		{
@@ -60,7 +56,6 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 	
 	if (!bIsInBand)
 	{
-		const UPackage* const RivePackage = RiveFile->GetOutermost();
 		const FString RivePackageName = RivePackage->GetName();
 		const FString RiveFolderName = *FPackageName::GetLongPackagePath(RivePackageName);
 
@@ -87,7 +82,7 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 
 	if (!RiveAsset)
 	{
-		UE_LOG(LogRive, Error, TEXT("Could not load the RiveAsset."));
+		UE_LOG(LogRiveCore, Error, TEXT("Could not load the RiveAsset."));
 		return false;
 	}
 	
@@ -99,17 +94,17 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 	
 	if (bIsInBand)
 	{
-		RiveFile->GetAssets().Add(InAsset.assetId(), RiveAsset);
+		Assets.Add(InAsset.assetId(), RiveAsset);
 		return true;
 	}
 	
 	FString AssetPath;
-	if (URAssetHelpers::FindDiskAsset(RiveFile->RiveFilePath, RiveAsset))
+	if (URAssetHelpers::FindDiskAsset(RiveFilePath, RiveAsset))
 	{
 		RiveAsset->LoadFromDisk();
 	}
 
-	RiveFile->GetAssets().Add(InAsset.assetId(), RiveAsset);
+	Assets.Add(InAsset.assetId(), RiveAsset);
 	return true;
 }
 

@@ -4,13 +4,12 @@
 #include "IRiveRenderTarget.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "Rive/RiveArtboard.h"
+#include "RiveCore/Public/RiveArtboard.h"
 #include "Logs/RiveLog.h"
-#include "Rive/Assets/RiveAsset.h"
-#include "Rive/Assets/URAssetImporter.h"
-#include "Rive/Assets/URFileAssetLoader.h"
+#include "RiveCore/Public/Assets/RiveAsset.h"
+#include "RiveCore/Public/Assets/URAssetImporter.h"
+#include "RiveCore/Public/Assets/URFileAssetLoader.h"
 #include "RiveRendererUtils.h"
-#include "Rive/RiveArtboard.h"
 
 
 #if WITH_RIVE
@@ -464,7 +463,7 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 	RiveFileData = MoveTemp(InRiveFileBuffer);
 	RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
 
-	TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(this);
+	TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(GetOutermost(), RiveFilePath, GetAssets());
 
 	rive::ImportResult ImportResult;
 	RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext,
@@ -546,7 +545,7 @@ void URiveFile::Initialize()
 				if (!ParentRiveFile)
 				{
 					const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
-						UE::Rive::Assets::FURFileAssetLoader>(this);
+						UE::Rive::Assets::FURFileAssetLoader>(this, GetAssets());
 					rive::ImportResult ImportResult;
 
 					FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
@@ -707,11 +706,11 @@ URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 	{
 		if (ArtboardName.IsEmpty())
 		{
-			Artboard->Initialize(this, ArtboardIndex, StateMachineName);
+			Artboard->Initialize(this->GetNativeFile(), ArtboardIndex, StateMachineName);
 		}
 		else
 		{
-			Artboard->Initialize(this, ArtboardName, StateMachineName);
+			Artboard->Initialize(this->GetNativeFile(), ArtboardName, StateMachineName);
 		}
 
 		PrintStats();

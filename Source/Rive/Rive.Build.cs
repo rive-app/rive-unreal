@@ -32,6 +32,7 @@ public class Rive : ModuleRules
 				"RHICore",
 				"RHI",
 				"RenderCore",
+				"RiveCore",
 				"RiveLibrary",
 				"RiveRenderer",
 				// ... add other public dependencies that you statically link with here ...
@@ -48,6 +49,7 @@ public class Rive : ModuleRules
 				"Slate",
 				"SlateCore",
 				"Projects",
+				"RiveCore",
 				"RiveRenderer",
 				"RHI",
 				"RenderCore",
