@@ -100,19 +100,18 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
 
-    // Get the base directory of this plugin
-    FString BaseDir = IPluginManager::Get().FindPlugin("Rive")->GetBaseDir();
-
+#if PLATFORM_WINDOWS
     // Add on the relative location of the third party dll and load it
-    FString RiveHarfbuzzLibraryPath;
-#if PLATFORM_WINDOWS
-    RiveHarfbuzzLibraryPath = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/RiveLibrary/Libraries/Win64/rive_harfbuzz.dll"));
-#elif PLATFORM_ANDROID
-    RiveHarfbuzzLibraryPath = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/RiveLibrary/Libraries/Android/librive_harfbuzz.so"));
-#endif // PLATFORM_WINDOWS
-
-
-#if PLATFORM_WINDOWS
+#if WITH_EDITOR
+    // In Editor, we don't want to load the dll from Binaries as it will lock the dll
+    // and the packaging will sometimes fail as UE is trying to replace the dll
+    // Get the base directory of this plugin
+    const FString BaseDir = IPluginManager::Get().FindPlugin("Rive")->GetBaseDir();
+    const FString RiveHarfbuzzLibraryPath = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/RiveLibrary/Libraries/Win64/rive_harfbuzz.dll"));
+#else
+    const FString RiveHarfbuzzLibraryPath = TEXT("rive_harfbuzz.dll");
+#endif
+    
     {
         RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*RiveHarfbuzzLibraryPath);
         if (RiveHarfbuzzDllHandle != nullptr)
@@ -126,6 +125,9 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
         }
     }
 #elif PLATFORM_ANDROID
+    // Add on the relative location of the third party dll and load it
+    const FString RiveHarfbuzzLibraryPath = TEXT("librive_harfbuzz.so");
+    
     FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
     {
         RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*RiveHarfbuzzLibraryPath);
