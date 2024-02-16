@@ -134,12 +134,9 @@ void FRiveViewportClient::ModifyCheckerboardTextureColors()
 
 void FRiveViewportClient::DestroyCheckerboardTexture()
 {
-	if (CheckerboardTexture)
+	if (IsValid(CheckerboardTexture))
 	{
-		if (CheckerboardTexture->GetResource())
-		{
-			CheckerboardTexture->ReleaseResource();
-		}
+		CheckerboardTexture->ReleaseResource();
 		CheckerboardTexture->MarkAsGarbage();
 		CheckerboardTexture = nullptr;
 	}

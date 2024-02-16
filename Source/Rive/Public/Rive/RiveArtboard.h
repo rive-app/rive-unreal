@@ -14,6 +14,8 @@ class RIVE_API URiveArtboard : public UObject
 	GENERATED_BODY()
 
 public:
+	virtual void BeginDestroy() override;
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
 	FString StateMachineName;
 
