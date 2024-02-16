@@ -167,15 +167,26 @@ void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 	// TODO. WE need custom implementation here to handle the Rive File Editor Changes
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if (PropertyChangedEvent.Property != nullptr)
+	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardIndex) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardName))
 	{
-		const FName PropertyName = PropertyChangedEvent.Property->GetFName();
-
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardIndex) || PropertyName ==
-			GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardName))
+		InstantiateArtboard();
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, SizeX) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, SizeY))
+	{
+		++SizeX; // We are in PostEditChange, so SizeX is already the right value, but Resize would skip because InSizeX == SizeX && InSizeY == SizeY
+		ResizeTarget(SizeX - 1, SizeY);
+		if (RenderTarget)
 		{
-			InstantiateArtboard();
+			RenderTarget->ResizeTarget(SizeX, SizeY); // SizeX is now the right size
 		}
+		if (RiveRenderTarget)
+		{
+			RiveRenderTarget->Initialize();
+		}
+		FlushRenderingCommands();
 	}
 }
 
@@ -196,7 +207,6 @@ URiveFile* URiveFile::CreateInstance(const FString& InArtboardName, const FStrin
 void URiveFile::FireTrigger(const FString& InPropertyName) const
 {
 #if WITH_RIVE
-
 	if (GetArtboard())
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
@@ -204,7 +214,6 @@ void URiveFile::FireTrigger(const FString& InPropertyName) const
 			StateMachine->FireTrigger(InPropertyName);
 		}
 	}
-
 #endif // WITH_RIVE
 }
 
@@ -243,8 +252,7 @@ FLinearColor URiveFile::GetDebugColor() const
 	return DebugColor;
 }
 
-FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InScreenPosition, const FBox2f& InScreenRect,
-										 const FIntPoint& InViewportSize) const
+FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) const
 {
 #if WITH_RIVE
 
@@ -252,25 +260,14 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InScreenPosition, cons
 	{
 		const FVector2f RiveAlignmentXY = GetRiveAlignment();
 
-		const FIntPoint TextureSize = CalculateRenderTextureSize(InViewportSize);
-
-		const FVector2f TexturePosition = InScreenRect.Min +
-			CalculateRenderTexturePosition(InViewportSize, TextureSize);
-
 		const rive::Mat2D Transform = rive::computeAlignment(
 			(rive::Fit)RiveFitType,
 			rive::Alignment(RiveAlignmentXY.X, RiveAlignmentXY.Y),
-				rive::AABB(
-				TexturePosition.X,
-				TexturePosition.Y,
-				TexturePosition.X + TextureSize.X,
-				TexturePosition.Y + TextureSize.Y),
+			rive::AABB(0, 0, SizeX, SizeY),
 			Artboard->GetBounds()
 		);
 
-		const rive::Vec2D ResultingVector = Transform.invertOrIdentity() * rive::Vec2D(
-			InScreenPosition.X, InScreenPosition.Y);
-
+		const rive::Vec2D ResultingVector = Transform.invertOrIdentity() * rive::Vec2D(InTexturePosition.X, InTexturePosition.Y);
 		return {ResultingVector.x, ResultingVector.y};
 	}
 
@@ -279,10 +276,18 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InScreenPosition, cons
 	return FVector2f::ZeroVector;
 }
 
+FVector2f URiveFile::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const
+{
+	const FVector2f RelativePosition = InPosition - InExtents.Min;
+	const FVector2f Ratio { SizeX / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
+	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
+	
+	return GetLocalCoordinates(TextureRelativePosition);
+}
+
 void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 {
 #if WITH_RIVE
-
 	if (GetArtboard())
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
@@ -290,14 +295,12 @@ void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 			StateMachine->SetBoolValue(InPropertyName, bNewValue);
 		}
 	}
-
 #endif // WITH_RIVE
 }
 
 void URiveFile::SetNumberValue(const FString& InPropertyName, float NewValue)
 {
 #if WITH_RIVE
-
 	if (GetArtboard())
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
@@ -305,174 +308,10 @@ void URiveFile::SetNumberValue(const FString& InPropertyName, float NewValue)
 			StateMachine->SetNumberValue(InPropertyName, NewValue);
 		}
 	}
-
 #endif // WITH_RIVE
 }
 
-FIntPoint URiveFile::CalculateRenderTextureSize(const FIntPoint& InViewportSize) const
-{
-	FIntPoint NewSize = {SizeX, SizeY};
 
-#if WITH_RIVE
-	if (const URiveArtboard* NativeArtboard = GetArtboard())
-	{
-		const FVector2f ArtboardSize = NativeArtboard->GetSize();
-		const float TextureAspectRatio = ArtboardSize.X / ArtboardSize.Y;
-		const float ViewportAspectRatio = static_cast<float>(InViewportSize.X) / InViewportSize.Y;
-		
-		switch (RiveFitType)
-		{
-			case ERiveFitType::Fill:
-				NewSize = InViewportSize;
-		  break;
-			case ERiveFitType::ScaleDown: // Take up maximum texture size, or scale it down while containing the texture
-			case ERiveFitType::Contain:
-				{
-					// Ensures one dimension takes up the container space fully, without clipping
-					if (ViewportAspectRatio > TextureAspectRatio)
-					{
-						NewSize = {
-							static_cast<int>(InViewportSize.Y * TextureAspectRatio),
-							InViewportSize.Y
-						};
-					}
-					else
-					{
-						NewSize = {
-							InViewportSize.X,
-							static_cast<int>(InViewportSize.X / TextureAspectRatio)
-						};
-					}
-					// If we want to scale down and the contain size is bigger, revert to the Artboard size
-					if (RiveFitType == ERiveFitType::ScaleDown)
-					{
-						if (NewSize.X > SizeX || NewSize.Y > SizeY)
-						{
-							NewSize = { SizeX, SizeY };
-						}
-					}
-					break;
-				}
-			case ERiveFitType::Cover:
-				{
-					// This Ensures one of the dimensions will always take up container space fully, with clipping
-					if (ViewportAspectRatio > TextureAspectRatio)
-					{
-						NewSize = {
-							InViewportSize.X,
-							static_cast<int>(InViewportSize.X / TextureAspectRatio)
-						};
-					}
-					else
-					{
-						NewSize = {
-							static_cast<int>(InViewportSize.Y * TextureAspectRatio),
-							InViewportSize.Y
-						};
-					}
-					break;
-				}
-			case ERiveFitType::FitWidth:
-				// Force Width to take up the screenspace width; Maintain aspect ratio, can clip
-				NewSize = {
-					InViewportSize.X,
-					static_cast<int>(InViewportSize.X / TextureAspectRatio)
-				};
-				break;
-			case ERiveFitType::FitHeight:
-				// Force to take up the screenspace height; Maintain aspect ratio, can clip
-				NewSize = {
-					static_cast<int>(InViewportSize.Y * TextureAspectRatio),
-					InViewportSize.Y
-				};
-				break;
-			case ERiveFitType::None:
-				NewSize = { SizeX, SizeY };
-				break;
-			default:
-				NewSize = { SizeX, SizeY };
-				UE_LOG(LogRive, Error, TEXT("Unknown Fit Type for Rive File"))
-				break;
-		}
-	}
-#endif // WITH_RIVE
-	return NewSize;
-}
-
-FIntPoint URiveFile::CalculateRenderTexturePosition(const FIntPoint& InViewportSize,
-													const FIntPoint& InTextureSize) const
-{
-	FIntPoint NewPosition = FIntPoint::ZeroValue;
-
-	const FIntPoint TextureSize = {InTextureSize.X, InTextureSize.Y};
-
-	if (RiveFitType == ERiveFitType::Fill)
-	{
-		return NewPosition;
-	}
-
-	ERiveAlignment Alignment = RiveAlignment;
-
-	switch (Alignment)
-	{
-	case ERiveAlignment::TopLeft:
-		break;
-	case ERiveAlignment::TopCenter:
-		{
-			const int32 PosX = (InViewportSize.X - TextureSize.X) * 0.5f;
-			NewPosition = {PosX, 0};
-			break;
-		}
-	case ERiveAlignment::TopRight:
-		{
-			const int32 PosX = InViewportSize.X - TextureSize.X;
-			NewPosition = {PosX, 0};
-			break;
-		}
-	case ERiveAlignment::CenterLeft:
-		{
-			const int32 PosY = (InViewportSize.Y - TextureSize.Y) * 0.5f;
-			NewPosition = {0, PosY};
-			break;
-		}
-	case ERiveAlignment::Center:
-		{
-			const int32 PosX = (InViewportSize.X - TextureSize.X) * 0.5f;
-			const int32 PosY = (InViewportSize.Y - TextureSize.Y) * 0.5f;
-			NewPosition = {PosX, PosY};
-			break;
-		}
-	case ERiveAlignment::CenterRight:
-		{
-			const int32 PosX = InViewportSize.X - TextureSize.X;
-			const int32 PosY = (InViewportSize.Y - TextureSize.Y) * 0.5f;
-			NewPosition = {PosX, PosY};
-			break;
-		}
-	case ERiveAlignment::BottomLeft:
-		{
-			const int32 PosY = InViewportSize.Y - TextureSize.Y;
-			NewPosition = {0, PosY};
-			break;
-		}
-	case ERiveAlignment::BottomCenter:
-		{
-			const int32 PosX = (InViewportSize.X - TextureSize.X) * 0.5f;
-			const int32 PosY = InViewportSize.Y - TextureSize.Y;
-			NewPosition = {PosX, PosY};
-			break;
-		}
-	case ERiveAlignment::BottomRight:
-		{
-			const int32 PosX = InViewportSize.X - TextureSize.X;
-			const int32 PosY = InViewportSize.Y - TextureSize.Y;
-			NewPosition = {PosX, PosY};
-			break;
-		}
-	}
-
-	return NewPosition;
-}
 
 FVector2f URiveFile::GetRiveAlignment() const
 {

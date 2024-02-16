@@ -320,6 +320,11 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_In
 	}
 	RIVE_DEBUG_VERBOSE("OpenGLResourcePtr %d texture size %dx%d", OpenGLResourcePtr, w, h);
 
+	if (CachedPLSRenderTargetOpenGL)
+	{
+		CachedPLSRenderTargetOpenGL.release();
+	}
+	
 	CachedPLSRenderTargetOpenGL = rive::make_rcp<rive::pls::TextureRenderTargetGL>(w, h);
 	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->setTargetTexture( %d )", OpenGLResourcePtr);
 	CachedPLSRenderTargetOpenGL->setTargetTexture(OpenGLResourcePtr);
