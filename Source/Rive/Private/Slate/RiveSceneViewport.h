@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Slate/SceneViewport.h"
 
+class FRiveViewportClient;
 class URiveFile;
 
 /**
@@ -18,10 +19,12 @@ class FRiveSceneViewport : public FSceneViewport
 
 public:
 
-	FRiveSceneViewport(FViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveFile* InRiveFile);
+	FRiveSceneViewport(FRiveViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveFile* InRiveFile);
 	
 	virtual ~FRiveSceneViewport() override;
 
+	FRiveViewportClient* GetRiveViewportClient() const { return RiveViewportClient; }
+	
 	//~ BEGIN : FSceneViewport Interface 
 	
 public:
@@ -37,7 +40,8 @@ public:
 	/**
 	 * Attribute(s)
 	 */
-
+protected:
+	FRiveViewportClient* RiveViewportClient;
 private:
 
 	TObjectPtr<URiveFile> RiveFile;

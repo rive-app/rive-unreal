@@ -251,7 +251,7 @@ FLinearColor URiveFile::GetDebugColor() const
 	return DebugColor;
 }
 
-FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InViewportPosition, const FVector2f& InViewportSize) const
+FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) const
 {
 #if WITH_RIVE
 
@@ -259,36 +259,29 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InViewportPosition, co
 	{
 		const FVector2f RiveAlignmentXY = GetRiveAlignment();
 
-		// To get the right coordinate for all cases and especially when we request the Artboard to be drawn without scaling,
-		// We need to keep the TextureSize the same as what Rive uses internally, and so we adjust the ViewportSize used in the computation
-		const FIntPoint TextureSize = { SizeX, SizeY };
-		
-		const FVector2f ProportionalViewportSize = CalculateViewportSizeToContainRenderTexture(InViewportSize);
-		
-		const FVector2f ViewportPositionNormalized = InViewportPosition / InViewportSize;
-		const FVector2f ProportionalViewportPosition = ViewportPositionNormalized * ProportionalViewportSize;
-
-		const FVector2f TexturePosition = CalculateRenderTexturePosition(ProportionalViewportSize.IntPoint(), TextureSize);
-
 		const rive::Mat2D Transform = rive::computeAlignment(
 			(rive::Fit)RiveFitType,
 			rive::Alignment(RiveAlignmentXY.X, RiveAlignmentXY.Y),
-				rive::AABB(
-				TexturePosition.X,
-				TexturePosition.Y,
-				TexturePosition.X + TextureSize.X,
-				TexturePosition.Y + TextureSize.Y),
+			rive::AABB(0, 0, SizeX, SizeY),
 			Artboard->GetBounds()
 		);
 
-		const rive::Vec2D ResultingVector = Transform.invertOrIdentity() * rive::Vec2D(ProportionalViewportPosition.X, ProportionalViewportPosition.Y);
-
+		const rive::Vec2D ResultingVector = Transform.invertOrIdentity() * rive::Vec2D(InTexturePosition.X, InTexturePosition.Y);
 		return {ResultingVector.x, ResultingVector.y};
 	}
 
 #endif // WITH_RIVE
 
 	return FVector2f::ZeroVector;
+}
+
+FVector2f URiveFile::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const
+{
+	const FVector2f RelativePosition = InPosition - InExtents.Min;
+	const FVector2f Ratio { SizeX / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
+	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
+	
+	return GetLocalCoordinates(TextureRelativePosition);
 }
 
 void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
@@ -317,127 +310,7 @@ void URiveFile::SetNumberValue(const FString& InPropertyName, float NewValue)
 #endif // WITH_RIVE
 }
 
-FIntPoint URiveFile::CalculateRenderTextureSize(const FIntPoint& InViewportSize) const
-{
-	FIntPoint NewSize;
-	
-	const FVector2f ArtboardSize = {(float)SizeX, (float)SizeY}; //NativeArtboard->GetSize();
-	const float TextureAspectRatio = ArtboardSize.X / ArtboardSize.Y;
-	const float ViewportAspectRatio = static_cast<float>(InViewportSize.X) / InViewportSize.Y;
-	
-	if (ViewportAspectRatio > TextureAspectRatio) // Viewport wider than the Texture => height should be the same
-	{
-		NewSize = {
-			static_cast<int>(InViewportSize.Y * TextureAspectRatio),
-			InViewportSize.Y
-		};
-	}
-	else // Viewport taller than the Texture => width should be the same
-	{
-		NewSize = {
-			InViewportSize.X,
-			static_cast<int>(InViewportSize.X / TextureAspectRatio)
-		};
-	}
-	
-	return NewSize;
-}
 
-FVector2f URiveFile::CalculateViewportSizeToContainRenderTexture(const FVector2f& InViewportSize) const
-{
-	FVector2f NewSize;
-	
-	const FVector2f ArtboardSize = {(float)SizeX, (float)SizeY};
-	const float TextureAspectRatio = ArtboardSize.X / ArtboardSize.Y;
-	const float ViewportAspectRatio = InViewportSize.X / InViewportSize.Y;
-	
-	if (ViewportAspectRatio > TextureAspectRatio) // Viewport wider than the Texture => height should be the same
-	{
-		NewSize = {
-			ArtboardSize.Y * ViewportAspectRatio,
-			ArtboardSize.Y
-		};
-	}
-	else // Viewport taller than the Texture => width should be the same
-	{
-		NewSize = {
-			ArtboardSize.X,
-			ArtboardSize.X / ViewportAspectRatio
-		};
-	}
-	
-	return NewSize;
-}
-
-FIntPoint URiveFile::CalculateRenderTexturePosition(const FIntPoint& InViewportSize,
-													const FIntPoint& InTextureSize) const
-{
-	FIntPoint NewPosition = FIntPoint::ZeroValue;
-
-	const FIntPoint TextureSize = {InTextureSize.X, InTextureSize.Y};
-
-	ERiveAlignment Alignment = RiveAlignment;
-
-	switch (Alignment)
-	{
-	case ERiveAlignment::TopLeft:
-		break;
-	case ERiveAlignment::TopCenter:
-		{
-			const int32 PosX = (InViewportSize.X - TextureSize.X) * 0.5f;
-			NewPosition = {PosX, 0};
-			break;
-		}
-	case ERiveAlignment::TopRight:
-		{
-			const int32 PosX = InViewportSize.X - TextureSize.X;
-			NewPosition = {PosX, 0};
-			break;
-		}
-	case ERiveAlignment::CenterLeft:
-		{
-			const int32 PosY = (InViewportSize.Y - TextureSize.Y) * 0.5f;
-			NewPosition = {0, PosY};
-			break;
-		}
-	case ERiveAlignment::Center:
-		{
-			const int32 PosX = (InViewportSize.X - TextureSize.X) * 0.5f;
-			const int32 PosY = (InViewportSize.Y - TextureSize.Y) * 0.5f;
-			NewPosition = {PosX, PosY};
-			break;
-		}
-	case ERiveAlignment::CenterRight:
-		{
-			const int32 PosX = InViewportSize.X - TextureSize.X;
-			const int32 PosY = (InViewportSize.Y - TextureSize.Y) * 0.5f;
-			NewPosition = {PosX, PosY};
-			break;
-		}
-	case ERiveAlignment::BottomLeft:
-		{
-			const int32 PosY = InViewportSize.Y - TextureSize.Y;
-			NewPosition = {0, PosY};
-			break;
-		}
-	case ERiveAlignment::BottomCenter:
-		{
-			const int32 PosX = (InViewportSize.X - TextureSize.X) * 0.5f;
-			const int32 PosY = InViewportSize.Y - TextureSize.Y;
-			NewPosition = {PosX, PosY};
-			break;
-		}
-	case ERiveAlignment::BottomRight:
-		{
-			const int32 PosX = InViewportSize.X - TextureSize.X;
-			const int32 PosY = InViewportSize.Y - TextureSize.Y;
-			NewPosition = {PosX, PosY};
-			break;
-		}
-	}
-
-	return NewPosition;
-}
 
 FVector2f URiveFile::GetRiveAlignment() const
 {

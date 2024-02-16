@@ -170,27 +170,20 @@ public:
 	FLinearColor GetDebugColor() const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinates(const FVector2f& InViewportPosition,
-		const FVector2f& InViewportSize) const;
+	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition) const;
+
+	/**
+	 * Returns the coordinates in the current Artboard space
+	 * @param InExtents Extents of the RenderTarget, will be mapped to the RenderTarget size
+	 */
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
-
-	/**
-	 * Calculates the size the RenderTarget of this RiveFile should have to be 'Contained' within the given viewport
-	 */
-	FIntPoint CalculateRenderTextureSize(const FIntPoint& InViewportSize) const;
-	/**
-	 * Kind of the opposite of CalculateRenderTextureSize, where we want to know the size the Viewport should have to
-	 * contain the full sized RenderTarget, while keeping the proportion of the given ViewportSize
-	 */
-	FVector2f CalculateViewportSizeToContainRenderTexture(const FVector2f& InViewportSize) const;
-
-	// TODO. We need function in URiveFile to calculate it , based on RiveAlignment
-	FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize, const FIntPoint& InTextureSize) const;
 
 	FVector2f GetRiveAlignment() const;
 

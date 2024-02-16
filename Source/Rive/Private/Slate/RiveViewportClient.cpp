@@ -38,8 +38,8 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	//todo: to review with drawing of multiple artboards
 	const FIntPoint ViewportSize = Viewport->GetSizeXY();
-	const FIntPoint RiveTextureSize = RiveFile->CalculateRenderTextureSize(ViewportSize);
-	const FIntPoint RiveTexturePosition = RiveFile->CalculateRenderTexturePosition(ViewportSize, RiveTextureSize);
+	const FBox2f RiveTextureBox = CalculateRenderTextureExtentsInViewport(ViewportSize);
+	const FVector2f RiveTextureSize = RiveTextureBox.GetSize();
 
 #if WITH_EDITOR
 	// Draw the background checkerboard pattern in the same size/position as the render texture so it will show up anywhere
@@ -51,19 +51,19 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		const float CheckerboardSizeY = (float)FMath::Max<int32>(1, CheckerboardTexture->GetSizeY());
 		if (Settings.Background == TextureEditorBackground_CheckeredFill)
 		{
-			Canvas->DrawTile(RiveTexturePosition.X, RiveTexturePosition.Y,
+			Canvas->DrawTile(RiveTextureBox.Min.X, RiveTextureBox.Min.Y,
 				RiveTextureSize.X, RiveTextureSize.Y,
 				0.f, 0.f,
-				(float)RiveTextureSize.X / CheckerboardSizeX, (float)RiveTextureSize.Y / CheckerboardSizeY,
+				RiveTextureSize.X / CheckerboardSizeX, RiveTextureSize.Y / CheckerboardSizeY,
 				FLinearColor::White,
 				CheckerboardTexture->GetResource());
 		}
 		else if (Settings.Background == TextureEditorBackground_Checkered)
 		{
-			Canvas->DrawTile( RiveTexturePosition.X, RiveTexturePosition.Y,
+			Canvas->DrawTile( RiveTextureBox.Min.X, RiveTextureBox.Min.Y,
 			RiveTextureSize.X, RiveTextureSize.Y,
 			0.f, 0.f,
-			(float)RiveTextureSize.X / CheckerboardSizeX, (float)RiveTextureSize.Y / CheckerboardSizeY,
+			RiveTextureSize.X / CheckerboardSizeX, RiveTextureSize.Y / CheckerboardSizeY,
 			FLinearColor::White,
 			CheckerboardTexture->GetResource());
 		}
@@ -72,7 +72,7 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 	
 	if (RiveFile->GetResource() != nullptr)
 	{
-		FCanvasTileItem TileItem(FVector2D{RiveTexturePosition},
+		FCanvasTileItem TileItem(FVector2D{RiveTextureBox.Min},
 			RiveFile->GetResource(),
 			FVector2D{RiveTextureSize},
 			FLinearColor::White);
@@ -80,6 +80,46 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		TileItem.BatchedElementParameters = nullptr;
 		
 		Canvas->DrawItem(TileItem);
+	}
+}
+
+FVector2f FRiveViewportClient::CalculateLocalPointerCoordinatesFromViewport(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const
+{
+	const FVector2f MouseLocal = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	const FVector2f ViewportSize = MyGeometry.GetLocalSize();
+	const FBox2f TextureBox = CalculateRenderTextureExtentsInViewport(ViewportSize);
+	const FVector2f LocalPosition = RiveFile->GetLocalCoordinatesFromExtents(MouseLocal, TextureBox);
+	return LocalPosition;
+}
+
+FBox2f FRiveViewportClient::CalculateRenderTextureExtentsInViewport(const FVector2f& InViewportSize) const
+{
+	if (!IsValid(RiveFile))
+	{
+		return {};
+	}
+	
+	const FVector2f ArtboardSize = {(float)RiveFile->SizeX, (float)RiveFile->SizeY};
+	const float TextureAspectRatio = ArtboardSize.X / ArtboardSize.Y;
+	const float ViewportAspectRatio = InViewportSize.X / InViewportSize.Y;
+	
+	if (ViewportAspectRatio > TextureAspectRatio) // Viewport wider than the Texture => height should be the same
+	{
+		FVector2f Size {
+			InViewportSize.Y * TextureAspectRatio,
+			InViewportSize.Y
+		};
+		float XOffset = (InViewportSize.X - Size.X) * 0.5f;
+		return {{XOffset, 0}, {XOffset + Size.X, Size.Y}};
+	}
+	else // Viewport taller than the Texture => width should be the same
+	{
+		FVector2f Size {
+			(float)InViewportSize.X,
+			InViewportSize.X / TextureAspectRatio
+		};
+		float YOffset = (InViewportSize.Y - Size.Y) * 0.5f;
+		return {{0, YOffset}, {Size.X, YOffset + Size.Y}};
 	}
 }
 

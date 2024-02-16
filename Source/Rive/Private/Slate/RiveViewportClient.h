@@ -22,14 +22,20 @@ class FRiveViewportClient : public FViewportClient
 public:
 	
 	FRiveViewportClient(URiveFile* InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView);
-	
-	~FRiveViewportClient();
+
+	virtual ~FRiveViewportClient() override;
 
 	//~ BEGIN : FViewportClient Interface
 
 public:
 
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
+
+	FVector2f CalculateLocalPointerCoordinatesFromViewport(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const;
+	/**
+	 * Calculates the extents of the RiveFIle RenderTarget to be 'Contained' within the given viewport
+	 */
+	FBox2f CalculateRenderTextureExtentsInViewport(const FVector2f& InViewportSize) const;
 	
 	virtual UWorld* GetWorld() const override { return nullptr; }
 

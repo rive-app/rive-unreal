@@ -8,6 +8,7 @@
 #include "Slate/SlateTextures.h"
 #include "Textures/SlateUpdatableTexture.h"
 #include "RiveRendererUtils.h"
+#include "RiveViewportClient.h"
 #include "Rive/RiveArtboard.h"
 #include "Rive/Core/URStateMachine.h"
 
@@ -144,10 +145,9 @@ FCursorReply FRiveSlateViewport::OnCursorQuery(const FGeometry& MyGeometry, cons
 
 FReply FRiveSlateViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-    if (!RiveFile)
+    if (!IsValid(RiveFile))
     {
         UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonDown as we have an empty rive file."));
-
         return FReply::Unhandled();
     }
 
@@ -155,7 +155,16 @@ FReply FRiveSlateViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
     {
         return FReply::Unhandled();
     }
-
+    
+    const TSharedPtr<SRiveWidgetView> RiveWidgetView = WidgetViewWeakPtr.Pin();
+    if (!RiveWidgetView)
+    {
+        UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonDown as we have an empty RiveWidgetView."));
+        return FReply::Unhandled();
+    }
+    const TSharedPtr<FRiveViewportClient>& RiveViewportClient = RiveWidgetView->GetRiveViewportClient();
+    check(RiveViewportClient);
+    
 #if WITH_RIVE
 
     RiveFile->BeginInput();
@@ -164,9 +173,7 @@ FReply FRiveSlateViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
-            const FVector2f MousePixel = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-            const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MousePixel, ViewportSize);
+            const FVector2f LocalPosition = RiveViewportClient->CalculateLocalPointerCoordinatesFromViewport(MyGeometry, MouseEvent);
 
             if (StateMachine->OnMouseButtonDown(LocalPosition))
             {
@@ -186,7 +193,7 @@ FReply FRiveSlateViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 
 FReply FRiveSlateViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-    if (!RiveFile)
+    if (!IsValid(RiveFile))
     {
         UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonUp as we have an empty rive file."));
 
@@ -198,6 +205,15 @@ FReply FRiveSlateViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
         return FReply::Unhandled();
     }
 
+    const TSharedPtr<SRiveWidgetView> RiveWidgetView = WidgetViewWeakPtr.Pin();
+    if (!RiveWidgetView)
+    {
+        UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonDown as we have an empty RiveWidgetView."));
+        return FReply::Unhandled();
+    }
+    const TSharedPtr<FRiveViewportClient>& RiveViewportClient = RiveWidgetView->GetRiveViewportClient();
+    check(RiveViewportClient);
+    
 #if WITH_RIVE
 
     RiveFile->BeginInput();
@@ -206,9 +222,7 @@ FReply FRiveSlateViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
-            const FVector2f MousePixel = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-            const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MousePixel, ViewportSize);
+            const FVector2f LocalPosition = RiveViewportClient->CalculateLocalPointerCoordinatesFromViewport(MyGeometry, MouseEvent);
 
             if (StateMachine->OnMouseButtonUp(LocalPosition))
             {
@@ -236,7 +250,7 @@ void FRiveSlateViewport::OnMouseLeave(const FPointerEvent& MouseEvent)
 
 FReply FRiveSlateViewport::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-    if (!RiveFile)
+    if (!IsValid(RiveFile))
     {
         UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseMove as we have an empty rive file."));
 
@@ -248,6 +262,15 @@ FReply FRiveSlateViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
         return FReply::Unhandled();
     }
 
+    const TSharedPtr<SRiveWidgetView> RiveWidgetView = WidgetViewWeakPtr.Pin();
+    if (!RiveWidgetView)
+    {
+        UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSlateViewport::OnMouseButtonDown as we have an empty RiveWidgetView."));
+        return FReply::Unhandled();
+    }
+    const TSharedPtr<FRiveViewportClient>& RiveViewportClient = RiveWidgetView->GetRiveViewportClient();
+    check(RiveViewportClient);
+    
 #if WITH_RIVE
 
     RiveFile->BeginInput();
@@ -256,9 +279,7 @@ FReply FRiveSlateViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
     {
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
-            const FVector2f MousePixel = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-            const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-            const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MousePixel, ViewportSize);
+            const FVector2f LocalPosition = RiveViewportClient->CalculateLocalPointerCoordinatesFromViewport(MyGeometry, MouseEvent);
 
             if (StateMachine->OnMouseMove(LocalPosition))
             {

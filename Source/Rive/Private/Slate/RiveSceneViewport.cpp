@@ -2,14 +2,15 @@
 
 #include "RiveSceneViewport.h"
 
+#include "RiveViewportClient.h"
 #include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveArtboard.h"
 #include "Rive/Core/URStateMachine.h"
 
-FRiveSceneViewport::FRiveSceneViewport(FViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveFile* InRiveFile)
+FRiveSceneViewport::FRiveSceneViewport(FRiveViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveFile* InRiveFile)
 	: FSceneViewport(InViewportClient, InViewportWidget)
-	, RiveFile(InRiveFile)
+	, RiveViewportClient(InViewportClient), RiveFile(InRiveFile)
 {
 }
 
@@ -42,9 +43,7 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FVector2f MousePixel = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-			const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MousePixel, ViewportSize);
+			const FVector2f LocalPosition = RiveViewportClient->CalculateLocalPointerCoordinatesFromViewport(MyGeometry, MouseEvent);
 
 			if (StateMachine->OnMouseButtonDown(LocalPosition))
 			{
@@ -85,9 +84,7 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FVector2f MousePixel = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-			const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MousePixel, ViewportSize);
+			const FVector2f LocalPosition = RiveViewportClient->CalculateLocalPointerCoordinatesFromViewport(MyGeometry, MouseEvent);
 
 			if (StateMachine->OnMouseButtonUp(LocalPosition))
 			{
@@ -128,10 +125,8 @@ FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 	{
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FVector2f MousePixel = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-			const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MousePixel, ViewportSize);
-
+			const FVector2f LocalPosition = RiveViewportClient->CalculateLocalPointerCoordinatesFromViewport(MyGeometry, MouseEvent);
+			
 			if (StateMachine->OnMouseMove(LocalPosition))
 			{
 				LastMousePosition = MouseEvent.GetScreenSpacePosition();

@@ -44,6 +44,8 @@ public:
     /** Get Parent slate window */
     TSharedPtr<SWindow> GetParentWindow() const;
 
+    TSharedPtr<FRiveViewportClient>& GetRiveViewportClient() { return RiveViewportClient; }
+
 	// SWidget overrides
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
