@@ -4,6 +4,7 @@
 #include "RiveRenderer.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Logs/RiveRendererLog.h"
+#include "Interfaces/IPluginManager.h"
 
 #if PLATFORM_WINDOWS
 #include "Platform/RiveRendererD3D11.h"
@@ -98,32 +99,43 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::CallOrRegister_OnRenderer
 bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
+
+    // Get the base directory of this plugin
+    FString BaseDir = IPluginManager::Get().FindPlugin("Rive")->GetBaseDir();
+
+    // Add on the relative location of the third party dll and load it
+    FString RiveHarfbuzzLibraryPath;
+#if PLATFORM_WINDOWS
+    RiveHarfbuzzLibraryPath = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/RiveLibrary/Libraries/Win64/rive_harfbuzz.dll"));
+#elif PLATFORM_ANDROID
+    RiveHarfbuzzLibraryPath = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/RiveLibrary/Libraries/Android/librive_harfbuzz.so"));
+#endif // PLATFORM_WINDOWS
+
+
 #if PLATFORM_WINDOWS
     {
-        FString Path = TEXT("rive_harfbuzz.dll");
-        RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*Path);
+        RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*RiveHarfbuzzLibraryPath);
         if (RiveHarfbuzzDllHandle != nullptr)
         {
-            RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *Path);
+            RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *RiveHarfbuzzLibraryPath);
         }
         else
         {
-            UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *Path);
+            UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *RiveHarfbuzzLibraryPath);
             return false;
         }
     }
 #elif PLATFORM_ANDROID
     FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
     {
-        const FString Path = TEXT("librive_harfbuzz.so");
-        RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*Path);
+        RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*RiveHarfbuzzLibraryPath);
         if (RiveHarfbuzzDllHandle != nullptr)
         {
-            RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *Path);
+            RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *RiveHarfbuzzLibraryPath);
         }
         else
         {
-            UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *Path);
+            UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *RiveHarfbuzzLibraryPath);
             return false;
         }
     }

@@ -673,6 +673,7 @@ void URiveFile::Initialize()
 						UE::Rive::Assets::FURFileAssetLoader>(this);
 					rive::ImportResult ImportResult;
 
+					FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 					RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult,
 														   FileAssetLoader.Get());
 
