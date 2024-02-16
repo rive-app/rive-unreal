@@ -13,6 +13,9 @@ void SRiveWidget::Construct(const FArguments& InArgs, URiveFile* InRiveFile)
                 + SVerticalBox::Slot()
                 [
                     SAssignNew(RiveWidgetView, SRiveWidgetView, InRiveFile)
+#if WITH_EDITOR
+                    .bDrawCheckerboardInEditor(InArgs._bDrawCheckerboardInEditor)
+#endif
                 ]
         ];
 }

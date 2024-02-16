@@ -30,7 +30,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Submit()
 {
 	check(IsInGameThread());
 
-	FScopeLock Lock(&ThreadDataCS);
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
 	ENQUEUE_RENDER_COMMAND(Render)(
 		[this](FRHICommandListImmediate& RHICmdList)
@@ -97,7 +97,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICom
 	// FRDGBuilder GraphBuilder(RHICmdList); // this was in DX11
 	SCOPED_GPU_STAT(RHICmdList, Render);
 	check(IsInRenderingThread());
-	FScopeLock Lock(&ThreadDataCS);
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
 	// Begin Frame
 	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = BeginFrame();

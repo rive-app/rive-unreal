@@ -66,7 +66,9 @@ class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameOb
 
 public:
 	URiveFile();
-
+	
+	virtual void BeginDestroy() override;
+	
 	//~ BEGIN : FTickableGameObject Interface
 
 public:
@@ -128,20 +130,20 @@ public:
 	FLinearColor GetDebugColor() const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinates(const FVector2f& InScreenPosition, const FBox2f& InScreenRect,
-								  const FIntPoint& InViewportSize) const;
+	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition) const;
+
+	/**
+	 * Returns the coordinates in the current Artboard space
+	 * @param InExtents Extents of the RenderTarget, will be mapped to the RenderTarget size
+	 */
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
-
-	// TODO. We need function in URiveFile to calculate it , based on RiveFitType
-	FIntPoint CalculateRenderTextureSize(const FIntPoint& InViewportSize) const;
-
-	// TODO. We need function in URiveFile to calculate it , based on RiveAlignment
-	FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize, const FIntPoint& InTextureSize) const;
 
 	FVector2f GetRiveAlignment() const;
 

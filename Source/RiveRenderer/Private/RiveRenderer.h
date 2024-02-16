@@ -44,6 +44,8 @@ namespace UE::Rive::Renderer::Private
 
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) override;
 
+        virtual FCriticalSection& GetThreadDataCS() override { return ThreadDataCS; }
+
 #if WITH_RIVE
 
         virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() override;

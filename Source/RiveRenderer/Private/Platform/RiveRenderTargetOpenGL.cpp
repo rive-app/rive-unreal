@@ -39,7 +39,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Initialize()
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread());
 	
-	FScopeLock Lock(&ThreadDataCS);
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
 	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
 	if (IRiveRendererModule::RunInGameThread())
@@ -76,8 +76,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard(uint8 Fi
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread());
 
-	FScopeLock Lock(&ThreadDataCS);
-
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	
 	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
 	if (IRiveRendererModule::RunInGameThread())
 	{
@@ -112,7 +112,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard_Internal
 	check(IsInGameThread() || IsInRHIThread());
 	ENABLE_VERIFY_GL_THREAD;
 	
-	FScopeLock Lock(&ThreadDataCS);
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	
 	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
 
 	if (PLSRenderContextPtr == nullptr)
@@ -264,7 +265,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_In
 		return;
 	}
 	
-	FScopeLock Lock(&ThreadDataCS);
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	
 #if WITH_RIVE
 	rive::pls::PLSRenderContext* PLSRenderContext = RiveRendererGL->GetOrCreatePLSRenderContextPtr_Internal();
 
@@ -318,6 +320,11 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_In
 	}
 	RIVE_DEBUG_VERBOSE("OpenGLResourcePtr %d texture size %dx%d", OpenGLResourcePtr, w, h);
 
+	if (CachedPLSRenderTargetOpenGL)
+	{
+		CachedPLSRenderTargetOpenGL.release();
+	}
+	
 	CachedPLSRenderTargetOpenGL = rive::make_rcp<rive::pls::TextureRenderTargetGL>(w, h);
 	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->setTargetTexture( %d )", OpenGLResourcePtr);
 	CachedPLSRenderTargetOpenGL->setTargetTexture(OpenGLResourcePtr);

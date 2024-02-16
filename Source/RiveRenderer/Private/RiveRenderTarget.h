@@ -30,9 +30,7 @@ namespace UE::Rive::Renderer::Private
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override {}
 		virtual uint32 GetWidth() const override;
 		virtual uint32 GetHeight() const override;
-		virtual FCriticalSection& GetThreadDataCS() override { return ThreadDataCS; }
 		virtual void SetClearColor(const FLinearColor& InColor) override { ClearColor = InColor; }
-		
 #if WITH_RIVE
 		virtual void Submit() override;
 		virtual void Save() override;
@@ -53,7 +51,6 @@ namespace UE::Rive::Renderer::Private
 		TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 		TQueue<FRiveRenderCommand> RenderCommands;
 		TSharedPtr<FRiveRenderer> RiveRenderer;
-		mutable FCriticalSection ThreadDataCS;
 		mutable FDateTime LastResetTime = FDateTime::Now();
 		static FTimespan ResetTimeLimit;
 	};

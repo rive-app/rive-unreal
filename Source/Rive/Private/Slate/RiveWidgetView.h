@@ -17,9 +17,14 @@ class RIVE_API SRiveWidgetView : public SCompoundWidget
 public:
 
     SLATE_BEGIN_ARGS(SRiveWidgetView)
+#if WITH_EDITOR
+	: _bDrawCheckerboardInEditor(false)
+#endif
         {
         }
-
+#if WITH_EDITOR
+	SLATE_ARGUMENT(bool, bDrawCheckerboardInEditor)
+#endif
     SLATE_END_ARGS()
 
     //~ BEGIN : SWidget Interface
@@ -38,6 +43,8 @@ public:
 
     /** Get Parent slate window */
     TSharedPtr<SWindow> GetParentWindow() const;
+
+    TSharedPtr<FRiveViewportClient>& GetRiveViewportClient() { return RiveViewportClient; }
 
 	// SWidget overrides
 

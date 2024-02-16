@@ -72,6 +72,5 @@ namespace UE::Rive::Renderer
 		virtual void SetClearColor(const FLinearColor& InColor) = 0;
 		virtual uint32 GetWidth() const = 0;
 		virtual uint32 GetHeight() const = 0;
-		virtual FCriticalSection& GetThreadDataCS() = 0;
 	};
 }

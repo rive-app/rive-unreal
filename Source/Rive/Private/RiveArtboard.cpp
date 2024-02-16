@@ -7,6 +7,16 @@
 
 #if WITH_RIVE
 
+void URiveArtboard::BeginDestroy()
+{
+	bIsInitialized = false;
+
+	DefaultStateMachinePtr.Reset();
+	NativeArtboardPtr.reset();
+	
+	UObject::BeginDestroy();
+}
+
 void URiveArtboard::Initialize(URiveFile* InRiveFile)
 {
 	Initialize(InRiveFile, 0);

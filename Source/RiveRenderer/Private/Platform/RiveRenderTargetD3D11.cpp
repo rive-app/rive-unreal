@@ -33,7 +33,9 @@ UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::~FRiveRenderTargetD3D11()
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Initialize()
 {
 	check(IsInGameThread());
-	FScopeLock Lock(&ThreadDataCS);
+
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
 	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
 	ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)(
 		[RenderTargetResource, this](FRHICommandListImmediate& RHICmdList)
@@ -46,7 +48,7 @@ DECLARE_GPU_STAT_NAMED(CacheTextureTarget, TEXT("FRiveRenderTargetD3D11::CacheTe
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
 {
 	check(IsInRenderingThread());
-	FScopeLock Lock(&ThreadDataCS);
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
 #if WITH_RIVE
 	rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
@@ -74,6 +76,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11ResourcePtr texture %dx%d"), Desc.Width, Desc.Height);
 
 #if WITH_RIVE
+		if (CachedPLSRenderTargetD3D)
+		{
+			CachedPLSRenderTargetD3D.release();
+		}
 		// For now we just set one renderer and one texture
 		rive::pls::PLSRenderContextD3DImpl* const PLSRenderContextD3DImpl = PLSRenderContext->static_impl_cast<rive::pls::PLSRenderContextD3DImpl>();
 		CachedPLSRenderTargetD3D = PLSRenderContextD3DImpl->makeRenderTarget(Desc.Width, Desc.Height);
@@ -94,8 +100,7 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	FColor Color = ClearColor.ToRGBE();
 	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
 	FrameDescriptor.renderTarget = CachedPLSRenderTargetD3D;
-	FrameDescriptor.loadAction =
-		bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
+	FrameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
 	FrameDescriptor.clearColor = rive::colorARGB(Color.A, Color.R, Color.G, Color.B);
 	FrameDescriptor.wireframe = false;
 	FrameDescriptor.fillsDisabled = false;
