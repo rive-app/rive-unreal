@@ -30,20 +30,6 @@ UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::~FRiveRenderTargetD3D11()
 	CachedPLSRenderTargetD3D.release();
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Initialize()
-{
-	check(IsInGameThread());
-
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-
-	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
-	ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)(
-		[RenderTargetResource, this](FRHICommandListImmediate& RHICmdList)
-		{
-			CacheTextureTarget_RenderThread(RHICmdList, RenderTargetResource->TextureRHI->GetTexture2D());
-		});
-}
-
 DECLARE_GPU_STAT_NAMED(CacheTextureTarget, TEXT("FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
 {
@@ -88,54 +74,15 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 	}
 }
 
-#if WITH_RIVE
-std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::BeginFrame() const
+rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetRenderTarget() const
 {
-	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
-	if (PLSRenderContextPtr == nullptr)
-	{
-		return nullptr;
-	}
-
-	FColor Color = ClearColor.ToRGBE();
-	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
-	FrameDescriptor.renderTarget = CachedPLSRenderTargetD3D;
-	FrameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
-	FrameDescriptor.clearColor = rive::colorARGB(Color.A, Color.R, Color.G, Color.B);
-	FrameDescriptor.wireframe = false;
-	FrameDescriptor.fillsDisabled = false;
-	FrameDescriptor.strokesDisabled = false;
-
-	if (bIsCleared == false)
-	{
-		bIsCleared = true;
-	}
-
-	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
-	return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
+	return CachedPLSRenderTargetD3D;
 }
 
+#if WITH_RIVE
 void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::EndFrame() const
 {
-	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
-	if (PLSRenderContextPtr == nullptr)
-	{
-		return;
-	}
-
-	// End drawing a frame.
-	// Flush
-	PLSRenderContextPtr->flush();
-
-	const FDateTime Now = FDateTime::Now();
-	const int32 TimeElapsed = (Now - LastResetTime).GetSeconds();
-	if (TimeElapsed >= ResetTimeLimit.GetSeconds())
-	{
-		// Reset
-		PLSRenderContextPtr->shrinkGPUResourcesToFit();
-		PLSRenderContextPtr->resetGPUResources();
-		LastResetTime = Now;
-	}
+	FRiveRenderTarget::EndFrame();
 	ResetBlendState();
 }
 

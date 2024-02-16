@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IRiveRenderTarget.h"
+#include "rive/refcnt.hpp"
 
 #if WITH_RIVE
 
@@ -26,7 +27,7 @@ namespace UE::Rive::Renderer::Private
 		FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
 		virtual ~FRiveRenderTarget() override;
 
-		virtual void Initialize() override {}
+		virtual void Initialize() override;
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override {}
 		virtual uint32 GetWidth() const override;
 		virtual uint32 GetHeight() const override;
@@ -40,12 +41,14 @@ namespace UE::Rive::Renderer::Private
 		virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
 		
 	protected:
-		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame() const = 0;
-		virtual void EndFrame() const = 0;
+		virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const = 0;
+		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame();
+		virtual void EndFrame() const;
 		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList);
 #endif // WITH_RIVE
 	
 	protected:
+		mutable bool bIsCleared = false;
 		FLinearColor ClearColor = FLinearColor::Transparent;
 		FName RiveName;
 		TObjectPtr<UTextureRenderTarget2D> RenderTarget;

@@ -35,9 +35,6 @@ namespace UE::Rive::Renderer::Private
 		//~ BEGIN : IRiveRenderTarget Interface
 
 	public:
-
-		virtual void Initialize() override;
-
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override;
 
 #if WITH_RIVE
@@ -48,7 +45,7 @@ namespace UE::Rive::Renderer::Private
 
 	protected:
 		// It Might need to be on rendering thread, render QUEUE is required
-		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame() const override;
+		virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
 		virtual void EndFrame() const override;
 
 		//~ END : FRiveRenderTarget Interface
@@ -66,8 +63,6 @@ namespace UE::Rive::Renderer::Private
 		rive::rcp<rive::pls::PLSRenderTargetD3D> CachedPLSRenderTargetD3D;
 
 #endif // WITH_RIVE
-
-		mutable bool bIsCleared = false;
 	};
 }
 

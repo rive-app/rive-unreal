@@ -26,6 +26,20 @@ UE::Rive::Renderer::Private::FRiveRenderTarget::~FRiveRenderTarget()
 	RIVE_DEBUG_FUNCTION_INDENT;
 }
 
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Initialize()
+{
+	check(IsInGameThread());
+
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
+	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+	ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)(
+		[RenderTargetResource, this](FRHICommandListImmediate& RHICmdList)
+		{
+			CacheTextureTarget_RenderThread(RHICmdList, RenderTargetResource->TextureRHI->GetTexture2D());
+		});
+}
+
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Submit()
 {
 	check(IsInGameThread());
@@ -79,6 +93,55 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(ERiveFitType InFit, c
 	RenderCommand.Y = InAlignment.Y;
 	RenderCommand.NativeArtboard = InArtboard;
 	RenderCommands.Enqueue(RenderCommand);
+}
+
+std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTarget::BeginFrame()
+{
+	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
+	if (PLSRenderContextPtr == nullptr)
+	{
+		return nullptr;
+	}
+
+	FColor Color = ClearColor.ToRGBE();
+	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
+	FrameDescriptor.renderTarget = GetRenderTarget(); // get the platform specific render target
+	FrameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
+	FrameDescriptor.clearColor = rive::colorARGB(Color.A, Color.R, Color.G, Color.B);
+	FrameDescriptor.wireframe = false;
+	FrameDescriptor.fillsDisabled = false;
+	FrameDescriptor.strokesDisabled = false;
+
+	if (bIsCleared == false)
+	{
+		bIsCleared = true;
+	}
+
+	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
+	return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
+}
+
+void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
+{
+	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
+	if (PLSRenderContextPtr == nullptr)
+	{
+		return;
+	}
+
+	// End drawing a frame.
+	// Flush
+	PLSRenderContextPtr->flush();
+
+	const FDateTime Now = FDateTime::Now();
+	const int32 TimeElapsed = (Now - LastResetTime).GetSeconds();
+	if (TimeElapsed >= ResetTimeLimit.GetSeconds())
+	{
+		// Reset
+		PLSRenderContextPtr->shrinkGPUResourcesToFit();
+		PLSRenderContextPtr->resetGPUResources();
+		LastResetTime = Now;
+	}
 }
 
 uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetWidth() const
