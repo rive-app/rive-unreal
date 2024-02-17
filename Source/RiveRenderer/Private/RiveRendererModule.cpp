@@ -105,46 +105,46 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
     RIVE_DEBUG_FUNCTION_INDENT;
 
 #if PLATFORM_WINDOWS
-    // Add on the relative location of the third party dll and load it
-#if WITH_EDITOR
-    // In Editor, we don't want to load the dll from Binaries as it will lock the dll
-    // and the packaging will sometimes fail as UE is trying to replace the dll
-    // Get the base directory of this plugin
-    const FString BaseDir = IPluginManager::Get().FindPlugin("Rive")->GetBaseDir();
-    const FString RiveHarfbuzzLibraryPath = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/RiveLibrary/Libraries/Win64/rive_harfbuzz.dll"));
-#else
-    const FString RiveHarfbuzzLibraryPath = TEXT("rive_harfbuzz.dll");
-#endif
-    
-    {
-        RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*RiveHarfbuzzLibraryPath);
-        if (RiveHarfbuzzDllHandle != nullptr)
-        {
-            RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *RiveHarfbuzzLibraryPath);
-        }
-        else
-        {
-            UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *RiveHarfbuzzLibraryPath);
-            return false;
-        }
-    }
+//    // Add on the relative location of the third party dll and load it
+// #if WITH_EDITOR
+//     // In Editor, we don't want to load the dll from Binaries as it will lock the dll
+//     // and the packaging will sometimes fail as UE is trying to replace the dll
+//     // Get the base directory of this plugin
+//     const FString BaseDir = IPluginManager::Get().FindPlugin("Rive")->GetBaseDir();
+//     const FString RiveHarfbuzzLibraryPath = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/RiveLibrary/Libraries/Win64/rive_harfbuzz.dll"));
+// #else
+//     const FString RiveHarfbuzzLibraryPath = TEXT("rive_harfbuzz.dll");
+// #endif
+//     
+//     {
+//         RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*RiveHarfbuzzLibraryPath);
+//         if (RiveHarfbuzzDllHandle != nullptr)
+//         {
+//             RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *RiveHarfbuzzLibraryPath);
+//         }
+//         else
+//         {
+//             UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *RiveHarfbuzzLibraryPath);
+//             return false;
+//         }
+//     }
 #elif PLATFORM_ANDROID
     // Add on the relative location of the third party dll and load it
-    const FString RiveHarfbuzzLibraryPath = TEXT("librive_harfbuzz.so");
+    // const FString RiveHarfbuzzLibraryPath = TEXT("librive_harfbuzz.so");
     
     FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
-    {
-        RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*RiveHarfbuzzLibraryPath);
-        if (RiveHarfbuzzDllHandle != nullptr)
-        {
-            RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *RiveHarfbuzzLibraryPath);
-        }
-        else
-        {
-            UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *RiveHarfbuzzLibraryPath);
-            return false;
-        }
-    }
+    // {
+    //     RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*RiveHarfbuzzLibraryPath);
+    //     if (RiveHarfbuzzDllHandle != nullptr)
+    //     {
+    //         RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *RiveHarfbuzzLibraryPath);
+    //     }
+    //     else
+    //     {
+    //         UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *RiveHarfbuzzLibraryPath);
+    //         return false;
+    //     }
+    // }
 #endif
     return true;
 }

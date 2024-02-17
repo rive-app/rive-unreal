@@ -164,14 +164,14 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard_Internal
 			}
 		}
 		
-		RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
-		PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->resetGLState();
+		// RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
+		// PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->resetGLState();
 		
 		// Reset
-		RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->shrinkGPUResourcesToFit() %p", PLSRenderContextPtr);
-		PLSRenderContextPtr->shrinkGPUResourcesToFit();
-		RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->resetGPUResources()  %p", PLSRenderContextPtr);
-		PLSRenderContextPtr->resetGPUResources();
+		RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->unbindGLInternalResources() %p", PLSRenderContextPtr);
+		PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->unbindGLInternalResources();
+		// RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->resetGPUResources()  %p", PLSRenderContextPtr);
+		// PLSRenderContextPtr->resetGPUResources();
 	}
 
 	if (IsInRHIThread()) //todo: still not working, to be looked at
@@ -228,8 +228,8 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 
 	const FColor ClearColor = DebugColor.ToRGBE();
 	
-	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->resetGLState();
+	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->invalidateGLState() %p", PLSRenderContextPtr);
+	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->invalidateGLState();
 	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
 
 	RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL CachedPLSRenderTargetOpenGL  %p", CachedPLSRenderTargetOpenGL.get());
@@ -301,7 +301,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_In
 	// For now we just set one renderer and one texture
 	rive::pls::PLSRenderContextGLImpl* PLSRenderContextGLImpl = PLSRenderContext->static_impl_cast<rive::pls::PLSRenderContextGLImpl>();
 	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState()");
-	PLSRenderContextGLImpl->resetGLState();
+	PLSRenderContextGLImpl->invalidateGLState();
 
 	int w, h;
 	glActiveTexture(GL_TEXTURE0);
