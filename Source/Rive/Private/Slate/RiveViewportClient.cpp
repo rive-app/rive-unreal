@@ -130,6 +130,7 @@ void FRiveViewportClient::ModifyCheckerboardTextureColors()
 
 	const UTextureEditorSettings& Settings = *GetDefault<UTextureEditorSettings>();
 	CheckerboardTexture = FImageUtils::CreateCheckerboardTexture(Settings.CheckerColorOne, Settings.CheckerColorTwo, Settings.CheckerSize);
+	CheckerboardTexture->AddToRoot();
 }
 
 void FRiveViewportClient::DestroyCheckerboardTexture()
@@ -137,6 +138,7 @@ void FRiveViewportClient::DestroyCheckerboardTexture()
 	if (IsValid(CheckerboardTexture))
 	{
 		CheckerboardTexture->ReleaseResource();
+		CheckerboardTexture->RemoveFromRoot();
 		CheckerboardTexture->MarkAsGarbage();
 		CheckerboardTexture = nullptr;
 	}
