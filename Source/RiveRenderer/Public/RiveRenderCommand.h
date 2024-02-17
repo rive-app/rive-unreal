@@ -1,5 +1,12 @@
-﻿#pragma once
+﻿// Copyright Rive, Inc. All rights reserved.
+
+#pragma once
+
 #include "RiveTypes.h"
+THIRD_PARTY_INCLUDES_START
+#include "rive/math/mat2d.hpp"
+THIRD_PARTY_INCLUDES_END
+
 #include "RiveRenderCommand.generated.h"
 
 namespace rive
@@ -33,6 +40,10 @@ public:
 	                                                             TX(0), TY(0)
 	{
 	};
+	explicit FRiveRenderCommand(rive::Mat2D Matrix) : Type(ERiveRenderCommandType::Transform), FitType(),
+		X(Matrix.xx()), Y(Matrix.xy()), X2(Matrix.yx()), Y2(Matrix.yy()), TX(Matrix.tx()), TY(Matrix.ty())
+	{
+	};
 	
 	UPROPERTY(BlueprintReadWrite)
 	ERiveRenderCommandType Type;
@@ -41,7 +52,7 @@ public:
 	ERiveFitType FitType;
 
 	// UPROPERTY(BlueprintReadWrite)
-	rive::Artboard* NativeArtboard;
+	rive::Artboard* NativeArtboard = nullptr;
 
 	UPROPERTY(BlueprintReadWrite)
 	float X;

@@ -35,13 +35,18 @@ namespace UE::Rive::Renderer::Private
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override;
 
 #if WITH_RIVE
-		virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
 		//~ END : IRiveRenderTarget Interface
 
 		//~ BEGIN : FRiveRenderTarget Interface
+		virtual void Submit() override;
+		virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
+
 	protected:
-		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
-		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const override;
+		// It Might need to be on rendering thread, render QUEUE is required
+		virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
+		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame() override;
+		virtual void EndFrame() const override;
+		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList) override;
 		//~ END : FRiveRenderTarget Interface
 		
 	private:
@@ -56,8 +61,6 @@ namespace UE::Rive::Renderer::Private
 		TSharedPtr<FRiveRendererOpenGL> RiveRendererGL;
 
 #endif // WITH_RIVE
-
-		mutable bool bIsCleared = false;
 	};
 }
 #endif

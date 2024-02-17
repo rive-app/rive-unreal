@@ -6,8 +6,11 @@
 #include "RiveRenderer.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Logs/RiveRendererLog.h"
+
+THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/pls/pls_renderer.hpp"
+THIRD_PARTY_INCLUDES_END
 
 FTimespan UE::Rive::Renderer::Private::FRiveRenderTarget::ResetTimeLimit = FTimespan(0, 0, 20);
 
@@ -117,6 +120,9 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 		bIsCleared = true;
 	}
 
+#if PLATFORM_ANDROID
+	RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL PLSRenderContextPtr->beginFrame %p", PLSRenderContextPtr);
+#endif
 	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
 	return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
 }
@@ -131,6 +137,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
 
 	// End drawing a frame.
 	// Flush
+#if PLATFORM_ANDROID
+	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush %p", PLSRenderContextPtr);
+#endif
 	PLSRenderContextPtr->flush();
 
 	const FDateTime Now = FDateTime::Now();
@@ -160,6 +169,13 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICom
 	// FRDGBuilder GraphBuilder(RHICmdList); // this was in DX11
 	SCOPED_GPU_STAT(RHICmdList, Render);
 	check(IsInRenderingThread());
+
+	Render_Internal();
+	// GraphBuilder.Execute(); // this was in DX11
+}
+
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
+{
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
 	// Begin Frame
@@ -191,6 +207,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICom
 					RenderCommand.TY));
 			break;
 		case ERiveRenderCommandType::DrawArtboard:
+#if PLATFORM_ANDROID
+			RIVE_DEBUG_VERBOSE("RenderCommand.NativeArtboard->draw()");
+#endif
 			RenderCommand.NativeArtboard->draw(PLSRenderer.get());
 			break;
 		case ERiveRenderCommandType::DrawPath:
@@ -210,7 +229,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICom
 	}
 
 	EndFrame();
-	// GraphBuilder.Execute(); // this was in DX11
 }
 
 UE_ENABLE_OPTIMIZATION

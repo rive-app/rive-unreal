@@ -9,7 +9,7 @@
 #include "Textures/SlateUpdatableTexture.h"
 #include "RiveRendererUtils.h"
 #include "RiveViewportClient.h"
-#include "RiveCore/Public//RiveArtboard.h"
+#include "RiveCore/Public/RiveArtboard.h"
 #include "RiveCore/Public/URStateMachine.h"
 
 FRiveSlateViewport::FRiveSlateViewport(URiveFile* InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView)

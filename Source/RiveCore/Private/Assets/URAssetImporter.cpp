@@ -3,10 +3,13 @@
 #include "Assets/URAssetImporter.h"
 #include "Logs/RiveCoreLog.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "AssetToolsModule.h"
 #include "Assets/RiveAsset.h"
 #include "Assets/URAssetHelpers.h"
 #include "Assets/URFileAssetLoader.h"
+
+#if WITH_EDITOR
+#include "AssetToolsModule.h"
+#endif
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START

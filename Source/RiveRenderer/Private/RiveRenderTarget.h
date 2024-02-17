@@ -3,9 +3,12 @@
 #pragma once
 
 #include "IRiveRenderTarget.h"
-#include "rive/refcnt.hpp"
 
 #if WITH_RIVE
+
+THIRD_PARTY_INCLUDES_START
+#include "rive/refcnt.hpp"
+THIRD_PARTY_INCLUDES_END
 
 struct FRiveRenderCommand;
 
@@ -45,6 +48,7 @@ namespace UE::Rive::Renderer::Private
 		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame();
 		virtual void EndFrame() const;
 		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList);
+		virtual void Render_Internal();
 #endif // WITH_RIVE
 	
 	protected:

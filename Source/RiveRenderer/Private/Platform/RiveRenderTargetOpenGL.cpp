@@ -9,7 +9,7 @@
 #include "RiveRenderer.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Logs/RiveRendererLog.h"
-
+#include "RiveRenderCommand.h"
 #include "IOpenGLDynamicRHI.h"
 
 
@@ -69,110 +69,102 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_Re
 	});
 }
 
-#if WITH_RIVE
-
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
+void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Submit()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread());
-
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
-	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
 	if (IRiveRendererModule::RunInGameThread())
 	{
-		DrawArtboard_Internal(Fit, AlignX, AlignY, InNativeArtboard, DebugColor);
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		Render_Internal();
 	}
 	else
 	{
-		ENQUEUE_RENDER_COMMAND(AlignArtboard)(
-		[this, RenderTargetResource, Fit, AlignX, AlignY, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
-		{
-			DrawArtboard_RenderThread(RHICmdList, Fit, AlignX, AlignY, InNativeArtboard, DebugColor);
-		});
+		FRiveRenderTarget::Submit();
 	}
 }
 
-DECLARE_GPU_STAT_NAMED(DrawArtboard, TEXT("FRiveRenderTargetOpenGL::DrawArtboard_RenderThread"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor)
+void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
 {
-	RIVE_DEBUG_FUNCTION_INDENT;
-	check(IsInRenderingThread());
-	
-	SCOPED_GPU_STAT(RHICmdList, DrawArtboard);
-	RHICmdList.EnqueueLambda([this, InFit, AlignX, AlignY, InNativeArtboard, DebugColor](FRHICommandListImmediate& RHICmdList)
-	{
-		DrawArtboard_Internal(InFit, AlignX, AlignY, InNativeArtboard, DebugColor);
-	});
+	FRiveRenderTarget::Align(InFit, InAlignment, InArtboard);
+
+	// We need to invert the Y Axis for OpenGL
+	const uint32 TextureHeight = GetHeight();
+	const rive::Mat2D Transform = rive::Mat2D::fromScaleAndTranslation(1.f, -1.f, 0.f, TextureHeight);
+	const FRiveRenderCommand RenderCommand(Transform);
+	RenderCommands.Enqueue(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard_Internal(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor& DebugColor)
+rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::GetRenderTarget() const
+{
+	return CachedPLSRenderTargetOpenGL;
+}
+
+std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::BeginFrame()
+{
+	RIVE_DEBUG_FUNCTION_INDENT;
+	check(IsInGameThread() || IsInRHIThread());
+	ENABLE_VERIFY_GL_THREAD;
+
+	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
+	if (PLSRenderContextPtr == nullptr)
+	{
+		return nullptr;
+	}
+	
+	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
+	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->resetGLState();
+	
+	return FRiveRenderTarget::BeginFrame();
+}
+
+void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread() || IsInRHIThread());
 	ENABLE_VERIFY_GL_THREAD;
 	
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-	
 	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
-
 	if (PLSRenderContextPtr == nullptr)
 	{
 		return;
 	}
-	// UE_LOG(LogRiveRenderer, Display, TEXT("%s PLSRenderContextPtr->resetGPUResources()  %p"), FDebugLogger::Ind(), PLSRenderContextPtr);
-	// PLSRenderContextPtr->resetGPUResources();
 
-	// Begin Frame
-	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = GetPLSRenderer(DebugColor);
-	if (PLSRenderer == nullptr)
+	// End drawing a frame.
+	// Flush
+	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush()  %p", PLSRenderContextPtr);
+	PLSRenderContextPtr->flush();
+
+	TArray<FIntVector2> Points{{0,0}, {100,100}, {200,200}, {300,300}};
+	for (FIntVector2 Point : Points) 
 	{
-		return;
-	}
-	
-	const rive::Fit& Fit = *reinterpret_cast<rive::Fit*>(&InFit);
-	const rive::Alignment& Alignment = rive::Alignment(AlignX, AlignY);
-	const uint32 TextureWidth = GetWidth();
-	const uint32 TextureHeight = GetHeight();
-	const rive::Mat2D Transform = rive::computeAlignment(
-		Fit,
-		Alignment,
-		rive::AABB(0.f, 0.f, TextureWidth, TextureHeight),
-		InNativeArtboard->bounds());
-	
-	PLSRenderer->save();
-	// We need to invert the Y Axis for OpenGL
-	PLSRenderer->transform(rive::Mat2D::fromScaleAndTranslation(1.f, -1.f, 0.f, TextureHeight) * Transform);
-	RIVE_DEBUG_VERBOSE("InNativeArtboard->draw()");
-	InNativeArtboard->draw(PLSRenderer.get());
-
-	PLSRenderer->restore();
-	
-	{ // End drawing a frame.
-		// Flush
-		RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush()  %p", PLSRenderContextPtr);
-		PLSRenderContextPtr->flush();
-
-		TArray<FIntVector2> Points{{0,0}, {100,100}, {200,200}, {300,300}};
-		for (FIntVector2 Point : Points) 
+		if (Point.X < GetWidth() && Point.Y < GetHeight())
 		{
-			if (Point.X < TextureWidth && Point.Y < TextureHeight)
-			{
-				GLubyte pix[4];
-				glReadPixels(Point.X, Point.Y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pix);
-				RIVE_DEBUG_VERBOSE("Pixel [%d,%d] = %u %u %u %u", Point.X, Point.Y, pix[0], pix[1], pix[2], pix[3])
-			}
+			GLubyte pix[4];
+			glReadPixels(Point.X, Point.Y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pix);
+			RIVE_DEBUG_VERBOSE("Pixel [%d,%d] = %u %u %u %u", Point.X, Point.Y, pix[0], pix[1], pix[2], pix[3])
 		}
-		
-		RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
-		PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->resetGLState();
-		
-		// Reset
-		RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->shrinkGPUResourcesToFit() %p", PLSRenderContextPtr);
-		PLSRenderContextPtr->shrinkGPUResourcesToFit();
-		RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->resetGPUResources()  %p", PLSRenderContextPtr);
-		PLSRenderContextPtr->resetGPUResources();
 	}
+
+	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
+	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->resetGLState();
+	
+	// const FDateTime Now = FDateTime::Now();
+	// const int32 TimeElapsed = (Now - LastResetTime).GetSeconds();
+	// if (TimeElapsed >= ResetTimeLimit.GetSeconds())
+	// {
+	// 	// Reset
+	// 	PLSRenderContextPtr->shrinkGPUResourcesToFit();
+	// 	PLSRenderContextPtr->resetGPUResources();
+	// 	LastResetTime = Now;
+	// }
+	
+	// Reset
+	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->shrinkGPUResourcesToFit() %p", PLSRenderContextPtr);
+	PLSRenderContextPtr->shrinkGPUResourcesToFit();
+	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->resetGPUResources()  %p", PLSRenderContextPtr);
+	PLSRenderContextPtr->resetGPUResources();
 
 	if (IsInRHIThread()) //todo: still not working, to be looked at
 	{
@@ -213,45 +205,18 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard_Internal
 	}
 }
 
-std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::GetPLSRenderer(const FLinearColor DebugColor) const
+void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Render_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
-	check(IsInGameThread() || IsInRHIThread());
-	ENABLE_VERIFY_GL_THREAD;
+	check(IsInRenderingThread());
 	
-	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRendererGL->GetPLSRenderContextPtr();
-
-	if (PLSRenderContextPtr == nullptr || !FRiveRendererOpenGL::IsRHIOpenGL())
+	RHICmdList.EnqueueLambda([this](FRHICommandListImmediate& RHICmdList)
 	{
-		return nullptr;
-	}
-
-	const FColor ClearColor = DebugColor.ToRGBE();
-	
-	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->resetGLState();
-	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
-
-	RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL CachedPLSRenderTargetOpenGL  %p", CachedPLSRenderTargetOpenGL.get());
-	FrameDescriptor.renderTarget = CachedPLSRenderTargetOpenGL;
-	FrameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
-	FrameDescriptor.clearColor = rive::colorARGB(ClearColor.A, ClearColor.R, ClearColor.G, ClearColor.B);
-	FrameDescriptor.wireframe = false;
-	FrameDescriptor.fillsDisabled = false;
-	FrameDescriptor.strokesDisabled = false;
-
-	if (bIsCleared == false)
-	{
-		bIsCleared = true;
-	}
-	
-	RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL PLSRenderContextPtr->beginFrame %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
-
-	std::unique_ptr<rive::pls::PLSRenderer> Renderer = std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
-	RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL PLSRenderer: %p  from RenderContext: %p", Renderer.get(), PLSRenderContextPtr);
-	return Renderer;
+		Render_Internal();
+	});
 }
+
+#if WITH_RIVE
 
 void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_Internal(const FTexture2DRHIRef& InRHIResource)
 {
@@ -314,10 +279,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_In
 		UE_LOG(LogRiveRenderer, Error, TEXT("The size of the Texture Target is 0!   w: %d, h: %d"), w, h);
 		return;
 	}
-	if (!ensureMsgf(w == GetWidth() && h == GetHeight(), TEXT("Texture Size retrieved from OpenGL is not matching Render Target!  GL: %dx%d  RT: %dx%d"), w, h, GetWidth(), GetHeight()))
-	{
-		return;
-	}
+	// if (!ensureMsgf(w == GetWidth() && h == GetHeight(), TEXT("Texture Size retrieved from OpenGL is not matching Render Target!  GL: %dx%d  RT: %dx%d"), w, h, GetWidth(), GetHeight()))
+	// {
+	// 	return;
+	// }
 	RIVE_DEBUG_VERBOSE("OpenGLResourcePtr %d texture size %dx%d", OpenGLResourcePtr, w, h);
 
 	if (CachedPLSRenderTargetOpenGL)
