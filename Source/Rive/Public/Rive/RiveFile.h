@@ -110,7 +110,9 @@ class RIVE_API URiveFile : public UTexture2DDynamic, public FTickableGameObject
 
 public:
 	URiveFile();
-
+	
+	virtual void BeginDestroy() override;
+	
 	//~ BEGIN : FTickableGameObject Interface
 
 public:

@@ -76,6 +76,10 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 
 void UE::Rive::Renderer::Private::FRiveRendererModule::ShutdownModule()
 {
+    if (RiveRenderer)
+    {
+        RiveRenderer.Reset();
+    }
     ReleaseDll();
 }
 

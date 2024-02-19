@@ -35,6 +35,35 @@ URiveFile::URiveFile()
 	ArtboardIndex = 0;
 }
 
+void URiveFile::BeginDestroy()
+{
+	bIsInitialized = false;
+	bIsFileImported = false;
+	
+	if (IsValid(CopyRenderTarget))
+	{
+		CopyRenderTarget->ReleaseResource();
+		CopyRenderTarget->MarkAsGarbage();
+	}
+	if (IsValid(RenderTarget))
+	{
+		RenderTarget->ReleaseResource();
+		RenderTarget->MarkAsGarbage();
+	}
+	
+	RiveRenderTarget.Reset();
+	
+	if (IsValid(Artboard))
+	{
+		Artboard->MarkAsGarbage();
+	}
+	
+	RiveNativeFileSpan = {};
+	RiveNativeFilePtr.reset();
+	
+	Super::BeginDestroy();
+}
+
 TStatId URiveFile::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(URiveFile, STATGROUP_Tickables);
@@ -513,6 +542,9 @@ void URiveFile::Initialize()
 	{
 		CreateRenderTargets();
 	}
+
+	bIsFileImported = false;
+	Artboard = NewObject<URiveArtboard>(this); // Should be created in Game Thread
 	
 	ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
 	[this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
@@ -584,6 +616,8 @@ void URiveFile::InstantiateArtboard()
 	bIsInitialized = false;
 	bIsFileImported = false;
 
+	Artboard = NewObject<URiveArtboard>(this); // Should be created in Game Thread
+	
 	ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
 	[this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
 	{
@@ -699,7 +733,6 @@ URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 
 	if (GetNativeFile())
 	{
-		Artboard = NewObject<URiveArtboard>(this);
 		if (ArtboardName.IsEmpty())
 		{
 			Artboard->Initialize(GetNativeFile(), ArtboardIndex, StateMachineName);
