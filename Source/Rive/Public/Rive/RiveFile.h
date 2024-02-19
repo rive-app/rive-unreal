@@ -4,6 +4,7 @@
 
 #include "IRiveRendererModule.h"
 #include "IRiveRenderTarget.h"
+#include "Engine/Texture2DDynamic.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Rive/RiveEvent.h"
 #include "RiveFile.generated.h"
@@ -11,6 +12,7 @@
 #if WITH_RIVE
 
 class URiveArtboard;
+class FRiveTextureResource;
 
 namespace rive
 {
@@ -93,7 +95,7 @@ enum class ERiveBlendMode : uint8
  *
  */
 UCLASS(BlueprintType, Blueprintable)
-class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameObject
+class RIVE_API URiveFile : public UTexture2DDynamic, public FTickableGameObject
 {
 	GENERATED_BODY()
 
@@ -131,12 +133,11 @@ public:
 	//~ END : FTickableGameObject Interface
 
 	//~ BEGIN : UTexture Interface
-
-	virtual uint32 CalcTextureMemorySizeEnum(ETextureMipCount Enum) const override;
-
+	virtual FTextureResource* CreateResource() override;
 	//~ END : UObject UTexture
 
 	//~ BEGIN : UObject Interface
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
 	virtual void PostLoad() override;
 
@@ -239,7 +240,8 @@ private:
 	// TODO. REMOVE IT!! Temporary switches for Android testng
 	TObjectPtr<UTextureRenderTarget2D> GetRenderTargetToDrawOnto()
 	{
-		return UE::Rive::Renderer::IRiveRendererModule::DrawStraightOnRiveFile() ? this : RenderTarget;
+		//return UE::Rive::Renderer::IRiveRendererModule::DrawStraightOnRiveFile() ? this : RenderTarget;
+		return RenderTarget;
 	}
 
 public:
@@ -363,4 +365,16 @@ private:
 	}
 
 	void PrintStats() const;
+
+private:
+
+	/**
+	 * Create Texture Rendering resource on RHI Thread
+	 */
+	void InitializeResources();
+
+	/**
+	 * Rendering resource for Rive File
+	 */
+	FRiveTextureResource* CurrentResource;
 };

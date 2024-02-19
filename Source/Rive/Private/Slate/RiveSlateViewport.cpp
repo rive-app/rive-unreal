@@ -103,7 +103,8 @@ void FRiveSlateViewport::Tick(const FGeometry& AllottedGeometry, double InCurren
     if (RiveFile)
     {
         // Check it later
-        FTextureRenderTargetResource* RiveRenderTargetResource = RiveFile->GameThread_GetRenderTargetResource();
+        //FTextureRenderTargetResource* RiveRenderTargetResource = RiveFile->GameThread_GetRenderTargetResource();
+        FTextureResource* RiveRenderTargetResource = RiveFile->GetResource();
 
         FTextureRenderTargetResource* RiveSlateRenderTargetResource = RiveSlateRenderTarget->GameThread_GetRenderTargetResource();
 

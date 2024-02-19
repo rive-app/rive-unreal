@@ -47,7 +47,7 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 	if (Viewport && bDrawCheckeredTexture && IsValid(CheckerboardTexture))
 	{
 		const UTextureEditorSettings& Settings = *GetDefault<UTextureEditorSettings>();
-		const float CheckerboardSizeX = (float)FMath::Max<int32>(1, CheckerboardTexture->GetSizeX());
+ 		const float CheckerboardSizeX = (float)FMath::Max<int32>(1, CheckerboardTexture->GetSizeX());
 		const float CheckerboardSizeY = (float)FMath::Max<int32>(1, CheckerboardTexture->GetSizeY());
 		if (Settings.Background == TextureEditorBackground_CheckeredFill)
 		{

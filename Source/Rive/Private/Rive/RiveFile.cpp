@@ -9,6 +9,7 @@
 #include "Rive/Assets/URAssetImporter.h"
 #include "Rive/Assets/URFileAssetLoader.h"
 #include "RiveRendererUtils.h"
+#include "RiveTextureResource.h"
 #include "Rive/RiveArtboard.h"
 
 
@@ -18,12 +19,14 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
+UE_DISABLE_OPTIMIZATION
+
 URiveFile::URiveFile()
 {
-	OverrideFormat = PF_R8G8B8A8;
-	RenderTargetFormat = RTF_RGBA8;
-
-	bCanCreateUAV = false;
+	// OverrideFormat = PF_R8G8B8A8;
+	// RenderTargetFormat = RTF_RGBA8;
+	//
+	// bCanCreateUAV = false;
 	SRGB = false; //todo: check if needed on all platforms
 
 	SizeX = 500;
@@ -115,15 +118,17 @@ void URiveFile::Tick(float InDeltaSeconds)
 		// Copy from render target
 		// TODO. move from here
 		// Separate target might be needed to let Rive draw only to separate texture
-		if (GetRenderTargetToDrawOnto() != this && ensure(RenderTarget))
+		//if (GetRenderTargetToDrawOnto() != this && ensure(RenderTarget))
+		if (CurrentResource && ensure(RenderTarget))
 		{
-			FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
+			//FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
+			
 			FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
 
 			ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
-				[this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
+				[this, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
 				{
-					UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
+					UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, CurrentResource->TextureRHI);
 				});
 		}
 	}
@@ -135,17 +140,28 @@ bool URiveFile::IsTickable() const
 	return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
 }
 
-uint32 URiveFile::CalcTextureMemorySizeEnum(ETextureMipCount Enum) const
+FTextureResource* URiveFile::CreateResource()
 {
-	// Calculate size based on format.  All mips are resident on render targets so we always return the same value.
-	EPixelFormat Format = GetFormat();
-	int32 BlockSizeX = GPixelFormats[Format].BlockSizeX;
-	int32 BlockSizeY = GPixelFormats[Format].BlockSizeY;
-	int32 BlockBytes = GPixelFormats[Format].BlockBytes;
-	int32 NumBlocksX = (SizeX + BlockSizeX - 1) / BlockSizeX;
-	int32 NumBlocksY = (SizeY + BlockSizeY - 1) / BlockSizeY;
-	int32 NumBytes = NumBlocksX * NumBlocksY * BlockBytes;
-	return NumBytes;
+	if (CurrentResource != nullptr)
+	{
+		SetResource(nullptr);
+		delete CurrentResource;
+	}
+
+	CurrentResource = new FRiveTextureResource(this);
+	InitializeResources();
+
+	return CurrentResource;
+}
+
+void URiveFile::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
+{
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
+	if (CurrentResource != nullptr)
+	{
+		CumulativeResourceSize.AddUnknownMemoryBytes(CurrentResource->GetResourceSize());
+	}
 }
 
 void URiveFile::PostLoad()
@@ -177,7 +193,8 @@ void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, SizeY))
 	{
 		++SizeX; // We are in PostEditChange, so SizeX is already the right value, but Resize would skip because InSizeX == SizeX && InSizeY == SizeY
-		ResizeTarget(SizeX - 1, SizeY);
+		//ResizeTarget(SizeX - 1, SizeY); TODO, FIX IT
+		UpdateResource();
 		if (RenderTarget)
 		{
 			RenderTarget->ResizeTarget(SizeX, SizeY); // SizeX is now the right size
@@ -649,8 +666,24 @@ void URiveFile::CreateRenderTargets()
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 
 	// Initialize resource for this texture
-	InitCustomFormat(SizeX, SizeY, OverrideFormat, bInForceLinearGamma);
-	UpdateResourceImmediate(true);
+	// InitCustomFormat(SizeX, SizeY, OverrideFormat, bInForceLinearGamma);
+	// UpdateResourceImmediate(true);
+	if (CurrentResource != nullptr)
+	{
+		InitializeResources();
+
+		// Make sure RenderThread is executed before continuing
+		FlushRenderingCommands();
+	}
+	else
+	{
+		CreateResource();
+		
+		// Make sure RenderThread is executed before continuing
+		FlushRenderingCommands();
+		
+		SetResource(CurrentResource);
+	}
 
 	// Initialize copy texture
 	RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(SizeX, SizeY));
@@ -685,8 +718,15 @@ URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 
 void URiveFile::ResizeRenderTargets(const FVector2f InNewSize)
 {
-	ResizeTarget(InNewSize.X, InNewSize.Y);
-	UpdateResourceImmediate(true);
+	// ResizeTarget(InNewSize.X, InNewSize.Y);
+	// UpdateResourceImmediate(true);
+	if (CurrentResource != nullptr)
+	{
+		InitializeResources();
+
+		// Make sure RenderThread is executed before continuing
+		FlushRenderingCommands();
+	}
 
 	if (RenderTarget)
 	{
@@ -728,3 +768,27 @@ void URiveFile::PrintStats() const
 	UE_LOG(LogRive, Display, TEXT("%s"), *RiveFileLoadMsg.ToString());
 }
 
+void URiveFile::InitializeResources()
+{
+	ENQUEUE_RENDER_COMMAND(FRiveTextureResourceeUpdateTextureReference)
+	([this](FRHICommandListImmediate& RHICmdList) {
+		// Set the default video texture to reference nothing
+		FTextureRHIRef ShaderTexture2D;
+		FTextureRHIRef RenderableTexture;
+	
+		FRHITextureCreateDesc RenderTargetTextureDesc =
+			FRHITextureCreateDesc::Create2D(TEXT(""), SizeX, SizeY, PF_R8G8B8A8)
+				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
+				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | TexCreate_RenderTargetable)
+				.SetInitialState(ERHIAccess::SRVMask);
+	
+		RenderableTexture = RHICreateTexture(RenderTargetTextureDesc);
+		ShaderTexture2D = RenderableTexture;
+	
+		CurrentResource->TextureRHI = RenderableTexture;
+
+		RHIUpdateTextureReference(TextureReference.TextureReferenceRHI, CurrentResource->TextureRHI);
+	});
+}
+
+UE_ENABLE_OPTIMIZATION
