@@ -8,7 +8,10 @@
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
-#include "rive/pls/d3d/pls_render_context_d3d_impl.hpp"
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include "Windows/MinWindows.h"
+#include "rive/pls/d3d/pls_render_context_d3d_impl.hpp" // This ends up including windows.h 
+#include "Windows/HideWindowsPlatformTypes.h"
 THIRD_PARTY_INCLUDES_END
 
 struct ID3D11DynamicRHI;
