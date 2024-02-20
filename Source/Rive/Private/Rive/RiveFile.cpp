@@ -31,7 +31,7 @@ URiveFile::URiveFile()
 	bIsResolveTarget = true;
 	SamplerAddressMode = AM_Wrap;
 #if PLATFORM_ANDROID
-	Format = RTF_RGBA8;
+	Format = PF_B8G8R8A8;
 #else
 	Format = PF_R8G8B8A8;
 #endif
