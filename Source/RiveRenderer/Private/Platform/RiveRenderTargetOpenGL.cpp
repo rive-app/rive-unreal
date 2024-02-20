@@ -41,10 +41,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Initialize()
 	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
-	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+	FTextureResource* RenderTargetResource = RenderTarget->GetResource();
 	if (IRiveRendererModule::RunInGameThread())
 	{
-		CacheTextureTarget_Internal(RenderTarget->GameThread_GetRenderTargetResource()->TextureRHI);
+		CacheTextureTarget_Internal(RenderTarget->GetResource()->TextureRHI);
 	}
 	else
 	{
@@ -78,7 +78,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard(uint8 Fi
 
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
-	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+	FTextureResource* RenderTargetResource = RenderTarget->GetResource();
 	if (IRiveRendererModule::RunInGameThread())
 	{
 		DrawArtboard_Internal(Fit, AlignX, AlignY, InNativeArtboard, DebugColor);

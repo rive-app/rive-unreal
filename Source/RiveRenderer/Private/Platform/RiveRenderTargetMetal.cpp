@@ -37,7 +37,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::Initialize()
     
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
-    FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+    FTextureResource* RenderTargetResource = RenderTarget->GetResource();
     
     ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)(
     [RenderTargetResource, this](FRHICommandListImmediate& RHICmdList)
