@@ -66,7 +66,7 @@ namespace UE::Rive::Renderer::Private
 
 	public:
 
-		virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) override;
+		virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override;
 
 		virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
 

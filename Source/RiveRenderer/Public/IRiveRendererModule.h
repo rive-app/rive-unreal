@@ -53,13 +53,6 @@ namespace UE::Rive::Renderer
 #endif // PLATFORM_ANDROID
             return false;
         }
-		static bool DrawStraightOnRiveFile()
-        {
-#if PLATFORM_ANDROID
-            return true;
-#endif // PLATFORM_ANDROID
-            return false;
-        }
 	private:
 
 		static constexpr const TCHAR* ModuleName = TEXT("RiveRenderer");

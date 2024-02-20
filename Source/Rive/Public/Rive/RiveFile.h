@@ -236,20 +236,7 @@ private:
 	 */
 	void ResizeRenderTargets(const FVector2f InNewSize);
 
-	/**
-	 * Attribute(s)
-	 */
-	// TODO. REMOVE IT!! Temporary switches for Android testng
-	TObjectPtr<UTextureRenderTarget2D> GetRenderTargetToDrawOnto()
-	{
-		//return UE::Rive::Renderer::IRiveRendererModule::DrawStraightOnRiveFile() ? this : RenderTarget;
-		return RenderTarget;
-	}
-
 public:
-	UPROPERTY(EditAnywhere, Category = Rive)
-	TObjectPtr<UTextureRenderTarget2D> CopyRenderTarget;
-
 	// This Event is triggered any time new LiveLink data is available, including in the editor
 	UPROPERTY(BlueprintAssignable, Category = "LiveLink")
 	FRiveStateMachineDelegate OnRiveStateMachineDelegate;
@@ -259,9 +246,6 @@ public:
 
 	UPROPERTY()
 	FString RiveFilePath;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 
 	// TODO. REMOVE IT!!, just for testing
 	UPROPERTY(EditAnywhere, Category = Rive)

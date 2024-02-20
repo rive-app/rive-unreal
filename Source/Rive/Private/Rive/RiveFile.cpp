@@ -23,11 +23,7 @@ UE_DISABLE_OPTIMIZATION
 
 URiveFile::URiveFile()
 {
-	// OverrideFormat = PF_R8G8B8A8;
-	// RenderTargetFormat = RTF_RGBA8;
-	//
-	// bCanCreateUAV = false;
-	SRGB = false; //todo: check if needed on all platforms
+	SRGB = true;
 	bIsResolveTarget = true;
 	SamplerAddressMode = AM_Wrap;
 	Format = PF_R8G8B8A8;
@@ -43,17 +39,6 @@ void URiveFile::BeginDestroy()
 {
 	bIsInitialized = false;
 	bIsFileImported = false;
-	
-	if (IsValid(CopyRenderTarget))
-	{
-		CopyRenderTarget->ReleaseResource();
-		CopyRenderTarget->MarkAsGarbage();
-	}
-	if (IsValid(RenderTarget))
-	{
-		RenderTarget->ReleaseResource();
-		RenderTarget->MarkAsGarbage();
-	}
 	
 	RiveRenderTarget.Reset();
 	
@@ -86,10 +71,13 @@ void URiveFile::Tick(float InDeltaSeconds)
 	if (!bIsInitialized && bIsFileImported && GetArtboard()) //todo: move away from Tick
 	{
 		// Resize textures and Flush
+		// Load Artboard Size only once
 		ResizeRenderTargets(Artboard->GetSize());
 		
 		// Initialize Rive Render Target Only after we resize the texture
-		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTargetToDrawOnto());
+		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
+
+		// It will remove old reference if exists
 		RiveRenderTarget->Initialize();
 
 		// Everything is now ready, we can start Rive Rendering
@@ -104,7 +92,6 @@ void URiveFile::Tick(float InDeltaSeconds)
 			UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine();
 			if (StateMachine && StateMachine->IsValid() && ensure(RiveRenderTarget))
 			{
-				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 				if (!bIsReceivingInput)
 				{
 					auto AdvanceStateMachine = [this, StateMachine, InDeltaSeconds]()
@@ -146,23 +133,6 @@ void URiveFile::Tick(float InDeltaSeconds)
 			RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y,
 										   Artboard->GetNativeArtboard(), DebugColor);
 			bDrawOnceTest = true;
-		}
-
-		// Copy from render target
-		// TODO. move from here
-		// Separate target might be needed to let Rive draw only to separate texture
-		//if (GetRenderTargetToDrawOnto() != this && ensure(RenderTarget))
-		if (CurrentResource && ensure(RenderTarget))
-		{
-			//FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
-			
-			FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
-
-			ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
-				[this, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
-				{
-					UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, CurrentResource->TextureRHI);
-				});
 		}
 	}
 #endif // WITH_RIVE
@@ -209,6 +179,9 @@ void URiveFile::PostLoad()
 
 void URiveFile::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
 {
+	// TODO. WE need custom implementation here to handle the Rive File Editor Changes
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	
 	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
 	const FName ActiveMemberNodeName = *PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue()->GetName();
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardIndex) ||
@@ -218,24 +191,16 @@ void URiveFile::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& P
 	}
 	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveFile, Size))
 	{
-		SizeX = Size.X;
-		SizeY = Size.Y;
-		InitializeResources();
-
-
-		if (RenderTarget)
-		{
-			RenderTarget->ResizeTarget(Size.X, Size.Y); // SizeX is now the right size
-		}
-		if (RiveRenderTarget)
-		{
-			RiveRenderTarget->Initialize();
-		}
-		FlushRenderingCommands();
+		ResizeRenderTargets(Size);
 	}
 
-	// TODO. WE need custom implementation here to handle the Rive File Editor Changes
-	Super::PostEditChangeProperty(PropertyChangedEvent);
+	// Update the Rive CachedPLSRenderTarget
+	if (RiveRenderTarget)
+	{
+		RiveRenderTarget->Initialize();
+	}
+
+	FlushRenderingCommands();
 }
 
 #endif // WITH_EDITOR
@@ -540,11 +505,6 @@ void URiveFile::Initialize()
 		}
 	}
 
-	if (!RenderTarget) // fallback if we arrive here without passing by PostLoad, like when creating the RiveFile in Editor
-	{
-		CreateRenderTargets();
-	}
-
 	bIsFileImported = false;
 	Artboard = NewObject<URiveArtboard>(this); // Should be created in Game Thread
 	
@@ -706,9 +666,6 @@ void URiveFile::CreateRenderTargets()
 		UpdateResource();
 	}
 
-	// Initialize copy texture
-	RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(Size.X, Size.Y));
-
 	// Flush resources
 	FlushRenderingCommands();
 #endif // WITH_RIVE
@@ -738,6 +695,9 @@ URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 
 void URiveFile::ResizeRenderTargets(const FVector2f InNewSize)
 {
+	SizeX = Size.X = InNewSize.X;
+	SizeY = Size.Y = InNewSize.Y;
+	
 	if (!CurrentResource)
 	{
 		// Create Resource
@@ -745,14 +705,8 @@ void URiveFile::ResizeRenderTargets(const FVector2f InNewSize)
 	}
 	else
 	{
-		// Create new TextureRHI wiht new size
+		// Create new TextureRHI with new size
 		InitializeResources();
-	}
-
-	if (RenderTarget)
-	{
-		RenderTarget->ResizeTarget(InNewSize.X, InNewSize.Y);
-		RenderTarget->UpdateResourceImmediate(true);
 	}
 
 	FlushRenderingCommands();
@@ -794,12 +748,11 @@ void URiveFile::InitializeResources()
 	ENQUEUE_RENDER_COMMAND(FRiveTextureResourceeUpdateTextureReference)
 	([this](FRHICommandListImmediate& RHICmdList) {
 		FTextureRHIRef RenderableTexture;
-	
+
 		FRHITextureCreateDesc RenderTargetTextureDesc =
-			FRHITextureCreateDesc::Create2D(TEXT(""), Size.X, Size.Y, Format)
+			FRHITextureCreateDesc::Create2D(*GetName(), Size.X, Size.Y, Format)
 				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
-				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | TexCreate_RenderTargetable)
-				.SetInitialState(ERHIAccess::SRVMask);
+				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | ETextureCreateFlags::RenderTargetable);
 
 		if (SRGB)
 		{

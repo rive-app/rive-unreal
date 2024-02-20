@@ -115,7 +115,7 @@ UE::Rive::Renderer::Private::FRiveRendererD3D11::FRiveRendererD3D11()
 {
 }
 
-TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererD3D11::CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererD3D11::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 {
 	check(IsInGameThread());
 
@@ -182,6 +182,8 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::ResetBlendState() const
 {
 	check(IsInRenderingThread());
 	check(D3D11GPUAdapter.IsValid());
+
+	FScopeLock Lock(&ThreadDataCS);
 
 	D3D11GPUAdapter->ResetBlendState();
 }

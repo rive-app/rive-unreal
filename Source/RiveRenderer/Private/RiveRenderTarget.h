@@ -13,7 +13,7 @@ namespace rive::pls
 
 #endif // WITH_RIVE
 
-class UTextureRenderTarget2D;
+class UTexture2DDynamic;
 
 namespace UE::Rive::Renderer::Private
 {
@@ -27,7 +27,7 @@ namespace UE::Rive::Renderer::Private
 
 	public:
 
-		FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
+		FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget);
 		virtual ~FRiveRenderTarget() override;
 		//~ BEGIN : IRiveRenderTarget Interface
 
@@ -75,7 +75,7 @@ namespace UE::Rive::Renderer::Private
 		
 		FName RiveName;
 		
-		TObjectPtr<UTextureRenderTarget2D> RenderTarget;
+		TObjectPtr<UTexture2DDynamic> RenderTarget;
 
 		mutable FDateTime LastResetTime = FDateTime::Now();
 
