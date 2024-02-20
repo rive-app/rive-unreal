@@ -30,18 +30,20 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 #if PLATFORM_WINDOWS
     case ERHIInterfaceType::D3D11:
         {
+            RIVE_DEBUG_VERBOSE("Rive running on RHI 'D3D11'")
             RiveRenderer = MakeShared<FRiveRendererD3D11>();
             break;
         }
     case ERHIInterfaceType::D3D12:
         {
+            RIVE_DEBUG_VERBOSE("Rive running on RHI 'D3D12'")
             break;
         }
 #endif // PLATFORM_WINDOWS
 #if PLATFORM_ANDROID
     case ERHIInterfaceType::OpenGL:
         {
-            RIVE_DEBUG_VERBOSE("RHIGetInterfaceType returned 'OpenGL'")
+            RIVE_DEBUG_VERBOSE("Rive running on RHI 'OpenGL'")
             RiveRenderer = MakeShared<FRiveRendererOpenGL>();
             break;
         }
@@ -49,8 +51,13 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 #if PLATFORM_APPLE
         case ERHIInterfaceType::Metal:
         {
+            RIVE_DEBUG_VERBOSE("Rive running on RHI 'Metal'")
+#if defined(WITH_RIVE_MAC_ARM64)
+            RIVE_DEBUG_VERBOSE("Rive running on a Mac M1/M2 processor (Arm64)")
+#elif defined(WITH_RIVE_MAC_INTEL)
+            RIVE_DEBUG_VERBOSE("Rive running on a Mac Intel processor (x86 x64)")
+#endif
             RiveRenderer = MakeShared<FRiveRendererMetal>();
-            
             break;
         }
 #endif // PLATFORM_APPLE

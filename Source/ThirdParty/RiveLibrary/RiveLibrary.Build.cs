@@ -73,10 +73,12 @@ public class RiveLibrary : ModuleRules
             if (Target.Architecture == UnrealArch.Arm64)
             {
                 LibDirectory = Path.Combine(LibDirectory, "Mac");
+                PublicDefinitions.Add("WITH_RIVE_MAC_ARM64 = 1");
             }
             else
             {
                 LibDirectory = Path.Combine(LibDirectory, "Intel");
+                PublicDefinitions.Add("WITH_RIVE_MAC_INTEL = 1");
             }
             string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + ".a"; ;
             string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + ".a"; ;
