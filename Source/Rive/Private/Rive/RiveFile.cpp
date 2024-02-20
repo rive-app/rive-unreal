@@ -19,8 +19,6 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE_DISABLE_OPTIMIZATION
-
 URiveFile::URiveFile()
 {
 #if PLATFORM_IOS
@@ -778,5 +776,3 @@ void URiveFile::InitializeResources()
 		RHIUpdateTextureReference(TextureReference.TextureReferenceRHI, CurrentResource->TextureRHI);
 	});
 }
-
-UE_ENABLE_OPTIMIZATION

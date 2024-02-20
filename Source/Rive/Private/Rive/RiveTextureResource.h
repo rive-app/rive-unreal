@@ -7,7 +7,7 @@
 class URiveFile;
 
 /**
- * 
+ * Custom Texture Resource for Rive file
  */
 class RIVE_API FRiveTextureResource : public FTextureResource
 {

@@ -7,8 +7,6 @@
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "Rive/RiveFile.h"
 
-UE_DISABLE_OPTIMIZATION
-
 FRiveTextureResource::FRiveTextureResource(URiveFile* Owner)
 {
 	RiveFile = Owner;
@@ -56,5 +54,3 @@ SIZE_T FRiveTextureResource::GetResourceSize()
 	check(RiveFile);
 	return CalcTextureSize(GetSizeX(), GetSizeY(), RiveFile->Format, 1);
 }
-
-UE_ENABLE_OPTIMIZATION
