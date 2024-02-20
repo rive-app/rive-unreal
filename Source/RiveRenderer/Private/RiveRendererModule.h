@@ -34,8 +34,6 @@ namespace UE::Rive::Renderer::Private
         bool LoadDll();
         void ReleaseDll();
 
-        void* RiveHarfbuzzDllHandle = nullptr;
-
         TSharedPtr<IRiveRenderer> RiveRenderer;
         FSimpleMulticastDelegate OnRendererInitializedDelegate;
         FDelegateHandle OnBeginFrameHandle;

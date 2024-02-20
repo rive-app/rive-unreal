@@ -266,7 +266,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_In
 	// For now we just set one renderer and one texture
 	rive::pls::PLSRenderContextGLImpl* PLSRenderContextGLImpl = PLSRenderContext->static_impl_cast<rive::pls::PLSRenderContextGLImpl>();
 	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState()");
-	PLSRenderContextGLImpl->resetGLState();
+	PLSRenderContextGLImpl->invalidateGLState();
 
 	int w, h;
 	glActiveTexture(GL_TEXTURE0);
