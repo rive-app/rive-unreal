@@ -164,14 +164,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard_Internal
 			}
 		}
 		
-		// RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
-		// PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->resetGLState();
-		
 		// Reset
 		RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->unbindGLInternalResources() %p", PLSRenderContextPtr);
 		PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->unbindGLInternalResources();
-		// RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->resetGPUResources()  %p", PLSRenderContextPtr);
-		// PLSRenderContextPtr->resetGPUResources();
 	}
 
 	if (IsInRHIThread()) //todo: still not working, to be looked at

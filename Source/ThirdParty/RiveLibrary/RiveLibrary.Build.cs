@@ -43,12 +43,9 @@ public class RiveLibrary : ModuleRules
             string RiveLibPng = "rive_libpng" + LibPostfix + ".lib";
             string RiveSheenBidiStaticLibName = "rive_sheenbidi" + LibPostfix + ".lib";
             string RiveHarfBuzzStaticLibName = "rive_harfbuzz" + LibPostfix + ".lib";
-            // string RiveHarfBuzzDynamicLibName = "rive_harfbuzz" + LibPostfix + ".dll";
             string RiveStaticLibName = "rive" + LibPostfix + ".lib";
             string RiveDecodersStaticLibName = "rive_decoders" + LibPostfix + ".lib";
             string RivePlsLibName = "rive_pls_renderer" + LibPostfix + ".lib";
-            
-            // PublicRuntimeLibraryPaths.Add(LibDirectory);
 
             PublicAdditionalLibraries.AddRange(new string[]
                 {
@@ -60,10 +57,6 @@ public class RiveLibrary : ModuleRules
                     Path.Combine(LibDirectory, RiveLibPng)
                 }
             );
-
-            // PublicDelayLoadDLLs.Add(RiveHarfBuzzDynamicLibName);
-            //
-            // RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", RiveHarfBuzzDynamicLibName),Path.Combine(LibDirectory, RiveHarfBuzzDynamicLibName));
 
             bIsPlatformAdded = true;
         }
@@ -140,10 +133,6 @@ public class RiveLibrary : ModuleRules
                     , Path.Combine(LibDirectory, RivePngLibName)
                 }
             );
-            // RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", RiveHarfBuzzSharedLibName),Path.Combine(LibDirectory, RiveHarfBuzzSharedLibName));
-            
-            // string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
-            // AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "RiveLibrary_APL.xml"));
             
             PrecompileForTargets = PrecompileTargetsType.None;
             bIsPlatformAdded = true;
