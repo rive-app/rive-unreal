@@ -70,6 +70,14 @@ public class RiveLibrary : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Mac");
+            if (Target.Architecture == UnrealArch.Arm64)
+            {
+                LibDirectory = Path.Combine(LibDirectory, "Mac");
+            }
+            else
+            {
+                LibDirectory = Path.Combine(LibDirectory, "Intel");
+            }
             string RiveSheenBidiStaticLibName = "librive_sheenbidi" + LibPostfix + ".a"; ;
             string RiveHarfBuzzStaticLibName = "librive_harfbuzz" + LibPostfix + ".a"; ;
             string RiveStaticLibName = "librive" + LibPostfix + ".a"; ;
