@@ -23,7 +23,11 @@ UE_DISABLE_OPTIMIZATION
 
 URiveFile::URiveFile()
 {
+#if PLATFORM_IOS
+	SRGB = false;
+#else
 	SRGB = true;
+#endif
 	bIsResolveTarget = true;
 	SamplerAddressMode = AM_Wrap;
 #if PLATFORM_ANDROID
