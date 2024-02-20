@@ -173,10 +173,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::DrawArtboard_RenderThr
         if (TimeElapsed >= ResetTimeLimit.GetSeconds())
         {
             // Reset
-            PLSRenderContextPtr->shrinkGPUResourcesToFit();
-
-            PLSRenderContextPtr->resetGPUResources();
-
             LastResetTime = Now;
         }
     }

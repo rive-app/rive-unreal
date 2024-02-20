@@ -30,18 +30,20 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 #if PLATFORM_WINDOWS
     case ERHIInterfaceType::D3D11:
         {
+            RIVE_DEBUG_VERBOSE("Rive running on RHI 'D3D11'")
             RiveRenderer = MakeShared<FRiveRendererD3D11>();
             break;
         }
     case ERHIInterfaceType::D3D12:
         {
+            RIVE_DEBUG_VERBOSE("Rive running on RHI 'D3D12'")
             break;
         }
 #endif // PLATFORM_WINDOWS
 #if PLATFORM_ANDROID
     case ERHIInterfaceType::OpenGL:
         {
-            RIVE_DEBUG_VERBOSE("RHIGetInterfaceType returned 'OpenGL'")
+            RIVE_DEBUG_VERBOSE("Rive running on RHI 'OpenGL'")
             RiveRenderer = MakeShared<FRiveRendererOpenGL>();
             break;
         }
@@ -49,8 +51,13 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 #if PLATFORM_APPLE
         case ERHIInterfaceType::Metal:
         {
+            RIVE_DEBUG_VERBOSE("Rive running on RHI 'Metal'")
+#if defined(WITH_RIVE_MAC_ARM64)
+            RIVE_DEBUG_VERBOSE("Rive running on a Mac M1/M2 processor (Arm64)")
+#elif defined(WITH_RIVE_MAC_INTEL)
+            RIVE_DEBUG_VERBOSE("Rive running on a Mac Intel processor (x86 x64)")
+#endif
             RiveRenderer = MakeShared<FRiveRendererMetal>();
-            
             break;
         }
 #endif // PLATFORM_APPLE
@@ -104,47 +111,8 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
 
-#if PLATFORM_WINDOWS
-    // Add on the relative location of the third party dll and load it
-#if WITH_EDITOR
-    // In Editor, we don't want to load the dll from Binaries as it will lock the dll
-    // and the packaging will sometimes fail as UE is trying to replace the dll
-    // Get the base directory of this plugin
-    const FString BaseDir = IPluginManager::Get().FindPlugin("Rive")->GetBaseDir();
-    const FString RiveHarfbuzzLibraryPath = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/RiveLibrary/Libraries/Win64/rive_harfbuzz.dll"));
-#else
-    const FString RiveHarfbuzzLibraryPath = TEXT("rive_harfbuzz.dll");
-#endif
-    
-    {
-        RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*RiveHarfbuzzLibraryPath);
-        if (RiveHarfbuzzDllHandle != nullptr)
-        {
-            RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *RiveHarfbuzzLibraryPath);
-        }
-        else
-        {
-            UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *RiveHarfbuzzLibraryPath);
-            return false;
-        }
-    }
-#elif PLATFORM_ANDROID
-    // Add on the relative location of the third party dll and load it
-    const FString RiveHarfbuzzLibraryPath = TEXT("librive_harfbuzz.so");
-    
+#if PLATFORM_ANDROID
     FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
-    {
-        RiveHarfbuzzDllHandle = FPlatformProcess::GetDllHandle(*RiveHarfbuzzLibraryPath);
-        if (RiveHarfbuzzDllHandle != nullptr)
-        {
-            RIVE_DEBUG_VERBOSE("Loaded RiveHarfbuzz from '%s'", *RiveHarfbuzzLibraryPath);
-        }
-        else
-        {
-            UE_LOG(LogRiveRenderer, Error, TEXT("Unable to load RiveHarfbuzz from '%s'"), *RiveHarfbuzzLibraryPath);
-            return false;
-        }
-    }
 #endif
     return true;
 }
@@ -152,12 +120,6 @@ bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
 void UE::Rive::Renderer::Private::FRiveRendererModule::ReleaseDll()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
-    if (RiveHarfbuzzDllHandle)
-    {
-         RIVE_DEBUG_VERBOSE("Releasing RiveHarfbuzz Dll...");
-        FPlatformProcess::FreeDllHandle(RiveHarfbuzzDllHandle);
-        RiveHarfbuzzDllHandle = nullptr;
-    }
 }
 
 #undef LOCTEXT_NAMESPACE
