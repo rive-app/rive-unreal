@@ -147,8 +147,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
 	if (TimeElapsed >= ResetTimeLimit.GetSeconds())
 	{
 		// Reset
-		PLSRenderContextPtr->shrinkGPUResourcesToFit();
-		PLSRenderContextPtr->resetGPUResources();
+		// PLSRenderContextPtr->shrinkGPUResourcesToFit();
+		// PLSRenderContextPtr->resetGPUResources();
 		LastResetTime = Now;
 	}
 }
