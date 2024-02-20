@@ -2,6 +2,7 @@
 
 #include "RiveRenderTarget.h"
 
+#include "RenderGraphBuilder.h"
 #include "RiveRenderCommand.h"
 #include "RiveRenderer.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -56,21 +57,37 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Submit()
 		});
 }
 
+void UE::Rive::Renderer::Private::FRiveRenderTarget::SubmitAndClear()
+{
+	{
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		bClearQueue = true;
+	}
+	
+	Submit();
+}
+
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Save()
 {
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
 	const FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Save);
-	RenderCommands.Enqueue(RenderCommand);
+	RenderCommands.Push(RenderCommand);
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Restore()
 {
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
 	const FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Restore);
-	RenderCommands.Enqueue(RenderCommand);
+	RenderCommands.Push(RenderCommand);
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Transform(float X1, float Y1, float X2, float Y2, float TX,
 	float TY)
 {
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Transform);
 	RenderCommand.X = X1;
 	RenderCommand.Y = Y1;
@@ -78,24 +95,28 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Transform(float X1, float Y
 	RenderCommand.Y2 = Y2;
 	RenderCommand.TX = TX;
 	RenderCommand.TY = TY;
-	RenderCommands.Enqueue(RenderCommand);
+	RenderCommands.Push(RenderCommand);
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Draw(rive::Artboard* InArtboard)
 {
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::DrawArtboard);
 	RenderCommand.NativeArtboard = InArtboard;
-	RenderCommands.Enqueue(RenderCommand);
+	RenderCommands.Push(RenderCommand);
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
 {
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::AlignArtboard);
 	RenderCommand.FitType = InFit;
 	RenderCommand.X = InAlignment.X;
 	RenderCommand.Y = InAlignment.Y;
 	RenderCommand.NativeArtboard = InArtboard;
-	RenderCommands.Enqueue(RenderCommand);
+	RenderCommands.Push(RenderCommand);
 }
 
 std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTarget::BeginFrame()
@@ -166,12 +187,12 @@ uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetHeight() const
 DECLARE_GPU_STAT_NAMED(Render, TEXT("RiveRenderTarget::Render"));
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
-	// FRDGBuilder GraphBuilder(RHICmdList); // this was in DX11
+	FRDGBuilder GraphBuilder(RHICmdList); // this was in DX11
 	SCOPED_GPU_STAT(RHICmdList, Render);
 	check(IsInRenderingThread());
 
 	Render_Internal();
-	// GraphBuilder.Execute(); // this was in DX11
+	GraphBuilder.Execute(); // this was in DX11
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
@@ -184,9 +205,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
 	{
 		return;
 	}
-
-	FRiveRenderCommand RenderCommand;
-	while (RenderCommands.Dequeue(RenderCommand))
+	
+	for (const FRiveRenderCommand& RenderCommand : RenderCommands)
 	{
 		switch (RenderCommand.Type)
 		{
@@ -229,6 +249,12 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
 	}
 
 	EndFrame();
+	
+	if (bClearQueue)
+	{
+		bClearQueue = false;
+		RenderCommands.Empty();
+	}
 }
 
 UE_ENABLE_OPTIMIZATION

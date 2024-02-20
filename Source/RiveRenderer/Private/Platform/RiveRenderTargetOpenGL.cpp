@@ -93,7 +93,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Align(ERiveFitType In
 	const uint32 TextureHeight = GetHeight();
 	const rive::Mat2D Transform = rive::Mat2D::fromScaleAndTranslation(1.f, -1.f, 0.f, TextureHeight);
 	const FRiveRenderCommand RenderCommand(Transform);
-	RenderCommands.Enqueue(RenderCommand);
+	RenderCommands.Push(RenderCommand);
 }
 
 rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::GetRenderTarget() const

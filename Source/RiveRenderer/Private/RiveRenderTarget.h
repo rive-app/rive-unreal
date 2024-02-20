@@ -37,6 +37,7 @@ namespace UE::Rive::Renderer::Private
 		virtual void SetClearColor(const FLinearColor& InColor) override { ClearColor = InColor; }
 #if WITH_RIVE
 		virtual void Submit() override;
+		virtual void SubmitAndClear() override;
 		virtual void Save() override;
 		virtual void Restore() override;
 		virtual void Transform(float X1, float Y1, float X2, float Y2, float TX, float TY) override;
@@ -52,11 +53,12 @@ namespace UE::Rive::Renderer::Private
 #endif // WITH_RIVE
 	
 	protected:
+		mutable bool bClearQueue = false;
 		mutable bool bIsCleared = false;
 		FLinearColor ClearColor = FLinearColor::Transparent;
 		FName RiveName;
 		TObjectPtr<UTextureRenderTarget2D> RenderTarget;
-		TQueue<FRiveRenderCommand> RenderCommands;
+		TArray<FRiveRenderCommand> RenderCommands;
 		TSharedPtr<FRiveRenderer> RiveRenderer;
 		mutable FDateTime LastResetTime = FDateTime::Now();
 		static FTimespan ResetTimeLimit;

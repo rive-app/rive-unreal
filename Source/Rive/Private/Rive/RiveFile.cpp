@@ -86,6 +86,11 @@ void URiveFile::Tick(float InDeltaSeconds)
 		RiveRenderTarget->SetClearColor(DebugColor);
 		RiveRenderTarget->Initialize();
 
+		// Setup the draw pipeline; only needs to be called once
+		// The list of draw commands won't get cleared, and instead will be called each time via Submit()
+		RiveRenderTarget->Align(RiveFitType, GetRiveAlignment(), Artboard->GetNativeArtboard());
+		RiveRenderTarget->Draw(Artboard->GetNativeArtboard());
+
 		// Everything is now ready, we can start Rive Rendering
 		bIsInitialized = true;
 	}
@@ -136,12 +141,7 @@ void URiveFile::Tick(float InDeltaSeconds)
 				}
 			}
 			
-			RiveRenderTarget->Align(RiveFitType, GetRiveAlignment(), Artboard->GetNativeArtboard());
-			RiveRenderTarget->Draw(Artboard->GetNativeArtboard());
-
 			RiveRenderTarget->Submit();
-			// RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y,
-			// 							   Artboard->GetNativeArtboard(), DebugColor);
 			bDrawOnceTest = true;
 		}
 

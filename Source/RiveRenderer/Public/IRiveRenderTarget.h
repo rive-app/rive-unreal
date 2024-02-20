@@ -59,6 +59,7 @@ namespace UE::Rive::Renderer
 #if WITH_RIVE
 
 		virtual void Submit() = 0;
+		virtual void SubmitAndClear() = 0;
 		virtual void Save() = 0;
 		virtual void Restore() = 0;
 		virtual void Transform(float X1, float Y1, float X2, float Y2, float TX, float TY) = 0;
