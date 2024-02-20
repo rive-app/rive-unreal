@@ -26,8 +26,11 @@ URiveFile::URiveFile()
 	SRGB = true;
 	bIsResolveTarget = true;
 	SamplerAddressMode = AM_Wrap;
+#if PLATFORM_ANDROID
+	Format = RTF_RGBA8;
+#else
 	Format = PF_R8G8B8A8;
-
+#endif
 	Size.X = Size.Y = 500;
 	SizeX = Size.X;
 	SizeY = Size.Y;
