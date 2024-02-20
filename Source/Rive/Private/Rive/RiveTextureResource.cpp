@@ -14,6 +14,11 @@ FRiveTextureResource::FRiveTextureResource(URiveFile* Owner)
 	RiveFile = Owner;
 }
 
+FRiveTextureResource::~FRiveTextureResource()
+{
+
+}
+
 void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
 {
 	if (RiveFile)
@@ -22,17 +27,18 @@ void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
 			(ESamplerFilter)UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetSamplerFilter(RiveFile),
 			AM_Border, AM_Border, AM_Wrap);
 		SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
+
 	}
 }
 
 void FRiveTextureResource::ReleaseRHI()
 {
-	TextureRHI.SafeRelease();
-
 	if (RiveFile)
 	{
 		RHIUpdateTextureReference(RiveFile->TextureReference.TextureReferenceRHI, nullptr);
 	}
+
+	FTextureResource::ReleaseRHI();
 }
 
 uint32 FRiveTextureResource::GetSizeX() const
@@ -47,7 +53,8 @@ uint32 FRiveTextureResource::GetSizeY() const
 
 SIZE_T FRiveTextureResource::GetResourceSize()
 {
-	return CalcTextureSize(GetSizeX(), GetSizeY(), EPixelFormat::PF_A8R8G8B8, 1);
+	check(RiveFile);
+	return CalcTextureSize(GetSizeX(), GetSizeY(), RiveFile->Format, 1);
 }
 
 UE_ENABLE_OPTIMIZATION

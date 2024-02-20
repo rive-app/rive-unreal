@@ -13,7 +13,7 @@ class RIVE_API FRiveTextureResource : public FTextureResource
 {
 public:
 	FRiveTextureResource(URiveFile* Owner);
-	virtual ~FRiveTextureResource() override { TextureRHI.SafeRelease(); }
+	virtual ~FRiveTextureResource() override;
 
 	virtual void InitRHI(FRHICommandListBase& RHICmdList) override;
 	virtual void ReleaseRHI() override;

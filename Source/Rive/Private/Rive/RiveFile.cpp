@@ -28,9 +28,13 @@ URiveFile::URiveFile()
 	//
 	// bCanCreateUAV = false;
 	SRGB = false; //todo: check if needed on all platforms
+	bIsResolveTarget = true;
+	SamplerAddressMode = AM_Wrap;
+	Format = PF_R8G8B8A8;
 
-	SizeX = 500;
-	SizeY = 500;
+	Size.X = Size.Y = 500;
+	SizeX = Size.X;
+	SizeY = Size.Y;
 
 	ArtboardIndex = 0;
 }
@@ -171,13 +175,9 @@ bool URiveFile::IsTickable() const
 
 FTextureResource* URiveFile::CreateResource()
 {
-	if (CurrentResource != nullptr)
-	{
-		SetResource(nullptr);
-		delete CurrentResource;
-	}
-
+	//UTexture::ReleaseResource() calls the delete
 	CurrentResource = new FRiveTextureResource(this);
+	SetResource(CurrentResource);
 	InitializeResources();
 
 	return CurrentResource;
@@ -207,26 +207,25 @@ void URiveFile::PostLoad()
 
 #if WITH_EDITOR
 
-void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void URiveFile::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	// TODO. WE need custom implementation here to handle the Rive File Editor Changes
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
 	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
+	const FName ActiveMemberNodeName = *PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue()->GetName();
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardIndex) ||
 		PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardName))
 	{
 		InstantiateArtboard();
 	}
-	else if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, SizeX) ||
-		PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, SizeY))
+	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveFile, Size))
 	{
-		++SizeX; // We are in PostEditChange, so SizeX is already the right value, but Resize would skip because InSizeX == SizeX && InSizeY == SizeY
-		//ResizeTarget(SizeX - 1, SizeY); TODO, FIX IT
-		UpdateResource();
+		SizeX = Size.X;
+		SizeY = Size.Y;
+		InitializeResources();
+
+
 		if (RenderTarget)
 		{
-			RenderTarget->ResizeTarget(SizeX, SizeY); // SizeX is now the right size
+			RenderTarget->ResizeTarget(Size.X, Size.Y); // SizeX is now the right size
 		}
 		if (RiveRenderTarget)
 		{
@@ -234,6 +233,9 @@ void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		}
 		FlushRenderingCommands();
 	}
+
+	// TODO. WE need custom implementation here to handle the Rive File Editor Changes
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 #endif // WITH_EDITOR
@@ -309,7 +311,7 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) con
 		const rive::Mat2D Transform = rive::computeAlignment(
 			(rive::Fit)RiveFitType,
 			rive::Alignment(RiveAlignmentXY.X, RiveAlignmentXY.Y),
-			rive::AABB(0, 0, SizeX, SizeY),
+			rive::AABB(0, 0, Size.X, Size.Y),
 			Artboard->GetBounds()
 		);
 
@@ -325,7 +327,7 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) con
 FVector2f URiveFile::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const
 {
 	const FVector2f RelativePosition = InPosition - InExtents.Min;
-	const FVector2f Ratio { SizeX / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
+	const FVector2f Ratio { Size.X / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
 	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
 	
 	return GetLocalCoordinates(TextureRelativePosition);
@@ -699,28 +701,13 @@ void URiveFile::CreateRenderTargets()
 #if WITH_RIVE
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 
-	// Initialize resource for this texture
-	// InitCustomFormat(SizeX, SizeY, OverrideFormat, bInForceLinearGamma);
-	// UpdateResourceImmediate(true);
-	if (CurrentResource != nullptr)
+	if (!CurrentResource)
 	{
-		InitializeResources();
-
-		// Make sure RenderThread is executed before continuing
-		FlushRenderingCommands();
-	}
-	else
-	{
-		CreateResource();
-		
-		// Make sure RenderThread is executed before continuing
-		FlushRenderingCommands();
-		
-		SetResource(CurrentResource);
+		UpdateResource();
 	}
 
 	// Initialize copy texture
-	RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(SizeX, SizeY));
+	RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(Size.X, Size.Y));
 
 	// Flush resources
 	FlushRenderingCommands();
@@ -751,14 +738,15 @@ URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 
 void URiveFile::ResizeRenderTargets(const FVector2f InNewSize)
 {
-	// ResizeTarget(InNewSize.X, InNewSize.Y);
-	// UpdateResourceImmediate(true);
-	if (CurrentResource != nullptr)
+	if (!CurrentResource)
 	{
+		// Create Resource
+		UpdateResource();
+	}
+	else
+	{
+		// Create new TextureRHI wiht new size
 		InitializeResources();
-
-		// Make sure RenderThread is executed before continuing
-		FlushRenderingCommands();
 	}
 
 	if (RenderTarget)
@@ -805,19 +793,26 @@ void URiveFile::InitializeResources()
 {
 	ENQUEUE_RENDER_COMMAND(FRiveTextureResourceeUpdateTextureReference)
 	([this](FRHICommandListImmediate& RHICmdList) {
-		// Set the default video texture to reference nothing
-		FTextureRHIRef ShaderTexture2D;
 		FTextureRHIRef RenderableTexture;
 	
 		FRHITextureCreateDesc RenderTargetTextureDesc =
-			FRHITextureCreateDesc::Create2D(TEXT(""), SizeX, SizeY, PF_R8G8B8A8)
+			FRHITextureCreateDesc::Create2D(TEXT(""), Size.X, Size.Y, Format)
 				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
 				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | TexCreate_RenderTargetable)
 				.SetInitialState(ERHIAccess::SRVMask);
+
+		if (SRGB)
+		{
+			RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::SRGB);
+		}
+
+		if (bNoTiling)
+		{
+			RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::NoTiling);
+		}
 	
 		RenderableTexture = RHICreateTexture(RenderTargetTextureDesc);
-		ShaderTexture2D = RenderableTexture;
-	
+		RenderableTexture->SetName(GetFName());
 		CurrentResource->TextureRHI = RenderableTexture;
 
 		RHIUpdateTextureReference(TextureReference.TextureReferenceRHI, CurrentResource->TextureRHI);

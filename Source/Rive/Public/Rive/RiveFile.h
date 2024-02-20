@@ -145,7 +145,7 @@ public:
 
 #if WITH_EDITOR
 
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 
 #endif // WITH_EDITOR
 
@@ -302,6 +302,9 @@ public:
 	// StateMachine name to pass into our default artboard instance
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
 	FString StateMachineName;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+	FIntPoint Size;
 
 	// TArray<TUniquePtr<UE::Rive::Core::FURArtboard>> Artboards;
 private:
