@@ -4,22 +4,14 @@
 
 #if PLATFORM_WINDOWS
 #include "RiveRendererD3D11.h"
-#include "Engine/TextureRenderTarget2D.h"
 #include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderer.h"
 
-#if WITH_RIVE
-THIRD_PARTY_INCLUDES_START
-#include "rive/artboard.hpp"
-#include "rive/pls/pls_renderer.hpp"
-#include "rive/pls/d3d/pls_render_context_d3d_impl.hpp"
-THIRD_PARTY_INCLUDES_END
-#endif // WITH_RIVE
 
 UE_DISABLE_OPTIMIZATION
 
-UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 	: FRiveRenderTarget(InRiveRendererD3D11, InRiveName, InRenderTarget), RiveRendererD3D11(InRiveRendererD3D11)
 {
 }

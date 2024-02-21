@@ -7,7 +7,7 @@
 #include "IRiveRendererModule.h"
 #include "RiveRendererOpenGL.h"
 #include "RiveRenderer.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2DDynamic.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderCommand.h"
 #include "IOpenGLDynamicRHI.h"
@@ -22,7 +22,7 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::FRiveRenderTargetOpenGL(const TSharedRef<FRiveRendererOpenGL>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::FRiveRenderTargetOpenGL(const TSharedRef<FRiveRendererOpenGL>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 	: FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget), RiveRendererGL(InRiveRenderer)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
@@ -41,10 +41,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Initialize()
 	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
-	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+	FTextureResource* RenderTargetResource = RenderTarget->GetResource();
 	if (IRiveRendererModule::RunInGameThread())
 	{
-		CacheTextureTarget_Internal(RenderTarget->GameThread_GetRenderTargetResource()->TextureRHI);
+		CacheTextureTarget_Internal(RenderTarget->GetResource()->TextureRHI);
 	}
 	else
 	{
@@ -76,7 +76,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Submit()
 	
 	if (IRiveRendererModule::RunInGameThread())
 	{
-		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 		Render_Internal();
 	}
 	else
@@ -114,7 +113,7 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	}
 	
 	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->resetGLState();
+	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->invalidateGLState();
 	
 	return FRiveRenderTarget::BeginFrame();
 }
@@ -147,24 +146,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
 		}
 	}
 
-	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->resetGLState();
-	
-	// const FDateTime Now = FDateTime::Now();
-	// const int32 TimeElapsed = (Now - LastResetTime).GetSeconds();
-	// if (TimeElapsed >= ResetTimeLimit.GetSeconds())
-	// {
-	// 	// Reset
-	// 	PLSRenderContextPtr->shrinkGPUResourcesToFit();
-	// 	PLSRenderContextPtr->resetGPUResources();
-	// 	LastResetTime = Now;
-	// }
-	
 	// Reset
-	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->shrinkGPUResourcesToFit() %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->shrinkGPUResourcesToFit();
-	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->resetGPUResources()  %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->resetGPUResources();
+	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->unbindGLInternalResources() %p", PLSRenderContextPtr);
+	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->unbindGLInternalResources();
+
 
 	if (IsInRHIThread()) //todo: still not working, to be looked at
 	{

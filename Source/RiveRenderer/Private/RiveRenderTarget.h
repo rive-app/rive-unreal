@@ -19,15 +19,19 @@ namespace rive::pls
 
 #endif // WITH_RIVE
 
-class UTextureRenderTarget2D;
+class UTexture2DDynamic;
 
 namespace UE::Rive::Renderer::Private
 {
 	class FRiveRenderer;
 	class FRiveRenderTarget : public IRiveRenderTarget
 	{
+		/**
+		 * Structor(s)
+		 */
+
 	public:
-		FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
+		FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget);
 		virtual ~FRiveRenderTarget() override;
 
 		virtual void Initialize() override;
@@ -35,6 +39,13 @@ namespace UE::Rive::Renderer::Private
 		virtual uint32 GetWidth() const override;
 		virtual uint32 GetHeight() const override;
 		virtual void SetClearColor(const FLinearColor& InColor) override { ClearColor = InColor; }
+	
+		//~ END : IRiveRenderTarget Interface
+
+		/**
+		 * Implementation(s)
+		 */
+
 #if WITH_RIVE
 		virtual void Submit() override;
 		virtual void SubmitAndClear() override;
@@ -57,7 +68,7 @@ namespace UE::Rive::Renderer::Private
 		mutable bool bIsCleared = false;
 		FLinearColor ClearColor = FLinearColor::Transparent;
 		FName RiveName;
-		TObjectPtr<UTextureRenderTarget2D> RenderTarget;
+		TObjectPtr<UTexture2DDynamic> RenderTarget;
 		TArray<FRiveRenderCommand> RenderCommands;
 		TSharedPtr<FRiveRenderer> RiveRenderer;
 		mutable FDateTime LastResetTime = FDateTime::Now();

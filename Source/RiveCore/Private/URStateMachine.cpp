@@ -1,7 +1,10 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "URStateMachine.h"
-#include "Logs\RiveCoreLog.h"
+
+#include "IRiveRenderer.h"
+#include "IRiveRendererModule.h"
+#include "Logs/RiveCoreLog.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -15,6 +18,9 @@ rive::EventReport UE::Rive::Core::FURStateMachine::NullEvent = rive::EventReport
 
 UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativeArtboardInst, const FString& InStateMachineName)
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (InStateMachineName.IsEmpty())
     {
         NativeStateMachinePtr = InNativeArtboardInst->defaultStateMachine();
@@ -35,6 +41,9 @@ UE_DISABLE_OPTIMIZATION
 
 bool UE::Rive::Core::FURStateMachine::Advance(float InSeconds)
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (NativeStateMachinePtr)
     {
         return NativeStateMachinePtr->advanceAndApply(InSeconds);
@@ -45,6 +54,9 @@ bool UE::Rive::Core::FURStateMachine::Advance(float InSeconds)
 
 uint32 UE::Rive::Core::FURStateMachine::GetInputCount() const
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (NativeStateMachinePtr)
     {
         return NativeStateMachinePtr->inputCount();
@@ -55,6 +67,9 @@ uint32 UE::Rive::Core::FURStateMachine::GetInputCount() const
 
 rive::SMIInput* UE::Rive::Core::FURStateMachine::GetInput(uint32 AtIndex) const
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (NativeStateMachinePtr)
     {
         return NativeStateMachinePtr->input(AtIndex);
@@ -65,6 +80,9 @@ rive::SMIInput* UE::Rive::Core::FURStateMachine::GetInput(uint32 AtIndex) const
 
 void UE::Rive::Core::FURStateMachine::FireTrigger(const FString& InPropertyName) const
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (!NativeStateMachinePtr)
     {
         return;
@@ -81,6 +99,9 @@ void UE::Rive::Core::FURStateMachine::FireTrigger(const FString& InPropertyName)
 
 bool UE::Rive::Core::FURStateMachine::GetBoolValue(const FString& InPropertyName) const
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (!NativeStateMachinePtr)
     {
         return false;
@@ -97,6 +118,9 @@ bool UE::Rive::Core::FURStateMachine::GetBoolValue(const FString& InPropertyName
 
 float UE::Rive::Core::FURStateMachine::GetNumberValue(const FString& InPropertyName) const
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (!NativeStateMachinePtr)
     {
         return 0;
@@ -113,6 +137,9 @@ float UE::Rive::Core::FURStateMachine::GetNumberValue(const FString& InPropertyN
 
 void UE::Rive::Core::FURStateMachine::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (!NativeStateMachinePtr)
     {
         return;
@@ -129,6 +156,9 @@ void UE::Rive::Core::FURStateMachine::SetBoolValue(const FString& InPropertyName
 
 void UE::Rive::Core::FURStateMachine::SetNumberValue(const FString& InPropertyName, float NewValue)
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (!NativeStateMachinePtr)
     {
         return;
@@ -145,6 +175,9 @@ void UE::Rive::Core::FURStateMachine::SetNumberValue(const FString& InPropertyNa
 
 bool UE::Rive::Core::FURStateMachine::OnMouseButtonDown(const FVector2f& NewPosition)
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
     if (!NativeStateMachinePtr)
     {
         return false;
@@ -156,6 +189,9 @@ bool UE::Rive::Core::FURStateMachine::OnMouseButtonDown(const FVector2f& NewPosi
 
 bool UE::Rive::Core::FURStateMachine::OnMouseMove(const FVector2f& NewPosition)
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (!NativeStateMachinePtr)
     {
         return false;
@@ -167,6 +203,9 @@ bool UE::Rive::Core::FURStateMachine::OnMouseMove(const FVector2f& NewPosition)
 
 bool UE::Rive::Core::FURStateMachine::OnMouseButtonUp(const FVector2f& NewPosition)
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (!NativeStateMachinePtr)
     {
         return false;
@@ -178,6 +217,9 @@ bool UE::Rive::Core::FURStateMachine::OnMouseButtonUp(const FVector2f& NewPositi
 
 const rive::EventReport UE::Rive::Core::FURStateMachine::GetReportedEvent(int32 AtIndex) const
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (!NativeStateMachinePtr || !HasAnyReportedEvents())
     {
         return NullEvent;
@@ -188,6 +230,9 @@ const rive::EventReport UE::Rive::Core::FURStateMachine::GetReportedEvent(int32 
 
 int32 UE::Rive::Core::FURStateMachine::GetReportedEventsCount() const
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (!NativeStateMachinePtr || !HasAnyReportedEvents())
     {
         return 0;
@@ -198,6 +243,9 @@ int32 UE::Rive::Core::FURStateMachine::GetReportedEventsCount() const
 
 bool UE::Rive::Core::FURStateMachine::HasAnyReportedEvents() const
 {
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
     if (!NativeStateMachinePtr)
     {
         return false;

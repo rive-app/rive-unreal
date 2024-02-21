@@ -24,13 +24,12 @@ namespace UE::Rive::Renderer::Private
 
 	class FRiveRenderTargetD3D11 final : public FRiveRenderTarget
 	{
+	public:
 		/**
 		 * Structor(s)
 		 */
 
-	public:
-
-		FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
+		FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget);
 		virtual ~FRiveRenderTargetD3D11() override;
 		//~ BEGIN : IRiveRenderTarget Interface
 

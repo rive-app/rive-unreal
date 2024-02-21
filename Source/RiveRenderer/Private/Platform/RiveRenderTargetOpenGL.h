@@ -27,7 +27,7 @@ namespace UE::Rive::Renderer::Private
 		 * Structor(s)
 		 */
 	public:
-		FRiveRenderTargetOpenGL(const TSharedRef<FRiveRendererOpenGL>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
+		FRiveRenderTargetOpenGL(const TSharedRef<FRiveRendererOpenGL>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget);
 		virtual ~FRiveRenderTargetOpenGL() override;
 		//~ BEGIN : IRiveRenderTarget Interface
 	public:
@@ -51,7 +51,6 @@ namespace UE::Rive::Renderer::Private
 		
 	private:
 		void CacheTextureTarget_Internal(const FTexture2DRHIRef& InRHIResource);
-		void DrawArtboard_Internal(uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor& DebugColor);
 		
 		/**
 		 * Attribute(s)

@@ -5,7 +5,7 @@
 #include "RenderGraphBuilder.h"
 #include "RiveRenderCommand.h"
 #include "RiveRenderer.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2DDynamic.h"
 #include "Logs/RiveRendererLog.h"
 
 THIRD_PARTY_INCLUDES_START
@@ -17,7 +17,7 @@ FTimespan UE::Rive::Renderer::Private::FRiveRenderTarget::ResetTimeLimit = FTime
 
 UE_DISABLE_OPTIMIZATION
 
-UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 	: RiveRenderer(InRiveRenderer)
 	, RiveName(InRiveName)
 	, RenderTarget(InRenderTarget)
@@ -35,8 +35,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Initialize()
 	check(IsInGameThread());
 
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-
-	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+	FTextureResource* RenderTargetResource = RenderTarget->GetResource();
 	ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)(
 		[RenderTargetResource, this](FRHICommandListImmediate& RHICmdList)
 		{
@@ -187,12 +186,12 @@ uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetHeight() const
 DECLARE_GPU_STAT_NAMED(Render, TEXT("RiveRenderTarget::Render"));
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
-	FRDGBuilder GraphBuilder(RHICmdList); // this was in DX11
+	// FRDGBuilder GraphBuilder(RHICmdList); // this was in DX11
 	SCOPED_GPU_STAT(RHICmdList, Render);
 	check(IsInRenderingThread());
 
 	Render_Internal();
-	GraphBuilder.Execute(); // this was in DX11
+	// GraphBuilder.Execute(); // this was in DX11
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()

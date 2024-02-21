@@ -9,8 +9,6 @@
 #include "RiveCore/Public/Assets/RiveAsset.h"
 #include "RiveCore/Public/Assets/URAssetImporter.h"
 #include "RiveCore/Public/Assets/URFileAssetLoader.h"
-#include "RiveRendererUtils.h"
-
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -20,15 +18,6 @@ THIRD_PARTY_INCLUDES_END
 
 URiveFile::URiveFile()
 {
-	OverrideFormat = PF_R8G8B8A8;
-	RenderTargetFormat = RTF_RGBA8;
-
-	bCanCreateUAV = false;
-	SRGB = false; //todo: check if needed on all platforms
-
-	SizeX = 500;
-	SizeY = 500;
-
 	ArtboardIndex = 0;
 }
 
@@ -36,17 +25,6 @@ void URiveFile::BeginDestroy()
 {
 	bIsInitialized = false;
 	bIsFileImported = false;
-	
-	if (IsValid(CopyRenderTarget))
-	{
-		CopyRenderTarget->ReleaseResource();
-		CopyRenderTarget->MarkAsGarbage();
-	}
-	if (IsValid(RenderTarget))
-	{
-		RenderTarget->ReleaseResource();
-		RenderTarget->MarkAsGarbage();
-	}
 	
 	RiveRenderTarget.Reset();
 	
@@ -78,11 +56,19 @@ void URiveFile::Tick(float InDeltaSeconds)
 #if WITH_RIVE
 	if (!bIsInitialized && bIsFileImported && GetArtboard()) //todo: move away from Tick
 	{
-		// Resize textures and Flush
-		ResizeRenderTargets(Artboard->GetSize());
+		if (!bManualSize)
+		{
+			ResizeRenderTargets(Artboard->GetSize());
+		}
+		else
+		{
+			ResizeRenderTargets(Size);
+		}
 		
 		// Initialize Rive Render Target Only after we resize the texture
-		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), GetRenderTargetToDrawOnto());
+		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
+
+		// It will remove old reference if exists
 		RiveRenderTarget->SetClearColor(DebugColor);
 		RiveRenderTarget->Initialize();
 
@@ -103,7 +89,6 @@ void URiveFile::Tick(float InDeltaSeconds)
 			UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine();
 			if (StateMachine && StateMachine->IsValid() && ensure(RiveRenderTarget))
 			{
-				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 				if (!bIsReceivingInput)
 				{
 					auto AdvanceStateMachine = [this, StateMachine, InDeltaSeconds]()
@@ -142,22 +127,6 @@ void URiveFile::Tick(float InDeltaSeconds)
 			}
 			
 			RiveRenderTarget->Submit();
-			bDrawOnceTest = true;
-		}
-
-		// Copy from render target
-		// TODO. move from here
-		// Separate target might be needed to let Rive draw only to separate texture
-		if (GetRenderTargetToDrawOnto() != this && ensure(RenderTarget))
-		{
-			FTextureRenderTargetResource* RiveFileResource = GameThread_GetRenderTargetResource();
-			FTextureRenderTargetResource* RiveFileRenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
-
-			ENQUEUE_RENDER_COMMAND(CopyRenderTexture)(
-				[this, RiveFileResource, RiveFileRenderTargetResource](FRHICommandListImmediate& RHICmdList)
-				{
-					UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(RHICmdList, RiveFileRenderTargetResource->TextureRHI, RiveFileResource->TextureRHI);
-				});
 		}
 	}
 #endif // WITH_RIVE
@@ -168,59 +137,42 @@ bool URiveFile::IsTickable() const
 	return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
 }
 
-uint32 URiveFile::CalcTextureMemorySizeEnum(ETextureMipCount Enum) const
-{
-	// Calculate size based on format.  All mips are resident on render targets so we always return the same value.
-	EPixelFormat Format = GetFormat();
-	int32 BlockSizeX = GPixelFormats[Format].BlockSizeX;
-	int32 BlockSizeY = GPixelFormats[Format].BlockSizeY;
-	int32 BlockBytes = GPixelFormats[Format].BlockBytes;
-	int32 NumBlocksX = (SizeX + BlockSizeX - 1) / BlockSizeX;
-	int32 NumBlocksY = (SizeY + BlockSizeY - 1) / BlockSizeY;
-	int32 NumBytes = NumBlocksX * NumBlocksY * BlockBytes;
-	return NumBytes;
-}
-
 void URiveFile::PostLoad()
 {
-	UObject::PostLoad();
+	Super::PostLoad();
 	
 	if (!IsRunningCommandlet())
 	{
-		CreateRenderTargets();
-		
 		UE::Rive::Renderer::IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &URiveFile::Initialize));
 	}
 }
 
 #if WITH_EDITOR
 
-void URiveFile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void URiveFile::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
 {
 	// TODO. WE need custom implementation here to handle the Rive File Editor Changes
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-
+	
 	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
+	const FName ActiveMemberNodeName = *PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue()->GetName();
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardIndex) ||
 		PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardName))
 	{
 		InstantiateArtboard();
 	}
-	else if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, SizeX) ||
-		PropertyName == GET_MEMBER_NAME_CHECKED(URiveFile, SizeY))
+	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveFile, Size))
 	{
-		++SizeX; // We are in PostEditChange, so SizeX is already the right value, but Resize would skip because InSizeX == SizeX && InSizeY == SizeY
-		ResizeTarget(SizeX - 1, SizeY);
-		if (RenderTarget)
-		{
-			RenderTarget->ResizeTarget(SizeX, SizeY); // SizeX is now the right size
-		}
-		if (RiveRenderTarget)
-		{
-			RiveRenderTarget->Initialize();
-		}
-		FlushRenderingCommands();
+		ResizeRenderTargets(Size);
 	}
+
+	// Update the Rive CachedPLSRenderTarget
+	if (RiveRenderTarget)
+	{
+		RiveRenderTarget->Initialize();
+	}
+
+	FlushRenderingCommands();
 }
 
 #endif // WITH_EDITOR
@@ -296,7 +248,7 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) con
 		const rive::Mat2D Transform = rive::computeAlignment(
 			(rive::Fit)RiveFitType,
 			rive::Alignment(RiveAlignmentXY.X, RiveAlignmentXY.Y),
-			rive::AABB(0, 0, SizeX, SizeY),
+			rive::AABB(0, 0, Size.X, Size.Y),
 			Artboard->GetBounds()
 		);
 
@@ -312,7 +264,7 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) con
 FVector2f URiveFile::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const
 {
 	const FVector2f RelativePosition = InPosition - InExtents.Min;
-	const FVector2f Ratio { SizeX / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
+	const FVector2f Ratio { Size.X / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
 	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
 	
 	return GetLocalCoordinates(TextureRelativePosition);
@@ -525,11 +477,6 @@ void URiveFile::Initialize()
 		}
 	}
 
-	if (!RenderTarget) // fallback if we arrive here without passing by PostLoad, like when creating the RiveFile in Editor
-	{
-		CreateRenderTargets();
-	}
-
 	bIsFileImported = false;
 	Artboard = NewObject<URiveArtboard>(this); // Should be created in Game Thread
 	
@@ -675,29 +622,6 @@ void URiveFile::PopulateReportedEvents()
 #endif // WITH_RIVE
 }
 
-void URiveFile::CreateRenderTargets()
-{
-#if PLATFORM_ANDROID
-	constexpr bool bInForceLinearGamma = true; // needed to be true for Android todo: check if really needed
-#else
-	constexpr bool bInForceLinearGamma = false; // default false for the rest of the platforms
-#endif
-
-#if WITH_RIVE
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-
-	// Initialize resource for this texture
-	InitCustomFormat(SizeX, SizeY, OverrideFormat, bInForceLinearGamma);
-	UpdateResourceImmediate(true);
-
-	// Initialize copy texture
-	RenderTarget = RiveRenderer->CreateDefaultRenderTarget(FIntPoint(SizeX, SizeY));
-
-	// Flush resources
-	FlushRenderingCommands();
-#endif // WITH_RIVE
-}
-
 URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 {
 	RiveRenderTarget.Reset();
@@ -706,11 +630,11 @@ URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 	{
 		if (ArtboardName.IsEmpty())
 		{
-			Artboard->Initialize(this->GetNativeFile(), ArtboardIndex, StateMachineName);
+			Artboard->Initialize(GetNativeFile(), ArtboardIndex, StateMachineName);
 		}
 		else
 		{
-			Artboard->Initialize(this->GetNativeFile(), ArtboardName, StateMachineName);
+			Artboard->Initialize(GetNativeFile(), ArtboardName, StateMachineName);
 		}
 
 		PrintStats();
@@ -718,20 +642,6 @@ URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 		return Artboard;
 	}
 	return nullptr;
-}
-
-void URiveFile::ResizeRenderTargets(const FVector2f InNewSize)
-{
-	ResizeTarget(InNewSize.X, InNewSize.Y);
-	UpdateResourceImmediate(true);
-
-	if (RenderTarget)
-	{
-		RenderTarget->ResizeTarget(InNewSize.X, InNewSize.Y);
-		RenderTarget->UpdateResourceImmediate(true);
-	}
-
-	FlushRenderingCommands();
 }
 
 void URiveFile::PrintStats() const
@@ -764,4 +674,3 @@ void URiveFile::PrintStats() const
 
 	UE_LOG(LogRive, Display, TEXT("%s"), *RiveFileLoadMsg.ToString());
 }
-

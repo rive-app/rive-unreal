@@ -31,15 +31,13 @@ namespace UE::Rive::Renderer::Private
         
     public:
         
-        FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
+        FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget);
         virtual ~FRiveRenderTargetMetal() override;
         //~ BEGIN : IRiveRenderTarget Interface
         
         virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override;
         
 #if WITH_RIVE
-        
-        virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
         
         //~ END : IRiveRenderTarget Interface
         

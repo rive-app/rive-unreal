@@ -1,7 +1,10 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveArtboard.h"
-#include "Logs\RiveCoreLog.h"
+
+#include "IRiveRenderer.h"
+#include "IRiveRendererModule.h"
+#include "Logs/RiveCoreLog.h"
 #include "URStateMachine.h"
 
 #if WITH_RIVE
@@ -23,6 +26,9 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr)
 
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr, int32 InIndex, const FString& InStateMachineName)
 {
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	
 	if (!InNativeFilePtr)
 	{
 		return;
@@ -53,6 +59,9 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, int32 InIndex, const
 
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr, const FString& InName, const FString& InStateMachineName)
 {
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	
 	if (!InNativeFilePtr)
 	{
 		return;
@@ -80,6 +89,9 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, const FString& InNam
 
 rive::Artboard* URiveArtboard::GetNativeArtboard() const
 {
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	
 	if (!NativeArtboardPtr)
 	{
 		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard as we have detected an empty rive atrboard."));
@@ -92,6 +104,9 @@ rive::Artboard* URiveArtboard::GetNativeArtboard() const
 
 rive::AABB URiveArtboard::GetBounds() const
 {
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	
 	if (!NativeArtboardPtr)
 	{
 		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard bounds as we have detected an empty rive atrboard."));
@@ -104,6 +119,9 @@ rive::AABB URiveArtboard::GetBounds() const
 
 FVector2f URiveArtboard::GetSize() const
 {
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	
 	if (!NativeArtboardPtr)
 	{
 		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard size as we have detected an empty rive atrboard."));
@@ -116,6 +134,9 @@ FVector2f URiveArtboard::GetSize() const
 
 UE::Rive::Core::FURStateMachine* URiveArtboard::GetStateMachine() const
 {
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	
 	if (!DefaultStateMachinePtr)
 	{
 		// Not all artboards have state machines, so let's not error it out

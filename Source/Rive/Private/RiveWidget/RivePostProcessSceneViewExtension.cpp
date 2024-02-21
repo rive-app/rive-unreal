@@ -84,6 +84,10 @@ FScreenPassTexture FRivePostProcessSceneViewExtension::PostProcessPassAfterTonem
 	check(IsInRenderingThread());
 	
 	const FScreenPassTexture& SceneColor = InOutInputs.GetInput(EPostProcessMaterialInput::SceneColor);
+
+	// TODO 5.5
+	//const FScreenPassTexture& SceneColor = FScreenPassTexture::CopyFromSlice(GraphBuilder, InOutInputs.GetInput(EPostProcessMaterialInput::SceneColor));
+
 	check(SceneColor.IsValid());
 
 	FScreenPassRenderTarget Output = InOutInputs.OverrideOutput;

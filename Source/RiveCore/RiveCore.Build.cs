@@ -40,7 +40,7 @@ public class RiveCore : ModuleRules
 				"CoreUObject",
 				"Engine",
                 "Projects",
-				"RiveLibrary",
+				"RiveLibrary", "RiveRenderer",
 			}
 		);
 	}

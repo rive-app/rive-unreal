@@ -40,7 +40,7 @@ namespace UE::Rive::Renderer::Private
 
         virtual void QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile) override;
 
-        virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) override { return nullptr; }
+        virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override { return nullptr; }
 
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) override;
 
