@@ -4,11 +4,11 @@
 #include "IRiveRenderTarget.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "RiveCore/Public/RiveArtboard.h"
 #include "Logs/RiveLog.h"
-#include "Rive/Assets/RiveAsset.h"
-#include "Rive/Assets/URAssetImporter.h"
-#include "Rive/Assets/URFileAssetLoader.h"
-#include "Rive/RiveArtboard.h"
+#include "RiveCore/Public/Assets/RiveAsset.h"
+#include "RiveCore/Public/Assets/URAssetImporter.h"
+#include "RiveCore/Public/Assets/URFileAssetLoader.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -69,7 +69,13 @@ void URiveFile::Tick(float InDeltaSeconds)
 		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
 
 		// It will remove old reference if exists
+		RiveRenderTarget->SetClearColor(ClearColor);
 		RiveRenderTarget->Initialize();
+
+		// Setup the draw pipeline; only needs to be called once
+		// The list of draw commands won't get cleared, and instead will be called each time via Submit()
+		RiveRenderTarget->Align(RiveFitType, FRiveAlignment::GetAlignment(RiveAlignment), Artboard->GetNativeArtboard());
+		RiveRenderTarget->Draw(Artboard->GetNativeArtboard());
 
 		// Everything is now ready, we can start Rive Rendering
 		bIsInitialized = true;
@@ -102,7 +108,7 @@ void URiveFile::Tick(float InDeltaSeconds)
 					}
 					else
 					{
-						ENQUEUE_RENDER_COMMAND(DrawArtboard)(
+						ENQUEUE_RENDER_COMMAND(StateMachineAdvance)(
 							[AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](
 							FRHICommandListImmediate& RHICmdList) mutable
 							{
@@ -119,10 +125,8 @@ void URiveFile::Tick(float InDeltaSeconds)
 					}
 				}
 			}
-
-			const FVector2f RiveAlignmentXY = GetRiveAlignment();
-			RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y,
-										   Artboard->GetNativeArtboard(), DebugColor);
+			
+			RiveRenderTarget->Submit();
 		}
 	}
 #endif // WITH_RIVE
@@ -160,6 +164,12 @@ void URiveFile::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& P
 	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveFile, Size))
 	{
 		ResizeRenderTargets(Size);
+	} else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveFile, ClearColor))
+	{
+		if (RiveRenderTarget)
+		{
+			RiveRenderTarget->SetClearColor(ClearColor);
+		}
 	}
 
 	// Update the Rive CachedPLSRenderTarget
@@ -228,9 +238,9 @@ float URiveFile::GetNumberValue(const FString& InPropertyName) const
 	return 0.f;
 }
 
-FLinearColor URiveFile::GetDebugColor() const
+FLinearColor URiveFile::GetClearColor() const
 {
-	return DebugColor;
+	return ClearColor;
 }
 
 FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) const
@@ -239,7 +249,7 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) con
 
 	if (GetArtboard())
 	{
-		const FVector2f RiveAlignmentXY = GetRiveAlignment();
+		const FVector2f RiveAlignmentXY = FRiveAlignment::GetAlignment(RiveAlignment);
 
 		const rive::Mat2D Transform = rive::computeAlignment(
 			(rive::Fit)RiveFitType,
@@ -290,45 +300,6 @@ void URiveFile::SetNumberValue(const FString& InPropertyName, float NewValue)
 		}
 	}
 #endif // WITH_RIVE
-}
-
-
-
-FVector2f URiveFile::GetRiveAlignment() const
-{
-	FVector2f NewAlignment = FRiveAlignment::Center;
-
-	switch (RiveAlignment)
-	{
-	case ERiveAlignment::TopLeft:
-		NewAlignment = FRiveAlignment::TopLeft;
-		break;
-	case ERiveAlignment::TopCenter:
-		NewAlignment = FRiveAlignment::TopCenter;
-		break;
-	case ERiveAlignment::TopRight:
-		NewAlignment = FRiveAlignment::TopRight;
-		break;
-	case ERiveAlignment::CenterLeft:
-		NewAlignment = FRiveAlignment::CenterLeft;
-		break;
-	case ERiveAlignment::Center:
-		break;
-	case ERiveAlignment::CenterRight:
-		NewAlignment = FRiveAlignment::CenterRight;
-		break;
-	case ERiveAlignment::BottomLeft:
-		NewAlignment = FRiveAlignment::BottomLeft;
-		break;
-	case ERiveAlignment::BottomCenter:
-		NewAlignment = FRiveAlignment::BottomCenter;
-		break;
-	case ERiveAlignment::BottomRight:
-		NewAlignment = FRiveAlignment::BottomRight;
-		break;
-	}
-
-	return NewAlignment;
 }
 
 ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
@@ -411,7 +382,7 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 	RiveFileData = MoveTemp(InRiveFileBuffer);
 	RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
 
-	TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(this);
+	TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(GetOutermost(), RiveFilePath, GetAssets());
 
 	rive::ImportResult ImportResult;
 	RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext,
@@ -488,7 +459,7 @@ void URiveFile::Initialize()
 				if (!ParentRiveFile)
 				{
 					const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
-						UE::Rive::Assets::FURFileAssetLoader>(this);
+						UE::Rive::Assets::FURFileAssetLoader>(this, GetAssets());
 					rive::ImportResult ImportResult;
 
 					FScopeLock Lock(&RiveRenderer->GetThreadDataCS());

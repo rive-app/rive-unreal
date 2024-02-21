@@ -28,6 +28,7 @@ public class RiveRenderer : ModuleRules
 			new string[]
 			{
 				"Core",
+				"RiveCore"
 			}
 		);
 			
@@ -41,6 +42,7 @@ public class RiveRenderer : ModuleRules
                 "RHI",
 				"RenderCore",
 				"Renderer",
+				"RiveCore",
 				"RiveLibrary",
 			}
 		);

@@ -5,8 +5,8 @@
 #include "RiveViewportClient.h"
 #include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
-#include "Rive/RiveArtboard.h"
-#include "Rive/Core/URStateMachine.h"
+#include "RiveCore/Public/RiveArtboard.h"
+#include "RiveCore/Public/URStateMachine.h"
 
 FRiveSceneViewport::FRiveSceneViewport(FRiveViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveFile* InRiveFile)
 	: FSceneViewport(InViewportClient, InViewportWidget)

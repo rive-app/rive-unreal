@@ -36,17 +36,17 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive, meta = (ClampMin = 1, UIMin = 1, ClampMax = 3840, UIMax = 3840))
 	FIntPoint Size;
 
-protected:
-	/**
-	 * Create Texture Rendering resource on RHI Thread
-	 */
-	void InitializeResources() const;
-
 	/**
 	 * Resize render resources
 	 */
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	virtual void ResizeRenderTargets(const FIntPoint InNewSize);
+	
+protected:
+	/**
+	 * Create Texture Rendering resource on RHI Thread
+	 */
+	void InitializeResources() const;
 
 	/**
 	 * Resize render resources
