@@ -5,9 +5,9 @@
 
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
-#include "Rive/RiveFile.h"
+#include "Rive/RiveTexture.h"
 
-FRiveTextureResource::FRiveTextureResource(URiveFile* Owner)
+FRiveTextureResource::FRiveTextureResource(URiveTexture* Owner)
 {
 	RiveFile = Owner;
 }

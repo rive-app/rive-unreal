@@ -2,10 +2,8 @@
 
 #pragma once
 
-#include "IRiveRendererModule.h"
 #include "IRiveRenderTarget.h"
-#include "Engine/Texture2DDynamic.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "RiveTexture.h"
 #include "Rive/RiveEvent.h"
 #include "RiveFile.generated.h"
 
@@ -95,7 +93,7 @@ enum class ERiveBlendMode : uint8
  *
  */
 UCLASS(BlueprintType, Blueprintable)
-class RIVE_API URiveFile : public UTexture2DDynamic, public FTickableGameObject
+class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
 
@@ -134,13 +132,7 @@ public:
 
 	//~ END : FTickableGameObject Interface
 
-	//~ BEGIN : UTexture Interface
-	virtual FTextureResource* CreateResource() override;
-	//~ END : UObject UTexture
-
 	//~ BEGIN : UObject Interface
-	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
-
 	virtual void PostLoad() override;
 
 #if WITH_EDITOR
@@ -221,20 +213,11 @@ public:
 
 protected:
 	void InstantiateArtboard();
+	
 private:
 	void PopulateReportedEvents();
-
-	/**
-	 * Create render resources after loading the UObject
-	 */
-	void CreateRenderTargets();
 	
 	URiveArtboard* InstantiateArtboard_Internal();
-	
-	/**
-	 * Resize render resources after loading artboard but before start Rive Rendering
-	 */
-	void ResizeRenderTargets(const FVector2f InNewSize);
 
 public:
 	// This Event is triggered any time new LiveLink data is available, including in the editor
@@ -287,9 +270,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
 	FString StateMachineName;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-	FIntPoint Size;
-
 	// TArray<TUniquePtr<UE::Rive::Core::FURArtboard>> Artboards;
 private:
 	UPROPERTY(EditAnywhere, Category = Rive)
@@ -308,6 +288,10 @@ private:
 	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;
 
+	/** Resize to size of artboard, but only once */
+	UPROPERTY()
+	bool bResizedToArtboardSize = false;
+
 	UPROPERTY(EditAnywhere, Category=Rive)
 	TSubclassOf<UUserWidget> WidgetClass;
 
@@ -317,8 +301,6 @@ private:
 	bool bIsReceivingInput = false;
 
 	UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
-
-	bool bDrawOnceTest = false;
 
 	UPROPERTY(Transient)
 	URiveArtboard* Artboard = nullptr;
@@ -354,16 +336,4 @@ private:
 	}
 
 	void PrintStats() const;
-
-private:
-
-	/**
-	 * Create Texture Rendering resource on RHI Thread
-	 */
-	void InitializeResources();
-
-	/**
-	 * Rendering resource for Rive File
-	 */
-	FRiveTextureResource* CurrentResource;
 };

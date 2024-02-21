@@ -8,10 +8,7 @@
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/URAssetImporter.h"
 #include "Rive/Assets/URFileAssetLoader.h"
-#include "RiveRendererUtils.h"
-#include "RiveTextureResource.h"
 #include "Rive/RiveArtboard.h"
-
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -21,22 +18,6 @@ THIRD_PARTY_INCLUDES_END
 
 URiveFile::URiveFile()
 {
-#if PLATFORM_IOS
-	SRGB = false;
-#else
-	SRGB = true;
-#endif
-	bIsResolveTarget = true;
-	SamplerAddressMode = AM_Wrap;
-#if PLATFORM_ANDROID
-	Format = PF_R8G8B8A8_SNORM;
-#else
-	Format = PF_R8G8B8A8;
-#endif
-	Size.X = Size.Y = 500;
-	SizeX = Size.X;
-	SizeY = Size.Y;
-
 	ArtboardIndex = 0;
 }
 
@@ -77,7 +58,11 @@ void URiveFile::Tick(float InDeltaSeconds)
 	{
 		// Resize textures and Flush
 		// Load Artboard Size only once
-		ResizeRenderTargets(Artboard->GetSize());
+		if (!bResizedToArtboardSize)
+		{
+			ResizeRenderTargets(Artboard->GetSize());
+			bResizedToArtboardSize = true;
+		}
 		
 		// Initialize Rive Render Target Only after we resize the texture
 		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
@@ -137,7 +122,6 @@ void URiveFile::Tick(float InDeltaSeconds)
 			const FVector2f RiveAlignmentXY = GetRiveAlignment();
 			RiveRenderTarget->DrawArtboard((uint8)RiveFitType, RiveAlignmentXY.X, RiveAlignmentXY.Y,
 										   Artboard->GetNativeArtboard(), DebugColor);
-			bDrawOnceTest = true;
 		}
 	}
 #endif // WITH_RIVE
@@ -148,34 +132,12 @@ bool URiveFile::IsTickable() const
 	return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
 }
 
-FTextureResource* URiveFile::CreateResource()
-{
-	//UTexture::ReleaseResource() calls the delete
-	CurrentResource = new FRiveTextureResource(this);
-	SetResource(CurrentResource);
-	InitializeResources();
-
-	return CurrentResource;
-}
-
-void URiveFile::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	if (CurrentResource != nullptr)
-	{
-		CumulativeResourceSize.AddUnknownMemoryBytes(CurrentResource->GetResourceSize());
-	}
-}
-
 void URiveFile::PostLoad()
 {
-	UObject::PostLoad();
+	Super::PostLoad();
 	
 	if (!IsRunningCommandlet())
 	{
-		CreateRenderTargets();
-		
 		UE::Rive::Renderer::IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &URiveFile::Initialize));
 	}
 }
@@ -655,27 +617,6 @@ void URiveFile::PopulateReportedEvents()
 #endif // WITH_RIVE
 }
 
-void URiveFile::CreateRenderTargets()
-{
-#if PLATFORM_ANDROID
-	constexpr bool bInForceLinearGamma = true; // needed to be true for Android todo: check if really needed
-#else
-	constexpr bool bInForceLinearGamma = false; // default false for the rest of the platforms
-#endif
-
-#if WITH_RIVE
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-
-	if (!CurrentResource)
-	{
-		UpdateResource();
-	}
-
-	// Flush resources
-	FlushRenderingCommands();
-#endif // WITH_RIVE
-}
-
 URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 {
 	RiveRenderTarget.Reset();
@@ -696,25 +637,6 @@ URiveArtboard* URiveFile::InstantiateArtboard_Internal()
 		return Artboard;
 	}
 	return nullptr;
-}
-
-void URiveFile::ResizeRenderTargets(const FVector2f InNewSize)
-{
-	SizeX = Size.X = InNewSize.X;
-	SizeY = Size.Y = InNewSize.Y;
-	
-	if (!CurrentResource)
-	{
-		// Create Resource
-		UpdateResource();
-	}
-	else
-	{
-		// Create new TextureRHI with new size
-		InitializeResources();
-	}
-
-	FlushRenderingCommands();
 }
 
 void URiveFile::PrintStats() const
@@ -746,33 +668,4 @@ void URiveFile::PrintStats() const
 														  "Using Rive Runtime : {Major}.{Minor}; Artboard(s) Count : {NumArtboards}; Asset(s) Count : {NumAssets}; Animation(s) Count : {NumAnimations}"), RiveFileLoadArgs);
 
 	UE_LOG(LogRive, Display, TEXT("%s"), *RiveFileLoadMsg.ToString());
-}
-
-void URiveFile::InitializeResources()
-{
-	ENQUEUE_RENDER_COMMAND(FRiveTextureResourceeUpdateTextureReference)
-	([this](FRHICommandListImmediate& RHICmdList) {
-		FTextureRHIRef RenderableTexture;
-
-		FRHITextureCreateDesc RenderTargetTextureDesc =
-			FRHITextureCreateDesc::Create2D(*GetName(), Size.X, Size.Y, Format)
-				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
-				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | ETextureCreateFlags::RenderTargetable);
-
-		if (SRGB)
-		{
-			RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::SRGB);
-		}
-
-		if (bNoTiling)
-		{
-			RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::NoTiling);
-		}
-	
-		RenderableTexture = RHICreateTexture(RenderTargetTextureDesc);
-		RenderableTexture->SetName(GetFName());
-		CurrentResource->TextureRHI = RenderableTexture;
-
-		RHIUpdateTextureReference(TextureReference.TextureReferenceRHI, CurrentResource->TextureRHI);
-	});
 }

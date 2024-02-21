@@ -4,7 +4,7 @@
 
 #include "TextureResource.h"
 
-class URiveFile;
+class URiveTexture;
 
 /**
  * Custom Texture Resource for Rive file
@@ -12,7 +12,7 @@ class URiveFile;
 class RIVE_API FRiveTextureResource : public FTextureResource
 {
 public:
-	FRiveTextureResource(URiveFile* Owner);
+	FRiveTextureResource(URiveTexture* Owner);
 	virtual ~FRiveTextureResource() override;
 
 	virtual void InitRHI(FRHICommandListBase& RHICmdList) override;
@@ -23,5 +23,5 @@ public:
 	SIZE_T GetResourceSize();
 
 private:
-	TObjectPtr<URiveFile> RiveFile;
+	TObjectPtr<URiveTexture> RiveFile;
 };
