@@ -45,7 +45,12 @@ protected:
 	/**
 	 * Resize render resources
 	 */
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	virtual void ResizeRenderTargets(const FIntPoint InNewSize);
+
+	/**
+	 * Resize render resources
+	 */
 	virtual void ResizeRenderTargets(const FVector2f InNewSize);
 
 protected:
