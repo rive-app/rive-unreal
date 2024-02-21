@@ -30,7 +30,7 @@ namespace UE::Rive::Renderer::Private
 
 	public:
 
-		FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
+		FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget);
 		virtual ~FRiveRenderTargetD3D11() override;
 		//~ BEGIN : IRiveRenderTarget Interface
 

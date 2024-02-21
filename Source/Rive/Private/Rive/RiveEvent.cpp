@@ -2,6 +2,9 @@
 
 #include "Rive/RiveEvent.h"
 
+#include "IRiveRenderer.h"
+#include "IRiveRendererModule.h"
+
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
 #include "rive/custom_property_boolean.hpp"
@@ -15,6 +18,9 @@ THIRD_PARTY_INCLUDES_END
 
 void FRiveEvent::Initialize(const rive::EventReport& InEventReport)
 {
+    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
 	DelayInSeconds = InEventReport.secondsDelay();
 
 	RiveEventBoolProperties.Reset();

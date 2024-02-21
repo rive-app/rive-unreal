@@ -7,7 +7,7 @@
 #include "IRiveRendererModule.h"
 #include "RiveRendererOpenGL.h"
 #include "RiveRenderer.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2DDynamic.h"
 #include "Logs/RiveRendererLog.h"
 
 #include "IOpenGLDynamicRHI.h"
@@ -22,7 +22,7 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::FRiveRenderTargetOpenGL(const TSharedRef<FRiveRendererOpenGL>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::FRiveRenderTargetOpenGL(const TSharedRef<FRiveRendererOpenGL>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 	: FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget), RiveRendererGL(InRiveRenderer)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
@@ -41,10 +41,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Initialize()
 	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
-	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+	FTextureResource* RenderTargetResource = RenderTarget->GetResource();
 	if (IRiveRendererModule::RunInGameThread())
 	{
-		CacheTextureTarget_Internal(RenderTarget->GameThread_GetRenderTargetResource()->TextureRHI);
+		CacheTextureTarget_Internal(RenderTarget->GetResource()->TextureRHI);
 	}
 	else
 	{
@@ -78,7 +78,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::DrawArtboard(uint8 Fi
 
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
-	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+	FTextureResource* RenderTargetResource = RenderTarget->GetResource();
 	if (IRiveRendererModule::RunInGameThread())
 	{
 		DrawArtboard_Internal(Fit, AlignX, AlignY, InNativeArtboard, DebugColor);

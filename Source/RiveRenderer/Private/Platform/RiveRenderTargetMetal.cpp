@@ -5,7 +5,7 @@
 #if PLATFORM_APPLE
 
 #include "DynamicRHI.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2DDynamic.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderer.h"
 #include <Metal/Metal.h>
@@ -20,7 +20,7 @@ THIRD_PARTY_INCLUDES_END
 
 UE_DISABLE_OPTIMIZATION
 
-UE::Rive::Renderer::Private::FRiveRenderTargetMetal::FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+UE::Rive::Renderer::Private::FRiveRenderTargetMetal::FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
     : FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget)
 {
 }
@@ -37,7 +37,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::Initialize()
     
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
-    FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+    FTextureResource* RenderTargetResource = RenderTarget->GetResource();
     
     ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)(
     [RenderTargetResource, this](FRHICommandListImmediate& RHICmdList)

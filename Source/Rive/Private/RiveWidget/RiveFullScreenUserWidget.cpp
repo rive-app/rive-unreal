@@ -54,7 +54,7 @@ namespace
 
 			void RemoveWidget(URiveFullScreenUserWidget* InWidget)
 			{
-				WidgetsToHide.RemoveSingleSwap(InWidget, false);
+				WidgetsToHide.RemoveSingleSwap(InWidget);
 			}
 
 		private:

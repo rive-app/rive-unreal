@@ -5,7 +5,7 @@
 #if PLATFORM_WINDOWS
 #include "RiveRendererD3D11.h"
 #include "RenderGraphBuilder.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2DDynamic.h"
 #include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderer.h"
@@ -20,7 +20,7 @@ THIRD_PARTY_INCLUDES_END
 
 UE_DISABLE_OPTIMIZATION
 
-UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 	: FRiveRenderTarget(InRiveRendererD3D11, InRiveName, InRenderTarget), RiveRendererD3D11(InRiveRendererD3D11)
 {
 }
@@ -37,7 +37,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Initialize()
 
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
-	FTextureRenderTargetResource* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
+	FTextureResource* RenderTargetResource = RenderTarget->GetResource();
 
 	ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)(
 		[RenderTargetResource, this](FRHICommandListImmediate& RHICmdList)

@@ -86,7 +86,7 @@ rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::G
 	return nullptr;
 }
 
-TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget)
+TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread());

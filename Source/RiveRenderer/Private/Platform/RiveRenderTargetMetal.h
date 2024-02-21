@@ -31,7 +31,7 @@ namespace UE::Rive::Renderer::Private
         
     public:
         
-        FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
+        FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget);
         virtual ~FRiveRenderTargetMetal() override;
         //~ BEGIN : IRiveRenderTarget Interface
         

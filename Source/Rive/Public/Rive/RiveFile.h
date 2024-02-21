@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include "IRiveRendererModule.h"
 #include "IRiveRenderTarget.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "RiveTexture.h"
 #include "Rive/RiveEvent.h"
 #include "RiveFile.generated.h"
 
 #if WITH_RIVE
 
 class URiveArtboard;
+class FRiveTextureResource;
 
 namespace rive
 {
@@ -93,7 +93,7 @@ enum class ERiveBlendMode : uint8
  *
  */
 UCLASS(BlueprintType, Blueprintable)
-class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameObject
+class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
 
@@ -132,19 +132,12 @@ public:
 
 	//~ END : FTickableGameObject Interface
 
-	//~ BEGIN : UTexture Interface
-
-	virtual uint32 CalcTextureMemorySizeEnum(ETextureMipCount Enum) const override;
-
-	//~ END : UObject UTexture
-
 	//~ BEGIN : UObject Interface
-
 	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 
 #endif // WITH_EDITOR
 
@@ -220,34 +213,13 @@ public:
 
 protected:
 	void InstantiateArtboard();
+	
 private:
 	void PopulateReportedEvents();
-
-	/**
-	 * Create render resources after loading the UObject
-	 */
-	void CreateRenderTargets();
 	
 	URiveArtboard* InstantiateArtboard_Internal();
-	
-	/**
-	 * Resize render resources after loading artboard but before start Rive Rendering
-	 */
-	void ResizeRenderTargets(const FVector2f InNewSize);
-
-	/**
-	 * Attribute(s)
-	 */
-	// TODO. REMOVE IT!! Temporary switches for Android testng
-	TObjectPtr<UTextureRenderTarget2D> GetRenderTargetToDrawOnto()
-	{
-		return UE::Rive::Renderer::IRiveRendererModule::DrawStraightOnRiveFile() ? this : RenderTarget;
-	}
 
 public:
-	UPROPERTY(EditAnywhere, Category = Rive)
-	TObjectPtr<UTextureRenderTarget2D> CopyRenderTarget;
-
 	// This Event is triggered any time new LiveLink data is available, including in the editor
 	UPROPERTY(BlueprintAssignable, Category = "LiveLink")
 	FRiveStateMachineDelegate OnRiveStateMachineDelegate;
@@ -257,9 +229,6 @@ public:
 
 	UPROPERTY()
 	FString RiveFilePath;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 
 	// TODO. REMOVE IT!!, just for testing
 	UPROPERTY(EditAnywhere, Category = Rive)
@@ -319,6 +288,10 @@ private:
 	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;
 
+	/** Control Size of Render Texture Manually */
+	UPROPERTY(EditAnywhere, Category = Rive)
+	bool bManualSize = false;
+
 	UPROPERTY(EditAnywhere, Category=Rive)
 	TSubclassOf<UUserWidget> WidgetClass;
 
@@ -328,8 +301,6 @@ private:
 	bool bIsReceivingInput = false;
 
 	UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
-
-	bool bDrawOnceTest = false;
 
 	UPROPERTY(Transient)
 	URiveArtboard* Artboard = nullptr;
