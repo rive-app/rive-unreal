@@ -8,6 +8,10 @@
 
 class FRiveTextureResource;
 
+#define RIVE_MIN_TEX_RESOLUTION 1
+#define RIVE_MAX_TEX_RESOLUTION 3840
+#define RIVE_STANDARD_TEX_RESOLUTION 3840
+
 /**
  * 
  */
@@ -21,16 +25,15 @@ public:
 	
 	//~ BEGIN : UTexture Interface
 	virtual FTextureResource* CreateResource() override;
-	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	//~ END : UTexture UTexture
 
 	//~ BEGIN : UTexture Interface
 	virtual void PostLoad() override;
-	virtual void BeginDestroy() override;
 	//~ END : UTexture UTexture
 
 public:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+	/** UI representation of Texture Size */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive, meta = (ClampMin = 1, UIMin = 1, ClampMax = 3840, UIMax = 3840))
 	FIntPoint Size;
 
 protected:
@@ -40,7 +43,7 @@ protected:
 	void InitializeResources() const;
 
 	/**
-	 * Resize render resources after loading artboard but before start Rive Rendering
+	 * Resize render resources
 	 */
 	virtual void ResizeRenderTargets(const FIntPoint InNewSize);
 	virtual void ResizeRenderTargets(const FVector2f InNewSize);
@@ -50,5 +53,5 @@ protected:
 	/**
 	 * Rendering resource for Rive File
 	 */
-	FRiveTextureResource* CurrentResource;
+	FRiveTextureResource* CurrentResource = nullptr;
 };

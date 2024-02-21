@@ -56,12 +56,13 @@ void URiveFile::Tick(float InDeltaSeconds)
 #if WITH_RIVE
 	if (!bIsInitialized && bIsFileImported && GetArtboard()) //todo: move away from Tick
 	{
-		// Resize textures and Flush
-		// Load Artboard Size only once
-		if (!bResizedToArtboardSize)
+		if (!bManualSize)
 		{
 			ResizeRenderTargets(Artboard->GetSize());
-			bResizedToArtboardSize = true;
+		}
+		else
+		{
+			ResizeRenderTargets(Size);
 		}
 		
 		// Initialize Rive Render Target Only after we resize the texture

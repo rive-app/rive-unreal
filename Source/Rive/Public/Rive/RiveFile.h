@@ -288,9 +288,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;
 
-	/** Resize to size of artboard, but only once */
-	UPROPERTY()
-	bool bResizedToArtboardSize = false;
+	/** Control Size of Render Texture Manually */
+	UPROPERTY(EditAnywhere, Category = Rive)
+	bool bManualSize = false;
 
 	UPROPERTY(EditAnywhere, Category=Rive)
 	TSubclassOf<UUserWidget> WidgetClass;

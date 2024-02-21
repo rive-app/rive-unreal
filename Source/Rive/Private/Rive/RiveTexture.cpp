@@ -13,21 +13,19 @@ URiveTexture::URiveTexture()
 #else
 	SRGB = true;
 #endif
-	bIsResolveTarget = true;
-	SamplerAddressMode = AM_Wrap;
+
 #if PLATFORM_ANDROID
 	Format = PF_R8G8B8A8_SNORM;
 #else
 	Format = PF_R8G8B8A8;
 #endif
-	Size.X = Size.Y = 500;
-	SizeX = Size.X;
-	SizeY = Size.Y;
+	
+	SizeY = SizeX = Size.X = Size.Y = RIVE_STANDARD_TEX_RESOLUTION;
 }
 
 FTextureResource* URiveTexture::CreateResource()
 {
-	//UTexture::ReleaseResource() calls the delete
+	// UTexture::ReleaseResource() calls the delete
 	CurrentResource = new FRiveTextureResource(this);
 	SetResource(CurrentResource);
 	InitializeResources();
@@ -35,38 +33,25 @@ FTextureResource* URiveTexture::CreateResource()
 	return CurrentResource;
 }
 
-void URiveTexture::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	if (CurrentResource != nullptr)
-	{
-		CumulativeResourceSize.AddUnknownMemoryBytes(CurrentResource->GetResourceSize());
-	}
-}
-
 void URiveTexture::PostLoad()
 {
 	Super::PostLoad();
-
+	
 	if (!IsRunningCommandlet())
 	{
-		if (!CurrentResource)
-		{
-			UpdateResource();
-		}
-
-		FlushRenderingCommands();
+		ResizeRenderTargets(Size);
 	}
-}
-
-void URiveTexture::BeginDestroy()
-{
-	Super::BeginDestroy();
 }
 
 void URiveTexture::ResizeRenderTargets(const FIntPoint InNewSize)
 {
+	if (ensure(InNewSize.X >= RIVE_MIN_TEX_RESOLUTION) || ensure(InNewSize.Y >= RIVE_MIN_TEX_RESOLUTION)
+		|| ensure(InNewSize.X <= RIVE_MAX_TEX_RESOLUTION) || ensure(InNewSize.Y <= RIVE_MAX_TEX_RESOLUTION))
+	{
+		UE_LOG(LogRive, Error, TEXT("Wrong Rive Texture Size X:%d, Y:%d"), InNewSize.X, InNewSize.Y);
+	}
+
+	
 	SizeX = Size.X = InNewSize.X;
 	SizeY = Size.Y = InNewSize.Y;
 	
@@ -103,11 +88,6 @@ void URiveTexture::InitializeResources() const
 		if (SRGB)
 		{
 			RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::SRGB);
-		}
-
-		if (bNoTiling)
-		{
-			RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::NoTiling);
 		}
 	
 		RenderableTexture = RHICreateTexture(RenderTargetTextureDesc);
