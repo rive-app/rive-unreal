@@ -139,7 +139,7 @@ UWidgetBlueprint* FRiveWidgetFactory::CreateWidgetBlueprint()
 	UPackage* RiveWidgetPackage = CreatePackage(*PackageName);
 		
 	return CastChecked<UWidgetBlueprint>(FKismetEditorUtilities::CreateBlueprint(
-		CurrentParentClass, RiveWidgetPackage, RiveWidgetName, BPTYPE_Interface, UWidgetBlueprint::StaticClass(),
+		CurrentParentClass, RiveWidgetPackage, RiveWidgetName, BPTYPE_Normal, UWidgetBlueprint::StaticClass(),
 		UWidgetBlueprintGeneratedClass::StaticClass()));
 }
 
