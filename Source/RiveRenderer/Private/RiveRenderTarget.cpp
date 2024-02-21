@@ -197,6 +197,13 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICom
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
 {
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
+	// Sometimes Render commands can be empty (perhaps an issue with Lock contention)
+	// Checking for empty here will prevent rendered "blank" frames
+	if (RenderCommands.IsEmpty())
+	{
+		return;
+	}
 	
 	// Begin Frame
 	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = BeginFrame();
@@ -204,7 +211,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
 	{
 		return;
 	}
-	
+
+	// UE_LOG(LogRiveRenderer, Log, TEXT("Executing queue with %d items"), RenderCommands.Num());
 	for (const FRiveRenderCommand& RenderCommand : RenderCommands)
 	{
 		switch (RenderCommand.Type)
@@ -232,8 +240,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
 			RenderCommand.NativeArtboard->draw(PLSRenderer.get());
 			break;
 		case ERiveRenderCommandType::DrawPath:
+			// TODO: Support DrawPath
 			break;
 		case ERiveRenderCommandType::ClipPath:
+			// TODO: Support ClipPath
 			break;
 		case ERiveRenderCommandType::AlignArtboard:
 			rive::Mat2D Transform = rive::computeAlignment(
