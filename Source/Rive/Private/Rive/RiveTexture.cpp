@@ -95,7 +95,6 @@ void URiveTexture::InitializeResources() const
 	([this](FRHICommandListImmediate& RHICmdList) {
 		FTextureRHIRef RenderableTexture;
 
-1080
 		FRHITextureCreateDesc RenderTargetTextureDesc =
 			FRHITextureCreateDesc::Create2D(*GetName(), Size.X, Size.Y, Format)
 				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
