@@ -3,8 +3,9 @@
 #pragma once
 
 #include "IRiveRenderTarget.h"
+#include "RiveTypes.h"
 #include "RiveTexture.h"
-#include "Rive/RiveEvent.h"
+#include "RiveEvent.h"
 #include "RiveFile.generated.h"
 
 #if WITH_RIVE
@@ -20,74 +21,6 @@ namespace rive
 #endif // WITH_RIVE
 
 class URiveAsset;
-
-USTRUCT(Blueprintable)
-struct RIVE_API FRiveStateMachineEvent
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-	FIntPoint MousePosition = FIntPoint(0, 0);
-};
-
-UENUM(BlueprintType)
-enum class ERiveFitType : uint8
-{
-	Fill = 0,
-	Contain = 1,
-	Cover = 2,
-	FitWidth = 3,
-	FitHeight = 4,
-	None = 5,
-	ScaleDown = 6
-};
-
-USTRUCT()
-struct RIVE_API FRiveAlignment
-{
-	GENERATED_BODY()
-
-public:
-	inline static FVector2f TopLeft = FVector2f(-1.f, -1.f);
-	inline static FVector2f TopCenter = FVector2f(0.f, -1.f);
-	inline static FVector2f TopRight = FVector2f(1.f, -1.f);
-	inline static FVector2f CenterLeft = FVector2f(-1.f, 0.f);
-	inline static FVector2f Center = FVector2f(0.f, 0.f);
-	inline static FVector2f CenterRight = FVector2f(1.f, 0.f);
-	inline static FVector2f BottomLeft = FVector2f(-1.f, 1.f);
-	inline static FVector2f BottomCenter = FVector2f(0.f, 1.f);
-	inline static FVector2f BottomRight = FVector2f(1.f, 1.f);
-};
-
-UENUM(BlueprintType)
-enum class ERiveAlignment : uint8
-{
-	TopLeft = 0,
-	TopCenter = 1,
-	TopRight = 2,
-	CenterLeft = 3,
-	Center = 4,
-	CenterRight = 5,
-	BottomLeft = 6,
-	BottomCenter = 7,
-	BottomRight = 8,
-};
-
-UENUM(BlueprintType)
-enum class ERiveBlendMode : uint8
-{
-	SE_BLEND_Opaque = 0 UMETA(DisplayName = "Opaque"),
-	SE_BLEND_Masked UMETA(DisplayName = "Masked"),
-	SE_BLEND_Translucent UMETA(DisplayName = "Translucent"),
-	SE_BLEND_Additive UMETA(DisplayName = "Additive"),
-	SE_BLEND_Modulate UMETA(DisplayName = "Modulate"),
-	SE_BLEND_MaskedDistanceField UMETA(DisplayName = "Masked Distance Field"),
-	SE_BLEND_MaskedDistanceFieldShadowed UMETA(DisplayName = "Masked Distance Field Shadowed"),
-	SE_BLEND_TranslucentDistanceField UMETA(DisplayName = "Translucent Distance Field"),
-	SE_BLEND_TranslucentDistanceFieldShadowed UMETA(DisplayName = "Translucent Distance Field Shadowed"),
-	SE_BLEND_AlphaComposite UMETA(DisplayName = "Alpha Composite"),
-	SE_BLEND_AlphaHoldout UMETA(DisplayName = "Alpha Holdout"),
-};
 
 /**
  *
@@ -162,7 +95,7 @@ public:
 	float GetNumberValue(const FString& InPropertyName) const;
 
 	UFUNCTION(BlueprintPure, Category = Rive)
-	FLinearColor GetDebugColor() const;
+	FLinearColor GetClearColor() const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition) const;
@@ -179,8 +112,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
-
-	FVector2f GetRiveAlignment() const;
 
 	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
 
@@ -247,6 +178,19 @@ public:
 		return Assets;
 	}
 
+	rive::File* GetNativeFile() const
+	{
+		if (ParentRiveFile)
+		{
+			return ParentRiveFile->GetNativeFile();
+		} else if (RiveNativeFilePtr)
+		{
+			return RiveNativeFilePtr.get();
+		}
+
+		return nullptr;
+	}
+
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<URiveFile> ParentRiveFile;
 
@@ -270,10 +214,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
 	FString StateMachineName;
 
-	// TArray<TUniquePtr<UE::Rive::Core::FURArtboard>> Artboards;
 private:
 	UPROPERTY(EditAnywhere, Category = Rive)
-	FLinearColor DebugColor = FLinearColor::Transparent;
+	FLinearColor ClearColor = FLinearColor::Transparent;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
 	ERiveFitType RiveFitType = ERiveFitType::Contain;
@@ -319,21 +262,6 @@ private:
 
 
 	std::unique_ptr<rive::File> RiveNativeFilePtr;
-
-	rive::File* GetNativeFile() const
-	{
-		if (ParentRiveFile)
-		{
-			return ParentRiveFile->GetNativeFile();
-		}
-
-		if (RiveNativeFilePtr)
-		{
-			return RiveNativeFilePtr.get();
-		}
-
-		return nullptr;
-	}
-
+	
 	void PrintStats() const;
 };

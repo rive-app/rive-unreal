@@ -35,26 +35,18 @@ namespace UE::Rive::Renderer::Private
         virtual ~FRiveRenderTargetMetal() override;
         //~ BEGIN : IRiveRenderTarget Interface
         
-    public:
-        
-        virtual void Initialize() override;
-        
         virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override;
         
 #if WITH_RIVE
-        
-        virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
         
         //~ END : IRiveRenderTarget Interface
         
         //~ BEGIN : FRiveRenderTarget Interface
         
     protected:
-        
-        virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
-        
-        // It Might need to be on rendering thread, render QUEUE is required
-        virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const override;
+
+        virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
+        virtual void EndFrame() const override;
         
         //~ END : FRiveRenderTarget Interface
         

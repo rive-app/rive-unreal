@@ -1,6 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "Rive/RiveEvent.h"
+#include "RiveEvent.h"
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"

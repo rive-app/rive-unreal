@@ -1,7 +1,8 @@
 // Copyright Rive, Inc. All rights reserved.
 #pragma once
-#include "Core/URStateMachine.h"
+#include "URStateMachine.h"
 #if WITH_RIVE
+class URiveFile;
 THIRD_PARTY_INCLUDES_START
 #include "rive/file.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -9,7 +10,7 @@ THIRD_PARTY_INCLUDES_END
 #include "RiveArtboard.generated.h"
 
 UCLASS()
-class RIVE_API URiveArtboard : public UObject
+class RIVECORE_API URiveArtboard : public UObject
 {
 	GENERATED_BODY()
 

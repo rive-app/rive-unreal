@@ -25,6 +25,7 @@ public class RiveEditor : ModuleRules
                 "Engine",
                 "PropertyEditor",
                 "Rive",
+                "RiveCore",
                 "Slate",
                 "SlateCore",
                 "UnrealEd",
