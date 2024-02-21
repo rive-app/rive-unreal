@@ -74,7 +74,7 @@ void URiveFile::Tick(float InDeltaSeconds)
 
 		// Setup the draw pipeline; only needs to be called once
 		// The list of draw commands won't get cleared, and instead will be called each time via Submit()
-		RiveRenderTarget->Align(RiveFitType, GetRiveAlignment(), Artboard->GetNativeArtboard());
+		RiveRenderTarget->Align(RiveFitType, FRiveAlignment::GetAlignment(RiveAlignment), Artboard->GetNativeArtboard());
 		RiveRenderTarget->Draw(Artboard->GetNativeArtboard());
 
 		// Everything is now ready, we can start Rive Rendering
@@ -243,7 +243,7 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) con
 
 	if (GetArtboard())
 	{
-		const FVector2f RiveAlignmentXY = GetRiveAlignment();
+		const FVector2f RiveAlignmentXY = FRiveAlignment::GetAlignment(RiveAlignment);
 
 		const rive::Mat2D Transform = rive::computeAlignment(
 			(rive::Fit)RiveFitType,
@@ -294,45 +294,6 @@ void URiveFile::SetNumberValue(const FString& InPropertyName, float NewValue)
 		}
 	}
 #endif // WITH_RIVE
-}
-
-
-
-FVector2f URiveFile::GetRiveAlignment() const
-{
-	FVector2f NewAlignment = FRiveAlignment::Center;
-
-	switch (RiveAlignment)
-	{
-	case ERiveAlignment::TopLeft:
-		NewAlignment = FRiveAlignment::TopLeft;
-		break;
-	case ERiveAlignment::TopCenter:
-		NewAlignment = FRiveAlignment::TopCenter;
-		break;
-	case ERiveAlignment::TopRight:
-		NewAlignment = FRiveAlignment::TopRight;
-		break;
-	case ERiveAlignment::CenterLeft:
-		NewAlignment = FRiveAlignment::CenterLeft;
-		break;
-	case ERiveAlignment::Center:
-		break;
-	case ERiveAlignment::CenterRight:
-		NewAlignment = FRiveAlignment::CenterRight;
-		break;
-	case ERiveAlignment::BottomLeft:
-		NewAlignment = FRiveAlignment::BottomLeft;
-		break;
-	case ERiveAlignment::BottomCenter:
-		NewAlignment = FRiveAlignment::BottomCenter;
-		break;
-	case ERiveAlignment::BottomRight:
-		NewAlignment = FRiveAlignment::BottomRight;
-		break;
-	}
-
-	return NewAlignment;
 }
 
 ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const

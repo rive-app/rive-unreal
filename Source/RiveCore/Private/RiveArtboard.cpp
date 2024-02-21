@@ -14,6 +14,10 @@ void URiveArtboard::BeginDestroy()
 	bIsInitialized = false;
 
 	DefaultStateMachinePtr.Reset();
+	if (NativeArtboardPtr != nullptr)
+	{
+		NativeArtboardPtr.release();
+	}
 	NativeArtboardPtr.reset();
 	
 	UObject::BeginDestroy();

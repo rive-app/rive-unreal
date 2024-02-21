@@ -113,8 +113,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
 
-	FVector2f GetRiveAlignment() const;
-
 	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
 
 	void BeginInput()
@@ -178,6 +176,21 @@ public:
 		}
 
 		return Assets;
+	}
+
+	rive::File* GetNativeFile() const
+	{
+		if (ParentRiveFile)
+		{
+			return ParentRiveFile->GetNativeFile();
+		}
+
+		if (RiveNativeFilePtr)
+		{
+			return RiveNativeFilePtr.get();
+		}
+
+		return nullptr;
 	}
 
 	UPROPERTY(VisibleAnywhere)
@@ -252,20 +265,6 @@ private:
 
 
 	std::unique_ptr<rive::File> RiveNativeFilePtr;
-	rive::File* GetNativeFile() const
-	{
-		if (ParentRiveFile)
-		{
-			return ParentRiveFile->GetNativeFile();
-		}
-
-		if (RiveNativeFilePtr)
-		{
-			return RiveNativeFilePtr.get();
-		}
-
-		return nullptr;
-	}
 	
 	void PrintStats() const;
 };
