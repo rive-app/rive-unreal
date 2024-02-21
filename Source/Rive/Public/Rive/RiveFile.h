@@ -95,7 +95,7 @@ public:
 	float GetNumberValue(const FString& InPropertyName) const;
 
 	UFUNCTION(BlueprintPure, Category = Rive)
-	FLinearColor GetDebugColor() const;
+	FLinearColor GetClearColor() const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition) const;
@@ -183,9 +183,7 @@ public:
 		if (ParentRiveFile)
 		{
 			return ParentRiveFile->GetNativeFile();
-		}
-
-		if (RiveNativeFilePtr)
+		} else if (RiveNativeFilePtr)
 		{
 			return RiveNativeFilePtr.get();
 		}
@@ -217,9 +215,8 @@ public:
 	FString StateMachineName;
 
 private:
-	// TODO: DebugColor now unused
 	UPROPERTY(EditAnywhere, Category = Rive)
-	FLinearColor DebugColor = FLinearColor::Transparent;
+	FLinearColor ClearColor = FLinearColor::Transparent;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
 	ERiveFitType RiveFitType = ERiveFitType::Contain;

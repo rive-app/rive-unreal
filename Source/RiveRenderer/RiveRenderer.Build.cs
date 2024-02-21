@@ -27,7 +27,8 @@ public class RiveRenderer : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core", "RiveCore",
+				"Core",
+				"RiveCore"
 			}
 		);
 			

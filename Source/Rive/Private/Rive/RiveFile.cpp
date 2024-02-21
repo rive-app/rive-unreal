@@ -69,7 +69,7 @@ void URiveFile::Tick(float InDeltaSeconds)
 		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
 
 		// It will remove old reference if exists
-		RiveRenderTarget->SetClearColor(DebugColor);
+		RiveRenderTarget->SetClearColor(ClearColor);
 		RiveRenderTarget->Initialize();
 
 		// Setup the draw pipeline; only needs to be called once
@@ -164,6 +164,12 @@ void URiveFile::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& P
 	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveFile, Size))
 	{
 		ResizeRenderTargets(Size);
+	} else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveFile, ClearColor))
+	{
+		if (RiveRenderTarget)
+		{
+			RiveRenderTarget->SetClearColor(ClearColor);
+		}
 	}
 
 	// Update the Rive CachedPLSRenderTarget
@@ -232,9 +238,9 @@ float URiveFile::GetNumberValue(const FString& InPropertyName) const
 	return 0.f;
 }
 
-FLinearColor URiveFile::GetDebugColor() const
+FLinearColor URiveFile::GetClearColor() const
 {
-	return DebugColor;
+	return ClearColor;
 }
 
 FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) const

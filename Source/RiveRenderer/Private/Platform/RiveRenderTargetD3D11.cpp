@@ -35,8 +35,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 		return;
 	}
 #endif // WITH_RIVE
-
-	// TODO, make sure we have correct texture DXGI_FORMAT_R8G8B8A8_UNORM
+	
 	EPixelFormat PixelFormat = InTexture->GetFormat();
 
 	if (PixelFormat != PF_R8G8B8A8)

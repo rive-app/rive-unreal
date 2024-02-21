@@ -2,7 +2,6 @@
 
 #include "RiveRenderTarget.h"
 
-#include "RenderGraphBuilder.h"
 #include "RiveRenderCommand.h"
 #include "RiveRenderer.h"
 #include "Engine/Texture2DDynamic.h"
@@ -166,9 +165,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
 	const int32 TimeElapsed = (Now - LastResetTime).GetSeconds();
 	if (TimeElapsed >= ResetTimeLimit.GetSeconds())
 	{
-		// Reset
-		// PLSRenderContextPtr->shrinkGPUResourcesToFit();
-		// PLSRenderContextPtr->resetGPUResources();
 		LastResetTime = Now;
 	}
 }
@@ -186,12 +182,10 @@ uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetHeight() const
 DECLARE_GPU_STAT_NAMED(Render, TEXT("RiveRenderTarget::Render"));
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
-	// FRDGBuilder GraphBuilder(RHICmdList); // this was in DX11
 	SCOPED_GPU_STAT(RHICmdList, Render);
 	check(IsInRenderingThread());
 
 	Render_Internal();
-	// GraphBuilder.Execute(); // this was in DX11
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
