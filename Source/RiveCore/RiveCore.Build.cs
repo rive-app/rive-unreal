@@ -30,6 +30,9 @@ public class RiveCore : ModuleRules
 			new string[]
 			{
 				"Core",
+				"RHICore",
+				"RHI",
+				"RenderCore"
 			}
 		);
 			
@@ -40,7 +43,8 @@ public class RiveCore : ModuleRules
 				"CoreUObject",
 				"Engine",
                 "Projects",
-				"RiveLibrary", "RiveRenderer",
+				"RiveLibrary",
+				"RiveRenderer",
 			}
 		);
 	}

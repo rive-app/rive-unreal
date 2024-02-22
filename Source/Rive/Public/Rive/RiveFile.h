@@ -147,8 +147,6 @@ protected:
 	
 private:
 	void PopulateReportedEvents();
-	
-	URiveArtboard* InstantiateArtboard_Internal();
 
 public:
 	// This Event is triggered any time new LiveLink data is available, including in the editor

@@ -68,15 +68,11 @@ void URiveFile::Tick(float InDeltaSeconds)
 		
 		// Initialize Rive Render Target Only after we resize the texture
 		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
-
+		Artboard->SetRenderTarget(RiveRenderTarget);
+		
 		// It will remove old reference if exists
 		RiveRenderTarget->SetClearColor(ClearColor);
 		RiveRenderTarget->Initialize();
-
-		// Setup the draw pipeline; only needs to be called once
-		// The list of draw commands won't get cleared, and instead will be called each time via Submit()
-		RiveRenderTarget->Align(RiveFitType, FRiveAlignment::GetAlignment(RiveAlignment), Artboard->GetNativeArtboard());
-		RiveRenderTarget->Draw(Artboard->GetNativeArtboard());
 
 		// Everything is now ready, we can start Rive Rendering
 		bIsInitialized = true;
@@ -87,47 +83,8 @@ void URiveFile::Tick(float InDeltaSeconds)
 		TickRiveReportedEvents.Empty();
 		if (GetArtboard())
 		{
-			UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine();
-			if (StateMachine && StateMachine->IsValid() && ensure(RiveRenderTarget))
-			{
-				if (!bIsReceivingInput)
-				{
-					auto AdvanceStateMachine = [this, StateMachine, InDeltaSeconds]()
-					{
-						if (StateMachine->HasAnyReportedEvents())
-						{
-							PopulateReportedEvents();
-						}
-#if PLATFORM_ANDROID
-						UE_LOG(LogRive, Verbose, TEXT("[%s] StateMachine->Advance"), IsInRHIThread() ? TEXT("RHIThread") : (IsInRenderingThread() ? TEXT("RenderThread") : TEXT("OtherThread")));
-#endif
-						StateMachine->Advance(InDeltaSeconds);
-					};
-					if (UE::Rive::Renderer::IRiveRendererModule::RunInGameThread())
-					{
-						AdvanceStateMachine();
-					}
-					else
-					{
-						ENQUEUE_RENDER_COMMAND(StateMachineAdvance)(
-							[AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](
-							FRHICommandListImmediate& RHICmdList) mutable
-							{
-#if PLATFORM_ANDROID
-								RHICmdList.EnqueueLambda(TEXT("StateMachine->Advance"),
-									[AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](FRHICommandListImmediate& RHICmdList)
-								{
-#endif
-								AdvanceStateMachine();
-#if PLATFORM_ANDROID
-								});
-#endif
-							});
-					}
-				}
-			}
-			
-			RiveRenderTarget->Submit();
+			Artboard->Tick(InDeltaSeconds);
+			RiveRenderTarget->SubmitAndClear();
 		}
 	}
 #endif // WITH_RIVE
@@ -473,8 +430,10 @@ void URiveFile::Initialize()
 						return;
 					}
 				}
-				
-				InstantiateArtboard_Internal();
+
+				AsyncTask(ENamedThreads::GameThread, [this]() {
+					InstantiateArtboard();
+				});
 			}
 			else
 			{
@@ -519,19 +478,26 @@ void URiveFile::InstantiateArtboard()
 	bIsFileImported = false;
 
 	Artboard = NewObject<URiveArtboard>(this); // Should be created in Game Thread
-	
-	ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
-	[this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
+
+	RiveRenderTarget.Reset();
+
+	if (GetNativeFile())
 	{
-#if PLATFORM_ANDROID
-	   RHICmdList.EnqueueLambda(TEXT("URiveFile::Initialize"), [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
-	   {
-#endif // PLATFORM_ANDROID
-			InstantiateArtboard_Internal();
-#if PLATFORM_ANDROID
-		});
-#endif // PLATFORM_ANDROID
-	});
+		if (ArtboardName.IsEmpty())
+		{
+			Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardIndex, StateMachineName);
+		}
+		else
+		{
+			Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardName, StateMachineName);
+		}
+
+		Artboard->RiveFitType = RiveFitType;
+		Artboard->RiveAlignment = RiveAlignment;
+		
+		PrintStats();
+		bIsFileImported = true;
+	}
 }
 
 void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
@@ -588,28 +554,6 @@ void URiveFile::PopulateReportedEvents()
 	}
 
 #endif // WITH_RIVE
-}
-
-URiveArtboard* URiveFile::InstantiateArtboard_Internal()
-{
-	RiveRenderTarget.Reset();
-
-	if (GetNativeFile())
-	{
-		if (ArtboardName.IsEmpty())
-		{
-			Artboard->Initialize(GetNativeFile(), ArtboardIndex, StateMachineName);
-		}
-		else
-		{
-			Artboard->Initialize(GetNativeFile(), ArtboardName, StateMachineName);
-		}
-
-		PrintStats();
-		bIsFileImported = true;
-		return Artboard;
-	}
-	return nullptr;
 }
 
 void URiveFile::PrintStats() const

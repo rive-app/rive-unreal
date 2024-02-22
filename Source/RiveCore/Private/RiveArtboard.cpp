@@ -19,83 +19,200 @@ void URiveArtboard::BeginDestroy()
 		NativeArtboardPtr.release();
 	}
 	NativeArtboardPtr.reset();
-	
+
 	UObject::BeginDestroy();
 }
 
-void URiveArtboard::Initialize(rive::File* InNativeFilePtr)
+void URiveArtboard::AdvanceStateMachine(float InDeltaSeconds)
 {
-	Initialize(InNativeFilePtr, 0);
+	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
+	if (StateMachine && StateMachine->IsValid() && ensure(RiveRenderTarget))
+	{
+		// TODO: bIsReceivingInput
+		// if (!bIsReceivingInput)
+		// {
+		auto LocalAdvanceStateMachine = [this, StateMachine, InDeltaSeconds]()
+		{
+			if (StateMachine->HasAnyReportedEvents())
+			{
+				// TODO: PopulateReportedEvents();
+			}
+#if PLATFORM_ANDROID
+			UE_LOG(LogRive, Verbose, TEXT("[%s] StateMachine->Advance"), IsInRHIThread() ? TEXT("RHIThread") : (IsInRenderingThread() ? TEXT("RenderThread") : TEXT("OtherThread")));
+#endif
+			StateMachine->Advance(InDeltaSeconds);
+		};
+		if (UE::Rive::Renderer::IRiveRendererModule::RunInGameThread())
+		{
+			LocalAdvanceStateMachine();
+		}
+		else
+		{
+			ENQUEUE_RENDER_COMMAND(StateMachineAdvance)(
+				[LocalAdvanceStateMachine = MoveTemp(LocalAdvanceStateMachine)](
+				FRHICommandListImmediate& RHICmdList) mutable
+				{
+#if PLATFORM_ANDROID
+					RHICmdList.EnqueueLambda(TEXT("StateMachine->Advance"),
+						[AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](FRHICommandListImmediate& RHICmdList)
+					{
+#endif
+					LocalAdvanceStateMachine();
+#if PLATFORM_ANDROID
+					});
+#endif
+				});
+		}
+	}
 }
 
-void URiveArtboard::Initialize(rive::File* InNativeFilePtr, int32 InIndex, const FString& InStateMachineName)
+void URiveArtboard::Align(ERiveFitType InFitType, ERiveAlignment InAlignment)
 {
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-	
-	if (!InNativeFilePtr)
+	if (!RiveRenderTarget)
 	{
 		return;
 	}
-	
-	StateMachineName = InStateMachineName;
-
-	if (InIndex >= InNativeFilePtr->artboardCount())
-	{
-		InIndex = InNativeFilePtr->artboardCount() - 1;
-		UE_LOG(LogRiveCore, Warning,
-		       TEXT(
-			       "Artboard index specified is out of bounds, using the last available artboard index instead, which is %d"
-		       ), InIndex);
-	}
-
-	if (rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(InIndex))
-	{
-		NativeArtboardPtr = NativeArtboard->instance();
-
-		NativeArtboardPtr->advance(0);
-
-		DefaultStateMachinePtr = MakeUnique<UE::Rive::Core::FURStateMachine>(NativeArtboardPtr.get(), StateMachineName);
-	}
-
-	bIsInitialized = true;
+	RiveRenderTarget->Align(InFitType, FRiveAlignment::GetAlignment(InAlignment), GetNativeArtboard());
 }
 
-void URiveArtboard::Initialize(rive::File* InNativeFilePtr, const FString& InName, const FString& InStateMachineName)
+void URiveArtboard::Draw()
 {
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-	
-	if (!InNativeFilePtr)
+	if (!RiveRenderTarget)
+	{
+		return;
+	}
+	RiveRenderTarget->Draw(GetNativeArtboard());
+}
+
+void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget)
+{
+	Initialize(InNativeFilePtr, InRiveRenderTarget, 0);
+}
+
+void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget,
+                               int32 InIndex, const FString& InStateMachineName, ERiveFitType InFitType,
+                               ERiveAlignment InAlignment)
+{
+	RiveFitType = InFitType;
+	RiveAlignment = InAlignment;
+	RiveRenderTarget = InRiveRenderTarget;
+	StateMachineName = InStateMachineName;
+
+	ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
+		[this, InRiveRenderTarget, InNativeFilePtr, InFitType, InAlignment, InStateMachineName, InIndex](
+		FRHICommandListImmediate& RHICmdList)
+		{
+			UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+
+#if PLATFORM_ANDROID
+	   RHICmdList.EnqueueLambda(TEXT("URiveFile::Initialize"), [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
+	   {
+#endif // PLATFORM_ANDROID
+			FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
+			if (!InNativeFilePtr)
+			{
+				return;
+			}
+
+			int32 Index = InIndex;
+			if (Index >= InNativeFilePtr->artboardCount())
+			{
+				Index = InNativeFilePtr->artboardCount() - 1;
+				UE_LOG(LogRiveCore, Warning,
+				       TEXT(
+					       "Artboard index specified is out of bounds, using the last available artboard index instead, which is %d"
+				       ), Index);
+			}
+
+			if (rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(Index))
+			{
+				Initialize_Internal(NativeArtboard);
+			}
+#if PLATFORM_ANDROID
+		});
+#endif // PLATFORM_ANDROID
+		});
+}
+
+void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget,
+                               const FString& InName, const FString& InStateMachineName, ERiveFitType InFitType,
+                               ERiveAlignment InAlignment)
+{
+	RiveFitType = InFitType;
+	RiveAlignment = InAlignment;
+	RiveRenderTarget = InRiveRenderTarget;
+	StateMachineName = InStateMachineName;
+
+	ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
+		[InName, InStateMachineName, this, InNativeFilePtr](
+		FRHICommandListImmediate& RHICmdList)
+		{
+			UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+
+#if PLATFORM_ANDROID
+	   RHICmdList.EnqueueLambda(TEXT("URiveFile::Initialize"), [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
+	   {
+#endif // PLATFORM_ANDROID
+			FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
+			rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(TCHAR_TO_UTF8(*InName));
+
+			if (!NativeArtboard)
+			{
+				UE_LOG(LogRiveCore, Error,
+				       TEXT("Could not initialize the artboard by the name '%s'. Initializing with default artboard instead"),
+				       *InName);
+				NativeArtboard = InNativeFilePtr->artboard();
+			}
+			Initialize_Internal(NativeArtboard);
+#if PLATFORM_ANDROID
+		});
+#endif // PLATFORM_ANDROID
+		});
+}
+
+void URiveArtboard::Tick_Render(float InDeltaSeconds)
+{
+	if (OnArtboardTick_Render.IsBound())
+	{
+		OnArtboardTick_Render.Broadcast(InDeltaSeconds);
+	}
+	else
+	{
+		Align(RiveFitType, RiveAlignment);
+		Draw();
+	}
+}
+
+void URiveArtboard::Tick_Statemachine(float InDeltaSeconds)
+{
+	if (OnArtboardTick_StateMachine.IsBound())
+	{
+		OnArtboardTick_StateMachine.Broadcast(InDeltaSeconds);
+	}
+	else
+	{
+		AdvanceStateMachine(InDeltaSeconds);
+	}
+}
+
+void URiveArtboard::Tick(float InDeltaSeconds)
+{
+	if (!RiveRenderTarget || !bIsInitialized)
 	{
 		return;
 	}
 
-	StateMachineName = InStateMachineName;
-	rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(TCHAR_TO_UTF8(*InName));
-
-	if (!NativeArtboard)
-	{
-		UE_LOG(LogRiveCore, Error,
-		       TEXT("Could not initialize the artboard by the name '%s'. Initializing with default artboard instead"),
-		       *InName);
-		NativeArtboard = InNativeFilePtr->artboard();
-	}
-
-	NativeArtboardPtr = NativeArtboard->instance();
-
-	NativeArtboardPtr->advance(0);
-
-	DefaultStateMachinePtr = MakeUnique<UE::Rive::Core::FURStateMachine>(NativeArtboardPtr.get(), StateMachineName);
-
-	bIsInitialized = true;
+	Tick_Statemachine(InDeltaSeconds);
+	Tick_Render(InDeltaSeconds);
 }
 
 rive::Artboard* URiveArtboard::GetNativeArtboard() const
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-	
+
 	if (!NativeArtboardPtr)
 	{
 		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard as we have detected an empty rive atrboard."));
@@ -110,10 +227,11 @@ rive::AABB URiveArtboard::GetBounds() const
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-	
+
 	if (!NativeArtboardPtr)
 	{
-		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard bounds as we have detected an empty rive atrboard."));
+		UE_LOG(LogRiveCore, Error,
+		       TEXT("Could not retrieve artboard bounds as we have detected an empty rive atrboard."));
 
 		return {0, 0, 0, 0};
 	}
@@ -125,10 +243,11 @@ FVector2f URiveArtboard::GetSize() const
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-	
+
 	if (!NativeArtboardPtr)
 	{
-		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard size as we have detected an empty rive atrboard."));
+		UE_LOG(LogRiveCore, Error,
+		       TEXT("Could not retrieve artboard size as we have detected an empty rive atrboard."));
 
 		return FVector2f::ZeroVector;
 	}
@@ -140,7 +259,7 @@ UE::Rive::Core::FURStateMachine* URiveArtboard::GetStateMachine() const
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-	
+
 	if (!DefaultStateMachinePtr)
 	{
 		// Not all artboards have state machines, so let's not error it out
@@ -148,6 +267,18 @@ UE::Rive::Core::FURStateMachine* URiveArtboard::GetStateMachine() const
 	}
 
 	return DefaultStateMachinePtr.Get();
+}
+
+void URiveArtboard::Initialize_Internal(rive::Artboard* InNativeArtboard)
+{
+	NativeArtboardPtr = InNativeArtboard->instance();
+
+	NativeArtboardPtr->advance(0);
+
+	DefaultStateMachinePtr = MakeUnique<UE::Rive::Core::FURStateMachine>(
+		NativeArtboardPtr.get(), StateMachineName);
+
+	bIsInitialized = true;
 }
 
 #endif // WITH_RIVE
