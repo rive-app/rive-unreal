@@ -27,8 +27,8 @@ public:
 #if WITH_RIVE
 
 	void Initialize(rive::File* InNativeFilePtr);
-	void Initialize(rive::File* InNativeFilePtr, int32 InIndex, const FString& InStateMachineName = TEXT_EMPTY);
-	void Initialize(rive::File* InNativeFilePtr, const FString& InName, const FString& InStateMachineName = TEXT_EMPTY);
+	void Initialize(rive::File* InNativeFilePtr, int32 InIndex, const FString& InStateMachineName);
+	void Initialize(rive::File* InNativeFilePtr, const FString& InName, const FString& InStateMachineName);
 
 	bool IsInitialized() { return bIsInitialized; }
 	/**

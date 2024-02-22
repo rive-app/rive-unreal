@@ -25,7 +25,7 @@ void URiveArtboard::BeginDestroy()
 
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr)
 {
-	Initialize(InNativeFilePtr, 0);
+	Initialize(InNativeFilePtr, 0, "");
 }
 
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr, int32 InIndex, const FString& InStateMachineName)
