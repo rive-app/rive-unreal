@@ -3,6 +3,7 @@
 #pragma once
 
 #include "RiveTypes.h"
+#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/math/mat2d.hpp"
 THIRD_PARTY_INCLUDES_END

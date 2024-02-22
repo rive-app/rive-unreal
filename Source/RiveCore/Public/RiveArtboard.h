@@ -1,12 +1,16 @@
 // Copyright Rive, Inc. All rights reserved.
 #pragma once
 #include "URStateMachine.h"
+
 #if WITH_RIVE
 class URiveFile;
+
+#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/file.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
+
 #include "RiveArtboard.generated.h"
 
 UCLASS()

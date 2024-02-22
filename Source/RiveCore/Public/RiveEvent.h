@@ -4,14 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
-#include "RiveEvent.generated.h"
 
 #if WITH_RIVE
+#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/animation/state_machine_instance.hpp"
 #include "rive/custom_property.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
+
+#include "RiveEvent.generated.h"
+
 
 USTRUCT(Blueprintable)
 struct FRiveEventProperty

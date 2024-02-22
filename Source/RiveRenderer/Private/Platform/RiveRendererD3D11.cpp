@@ -9,6 +9,7 @@
 #include "ID3D11DynamicRHI.h"
 
 #if WITH_RIVE
+#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/pls/d3d/pls_render_context_d3d_impl.hpp"
 #include "rive/pls/pls_renderer.hpp"

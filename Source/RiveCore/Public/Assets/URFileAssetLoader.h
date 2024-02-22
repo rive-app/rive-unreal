@@ -12,6 +12,7 @@ namespace rive
     class Asset;
 }
 
+#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/file_asset_loader.hpp"
 THIRD_PARTY_INCLUDES_END

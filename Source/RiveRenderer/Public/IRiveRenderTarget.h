@@ -7,6 +7,7 @@
 enum class ERiveFitType : uint8;
 
 THIRD_PARTY_INCLUDES_START
+#include "PreRiveHeaders.h"
 #undef  PI // redefined in rive/math/math_types.hpp
 #include "rive/pls/pls.hpp"
 THIRD_PARTY_INCLUDES_END

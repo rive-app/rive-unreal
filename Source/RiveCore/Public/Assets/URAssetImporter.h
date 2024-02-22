@@ -4,6 +4,8 @@
 #if WITH_RIVE
 class URiveAsset;
 class URiveFile;
+
+#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/file_asset_loader.hpp"
 THIRD_PARTY_INCLUDES_END

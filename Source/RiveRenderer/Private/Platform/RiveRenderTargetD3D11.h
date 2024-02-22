@@ -7,6 +7,7 @@
 #if PLATFORM_WINDOWS
 
 #if WITH_RIVE
+#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
