@@ -191,7 +191,7 @@ public:
 		return nullptr;
 	}
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category=Rive)
 	TObjectPtr<URiveFile> ParentRiveFile;
 
 protected:

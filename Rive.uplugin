@@ -29,6 +29,11 @@
 			"Name": "RiveEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "RiveCore",
+			"Type": "Runtime",
+			"LoadingPhase": "None"
 		}
 	]
 }

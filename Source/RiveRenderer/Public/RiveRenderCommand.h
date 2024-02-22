@@ -46,30 +46,30 @@ public:
 	{
 	};
 	
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	ERiveRenderCommandType Type;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	ERiveFitType FitType;
 
 	// UPROPERTY(BlueprintReadWrite)
 	rive::Artboard* NativeArtboard = nullptr;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	float X;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	float Y;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	float X2;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	float Y2;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	float TX;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	float TY;
 };
