@@ -56,13 +56,19 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::Initialize()
 
 	if (IRiveRendererModule::RunInGameThread())
 	{
-		FScopeLock Lock(&ThreadDataCS);
+		{
+			FScopeLock Lock(&ThreadDataCS);
+			if (InitializationState != ERiveInitState::Uninitialized)
+			{
+				return;
+			}
+			InitializationState = ERiveInitState::Initializing;
 		
-		CreatePLSContext_GameThread();
-		// CreatePLSRenderer_RenderThread(RHICmdList);
-
-		// Should give more data how that was initialized
-		bIsInitialized = true;
+			CreatePLSContext_GameThread();
+			InitializationState = ERiveInitState::Initialized;
+		}
+		
+		OnInitializedDelegate.Broadcast(this);
 	}
 	else
 	{

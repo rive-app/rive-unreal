@@ -13,6 +13,7 @@ UE::Rive::Renderer::Private::FRiveRenderer::FRiveRenderer()
 UE::Rive::Renderer::Private::FRiveRenderer::~FRiveRenderer()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
+    InitializationState = ERiveInitState::Deinitializing;
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
@@ -20,16 +21,26 @@ void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
     check(IsInGameThread());
     
     FScopeLock Lock(&ThreadDataCS);
-
+    if (InitializationState != ERiveInitState::Uninitialized)
+    {
+        return;
+    }
+    InitializationState = ERiveInitState::Initializing;
+    
     ENQUEUE_RENDER_COMMAND(FRiveRenderer_Initialize)(
     [this](FRHICommandListImmediate& RHICmdList)
     {
         CreatePLSContext_RenderThread(RHICmdList);
         CreatePLSRenderer_RenderThread(RHICmdList);
+        AsyncTask(ENamedThreads::GameThread, [this]()
+        {
+            {
+                FScopeLock Lock(&ThreadDataCS);
+                InitializationState = ERiveInitState::Initialized;
+            }
+            OnInitializedDelegate.Broadcast(this);
+        });
     });
-
-    // Should give more data how that was initialized
-    bIsInitialized = true;
 }
 
 
@@ -39,12 +50,27 @@ void UE::Rive::Renderer::Private::FRiveRenderer::QueueTextureRendering(TObjectPt
 
 #if WITH_RIVE
 
+void UE::Rive::Renderer::Private::FRiveRenderer::CallOrRegister_OnInitialized(FOnRendererInitialized::FDelegate&& Delegate)
+{
+    ThreadDataCS.Lock();
+    const bool bIsInitialized = IsInitialized();
+    ThreadDataCS.Unlock();
+    
+    if (bIsInitialized)
+    {
+        Delegate.Execute(this);
+    }
+    else
+    {
+        OnInitializedDelegate.Add(MoveTemp(Delegate));
+    }
+}
+
 rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRenderer::GetPLSRenderContextPtr()
 {
     if (!PLSRenderContext)
     {
         UE_LOG(LogRiveRenderer, Error, TEXT("Rive PLS Render Context is uninitialized."));
-
         return nullptr;
     }
 
@@ -56,7 +82,6 @@ rive::pls::PLSRenderer* UE::Rive::Renderer::Private::FRiveRenderer::GetPLSRender
     if (!PLSRenderer)
     {
         UE_LOG(LogRiveRenderer, Error, TEXT("Rive PLS Renderer is uninitialized."));
-
         return nullptr;
     }
 
@@ -70,11 +95,8 @@ UTextureRenderTarget2D* UE::Rive::Renderer::Private::FRiveRenderer::CreateDefaul
     UTextureRenderTarget2D* const RenderTarget = NewObject<UTextureRenderTarget2D>(GetTransientPackage());
 
     RenderTarget->OverrideFormat = EPixelFormat::PF_R8G8B8A8;
-
     RenderTarget->bCanCreateUAV = true;
-    
     RenderTarget->ResizeTarget(InTargetSize.X, InTargetSize.Y);
-
     RenderTarget->UpdateResourceImmediate(true);
 
     FlushRenderingCommands();
