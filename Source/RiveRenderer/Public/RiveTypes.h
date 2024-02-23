@@ -6,7 +6,7 @@
 #include "RiveTypes.generated.h"
 
 USTRUCT(Blueprintable)
-struct RIVECORE_API FRiveStateMachineEvent
+struct RIVERENDERER_API FRiveStateMachineEvent
 {
 	GENERATED_BODY()
 
@@ -57,7 +57,7 @@ enum class ERiveBlendMode : uint8
 };
 
 USTRUCT(BlueprintType)
-struct RIVECORE_API FRiveAlignment
+struct RIVERENDERER_API FRiveAlignment
 {
 	GENERATED_BODY()
 
