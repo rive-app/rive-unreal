@@ -506,6 +506,15 @@ void URiveFile::InstantiateArtboard()
 	InstantiateArtboard_Internal(RiveRenderer);
 }
 
+void URiveFile::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const
+{
+	// When the resource change, we need to tell the Render Target otherwise we will keep on drawing on an outdated RT
+	if (const UE::Rive::Renderer::IRiveRenderTargetPtr RenderTarget = RiveRenderTarget) //todo: might need a lock
+	{
+		RenderTarget->CacheTextureTarget_RenderThread(RHICmdList, NewResource);
+	}
+}
+
 void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
 {
 	WidgetClass = InWidgetClass;

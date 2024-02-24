@@ -155,7 +155,8 @@ private:
 	
 protected:
 	void InstantiateArtboard();
-	
+	virtual void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const override;
+
 private:
 	void PopulateReportedEvents();
 	
@@ -194,7 +195,8 @@ public:
 		if (IsValid(ParentRiveFile))
 		{
 			return ParentRiveFile->GetNativeFile();
-		} else if (RiveNativeFilePtr)
+		}
+		else if (RiveNativeFilePtr)
 		{
 			return RiveNativeFilePtr.get();
 		}

@@ -53,6 +53,7 @@ protected:
 	 */
 	virtual void ResizeRenderTargets(const FVector2f InNewSize);
 
+	virtual void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const {};
 protected:
 
 	/**
