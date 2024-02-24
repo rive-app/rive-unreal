@@ -7,6 +7,7 @@
 #include "Engine/Texture2DDynamic.h"
 #include "Logs/RiveRendererLog.h"
 
+#include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/pls/pls_renderer.hpp"

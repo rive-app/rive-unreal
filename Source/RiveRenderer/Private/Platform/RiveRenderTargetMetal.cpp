@@ -11,14 +11,13 @@
 #include <Metal/Metal.h>
 
 #if WITH_RIVE
+#include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/pls/pls_renderer.hpp"
 #include "rive/pls/metal/pls_render_context_metal_impl.h"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
-
-UE_DISABLE_OPTIMIZATION
 
 UE::Rive::Renderer::Private::FRiveRenderTargetMetal::FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
     : FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget)
@@ -94,6 +93,5 @@ rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTa
 }
 #endif // WITH_RIVE
 
-UE_ENABLE_OPTIMIZATION
 
 #endif // PLATFORM_APPLE

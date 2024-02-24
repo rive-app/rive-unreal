@@ -10,6 +10,7 @@
 #include "Logs/RiveRendererLog.h"
 
 #if WITH_RIVE
+#include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/pls/gl/pls_render_context_gl_impl.hpp"
 #include "rive/pls/pls_renderer.hpp"
