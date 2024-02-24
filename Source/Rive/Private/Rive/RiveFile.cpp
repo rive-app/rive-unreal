@@ -367,7 +367,7 @@ void URiveFile::Initialize()
 	{
 		if (!ensure(IsValid(ParentRiveFile)))
 		{
-			UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' beauce its Parent is not valid"), *GetNameSafe(this));
+			UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent is not valid"), *GetNameSafe(this));
 			BroadcastInitializationResult(false);
 			return;
 		}
@@ -377,7 +377,7 @@ void URiveFile::Initialize()
 			ParentRiveFile->Initialize();
 			if (ParentRiveFile->InitState < ERiveInitState::Initializing) 
 			{
-				UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' beauce its Parent '%s' cannot be initialized"), *GetNameSafe(this), *GetNameSafe(ParentRiveFile));
+				UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent '%s' cannot be initialized"), *GetNameSafe(this), *GetNameSafe(ParentRiveFile));
 				return;
 			}
 			
@@ -391,7 +391,7 @@ void URiveFile::Initialize()
 				}
 				else
 				{
-					UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' beauce its Parent '%s' cannot be initialized successfully"), *GetNameSafe(this), *GetNameSafe(ParentRiveFileInitialized));
+					UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent '%s' cannot be initialized successfully"), *GetNameSafe(this), *GetNameSafe(ParentRiveFileInitialized));
 				}
 			}));
 			return;
