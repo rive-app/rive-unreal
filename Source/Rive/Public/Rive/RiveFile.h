@@ -249,7 +249,7 @@ private:
 	UPROPERTY(EditAnywhere, Category=Rive)
 	TSubclassOf<UUserWidget> WidgetClass;
 
-	UPROPERTY(VisibleInstanceOnly, Category=Rive)
+	UPROPERTY(VisibleInstanceOnly, Transient, Category=Rive, meta=(NoResetToDefault))
 	ERiveInitState InitState = ERiveInitState::Uninitialized;
 
 	bool bIsReceivingInput = false;

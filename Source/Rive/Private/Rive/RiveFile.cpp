@@ -323,53 +323,17 @@ ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
 
 bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer)
 {
-	if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
-	{
-		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
-		return false;
-	}
-
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-
-	if (!RiveRenderer)
-	{
-		UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
-		return false;
-	}
-
-	if (!RiveRenderer->IsInitialized())
-	{
-		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer is not initialized."));
-		return false;
-	}
-
-#if WITH_RIVE
-
-	rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
-	if (!PLSRenderContext)
-	{
-		UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
-		return false;
-	}
-
 	RiveFilePath = InRiveFilePath;
 	RiveFileData = MoveTemp(InRiveFileBuffer);
-	RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
+	SetFlags(RF_NeedPostLoad);
+	ConditionalPostLoad();
 
-	TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(GetOutermost(), RiveFilePath, GetAssets());
-
-	rive::ImportResult ImportResult;
-	RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext,
-										   &ImportResult, AssetImporter.Get());
-	if (ImportResult != rive::ImportResult::success)
-	{
-		UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
-
-		return false;
-	}
-
-	return true;
-#endif // WITH_RIVE
+	// In Theory, the import should be synchronous as the IRiveRendererModule::Get().GetRenderer() should have been initialized,
+	// and the parent Rive File (if any) should already be loaded
+	ensureMsgf(WasLastInitializationSuccessful.IsSet(),
+		TEXT("The initialization of the Rive File '%s' ended up being asynchronous. EditorImport returning true as we don't know if the import was successful."));
+	
+	return WasLastInitializationSuccessful.Get(true);
 }
 
 #endif // WITH_EDITOR
