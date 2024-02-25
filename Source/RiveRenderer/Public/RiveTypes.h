@@ -99,3 +99,12 @@ public:
 		return Center;
 	}
 };
+
+UENUM(BlueprintType)
+enum class ERiveInitState : uint8
+{
+	Uninitialized = 0,
+	Deinitializing = 1,
+	Initializing = 2,
+	Initialized = 3,
+};

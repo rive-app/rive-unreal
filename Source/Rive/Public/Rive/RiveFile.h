@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IRiveRenderer.h"
 #include "IRiveRenderTarget.h"
 #include "RiveTypes.h"
 #include "RiveTexture.h"
@@ -142,13 +143,24 @@ public:
 
 	const URiveArtboard* GetArtboard() const;
 
+	ERiveInitState InitializationState() const { return InitState; }
+	bool IsInitialized() const { return InitState == ERiveInitState::Initialized; }
+	
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRiveFileInitialized, URiveFile*, bool /* bSuccess */ );
+	virtual void CallOrRegister_OnInitialized(FOnRiveFileInitialized::FDelegate&& Delegate);
+private:
+	void BroadcastInitializationResult(bool bSuccess);
+	TOptional<bool> WasLastInitializationSuccessful{};
+	FOnRiveFileInitialized OnInitializedDelegate;
+	
 protected:
 	void InstantiateArtboard();
-	
+	virtual void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const override;
+
 private:
 	void PopulateReportedEvents();
 	
-	URiveArtboard* InstantiateArtboard_Internal();
+	URiveArtboard* InstantiateArtboard_Internal(UE::Rive::Renderer::IRiveRenderer* RiveRenderer);
 
 public:
 	// This Event is triggered any time new LiveLink data is available, including in the editor
@@ -170,7 +182,7 @@ public:
 
 	TMap<uint32, TObjectPtr<URiveAsset>>& GetAssets()
 	{
-		if (ParentRiveFile)
+		if (IsValid(ParentRiveFile))
 		{
 			return ParentRiveFile->GetAssets();
 		}
@@ -180,10 +192,11 @@ public:
 
 	rive::File* GetNativeFile() const
 	{
-		if (ParentRiveFile)
+		if (IsValid(ParentRiveFile))
 		{
 			return ParentRiveFile->GetNativeFile();
-		} else if (RiveNativeFilePtr)
+		}
+		else if (RiveNativeFilePtr)
 		{
 			return RiveNativeFilePtr.get();
 		}
@@ -197,7 +210,7 @@ public:
 protected:
 	UPROPERTY(BlueprintAssignable)
 	FRiveEventDelegate RiveEventDelegate;
-
+	
 	UPROPERTY(BlueprintReadWrite, Category = Rive)
 	TArray<FRiveEvent> TickRiveReportedEvents;
 
@@ -238,8 +251,8 @@ private:
 	UPROPERTY(EditAnywhere, Category=Rive)
 	TSubclassOf<UUserWidget> WidgetClass;
 
-	bool bIsFileImported = false; //todo: find a better way to do this
-	bool bIsInitialized = false;
+	UPROPERTY(VisibleInstanceOnly, Transient, Category=Rive, meta=(NoResetToDefault))
+	ERiveInitState InitState = ERiveInitState::Uninitialized;
 
 	bool bIsReceivingInput = false;
 

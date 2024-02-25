@@ -6,6 +6,7 @@
 #include "RiveRenderTarget.h"
 
 #if WITH_RIVE
+#include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END

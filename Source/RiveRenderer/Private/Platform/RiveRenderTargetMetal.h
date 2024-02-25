@@ -7,6 +7,7 @@
 #include "RiveRenderTarget.h"
 
 #if WITH_RIVE
+#include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -46,7 +47,6 @@ namespace UE::Rive::Renderer::Private
     protected:
 
         virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
-        virtual void EndFrame() const override;
         
         //~ END : FRiveRenderTarget Interface
         

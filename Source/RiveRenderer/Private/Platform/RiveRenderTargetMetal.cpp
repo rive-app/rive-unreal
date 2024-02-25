@@ -11,14 +11,13 @@
 #include <Metal/Metal.h>
 
 #if WITH_RIVE
+#include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/pls/pls_renderer.hpp"
 #include "rive/pls/metal/pls_render_context_metal_impl.h"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
-
-UE_DISABLE_OPTIMIZATION
 
 UE::Rive::Renderer::Private::FRiveRenderTargetMetal::FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
     : FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget)
@@ -54,6 +53,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
     
     if (PixelFormat != PF_R8G8B8A8)
     {
+        const FString PixelFormatString = GetPixelFormatString(InTexture->GetFormat());
+        UE_LOG(LogRiveRenderer, Error, TEXT("Texture Target has the wrong Pixel Format '%s' (not PF_R8G8B8A8)"), *PixelFormatString);
+
         return;
     }
     
@@ -67,8 +69,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
         id<MTLTexture> MetalTexture = (id<MTLTexture>)InTexture->GetNativeResource();
         
         check(MetalTexture);
-        
-        UE_LOG(LogRiveRenderer, Warning, TEXT("MetalTexture texture %dx%d"), MetalTexture.width, MetalTexture.height);
+        NSUInteger Format = MetalTexture.pixelFormat;
+        UE_LOG(LogRiveRenderer, Verbose, TEXT("MetalTexture texture %dx%d"), MetalTexture.width, MetalTexture.height);
+        UE_LOG(LogRiveRenderer, Verbose, TEXT("  format: %d (MTLPixelFormatRGBA8Unorm_sRGB: %d , MTLPixelFormatRGBA8Unorm: %d)"), Format, MTLPixelFormatRGBA8Unorm_sRGB, MTLPixelFormatRGBA8Unorm);
 
 #if WITH_RIVE
         if (CachedPLSRenderTargetMetal)
@@ -94,6 +97,5 @@ rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTa
 }
 #endif // WITH_RIVE
 
-UE_ENABLE_OPTIMIZATION
 
 #endif // PLATFORM_APPLE
