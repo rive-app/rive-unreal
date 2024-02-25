@@ -76,11 +76,10 @@ void URiveFile::Tick(float InDeltaSeconds)
 
 		// Everything is now ready, we can start Rive Rendering
 		bIsInitialized = true;
+		OnArtboardChanged.Broadcast(this, Artboard);
 	}
 	if (bIsInitialized && bIsRendering)
 	{
-		// Empty reported events at the beginning
-		TickRiveReportedEvents.Empty();
 		if (GetArtboard())
 		{
 			Artboard->Tick(InDeltaSeconds);
@@ -414,6 +413,7 @@ void URiveFile::Initialize()
 #endif // PLATFORM_ANDROID
 			if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
 			{
+				ArtboardNames.Empty();
 				if (!ParentRiveFile)
 				{
 					const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
@@ -424,11 +424,22 @@ void URiveFile::Initialize()
 					RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult,
 														   FileAssetLoader.Get());
 
+					// UI Helper
+					for (int i = 0; i < RiveNativeFilePtr->artboardCount(); ++i)
+					{
+						rive::Artboard* NativeArtboard = RiveNativeFilePtr->artboard(i);
+						ArtboardNames.Add(NativeArtboard->name().c_str());
+					}
+					
 					if (ImportResult != rive::ImportResult::success)
 					{
 						UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
 						return;
 					}
+				}
+				else if (ensure(IsValid(ParentRiveFile)))
+				{
+					ArtboardNames = ParentRiveFile->ArtboardNames;
 				}
 
 				AsyncTask(ENamedThreads::GameThread, [this]() {
@@ -514,46 +525,6 @@ const URiveArtboard* URiveFile::GetArtboard() const
 	}
 #endif // WITH_RIVE
 	return nullptr;
-}
-
-void URiveFile::PopulateReportedEvents()
-{
-#if WITH_RIVE
-
-	if (!GetArtboard())
-	{
-		return;
-	}
-
-	if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
-	{
-		const int32 NumReportedEvents = StateMachine->GetReportedEventsCount();
-
-		TickRiveReportedEvents.Reserve(NumReportedEvents);
-
-		for (int32 EventIndex = 0; EventIndex < NumReportedEvents; EventIndex++)
-		{
-			const rive::EventReport ReportedEvent = StateMachine->GetReportedEvent(EventIndex);
-			if (ReportedEvent.event() != nullptr)
-			{
-				FRiveEvent RiveEvent;
-				RiveEvent.Initialize(ReportedEvent);
-				TickRiveReportedEvents.Add(MoveTemp(RiveEvent));
-			}
-		}
-
-		if (!TickRiveReportedEvents.IsEmpty())
-		{
-			RiveEventDelegate.Broadcast(TickRiveReportedEvents.Num());
-		}
-	}
-	else
-	{
-		UE_LOG(LogRive, Error,
-			   TEXT("Failed to populate reported event(s) as we could not retrieve native state machine."));
-	}
-
-#endif // WITH_RIVE
 }
 
 void URiveFile::PrintStats() const

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IRiveRenderTarget.h"
+#include "RiveArtboard.h"
 #include "RiveTypes.h"
 #include "RiveTexture.h"
 #include "RiveEvent.h"
@@ -29,11 +30,8 @@ UCLASS(BlueprintType, Blueprintable)
 class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveStateMachineDelegate, FRiveStateMachineEvent,
-												RiveStateMachineEvent);
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveEventDelegate, int32, NumEvents);
+	
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveFile*, RiveFile, URiveArtboard*, Artboard);
 
 	/**
 	 * Structor(s)
@@ -41,6 +39,7 @@ class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 
 public:
 	URiveFile();
+
 	
 	virtual void BeginDestroy() override;
 	
@@ -117,12 +116,18 @@ public:
 
 	void BeginInput()
 	{
-		bIsReceivingInput = true;
+		if (IsValid(Artboard))
+		{
+			Artboard->BeginInput();
+		}
 	}
 
 	void EndInput()
 	{
-		bIsReceivingInput = false;
+		if (IsValid(Artboard))
+		{
+			Artboard->EndInput();
+		}
 	}
 
 #if WITH_EDITOR
@@ -136,6 +141,9 @@ public:
 	 */
 	void Initialize();
 
+	UFUNCTION(BlueprintPure, Category = Rive)
+	bool IsInitialized() const { return bIsInitialized; }
+
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
@@ -144,14 +152,10 @@ public:
 
 protected:
 	void InstantiateArtboard();
-	
-private:
-	void PopulateReportedEvents();
 
 public:
-	// This Event is triggered any time new LiveLink data is available, including in the editor
-	UPROPERTY(BlueprintAssignable, Category = "LiveLink")
-	FRiveStateMachineDelegate OnRiveStateMachineDelegate;
+	UPROPERTY(BlueprintAssignable, Category = Rive)
+	FOnArtboardChanged OnArtboardChanged;
 
 	UPROPERTY()
 	TArray<uint8> RiveFileData;
@@ -192,12 +196,12 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<URiveFile> ParentRiveFile;
 
-protected:
-	UPROPERTY(BlueprintAssignable)
-	FRiveEventDelegate RiveEventDelegate;
+// protected:
+	// UPROPERTY(BlueprintAssignable)
+	// FRiveEventDelegate RiveEventDelegate;
 
-	UPROPERTY(BlueprintReadWrite, Category = Rive)
-	TArray<FRiveEvent> TickRiveReportedEvents;
+	// UPROPERTY(BlueprintReadWrite, Category = Rive)
+	// TArray<FRiveEvent> TickRiveReportedEvents;
 
 public:
 	// Index of the artboard this Rive file instance will default to; not exposed
@@ -205,14 +209,30 @@ public:
 	int32 ArtboardIndex;
 
 	// Artboard Name is used if specified, otherwise ArtboardIndex will always be used
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetArtboardNamesForDropdown"))
 	FString ArtboardName;
 
 	// StateMachine name to pass into our default artboard instance
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetStateMachineNamesForDropdown"))
 	FString StateMachineName;
 
 private:
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
+	TArray<FString> ArtboardNames;
+
+	UFUNCTION()
+	TArray<FString> GetArtboardNamesForDropdown() const
+	{
+		TArray<FString> Names {FString{}};
+		Names.Append(ArtboardNames);
+		return Names;
+	}
+	UFUNCTION()
+	TArray<FString> GetStateMachineNamesForDropdown() const
+	{
+		return Artboard ? Artboard->GetStateMachineNamesForDropdown() : TArray<FString>{};
+	}
+	
 	UPROPERTY(EditAnywhere, Category = Rive)
 	FLinearColor ClearColor = FLinearColor::Transparent;
 
@@ -239,11 +259,9 @@ private:
 	bool bIsFileImported = false; //todo: find a better way to do this
 	bool bIsInitialized = false;
 
-	bool bIsReceivingInput = false;
-
 	UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
 	URiveArtboard* Artboard = nullptr;
 
 	rive::Span<const uint8> RiveNativeFileSpan;

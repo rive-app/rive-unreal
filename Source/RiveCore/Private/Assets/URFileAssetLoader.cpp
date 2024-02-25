@@ -42,7 +42,7 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 			return false;
 		}
 
-		RiveAsset = NewObject<URiveAsset>(Outer, URiveAsset::StaticClass(), FName(FString::Printf(TEXT("%d"), InAsset.assetId())), RF_Transient);
+		RiveAsset = NewObject<URiveAsset>(Outer, URiveAsset::StaticClass(), MakeUniqueObjectName(Outer, URiveAsset::StaticClass(), FName(FString::Printf(TEXT("%d"), InAsset.assetId()))), RF_Transient);
 	} else
 	{
 		RiveAsset = RiveAssetPtr->Get();

@@ -36,6 +36,10 @@ UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativ
     }
 
     // Note: Even at this point, the state machine can still be empty, because there aren't any state machines in the artboard
+    if (NativeStateMachinePtr)
+    {
+        StateMachineName = NativeStateMachinePtr->name().c_str();
+    }
 }
 
 UE_DISABLE_OPTIMIZATION
@@ -96,6 +100,18 @@ void UE::Rive::Core::FURStateMachine::FireTrigger(const FString& InPropertyName)
     }
 
     UE_LOG(LogRiveCore, Error, TEXT("Could not fire the trigger with given name '%s' as we could not find it."), *InPropertyName);
+}
+
+void UE::Rive::Core::FURStateMachine::FireEvent(const FString& InPropertyName, float DelaySeconds) const
+{
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
+    if (!NativeStateMachinePtr)
+    {
+        return;
+    }
+    
 }
 
 bool UE::Rive::Core::FURStateMachine::GetBoolValue(const FString& InPropertyName) const
