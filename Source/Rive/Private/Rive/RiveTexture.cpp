@@ -8,7 +8,7 @@
 
 URiveTexture::URiveTexture()
 {
-#if PLATFORM_IOS
+#if PLATFORM_IOS || PLATFORM_MAC
 	SRGB = false;
 #else
 	SRGB = true;
@@ -85,11 +85,13 @@ void URiveTexture::InitializeResources() const
 				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
 				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | ETextureCreateFlags::RenderTargetable);
 
+#if !(PLATFORM_IOS || PLATFORM_MAC) //SRGB could hvae been manually overriden
 		if (SRGB)
 		{
 			RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::SRGB);
 		}
-	
+#endif
+		
 		RenderableTexture = RHICreateTexture(RenderTargetTextureDesc);
 		RenderableTexture->SetName(GetFName());
 		CurrentResource->TextureRHI = RenderableTexture;

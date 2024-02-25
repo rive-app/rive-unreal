@@ -53,6 +53,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
     
     if (PixelFormat != PF_R8G8B8A8)
     {
+        const FString PixelFormatString = GetPixelFormatString(InTexture->GetFormat());
+        UE_LOG(LogRiveRenderer, Error, TEXT("Texture Target has the wrong Pixel Format '%s' (not PF_R8G8B8A8)"), *PixelFormatString);
+
         return;
     }
     
@@ -66,8 +69,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
         id<MTLTexture> MetalTexture = (id<MTLTexture>)InTexture->GetNativeResource();
         
         check(MetalTexture);
-        
-        UE_LOG(LogRiveRenderer, Warning, TEXT("MetalTexture texture %dx%d"), MetalTexture.width, MetalTexture.height);
+        NSUInteger Format = MetalTexture.pixelFormat;
+        UE_LOG(LogRiveRenderer, Verbose, TEXT("MetalTexture texture %dx%d"), MetalTexture.width, MetalTexture.height);
+        UE_LOG(LogRiveRenderer, Verbose, TEXT("  format: %d (MTLPixelFormatRGBA8Unorm_sRGB: %d , MTLPixelFormatRGBA8Unorm: %d)"), Format, MTLPixelFormatRGBA8Unorm_sRGB, MTLPixelFormatRGBA8Unorm);
 
 #if WITH_RIVE
         if (CachedPLSRenderTargetMetal)
