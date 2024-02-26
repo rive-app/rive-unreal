@@ -179,14 +179,22 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::
 	{
 		return;
 	}
+
+	rive::Artboard* NativeArtboard = nullptr;
 	
-	const rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(TCHAR_TO_UTF8(*InName));
-	if (!NativeArtboard)
+	if (InName.IsEmpty())
 	{
-		UE_LOG(LogRiveCore, Error,
-			TEXT("Could not initialize the artboard by the name '%s'. Initializing with default artboard instead"),
-			*InName);
 		NativeArtboard = InNativeFilePtr->artboard();
+	} else
+	{
+		NativeArtboard = InNativeFilePtr->artboard(TCHAR_TO_UTF8(*InName));
+		if (!NativeArtboard)
+		{
+			UE_LOG(LogRiveCore, Error,
+				TEXT("Could not initialize the artboard by the name '%s'. Initializing with default artboard instead"),
+				*InName);
+			NativeArtboard = InNativeFilePtr->artboard();
+		}
 	}
 	Initialize_Internal(NativeArtboard);
 }
