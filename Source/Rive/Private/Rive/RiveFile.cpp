@@ -489,8 +489,8 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	{
 		Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardName, StateMachineName);
 	}
-	Artboard->RiveFitType = RiveFitType;
-	Artboard->RiveAlignment = RiveAlignment;
+
+	Artboard->OnArtboardTick_Render.AddDynamic(this, &URiveFile::OnArtboardTickRender);
 
 	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
 	RiveRenderTarget->Initialize();
@@ -510,6 +510,12 @@ void URiveFile::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHI
 	{
 		RenderTarget->CacheTextureTarget_RenderThread(RHICmdList, NewResource);
 	}
+}
+
+void URiveFile::OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard)
+{
+	InArtboard->Align(RiveFitType, RiveAlignment);
+	InArtboard->Draw();
 }
 
 void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)

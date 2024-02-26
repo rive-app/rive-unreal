@@ -215,6 +215,9 @@ public:
 	FString StateMachineName;
 
 private:
+	UFUNCTION()
+	void OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);
+	
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
 	TArray<FString> ArtboardNames;
 

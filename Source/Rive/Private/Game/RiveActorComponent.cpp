@@ -7,7 +7,6 @@
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
 #include "RiveArtboard.h"
-#include "URStateMachine.h"
 #include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
 
@@ -38,15 +37,10 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
         return;
     }
 
-    for (FRiveArtboardRenderData& ArtboardRenderData : RenderObjects) 
+    for (URiveArtboard* Artboard : RenderObjects) 
     {
-        if (!ArtboardRenderData.bIsReady)
-        {
-            continue;
-        }
-        
         RiveRenderTarget->Save();
-        ArtboardRenderData.Artboard->Tick(DeltaTime);
+        Artboard->Tick(DeltaTime);
         RiveRenderTarget->Restore();
     }
 
@@ -75,7 +69,7 @@ void URiveActorComponent::ResizeRenderTarget(int32 InSizeX, int32 InSizeY)
     RenderTarget->ResizeRenderTargets(FIntPoint(InSizeX, InSizeY));
 }
 
-URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, const FRiveArtboardRenderData& InArtboardRenderData)
+URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, const FString& InArtboardName, const FString& InStateMachineName)
 {
     if (!InRiveFile)
     {
@@ -103,14 +97,10 @@ URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, c
         return nullptr;
     }
     
-    FRiveArtboardRenderData Data = InArtboardRenderData;
+    // FRiveArtboardRenderData Data = InArtboardRenderData;
     URiveArtboard* Artboard = NewObject<URiveArtboard>();
-    Artboard->Initialize(InRiveFile->GetNativeFile(), RiveRenderTarget, Data.ArtboardName, Data.StateMachineName);
-    Artboard->RiveAlignment = InArtboardRenderData.Alignment;
-    Artboard->RiveFitType = InArtboardRenderData.FitType;
-    Data.Artboard = Artboard;
-    Data.bIsReady = true;
-    RenderObjects.Add(Data);
+    Artboard->Initialize(InRiveFile->GetNativeFile(), RiveRenderTarget, InArtboardName, InStateMachineName);    
+    RenderObjects.Add(Artboard);
     
     return Artboard;
 }

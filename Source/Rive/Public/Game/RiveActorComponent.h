@@ -11,45 +11,6 @@ class URiveTexture;
 class URiveArtboard;
 class URiveFile;
 
-USTRUCT(BlueprintType)
-struct RIVE_API FRiveArtboardRenderData
-{
-    GENERATED_BODY()
-public:
-
-    FRiveArtboardRenderData(): FitType(ERiveFitType::Cover), Alignment(ERiveAlignment::Center), bIsReady(false)
-    {
-    }
-
-    bool IsValid() const
-    {
-        return Artboard != nullptr;	
-    }
-	
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
-    FString ArtboardName;
-
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
-    FString StateMachineName;
-
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
-    ERiveFitType FitType;
-
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
-    ERiveAlignment Alignment;
-
-    UPROPERTY()
-    URiveArtboard* Artboard;
-
-    mutable bool bIsReady;
-};
-
-template <>
-struct TStructOpsTypeTraits<FRiveArtboardRenderData> : public TStructOpsTypeTraitsBase2<FRiveArtboardRenderData>
-{
-    enum { WithCopy = false };
-};
-
 UCLASS(ClassGroup = (Custom), Meta = (BlueprintSpawnableComponent))
 class RIVE_API URiveActorComponent : public UActorComponent
 {
@@ -84,12 +45,9 @@ public:
     void ResizeRenderTarget(int32 InSizeX, int32 InSizeY);
 
     UFUNCTION(BlueprintCallable)
-    URiveArtboard* InstantiateArtboard(URiveFile* InRiveFile, const FRiveArtboardRenderData& InArtboardRenderData);
+    URiveArtboard* InstantiateArtboard(URiveFile* InRiveFile, const FString& InArtboardName, const FString& InStateMachineName);
     
 protected:
-    // void Tick_StateMachine(float DeltaTime, FRiveArtboardRenderData& InArtboardRenderData);
-    // void Tick_Render(FRiveArtboardRenderData& InArtboardRenderData);
-    
     /**
      * Attribute(s)
      */
@@ -100,7 +58,7 @@ public:
     FIntPoint Size;
     
     UPROPERTY(BlueprintReadWrite, SkipSerialization, Transient, Category=Rive)
-    TArray<FRiveArtboardRenderData> RenderObjects;
+    TArray<URiveArtboard*> RenderObjects;
 
     UPROPERTY(BlueprintReadWrite, Transient)
     TObjectPtr<URiveTexture> RenderTarget;

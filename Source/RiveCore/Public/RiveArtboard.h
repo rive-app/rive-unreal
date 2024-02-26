@@ -42,13 +42,6 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FRiveTickDelegate OnArtboardTick_StateMachine;
 
-	UPROPERTY(EditAnywhere, Category = Rive)
-	ERiveFitType RiveFitType = ERiveFitType::Contain;
-
-	/* This property is not editable via Editor in Unity, so we'll hide it also */
-	UPROPERTY()
-	ERiveAlignment RiveAlignment = ERiveAlignment::Center;
-
 	UFUNCTION(BlueprintCallable)
 	FVector2f GetSize() const;
 	
@@ -77,8 +70,8 @@ public:
 #if WITH_RIVE
 	
 	void Initialize(rive::File* InNativeFilePtr, const UE::Rive::Renderer::IRiveRenderTargetPtr& InRiveRenderTarget);
-	void Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget, int32 InIndex, const FString& InStateMachineName = TEXT_EMPTY, ERiveFitType InFitType = ERiveFitType::Cover, ERiveAlignment InAlignment = ERiveAlignment::Center);
-	void Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget, const FString& InName, const FString& InStateMachineName = TEXT_EMPTY, ERiveFitType InFitType = ERiveFitType::Cover, ERiveAlignment InAlignment = ERiveAlignment::Center);
+	void Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget, int32 InIndex, const FString& InStateMachineName);
+	void Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget, const FString& InName, const FString& InStateMachineName);
 	void SetRenderTarget(const UE::Rive::Renderer::IRiveRenderTargetPtr& InRiveRenderTarget) { RiveRenderTarget = InRiveRenderTarget; }
 	
 	bool IsInitialized() const { return bIsInitialized; }

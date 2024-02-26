@@ -147,15 +147,12 @@ bool URiveArtboard::TriggerNamedRiveEvent(const FString& EventName, float Report
 
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr, const UE::Rive::Renderer::IRiveRenderTargetPtr& InRiveRenderTarget)
 {
-	Initialize(InNativeFilePtr, InRiveRenderTarget, 0);
+	Initialize(InNativeFilePtr, InRiveRenderTarget, 0, "");
 }
 
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget,
-                               int32 InIndex, const FString& InStateMachineName, ERiveFitType InFitType,
-                               ERiveAlignment InAlignment)
+                               int32 InIndex, const FString& InStateMachineName)
 {
-	RiveFitType = InFitType;
-	RiveAlignment = InAlignment;
 	RiveRenderTarget = InRiveRenderTarget;
 	StateMachineName = InStateMachineName;
 	
@@ -184,11 +181,8 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::
 }
 
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget,
-                               const FString& InName, const FString& InStateMachineName, ERiveFitType InFitType,
-                               ERiveAlignment InAlignment)
+                               const FString& InName, const FString& InStateMachineName)
 {
-	RiveFitType = InFitType;
-	RiveAlignment = InAlignment;
 	RiveRenderTarget = InRiveRenderTarget;
 	StateMachineName = InStateMachineName;
 	
@@ -227,7 +221,6 @@ void URiveArtboard::Tick_Render(float InDeltaSeconds)
 	}
 	else
 	{
-		Align(RiveFitType, RiveAlignment);
 		Draw();
 	}
 }
