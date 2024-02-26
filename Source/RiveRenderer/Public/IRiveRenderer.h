@@ -44,7 +44,8 @@ namespace UE::Rive::Renderer
          */
 
     public:
-
+        DECLARE_MULTICAST_DELEGATE_OneParam( FOnRendererInitialized, IRiveRenderer* /* Rive Renderer */ );
+        
         virtual ~IRiveRenderer() = default;
 
         /**
@@ -68,6 +69,8 @@ namespace UE::Rive::Renderer
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) = 0;
 
         virtual FCriticalSection& GetThreadDataCS() = 0;
+
+        virtual void CallOrRegister_OnInitialized(FOnRendererInitialized::FDelegate&& Delegate) = 0;
     
 #if WITH_RIVE
 

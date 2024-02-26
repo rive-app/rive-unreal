@@ -40,7 +40,7 @@ namespace UE::Rive::Core
     	}
 #if WITH_RIVE
 
-        explicit FURStateMachine(rive::ArtboardInstance* InNativeArtboardInst, const FString& InStateMachineName = TEXT_EMPTY);
+        explicit FURStateMachine(rive::ArtboardInstance* InNativeArtboardInst, const FString& InStateMachineName);
 
         /**
          * Implementation(s)

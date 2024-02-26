@@ -11,6 +11,7 @@
 #include <Metal/Metal.h>
 
 #if WITH_RIVE
+#include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/pls/metal/pls_render_context_metal_impl.h"

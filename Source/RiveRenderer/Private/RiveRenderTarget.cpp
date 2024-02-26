@@ -7,6 +7,7 @@
 #include "Engine/Texture2DDynamic.h"
 #include "Logs/RiveRendererLog.h"
 
+#include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/pls/pls_renderer.hpp"
@@ -17,9 +18,9 @@ FTimespan UE::Rive::Renderer::Private::FRiveRenderTarget::ResetTimeLimit = FTime
 UE_DISABLE_OPTIMIZATION
 
 UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
-	: RiveRenderer(InRiveRenderer)
-	, RiveName(InRiveName)
+	: RiveName(InRiveName)
 	, RenderTarget(InRenderTarget)
+	, RiveRenderer(InRiveRenderer)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 }

@@ -8,7 +8,7 @@
 
 URiveTexture::URiveTexture()
 {
-#if PLATFORM_IOS
+#if PLATFORM_IOS || PLATFORM_MAC
 	SRGB = false;
 #else
 	SRGB = true;
@@ -45,8 +45,8 @@ void URiveTexture::PostLoad()
 
 void URiveTexture::ResizeRenderTargets(const FIntPoint InNewSize)
 {
-	if (ensure(InNewSize.X >= RIVE_MIN_TEX_RESOLUTION) || ensure(InNewSize.Y >= RIVE_MIN_TEX_RESOLUTION)
-		|| ensure(InNewSize.X <= RIVE_MAX_TEX_RESOLUTION) || ensure(InNewSize.Y <= RIVE_MAX_TEX_RESOLUTION))
+	if (!(ensure(InNewSize.X >= RIVE_MIN_TEX_RESOLUTION) || ensure(InNewSize.Y >= RIVE_MIN_TEX_RESOLUTION)
+		|| ensure(InNewSize.X <= RIVE_MAX_TEX_RESOLUTION) || ensure(InNewSize.Y <= RIVE_MAX_TEX_RESOLUTION)))
 	{
 		UE_LOG(LogRive, Error, TEXT("Wrong Rive Texture Size X:%d, Y:%d"), InNewSize.X, InNewSize.Y);
 	}
@@ -85,15 +85,19 @@ void URiveTexture::InitializeResources() const
 				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
 				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | ETextureCreateFlags::RenderTargetable);
 
+#if !(PLATFORM_IOS || PLATFORM_MAC) //SRGB could hvae been manually overriden
 		if (SRGB)
 		{
 			RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::SRGB);
 		}
-	
+#endif
+		
 		RenderableTexture = RHICreateTexture(RenderTargetTextureDesc);
 		RenderableTexture->SetName(GetFName());
 		CurrentResource->TextureRHI = RenderableTexture;
 
 		RHIUpdateTextureReference(TextureReference.TextureReferenceRHI, CurrentResource->TextureRHI);
+		// When the resource change, we need to tell the RiveFile otherwise we will keep on drawing on an outdated RT
+		OnResourceInitialized_RenderThread(RHICmdList, CurrentResource->TextureRHI);
 	});
 }

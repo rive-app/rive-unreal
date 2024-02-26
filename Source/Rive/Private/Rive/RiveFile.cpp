@@ -24,8 +24,7 @@ URiveFile::URiveFile()
 
 void URiveFile::BeginDestroy()
 {
-	bIsInitialized = false;
-	bIsFileImported = false;
+	InitState = ERiveInitState::Deinitializing;
 	
 	RiveRenderTarget.Reset();
 	
@@ -52,32 +51,8 @@ void URiveFile::Tick(float InDeltaSeconds)
 		return;
 	}
 
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-
 #if WITH_RIVE
-	if (!bIsInitialized && bIsFileImported && GetArtboard()) //todo: move away from Tick
-	{
-		if (!bManualSize)
-		{
-			ResizeRenderTargets(Artboard->GetSize());
-		}
-		else
-		{
-			ResizeRenderTargets(Size);
-		}
-		
-		// Initialize Rive Render Target Only after we resize the texture
-		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
-		Artboard->SetRenderTarget(RiveRenderTarget);
-		
-		// It will remove old reference if exists
-		RiveRenderTarget->SetClearColor(ClearColor);
-		RiveRenderTarget->Initialize();
-
-		// Everything is now ready, we can start Rive Rendering
-		bIsInitialized = true;
-	}
-	if (bIsInitialized && bIsRendering)
+	if (IsInitialized() && bIsRendering)
 	{
 		// Empty reported events at the beginning
 		TickRiveReportedEvents.Empty();
@@ -122,7 +97,8 @@ void URiveFile::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& P
 	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveFile, Size))
 	{
 		ResizeRenderTargets(Size);
-	} else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveFile, ClearColor))
+	}
+	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveFile, ClearColor))
 	{
 		if (RiveRenderTarget)
 		{
@@ -307,143 +283,156 @@ ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
 
 bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer)
 {
-	if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
-	{
-		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
-		return false;
-	}
-
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-
-	if (!RiveRenderer)
-	{
-		UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
-		return false;
-	}
-
-	if (!RiveRenderer->IsInitialized())
-	{
-		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer is not initialized."));
-		return false;
-	}
-
-#if WITH_RIVE
-
-	rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
-	if (!PLSRenderContext)
-	{
-		UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
-		return false;
-	}
-
 	RiveFilePath = InRiveFilePath;
 	RiveFileData = MoveTemp(InRiveFileBuffer);
-	RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
+	SetFlags(RF_NeedPostLoad);
+	ConditionalPostLoad();
 
-	TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(GetOutermost(), RiveFilePath, GetAssets());
-
-	rive::ImportResult ImportResult;
-	RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext,
-										   &ImportResult, AssetImporter.Get());
-	if (ImportResult != rive::ImportResult::success)
-	{
-		UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
-
-		return false;
-	}
-
-	return true;
-#endif // WITH_RIVE
+	// In Theory, the import should be synchronous as the IRiveRendererModule::Get().GetRenderer() should have been initialized,
+	// and the parent Rive File (if any) should already be loaded
+	ensureMsgf(WasLastInitializationSuccessful.IsSet(),
+		TEXT("The initialization of the Rive File '%s' ended up being asynchronous. EditorImport returning true as we don't know if the import was successful."));
+	
+	return WasLastInitializationSuccessful.Get(true);
 }
 
 #endif // WITH_EDITOR
 
 void URiveFile::Initialize()
 {
+	if (InitState != ERiveInitState::Uninitialized)
+	{
+		return;
+	}
+	WasLastInitializationSuccessful.Reset();
+	
 	if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
 	{
 		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
+		BroadcastInitializationResult(false);
 		return;
 	}
 
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-
-	if (!RiveRenderer)
+	if (!ensure(RiveRenderer))
 	{
 		UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
-		return;
-	}
-
-	if (!RiveRenderer->IsInitialized())
-	{
-		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer is not initialized."));
+		BroadcastInitializationResult(false);
 		return;
 	}
 
 #if WITH_RIVE
-
-	if (ParentRiveFile && !ParentRiveFile->bIsFileImported)
+	
+	if (ParentRiveFile)
 	{
-		ParentRiveFile->Initialize();
-
-		// TODO: We might have to wait for the parent to finalize initializing before we can continue here.
-	}
-
-	if (!ParentRiveFile)
-	{
-		if (RiveNativeFileSpan.empty())
+		if (!ensure(IsValid(ParentRiveFile)))
 		{
-			if (RiveFileData.IsEmpty())
+			UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent is not valid"), *GetNameSafe(this));
+			BroadcastInitializationResult(false);
+			return;
+		}
+
+		if (!ParentRiveFile->IsInitialized())
+		{
+			ParentRiveFile->Initialize();
+			if (ParentRiveFile->InitState < ERiveInitState::Initializing) 
 			{
-				UE_LOG(LogRive, Error, TEXT("Could not load an empty Rive File Data."));
+				UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent '%s' cannot be initialized"), *GetNameSafe(this), *GetNameSafe(ParentRiveFile));
 				return;
 			}
-			RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
+			
+			InitState = ERiveInitState::Initializing;
+			ParentRiveFile->CallOrRegister_OnInitialized(FOnRiveFileInitialized::FDelegate::CreateLambda([this](URiveFile* ParentRiveFileInitialized, bool bSuccess)
+			{
+				InitState = ERiveInitState::Uninitialized; // to be able to enter the Initialize function
+				if (bSuccess)
+				{
+					Initialize();
+				}
+				else
+				{
+					UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent '%s' cannot be initialized successfully"), *GetNameSafe(this), *GetNameSafe(ParentRiveFileInitialized));
+				}
+			}));
+			return;
 		}
 	}
-
-	bIsFileImported = false;
-	Artboard = NewObject<URiveArtboard>(this); // Should be created in Game Thread
-	
-	ENQUEUE_RENDER_COMMAND(URiveFileInitialize)(
-	[this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
+	else if (RiveNativeFileSpan.empty())
 	{
-#if PLATFORM_ANDROID
-	   RHICmdList.EnqueueLambda(TEXT("URiveFile::Initialize"), [this, RiveRenderer](FRHICommandListImmediate& RHICmdList)
-	   {
-#endif // PLATFORM_ANDROID
-			if (rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr())
+		if (RiveFileData.IsEmpty())
+		{
+			UE_LOG(LogRive, Error, TEXT("Could not load an empty Rive File Data."));
+			return;
+		}
+		RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
+	}
+
+	InitState = ERiveInitState::Initializing;
+	
+	RiveRenderer->CallOrRegister_OnInitialized(UE::Rive::Renderer::IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
+	[this](UE::Rive::Renderer::IRiveRenderer* RiveRenderer)
+	{
+		rive::pls::PLSRenderContext* PLSRenderContext;
+		{
+			FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+			PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
+		}
+		
+		if (ensure(PLSRenderContext))
+		{
+			if (!ParentRiveFile)
 			{
-				if (!ParentRiveFile)
+				const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
+					UE::Rive::Assets::FURFileAssetLoader>(this, GetAssets());
+				rive::ImportResult ImportResult;
+				
+				RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult,
+													   FileAssetLoader.Get());
+
+				if (ImportResult != rive::ImportResult::success)
 				{
-					const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
-						UE::Rive::Assets::FURFileAssetLoader>(this, GetAssets());
-					rive::ImportResult ImportResult;
-
-					FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-					RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult,
-														   FileAssetLoader.Get());
-
-					if (ImportResult != rive::ImportResult::success)
-					{
-						UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
-						return;
-					}
+					UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
+					BroadcastInitializationResult(false);
+					return;
 				}
-
-				AsyncTask(ENamedThreads::GameThread, [this]() {
-					InstantiateArtboard();
-				});
+			}
+			
+			InstantiateArtboard_Internal(RiveRenderer);
+			if (ensure(GetArtboard()))
+			{
+				BroadcastInitializationResult(true);
 			}
 			else
 			{
-				UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid context."));
+				UE_LOG(LogRive, Error, TEXT("Failed to instantiate the Artboard after importing hte rive file."));
+				BroadcastInitializationResult(false);
 			}
-#if PLATFORM_ANDROID
-	   });
-#endif // PLATFORM_ANDROID
-	});
+			return;
+		}
+
+		UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
+		BroadcastInitializationResult(false);
+	}));
 #endif // WITH_RIVE
+}
+
+void URiveFile::CallOrRegister_OnInitialized(FOnRiveFileInitialized::FDelegate&& Delegate)
+{
+	if (WasLastInitializationSuccessful.IsSet())
+	{
+		Delegate.Execute(this, WasLastInitializationSuccessful.GetValue());
+	}
+	else
+	{
+		OnInitializedDelegate.Add(MoveTemp(Delegate));
+	}
+}
+
+void URiveFile::BroadcastInitializationResult(bool bSuccess)
+{
+	WasLastInitializationSuccessful = bSuccess;
+	InitState = bSuccess ? ERiveInitState::Initialized : ERiveInitState::Uninitialized;
+	OnInitializedDelegate.Broadcast(this, bSuccess);
 }
 
 void URiveFile::InstantiateArtboard()
@@ -474,29 +463,15 @@ void URiveFile::InstantiateArtboard()
 		return;
 	}
 
-	bIsInitialized = false;
-	bIsFileImported = false;
+	InstantiateArtboard_Internal(RiveRenderer);
+}
 
-	Artboard = NewObject<URiveArtboard>(this); // Should be created in Game Thread
-
-	RiveRenderTarget.Reset();
-
-	if (GetNativeFile())
+void URiveFile::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const
+{
+	// When the resource change, we need to tell the Render Target otherwise we will keep on drawing on an outdated RT
+	if (const UE::Rive::Renderer::IRiveRenderTargetPtr RenderTarget = RiveRenderTarget) //todo: might need a lock
 	{
-		if (ArtboardName.IsEmpty())
-		{
-			Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardIndex, StateMachineName);
-		}
-		else
-		{
-			Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardName, StateMachineName);
-		}
-
-		Artboard->RiveFitType = RiveFitType;
-		Artboard->RiveAlignment = RiveAlignment;
-		
-		PrintStats();
-		bIsFileImported = true;
+		RenderTarget->CacheTextureTarget_RenderThread(RHICmdList, NewResource);
 	}
 }
 
@@ -554,6 +529,43 @@ void URiveFile::PopulateReportedEvents()
 	}
 
 #endif // WITH_RIVE
+}
+
+URiveArtboard* URiveFile::InstantiateArtboard_Internal(UE::Rive::Renderer::IRiveRenderer* RiveRenderer)
+{
+	RiveRenderTarget.Reset();
+
+	if (GetNativeFile())
+	{
+		Artboard = NewObject<URiveArtboard>(this);
+		if (ArtboardName.IsEmpty())
+		{
+			Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardIndex, StateMachineName);
+		}
+		else
+		{
+			Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardName, StateMachineName);
+		}
+
+		PrintStats();
+		
+		ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
+		
+		// Initialize Rive Render Target Only after we resize the texture
+		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
+
+		// It will remove old reference if exists
+		RiveRenderTarget->SetClearColor(ClearColor);
+		RiveRenderTarget->Initialize();
+
+		// Setup the draw pipeline; only needs to be called once
+		// The list of draw commands won't get cleared, and instead will be called each time via Submit()
+		RiveRenderTarget->Align(RiveFitType, FRiveAlignment::GetAlignment(RiveAlignment), Artboard->GetNativeArtboard());
+		RiveRenderTarget->Draw(Artboard->GetNativeArtboard());
+		
+		return Artboard;
+	}
+	return nullptr;
 }
 
 void URiveFile::PrintStats() const
