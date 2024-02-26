@@ -42,7 +42,7 @@ namespace UE::Rive::Core
     	}
 #if WITH_RIVE
 
-        explicit FURStateMachine(rive::ArtboardInstance* InNativeArtboardInst, const FString& InStateMachineName = TEXT_EMPTY);
+        explicit FURStateMachine(rive::ArtboardInstance* InNativeArtboardInst, const FString& InStateMachineName);
 
         /**
          * Implementation(s)
@@ -58,8 +58,6 @@ namespace UE::Rive::Core
 
         void FireTrigger(const FString& InPropertyName) const;
     	
-        void FireEvent(const FString& InPropertyName, float DelaySeconds) const;
-
         bool GetBoolValue(const FString& InPropertyName) const;
 
         float GetNumberValue(const FString& InPropertyName) const;

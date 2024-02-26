@@ -141,17 +141,27 @@ public:
 	 */
 	void Initialize();
 
-	UFUNCTION(BlueprintPure, Category = Rive)
-	bool IsInitialized() const { return bIsInitialized; }
-
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
 	const URiveArtboard* GetArtboard() const;
 
+	ERiveInitState InitializationState() const { return InitState; }
+	UFUNCTION(BlueprintPure, Category = Rive)
+	bool IsInitialized() const { return InitState == ERiveInitState::Initialized; }
+	
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRiveFileInitialized, URiveFile*, bool /* bSuccess */ );
+	virtual void CallOrRegister_OnInitialized(FOnRiveFileInitialized::FDelegate&& Delegate);
+private:
+	void BroadcastInitializationResult(bool bSuccess);
+	TOptional<bool> WasLastInitializationSuccessful{};
+	FOnRiveFileInitialized OnInitializedDelegate;
+	
 protected:
-	void InstantiateArtboard();
+	void InstantiateArtboard(bool bRaiseArtboardChangedEvent = true);
+
+	virtual void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const override;
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = Rive)
@@ -172,20 +182,16 @@ public:
 
 	TMap<uint32, TObjectPtr<URiveAsset>>& GetAssets()
 	{
-		if (ParentRiveFile)
-		{
-			return ParentRiveFile->GetAssets();
-		}
-
-		return Assets;
+		return IsValid(ParentRiveFile) ? ParentRiveFile->GetAssets() : Assets;
 	}
 
 	rive::File* GetNativeFile() const
 	{
-		if (ParentRiveFile)
+		if (IsValid(ParentRiveFile))
 		{
 			return ParentRiveFile->GetNativeFile();
-		} else if (RiveNativeFilePtr)
+		}
+		else if (RiveNativeFilePtr)
 		{
 			return RiveNativeFilePtr.get();
 		}
@@ -193,15 +199,8 @@ public:
 		return nullptr;
 	}
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category=Rive)
 	TObjectPtr<URiveFile> ParentRiveFile;
-
-// protected:
-	// UPROPERTY(BlueprintAssignable)
-	// FRiveEventDelegate RiveEventDelegate;
-
-	// UPROPERTY(BlueprintReadWrite, Category = Rive)
-	// TArray<FRiveEvent> TickRiveReportedEvents;
 
 public:
 	// Index of the artboard this Rive file instance will default to; not exposed
@@ -256,8 +255,8 @@ private:
 	UPROPERTY(EditAnywhere, Category=Rive)
 	TSubclassOf<UUserWidget> WidgetClass;
 
-	bool bIsFileImported = false; //todo: find a better way to do this
-	bool bIsInitialized = false;
+	UPROPERTY(VisibleInstanceOnly, Transient, Category=Rive, meta=(NoResetToDefault))
+	ERiveInitState InitState = ERiveInitState::Uninitialized;
 
 	UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
 

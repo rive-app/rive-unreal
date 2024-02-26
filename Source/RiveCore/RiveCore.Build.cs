@@ -40,6 +40,7 @@ public class RiveCore : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"Core",
 				"CoreUObject",
 				"Engine",
                 "Projects",

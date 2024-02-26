@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IRiveRenderer.h"
+#include "RiveTypes.h"
 
 #if WITH_RIVE
 
@@ -36,7 +37,7 @@ namespace UE::Rive::Renderer::Private
 
         virtual void Initialize() override;
 
-        virtual bool IsInitialized() const override { return bIsInitialized; }
+        virtual bool IsInitialized() const override { return InitializationState == ERiveInitState::Initialized; }
 
         virtual void QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile) override;
 
@@ -45,6 +46,8 @@ namespace UE::Rive::Renderer::Private
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) override;
 
         virtual FCriticalSection& GetThreadDataCS() override { return ThreadDataCS; }
+
+        virtual void CallOrRegister_OnInitialized(FOnRendererInitialized::FDelegate&& Delegate) override;
 
 #if WITH_RIVE
 
@@ -77,7 +80,7 @@ namespace UE::Rive::Renderer::Private
         mutable FCriticalSection ThreadDataCS;
 
     protected:
-
-        bool bIsInitialized = false;
+        ERiveInitState InitializationState = ERiveInitState::Uninitialized;
+        FOnRendererInitialized OnInitializedDelegate;
     };
 }

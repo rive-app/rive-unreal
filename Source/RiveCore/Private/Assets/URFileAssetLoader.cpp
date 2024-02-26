@@ -23,17 +23,16 @@ UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(UObject* InOuter, TMap<
 bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes,
                                                         rive::Factory* InFactory)
 {
-	rive::Span<const uint8>* AssetBytes = &InBandBytes;
-	bool bUseInBand = InBandBytes.size() > 0;
-
-
+	const rive::Span<const uint8>* AssetBytes = &InBandBytes;
+	const bool bUseInBand = InBandBytes.size() > 0;
+	
 	// We can take two paths here
 	// 1. Either search for a file to load off disk (or in the Unreal registry)
 	// 2. Or use InBandbytes if no other options are found to load
 	// Unity version prefers disk assets, over InBand, if they exist, allowing overrides
-
+	
 	URiveAsset* RiveAsset = nullptr;
-	TObjectPtr<URiveAsset>* RiveAssetPtr = Assets.Find(InAsset.assetId());
+	const TObjectPtr<URiveAsset>* RiveAssetPtr = Assets.Find(InAsset.assetId());
 	if (RiveAssetPtr == nullptr)
 	{
 		if (!bUseInBand)
@@ -41,9 +40,12 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 			UE_LOG(LogRiveCore, Error, TEXT("Could not find pre-loaded asset. This means the initial import probably failed."));
 			return false;
 		}
-
-		RiveAsset = NewObject<URiveAsset>(Outer, URiveAsset::StaticClass(), MakeUniqueObjectName(Outer, URiveAsset::StaticClass(), FName(FString::Printf(TEXT("%d"), InAsset.assetId()))), RF_Transient);
-	} else
+		
+		RiveAsset = NewObject<URiveAsset>(Outer, URiveAsset::StaticClass(),
+			MakeUniqueObjectName(Outer, URiveAsset::StaticClass(), FName{FString::Printf(TEXT("%d"),InAsset.assetId())}),
+			RF_Transient);
+	}
+	else
 	{
 		RiveAsset = RiveAssetPtr->Get();
 	}

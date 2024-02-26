@@ -64,7 +64,7 @@ public:
 	bool TriggerNamedRiveEvent(const FString& EventName, float ReportedDelaySeconds);
 	
 #if WITH_RIVE
-
+	
 	void Initialize(rive::File* InNativeFilePtr, const UE::Rive::Renderer::IRiveRenderTargetPtr& InRiveRenderTarget);
 	void Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget, int32 InIndex, const FString& InStateMachineName = TEXT_EMPTY, ERiveFitType InFitType = ERiveFitType::Cover, ERiveAlignment InAlignment = ERiveAlignment::Center);
 	void Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget, const FString& InName, const FString& InStateMachineName = TEXT_EMPTY, ERiveFitType InFitType = ERiveFitType::Cover, ERiveAlignment InAlignment = ERiveAlignment::Center);

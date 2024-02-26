@@ -34,16 +34,16 @@ class RIVECORE_API URiveAsset : public UObject
 public:
 	virtual void PostLoad() override;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category=Rive)
 	uint32 Id;
 	
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category=Rive)
 	ERiveAssetType Type;
 	
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category=Rive)
 	FString Name;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category=Rive)
 	bool bIsInBand;
 
 	UPROPERTY()

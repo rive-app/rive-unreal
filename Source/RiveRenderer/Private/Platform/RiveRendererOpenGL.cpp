@@ -10,6 +10,7 @@
 #include "Logs/RiveRendererLog.h"
 
 #if WITH_RIVE
+#include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/pls/gl/pls_render_context_gl_impl.hpp"
 #include "rive/pls/pls_renderer.hpp"
@@ -56,13 +57,19 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::Initialize()
 
 	if (IRiveRendererModule::RunInGameThread())
 	{
-		FScopeLock Lock(&ThreadDataCS);
+		{
+			FScopeLock Lock(&ThreadDataCS);
+			if (InitializationState != ERiveInitState::Uninitialized)
+			{
+				return;
+			}
+			InitializationState = ERiveInitState::Initializing;
 		
-		CreatePLSContext_GameThread();
-		// CreatePLSRenderer_RenderThread(RHICmdList);
-
-		// Should give more data how that was initialized
-		bIsInitialized = true;
+			CreatePLSContext_GameThread();
+			InitializationState = ERiveInitState::Initialized;
+		}
+		
+		OnInitializedDelegate.Broadcast(this);
 	}
 	else
 	{
