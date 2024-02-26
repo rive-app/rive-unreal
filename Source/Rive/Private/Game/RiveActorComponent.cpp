@@ -102,10 +102,12 @@ URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, c
         UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer is not initialized."));
         return nullptr;
     }
-
+    
     FRiveArtboardRenderData Data = InArtboardRenderData;
     URiveArtboard* Artboard = NewObject<URiveArtboard>();
     Artboard->Initialize(InRiveFile->GetNativeFile(), RiveRenderTarget, Data.ArtboardName, Data.StateMachineName);
+    Artboard->RiveAlignment = InArtboardRenderData.Alignment;
+    Artboard->RiveFitType = InArtboardRenderData.FitType;
     Data.Artboard = Artboard;
     Data.bIsReady = true;
     RenderObjects.Add(Data);
