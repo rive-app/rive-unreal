@@ -97,7 +97,6 @@ URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, c
         return nullptr;
     }
     
-    // FRiveArtboardRenderData Data = InArtboardRenderData;
     URiveArtboard* Artboard = NewObject<URiveArtboard>();
     Artboard->Initialize(InRiveFile->GetNativeFile(), RiveRenderTarget, InArtboardName, InStateMachineName);    
     RenderObjects.Add(Artboard);

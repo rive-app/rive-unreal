@@ -28,18 +28,18 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveEventDelegate, URiveArtboard*, Artboard, TArray<FRiveEvent>, ReportedEvents);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveNamedEventDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveNamedEventsDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveTickDelegate, float, DeltaTime, URiveArtboard*, Artboard);
+	
+	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveTickDelegate, float, DeltaTime, URiveArtboard*, Artboard);
 	
 	virtual void BeginDestroy() override;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetStateMachineNamesForDropdown"))
 	FString StateMachineName;
 	
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintReadWrite)
 	FRiveTickDelegate OnArtboardTick_Render;
 
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintReadWrite)
 	FRiveTickDelegate OnArtboardTick_StateMachine;
 
 	UFUNCTION(BlueprintCallable)

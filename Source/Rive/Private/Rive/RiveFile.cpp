@@ -490,7 +490,7 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 		Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardName, StateMachineName);
 	}
 
-	Artboard->OnArtboardTick_Render.AddDynamic(this, &URiveFile::OnArtboardTickRender);
+	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveFile::OnArtboardTickRender);
 
 	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
 	RiveRenderTarget->Initialize();

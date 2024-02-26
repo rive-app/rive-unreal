@@ -217,7 +217,7 @@ void URiveArtboard::Tick_Render(float InDeltaSeconds)
 {
 	if (OnArtboardTick_Render.IsBound())
 	{
-		OnArtboardTick_Render.Broadcast(InDeltaSeconds, this);
+		OnArtboardTick_Render.Execute(InDeltaSeconds, this);
 	}
 	else
 	{
@@ -229,7 +229,7 @@ void URiveArtboard::Tick_StateMachine(float InDeltaSeconds)
 {
 	if (OnArtboardTick_StateMachine.IsBound())
 	{
-		OnArtboardTick_StateMachine.Broadcast(InDeltaSeconds, this);
+		OnArtboardTick_StateMachine.Execute(InDeltaSeconds, this);
 	}
 	else
 	{
