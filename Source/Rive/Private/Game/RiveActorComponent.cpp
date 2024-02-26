@@ -45,9 +45,9 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
             continue;
         }
         
-        // RiveRenderTarget->Save();
+        RiveRenderTarget->Save();
         ArtboardRenderData.Artboard->Tick(DeltaTime);
-        // RiveRenderTarget->Restore();
+        RiveRenderTarget->Restore();
     }
 
     RiveRenderTarget->SubmitAndClear();
