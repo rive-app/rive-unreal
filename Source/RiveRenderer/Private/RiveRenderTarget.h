@@ -52,6 +52,7 @@ namespace UE::Rive::Renderer::Private
 		virtual void Save() override;
 		virtual void Restore() override;
 		virtual void Transform(float X1, float Y1, float X2, float Y2, float TX, float TY) override;
+		virtual void Translate(const FVector2f& InVector) override;
 		virtual void Draw(rive::Artboard* InArtboard) override;
 		virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
 		

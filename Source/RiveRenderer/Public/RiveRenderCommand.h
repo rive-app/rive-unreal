@@ -24,7 +24,8 @@ enum class ERiveRenderCommandType : uint8
 	DrawArtboard,
 	DrawPath,
 	ClipPath,
-	AlignArtboard
+	AlignArtboard,
+	Translate
 };
 
 USTRUCT(BlueprintType)

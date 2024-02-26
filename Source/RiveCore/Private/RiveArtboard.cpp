@@ -53,6 +53,26 @@ void URiveArtboard::AdvanceStateMachine(float InDeltaSeconds)
 	}
 }
 
+void URiveArtboard::Transform(const FVector2f& One, const FVector2f& Two, const FVector2f& T)
+{
+	if (!RiveRenderTarget)
+	{
+		return;
+	}
+	
+	RiveRenderTarget->Transform(One.X, One.Y, Two.X, Two.Y, T.X, T.Y);
+}
+
+void URiveArtboard::Translate(const FVector2f& InVector)
+{
+	if (!RiveRenderTarget)
+	{
+		return;
+	}
+	
+	RiveRenderTarget->Translate(InVector);
+}
+
 void URiveArtboard::Align(ERiveFitType InFitType, ERiveAlignment InAlignment)
 {
 	if (!RiveRenderTarget)
@@ -203,7 +223,7 @@ void URiveArtboard::Tick_Render(float InDeltaSeconds)
 {
 	if (OnArtboardTick_Render.IsBound())
 	{
-		OnArtboardTick_Render.Broadcast(InDeltaSeconds);
+		OnArtboardTick_Render.Broadcast(InDeltaSeconds, this);
 	}
 	else
 	{
@@ -216,7 +236,7 @@ void URiveArtboard::Tick_StateMachine(float InDeltaSeconds)
 {
 	if (OnArtboardTick_StateMachine.IsBound())
 	{
-		OnArtboardTick_StateMachine.Broadcast(InDeltaSeconds);
+		OnArtboardTick_StateMachine.Broadcast(InDeltaSeconds, this);
 	}
 	else
 	{

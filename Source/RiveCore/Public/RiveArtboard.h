@@ -1,6 +1,7 @@
 // Copyright Rive, Inc. All rights reserved.
 #pragma once
 #include "IRiveRenderTarget.h"
+#include "MatrixTypes.h"
 #include "RiveEvent.h"
 #include "RiveTypes.h"
 #include "URStateMachine.h"
@@ -18,7 +19,7 @@ THIRD_PARTY_INCLUDES_END
 
 
 
-UCLASS()
+UCLASS(BlueprintType)
 class RIVECORE_API URiveArtboard : public UObject
 {
 	GENERATED_BODY()
@@ -27,18 +28,19 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveEventDelegate, URiveArtboard*, Artboard, TArray<FRiveEvent>, ReportedEvents);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveNamedEventDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveNamedEventsDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveTickDelegate, float, DeltaTime, URiveArtboard*, Artboard);
 	
 	virtual void BeginDestroy() override;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetStateMachineNamesForDropdown"))
 	FString StateMachineName;
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRiveArtboardTick, float, DeltaTime);
+	
 	UPROPERTY(BlueprintAssignable)
-	FOnRiveArtboardTick OnArtboardTick_Render;
+	FRiveTickDelegate OnArtboardTick_Render;
 
 	UPROPERTY(BlueprintAssignable)
-	FOnRiveArtboardTick OnArtboardTick_StateMachine;
+	FRiveTickDelegate OnArtboardTick_StateMachine;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
 	ERiveFitType RiveFitType = ERiveFitType::Contain;
@@ -48,8 +50,17 @@ public:
 	ERiveAlignment RiveAlignment = ERiveAlignment::Center;
 
 	UFUNCTION(BlueprintCallable)
+	FVector2f GetSize() const;
+	
+	UFUNCTION(BlueprintCallable)
 	void AdvanceStateMachine(float InDeltaSeconds);
 
+	UFUNCTION(BlueprintCallable)
+	void Transform(const FVector2f& One, const FVector2f& Two, const FVector2f& T);
+	
+	UFUNCTION(BlueprintCallable)
+	void Translate(const FVector2f& InVector);
+	
 	UFUNCTION(BlueprintCallable)
 	void Align(ERiveFitType InFitType, ERiveAlignment InAlignment);
 
@@ -82,8 +93,6 @@ public:
 	rive::Artboard* GetNativeArtboard() const;
 
 	rive::AABB GetBounds() const;
-
-	FVector2f GetSize() const;
 
 	UE::Rive::Core::FURStateMachine* GetStateMachine() const;
 
