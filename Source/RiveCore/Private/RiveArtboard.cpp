@@ -31,6 +31,8 @@ void URiveArtboard::BeginDestroy()
 		NativeArtboardPtr.release();
 	}
 	NativeArtboardPtr.reset();
+	OnArtboardTick_Render.Clear();
+	OnArtboardTick_StateMachine.Clear();
 	UObject::BeginDestroy();
 }
 
