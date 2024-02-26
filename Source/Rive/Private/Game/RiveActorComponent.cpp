@@ -44,7 +44,7 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
         {
             continue;
         }
-
+        
         // RiveRenderTarget->Save();
         ArtboardRenderData.Artboard->Tick(DeltaTime);
         // RiveRenderTarget->Restore();
@@ -57,11 +57,11 @@ void URiveActorComponent::InitializeRenderTarget(int32 SizeX, int32 SizeY)
 {
     UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     RenderTarget = NewObject<URiveTexture>();
-    RenderTarget->ResizeRenderTargets(FIntPoint(SizeX, SizeY));
 
     // Initialize Rive Render Target Only after we resize the texture
-    RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(*GetPathName(), RenderTarget);
+    RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), RenderTarget);
     RiveRenderTarget->SetClearColor(FLinearColor::Transparent);
+    RenderTarget->ResizeRenderTargets(FIntPoint(SizeX, SizeY));
     RiveRenderTarget->Initialize();
 }
 

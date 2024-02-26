@@ -34,8 +34,10 @@ namespace UE::Rive::Core
 
         ~FURStateMachine() = default;
 
-    	bool IsValid()
-    	{
+    	const std::unique_ptr<rive::StateMachineInstance>& GetNativeStateMachinePtr() const { return NativeStateMachinePtr; }
+    	
+    	bool IsValid() const
+	    {
     		return NativeStateMachinePtr != nullptr;
     	}
 #if WITH_RIVE
@@ -55,7 +57,7 @@ namespace UE::Rive::Core
         rive::SMIInput* GetInput(uint32 AtIndex) const;
 
         void FireTrigger(const FString& InPropertyName) const;
-
+    	
         bool GetBoolValue(const FString& InPropertyName) const;
 
         float GetNumberValue(const FString& InPropertyName) const;
@@ -79,9 +81,10 @@ namespace UE::Rive::Core
         /**
          * Attribute(s)
          */
-
+    	const FString& GetStateMachineName() const { return StateMachineName; }
     private:
-
+    	FString StateMachineName;
+    	
         std::unique_ptr<rive::StateMachineInstance> NativeStateMachinePtr = nullptr;
 
         static rive::EventReport NullEvent;

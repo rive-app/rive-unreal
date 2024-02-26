@@ -36,6 +36,10 @@ UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativ
     }
 
     // Note: Even at this point, the state machine can still be empty, because there aren't any state machines in the artboard
+    if (NativeStateMachinePtr)
+    {
+        StateMachineName = NativeStateMachinePtr->name().c_str();
+    }
 }
 
 UE_DISABLE_OPTIMIZATION
