@@ -60,12 +60,36 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Draw();
 
+	
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void FireTrigger(const FString& InPropertyName) const;
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	bool GetBoolValue(const FString& InPropertyName) const;
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	float GetNumberValue(const FString& InPropertyName) const;
+	
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetNumberValue(const FString& InPropertyName, float NewValue);
+	
 	UFUNCTION(BlueprintCallable)
 	bool BindNamedRiveEvent(const FString& EventName, const FRiveNamedEventDelegate& Event);
 	UFUNCTION(BlueprintCallable)
 	bool UnbindNamedRiveEvent(const FString& EventName, const FRiveNamedEventDelegate& Event);
 	UFUNCTION(BlueprintCallable)
 	bool TriggerNamedRiveEvent(const FString& EventName, float ReportedDelaySeconds);
+
+
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition, FVector2f TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const;
+
+	/**
+	 * Returns the coordinates in the current Artboard space
+	 * @param InExtents Extents of the RenderTarget, will be mapped to the RenderTarget size
+	 */
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents, FVector2f TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const;
 	
 #if WITH_RIVE
 	

@@ -93,6 +93,48 @@ void URiveArtboard::Draw()
 	RiveRenderTarget->Draw(GetNativeArtboard());
 }
 
+void URiveArtboard::FireTrigger(const FString& InPropertyName) const
+{
+	if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+	{
+		StateMachine->FireTrigger(InPropertyName);
+	}
+}
+
+bool URiveArtboard::GetBoolValue(const FString& InPropertyName) const
+{
+	if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+	{
+		return StateMachine->GetBoolValue(InPropertyName);
+	}
+	return false;
+}
+
+float URiveArtboard::GetNumberValue(const FString& InPropertyName) const
+{
+	if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+	{
+		return StateMachine->GetNumberValue(InPropertyName);
+	}
+	return 0.f;
+}
+
+void URiveArtboard::SetBoolValue(const FString& InPropertyName, bool bNewValue)
+{
+	if (UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+	{
+		StateMachine->SetBoolValue(InPropertyName, bNewValue);
+	}
+}
+
+void URiveArtboard::SetNumberValue(const FString& InPropertyName, float NewValue)
+{
+	if (UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+	{
+		StateMachine->SetNumberValue(InPropertyName, NewValue);
+	}
+}
+
 bool URiveArtboard::BindNamedRiveEvent(const FString& EventName, const FRiveNamedEventDelegate& Event)
 {
 	if (EventNames.Contains(EventName))
@@ -145,6 +187,30 @@ bool URiveArtboard::TriggerNamedRiveEvent(const FString& EventName, float Report
 	}
 	
 	return false;
+}
+
+FVector2f URiveArtboard::GetLocalCoordinates(const FVector2f& InTexturePosition, FVector2f TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const
+{
+	const FVector2f RiveAlignmentXY = FRiveAlignment::GetAlignment(Alignment);
+
+	const rive::Mat2D Transform = rive::computeAlignment(
+		(rive::Fit)FitType,
+		rive::Alignment(RiveAlignmentXY.X, RiveAlignmentXY.Y),
+		rive::AABB(0, 0, TextureSize.X, TextureSize.Y),
+		GetBounds()
+	);
+
+	const rive::Vec2D ResultingVector = Transform.invertOrIdentity() * rive::Vec2D(InTexturePosition.X, InTexturePosition.Y);
+	return {ResultingVector.x, ResultingVector.y};
+}
+
+FVector2f URiveArtboard::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents, FVector2f TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const
+{
+	const FVector2f RelativePosition = InPosition - InExtents.Min;
+	const FVector2f Ratio { TextureSize.X / InExtents.GetSize().X, TextureSize.Y / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
+	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
+	
+	return GetLocalCoordinates(TextureRelativePosition, TextureSize, Alignment, FitType);
 }
 
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr, const UE::Rive::Renderer::IRiveRenderTargetPtr& InRiveRenderTarget)

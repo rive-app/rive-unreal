@@ -83,13 +83,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	URiveFile* CreateInstance(const FString& InArtboardName, const FString& InStateMachineName);
 
-	UFUNCTION(BlueprintCallable, Category = Rive)
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->FireTrigger instead"))
 	void FireTrigger(const FString& InPropertyName) const;
 
-	UFUNCTION(BlueprintCallable, Category = Rive)
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->GetBoolValue instead"))
 	bool GetBoolValue(const FString& InPropertyName) const;
 
-	UFUNCTION(BlueprintCallable, Category = Rive)
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->GetNumberValue instead"))
 	float GetNumberValue(const FString& InPropertyName) const;
 
 	UFUNCTION(BlueprintPure, Category = Rive)
@@ -105,10 +105,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
 
-	UFUNCTION(BlueprintCallable, Category = Rive)
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetBoolValue instead"))
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 
-	UFUNCTION(BlueprintCallable, Category = Rive)
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetNumberValue instead"))
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
 
 	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
