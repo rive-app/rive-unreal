@@ -17,6 +17,15 @@ void URiveImageUserWidget::SetRiveTexture(URiveTexture* InRiveTexture)
 	RiveImage->SetRiveTexture(InRiveTexture);
 }
 
+void URiveImageUserWidget::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards)
+{
+	Artboards = InArtboards;
+	if (RiveImage)
+	{
+		RiveImage->RegisterArtboardInputs(Artboards);
+	}
+}
+
 void URiveImageUserWidget::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
@@ -25,6 +34,7 @@ void URiveImageUserWidget::SynchronizeProperties()
 void URiveImageUserWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
+	RiveImage.Reset();
 }
 
 #if WITH_EDITOR
@@ -38,7 +48,7 @@ const FText URiveImageUserWidget::GetPaletteCategory()
 TSharedRef<SWidget> URiveImageUserWidget::RebuildWidget()
 {
 	RiveImage = SNew(SRiveImage);
-
+	RiveImage->RegisterArtboardInputs(Artboards);
 	return RiveImage.ToSharedRef();
 }
 

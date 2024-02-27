@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RiveArtboard.h"
 #include "Blueprint/UserWidget.h"
 #include "RiveImageUserWidget.generated.h"
 
@@ -20,6 +21,9 @@ class RIVE_API URiveImageUserWidget : public UUserWidget
 public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetRiveTexture(URiveTexture* InRiveTexture);
+
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards);
 	
 	//~ Begin UWidget Interface
 	virtual void SynchronizeProperties() override;
@@ -42,4 +46,5 @@ protected:
 
 private:
 	TSharedPtr<SRiveImage> RiveImage;
+	TArray<URiveArtboard*> Artboards;
 };

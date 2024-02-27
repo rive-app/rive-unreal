@@ -9,6 +9,7 @@
 #include "Textures/SlateUpdatableTexture.h"
 #include "RiveRendererUtils.h"
 #include "RiveViewportClient.h"
+#include "RiveWidgetHelpers.h"
 #include "RiveCore/Public/RiveArtboard.h"
 #include "RiveCore/Public/URStateMachine.h"
 
@@ -167,26 +168,21 @@ FReply FRiveSlateViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
     check(RiveViewportClient);
     
 #if WITH_RIVE
-
-    RiveFile->BeginInput();
-
-    if (const URiveArtboard* Artboard = RiveFile->GetArtboard())
+    if (URiveArtboard* Artboard = RiveFile->GetArtboard())
     {
+        Artboard->BeginInput();
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
-            const FVector2f LocalPosition = RiveViewportClient->CalculateLocalPointerCoordinatesFromViewport(MyGeometry, MouseEvent);
+            const FVector2f LocalPosition = RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(RiveFile, Artboard, MyGeometry, MouseEvent);
 
             if (StateMachine->OnMouseButtonDown(LocalPosition))
             {
-                RiveFile->EndInput();
-
+                Artboard->EndInput();
                 return FReply::Handled();
             }
         }
+        Artboard->EndInput();
     }
-
-    RiveFile->EndInput();
-
 #endif // WITH_RIVE
 
     return FReply::Unhandled();
@@ -216,26 +212,21 @@ FReply FRiveSlateViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
     check(RiveViewportClient);
     
 #if WITH_RIVE
-
-    RiveFile->BeginInput();
-
-    if (const URiveArtboard* Artboard = RiveFile->GetArtboard())
+    if (URiveArtboard* Artboard = RiveFile->GetArtboard())
     {
+        Artboard->BeginInput();
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
-            const FVector2f LocalPosition = RiveViewportClient->CalculateLocalPointerCoordinatesFromViewport(MyGeometry, MouseEvent);
+            const FVector2f LocalPosition = RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(RiveFile, Artboard, MyGeometry, MouseEvent);
 
             if (StateMachine->OnMouseButtonUp(LocalPosition))
             {
-                RiveFile->EndInput();
-
+                Artboard->EndInput();
                 return FReply::Handled();
             }
         }
+        Artboard->EndInput();
     }
-
-    RiveFile->EndInput();
-
 #endif // WITH_RIVE
 
     return FReply::Unhandled();
@@ -274,26 +265,23 @@ FReply FRiveSlateViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
     
 #if WITH_RIVE
 
-    RiveFile->BeginInput();
-
-    if (const URiveArtboard* Artboard = RiveFile->GetArtboard())
+    if (URiveArtboard* Artboard = RiveFile->GetArtboard())
     {
+        Artboard->BeginInput();
         if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
         {
-            const FVector2f LocalPosition = RiveViewportClient->CalculateLocalPointerCoordinatesFromViewport(MyGeometry, MouseEvent);
+            const FVector2f LocalPosition = RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(RiveFile, Artboard, MyGeometry, MouseEvent);
 
             if (StateMachine->OnMouseMove(LocalPosition))
             {
                 LastMousePosition = MouseEvent.GetScreenSpacePosition();
 
-                RiveFile->EndInput();
-
+                Artboard->EndInput();
                 return FReply::Handled();
             }
         }
+        Artboard->EndInput();
     }
-
-    RiveFile->EndInput();
 
 #endif // WITH_RIVE
 

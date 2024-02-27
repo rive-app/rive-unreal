@@ -3,6 +3,7 @@
 
 #include "Rive/RiveTexture.h"
 
+#include "RiveArtboard.h"
 #include "RiveTextureResource.h"
 #include "Logs/RiveLog.h"
 
@@ -72,6 +73,21 @@ void URiveTexture::ResizeRenderTargets(const FIntPoint InNewSize)
 void URiveTexture::ResizeRenderTargets(const FVector2f InNewSize)
 {
 	ResizeRenderTargets(FIntPoint(InNewSize.X, InNewSize.Y));
+}
+
+FVector2f URiveTexture::GetLocalCoordinatesFromExtents(const URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const
+{
+	const FVector2f RelativePosition = InPosition - InExtents.Min;
+	const FVector2f Ratio { Size.X / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
+	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
+
+	if (InArtboard->OnGetLocalCoordinates.IsBound())
+	{
+		return InArtboard->OnGetLocalCoordinates.Execute(TextureRelativePosition);
+	} else
+	{
+		return FVector2f::ZeroVector;
+	}
 }
 
 void URiveTexture::InitializeResources() const

@@ -96,14 +96,7 @@ public:
 	FLinearColor GetClearColor() const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition) const;
-
-	/**
-	 * Returns the coordinates in the current Artboard space
-	 * @param InExtents Extents of the RenderTarget, will be mapped to the RenderTarget size
-	 */
-	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
+	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition);
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
@@ -112,22 +105,6 @@ public:
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
 
 	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
-
-	void BeginInput()
-	{
-		if (IsValid(Artboard))
-		{
-			Artboard->BeginInput();
-		}
-	}
-
-	void EndInput()
-	{
-		if (IsValid(Artboard))
-		{
-			Artboard->EndInput();
-		}
-	}
 
 #if WITH_EDITOR
 
@@ -144,7 +121,7 @@ public:
 
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
-	const URiveArtboard* GetArtboard() const;
+	URiveArtboard* GetArtboard() const;
 
 	ERiveInitState InitializationState() const { return InitState; }
 	UFUNCTION(BlueprintPure, Category = Rive)

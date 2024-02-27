@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
+class URiveArtboard;
 class URiveTexture;
 /**
  * 
@@ -33,6 +34,8 @@ public:
 
 	// End SWidget overrides
 
+	void RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards);
 private:
+	TArray<URiveArtboard*> Artboards;
 	FSlateBrush RiveBrush;
 };

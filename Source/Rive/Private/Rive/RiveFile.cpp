@@ -175,7 +175,7 @@ FLinearColor URiveFile::GetClearColor() const
 	return ClearColor;
 }
 
-FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) const
+FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition)
 {
 #if WITH_RIVE
 
@@ -197,15 +197,6 @@ FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) con
 #endif // WITH_RIVE
 
 	return FVector2f::ZeroVector;
-}
-
-FVector2f URiveFile::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const
-{
-	const FVector2f RelativePosition = InPosition - InExtents.Min;
-	const FVector2f Ratio { Size.X / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
-	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
-	
-	return GetLocalCoordinates(TextureRelativePosition);
 }
 
 void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
@@ -491,6 +482,7 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	}
 
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveFile::OnArtboardTickRender);
+	Artboard->OnGetLocalCoordinates.BindDynamic(this, &URiveFile::GetLocalCoordinates);
 
 	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
 	RiveRenderTarget->Initialize();
@@ -523,7 +515,7 @@ void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
 	WidgetClass = InWidgetClass;
 }
 
-const URiveArtboard* URiveFile::GetArtboard() const
+URiveArtboard* URiveFile::GetArtboard() const
 {
 #if WITH_RIVE
 	if (Artboard && Artboard->IsInitialized())
