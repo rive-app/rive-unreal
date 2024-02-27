@@ -1,10 +1,8 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveWidgetView.h"
-#include "RiveSlateViewport.h"
 #include "Widgets/SViewport.h"
 
-// Replacement for RiveSlateViewport.h
 #include "RiveSceneViewport.h"
 #include "RiveViewportClient.h"
 #include "Rive/RiveFile.h"
@@ -32,25 +30,14 @@ void SRiveWidgetView::Construct(const FArguments& InArgs, URiveFile* InRiveFile)
         ];
 
 
-    if (RiveFile->bUseViewportClientTestProperty)
-    {
-        // TODO. new Implementation
-        RiveViewportClient = MakeShared<FRiveViewportClient>(InRiveFile, SharedThis(this));
+    RiveViewportClient = MakeShared<FRiveViewportClient>(InRiveFile, SharedThis(this));
 #if WITH_EDITOR
-        RiveViewportClient->bDrawCheckeredTexture = InArgs._bDrawCheckerboardInEditor;
+    RiveViewportClient->bDrawCheckeredTexture = InArgs._bDrawCheckerboardInEditor;
 #endif
-        
-        RiveSceneViewport = MakeShared<FRiveSceneViewport>(RiveViewportClient.Get(), ViewportWidget, InRiveFile);
-        
-        ViewportWidget->SetViewportInterface(RiveSceneViewport.ToSharedRef());
-    }
-    else
-    {
-        // TODO. Replacement for RiveSlateViewport
-        RiveSlateViewport = MakeShared<FRiveSlateViewport>(InRiveFile, SharedThis(this));
-
-        ViewportWidget->SetViewportInterface(RiveSlateViewport.ToSharedRef());
-    }
+    
+    RiveSceneViewport = MakeShared<FRiveSceneViewport>(RiveViewportClient.Get(), ViewportWidget, InRiveFile);
+    
+    ViewportWidget->SetViewportInterface(RiveSceneViewport.ToSharedRef());
 }
 
 TSharedPtr<SWindow> SRiveWidgetView::GetParentWindow() const

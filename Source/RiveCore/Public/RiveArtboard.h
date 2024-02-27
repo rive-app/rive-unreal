@@ -28,7 +28,7 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveEventDelegate, URiveArtboard*, Artboard, TArray<FRiveEvent>, ReportedEvents);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveNamedEventDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveNamedEventsDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
-	
+	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(FVector2f, FRiveCoordinatesDelegate, const FVector2f&, InTexturePosition);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveTickDelegate, float, DeltaTime, URiveArtboard*, Artboard);
 	
 	virtual void BeginDestroy() override;
@@ -42,6 +42,9 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	FRiveTickDelegate OnArtboardTick_StateMachine;
 
+	UPROPERTY(BlueprintReadWrite)
+	FRiveCoordinatesDelegate OnGetLocalCoordinates;
+	
 	UFUNCTION(BlueprintCallable)
 	FVector2f GetSize() const;
 	

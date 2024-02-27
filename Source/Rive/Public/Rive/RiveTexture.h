@@ -6,6 +6,7 @@
 #include "Engine/Texture2DDynamic.h"
 #include "RiveTexture.generated.h"
 
+class URiveArtboard;
 class FRiveTextureResource;
 
 #define RIVE_MIN_TEX_RESOLUTION 1
@@ -42,6 +43,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	virtual void ResizeRenderTargets(const FIntPoint InNewSize);
 	
+	FVector2f GetLocalCoordinatesFromExtents(const URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const;
 protected:
 	/**
 	 * Create Texture Rendering resource on RHI Thread

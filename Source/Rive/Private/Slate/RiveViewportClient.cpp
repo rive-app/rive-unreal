@@ -4,6 +4,7 @@
 
 #include "CanvasItem.h"
 #include "CanvasTypes.h"
+#include "RiveWidgetHelpers.h"
 #include "Rive/RiveFile.h"
 
 #if WITH_EDITOR // For Checkerboard Texture
@@ -38,7 +39,7 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	//todo: to review with drawing of multiple artboards
 	const FIntPoint ViewportSize = Viewport->GetSizeXY();
-	const FBox2f RiveTextureBox = CalculateRenderTextureExtentsInViewport(ViewportSize);
+	const FBox2f RiveTextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(RiveFile, ViewportSize);
 	const FVector2f RiveTextureSize = RiveTextureBox.GetSize();
 
 #if WITH_EDITOR
@@ -80,46 +81,6 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		TileItem.BatchedElementParameters = nullptr;
 		
 		Canvas->DrawItem(TileItem);
-	}
-}
-
-FVector2f FRiveViewportClient::CalculateLocalPointerCoordinatesFromViewport(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const
-{
-	const FVector2f MouseLocal = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-	const FBox2f TextureBox = CalculateRenderTextureExtentsInViewport(ViewportSize);
-	const FVector2f LocalPosition = RiveFile->GetLocalCoordinatesFromExtents(MouseLocal, TextureBox);
-	return LocalPosition;
-}
-
-FBox2f FRiveViewportClient::CalculateRenderTextureExtentsInViewport(const FVector2f& InViewportSize) const
-{
-	if (!IsValid(RiveFile))
-	{
-		return {};
-	}
-	
-	const FVector2f ArtboardSize = {(float)RiveFile->SizeX, (float)RiveFile->SizeY};
-	const float TextureAspectRatio = ArtboardSize.X / ArtboardSize.Y;
-	const float ViewportAspectRatio = InViewportSize.X / InViewportSize.Y;
-	
-	if (ViewportAspectRatio > TextureAspectRatio) // Viewport wider than the Texture => height should be the same
-	{
-		FVector2f Size {
-			InViewportSize.Y * TextureAspectRatio,
-			InViewportSize.Y
-		};
-		float XOffset = (InViewportSize.X - Size.X) * 0.5f;
-		return {{XOffset, 0}, {XOffset + Size.X, Size.Y}};
-	}
-	else // Viewport taller than the Texture => width should be the same
-	{
-		FVector2f Size {
-			(float)InViewportSize.X,
-			InViewportSize.X / TextureAspectRatio
-		};
-		float YOffset = (InViewportSize.Y - Size.Y) * 0.5f;
-		return {{0, YOffset}, {Size.X, YOffset + Size.Y}};
 	}
 }
 
