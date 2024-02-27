@@ -26,11 +26,6 @@ void URiveImageUserWidget::RegisterArtboardInputs(const TArray<URiveArtboard*> I
 	}
 }
 
-void URiveImageUserWidget::SynchronizeProperties()
-{
-	Super::SynchronizeProperties();
-}
-
 void URiveImageUserWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);

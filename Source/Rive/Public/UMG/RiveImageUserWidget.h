@@ -24,10 +24,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards);
-	
-	//~ Begin UWidget Interface
-	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
 
 	//~ Begin UVisual Interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;

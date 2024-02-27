@@ -58,12 +58,15 @@ void SRiveImage::SetRiveTexture(URiveTexture* InRiveTexture)
 
 FReply SRiveImage::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnMouseMove %s"), *MouseEvent.GetScreenSpacePosition().ToString());
-
 #if WITH_RIVE
 	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
 	for (URiveArtboard* Artboard : Artboards)
 	{
+		if (!Artboard)
+		{
+			continue;	
+		}
+		
 		Artboard->BeginInput();
 		if (auto StateMachine = Artboard->GetStateMachine())
 		{
@@ -78,12 +81,15 @@ FReply SRiveImage::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 
 FReply SRiveImage::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnMouseButtonDown %s"), *MouseEvent.GetScreenSpacePosition().ToString());
-
 #if WITH_RIVE
 	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
 	for (URiveArtboard* Artboard : Artboards)
 	{
+		if (!Artboard)
+		{
+			continue;	
+		}
+		
 		Artboard->BeginInput();
 		if (auto StateMachine = Artboard->GetStateMachine())
 		{
@@ -98,12 +104,15 @@ FReply SRiveImage::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointer
 
 FReply SRiveImage::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnMouseButtonUp %s"), *MouseEvent.GetScreenSpacePosition().ToString());
-
 #if WITH_RIVE
 	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
 	for (URiveArtboard* Artboard : Artboards)
 	{
+		if (!Artboard)
+		{
+			continue;	
+		}
+		
 		Artboard->BeginInput();
 		if (auto StateMachine = Artboard->GetStateMachine())
 		{
@@ -119,12 +128,15 @@ FReply SRiveImage::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEv
 
 FReply SRiveImage::OnTouchMoved(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnTouchMoved %s"), *InTouchEvent.GetScreenSpacePosition().ToString());
-
 #if WITH_RIVE
 	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
 	for (URiveArtboard* Artboard : Artboards)
 	{
+		if (!Artboard)
+		{
+			continue;	
+		}
+		
 		Artboard->BeginInput();
 		if (auto StateMachine = Artboard->GetStateMachine())
 		{
@@ -140,8 +152,6 @@ FReply SRiveImage::OnTouchMoved(const FGeometry& MyGeometry, const FPointerEvent
 
 FReply SRiveImage::OnTouchStarted(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnTouchStarted %s"), *InTouchEvent.GetScreenSpacePosition().ToString());
-
 #if WITH_RIVE
 	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
 	for (URiveArtboard* Artboard : Artboards)
@@ -161,12 +171,15 @@ FReply SRiveImage::OnTouchStarted(const FGeometry& MyGeometry, const FPointerEve
 
 FReply SRiveImage::OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnTouchEnded %s"), *InTouchEvent.GetScreenSpacePosition().ToString());
-
 #if WITH_RIVE
 	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
 	for (URiveArtboard* Artboard : Artboards)
 	{
+		if (!Artboard)
+		{
+			continue;	
+		}
+		
 		Artboard->BeginInput();
 		if (auto StateMachine = Artboard->GetStateMachine())
 		{

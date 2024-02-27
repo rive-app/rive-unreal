@@ -149,10 +149,6 @@ public:
 	UPROPERTY()
 	FString RiveFilePath;
 
-	// TODO. REMOVE IT!!, just for testing
-	UPROPERTY(EditAnywhere, Category = Rive)
-	bool bUseViewportClientTestProperty = true;
-
 	UPROPERTY(VisibleAnywhere, Category=Rive)
 	TMap<uint32, TObjectPtr<URiveAsset>> Assets;
 
