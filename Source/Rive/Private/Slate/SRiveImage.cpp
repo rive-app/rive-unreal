@@ -58,137 +58,78 @@ void SRiveImage::SetRiveTexture(URiveTexture* InRiveTexture)
 
 FReply SRiveImage::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-#if WITH_RIVE
-	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
-	for (URiveArtboard* Artboard : Artboards)
+	OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
 	{
-		if (!Artboard)
+		if (InStateMachine)
 		{
-			continue;	
+			InStateMachine->OnMouseMove(InputCoordinates);
 		}
-		
-		Artboard->BeginInput();
-		if (auto StateMachine = Artboard->GetStateMachine())
-		{
-			FVector2f InputCoordinates = UE::Private::SRiveImage::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, MouseEvent);
-			StateMachine->OnMouseMove(InputCoordinates);
-		}
-		Artboard->EndInput();
-	}
-#endif // WITH_RIVE
+	});
+	
 	return SCompoundWidget::OnMouseMove(MyGeometry, MouseEvent);
 }
 
 FReply SRiveImage::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-#if WITH_RIVE
-	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
-	for (URiveArtboard* Artboard : Artboards)
+	OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
 	{
-		if (!Artboard)
+		if (InStateMachine)
 		{
-			continue;	
+			InStateMachine->OnMouseButtonDown(InputCoordinates);
 		}
-		
-		Artboard->BeginInput();
-		if (auto StateMachine = Artboard->GetStateMachine())
-		{
-			FVector2f InputCoordinates = UE::Private::SRiveImage::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, MouseEvent);
-			StateMachine->OnMouseButtonDown(InputCoordinates);
-		}
-		Artboard->EndInput();
-	}
-#endif // WITH_RIVE
+	});
+	
 	return SCompoundWidget::OnMouseButtonDown(MyGeometry, MouseEvent);
 }
 
 FReply SRiveImage::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-#if WITH_RIVE
-	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
-	for (URiveArtboard* Artboard : Artboards)
+	OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
 	{
-		if (!Artboard)
+		if (InStateMachine)
 		{
-			continue;	
+			InStateMachine->OnMouseButtonUp(InputCoordinates);
 		}
-		
-		Artboard->BeginInput();
-		if (auto StateMachine = Artboard->GetStateMachine())
-		{
-			FVector2f InputCoordinates = UE::Private::SRiveImage::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, MouseEvent);
-			StateMachine->OnMouseButtonUp(InputCoordinates);
-		}
-		Artboard->EndInput();
-	}
-#endif // WITH_RIVE
+	});
 	
 	return SCompoundWidget::OnMouseButtonUp(MyGeometry, MouseEvent);
 }
 
 FReply SRiveImage::OnTouchMoved(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
 {
-#if WITH_RIVE
-	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
-	for (URiveArtboard* Artboard : Artboards)
+	OnInput(MyGeometry, InTouchEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
 	{
-		if (!Artboard)
+		if (InStateMachine)
 		{
-			continue;	
+			InStateMachine->OnMouseMove(InputCoordinates);
 		}
-		
-		Artboard->BeginInput();
-		if (auto StateMachine = Artboard->GetStateMachine())
-		{
-			FVector2f InputCoordinates = UE::Private::SRiveImage::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, InTouchEvent);
-			StateMachine->OnMouseMove(InputCoordinates);
-		}
-		Artboard->EndInput();
-	}
-#endif // WITH_RIVE
+	});
 	
 	return SCompoundWidget::OnTouchMoved(MyGeometry, InTouchEvent);
 }
 
 FReply SRiveImage::OnTouchStarted(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
 {
-#if WITH_RIVE
-	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
-	for (URiveArtboard* Artboard : Artboards)
+	OnInput(MyGeometry, InTouchEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
 	{
-		Artboard->BeginInput();
-		if (auto StateMachine = Artboard->GetStateMachine())
+		if (InStateMachine)
 		{
-			FVector2f InputCoordinates = UE::Private::SRiveImage::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, InTouchEvent);
-			StateMachine->OnMouseButtonDown(InputCoordinates);
+			InStateMachine->OnMouseButtonDown(InputCoordinates);
 		}
-		Artboard->EndInput();
-	}
-#endif // WITH_RIVE
+	});
 	
 	return SCompoundWidget::OnTouchStarted(MyGeometry, InTouchEvent);
 }
 
 FReply SRiveImage::OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
 {
-#if WITH_RIVE
-	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
-	for (URiveArtboard* Artboard : Artboards)
+	OnInput(MyGeometry, InTouchEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
 	{
-		if (!Artboard)
+		if (InStateMachine)
 		{
-			continue;	
+			InStateMachine->OnMouseButtonUp(InputCoordinates);
 		}
-		
-		Artboard->BeginInput();
-		if (auto StateMachine = Artboard->GetStateMachine())
-		{
-			FVector2f InputCoordinates = UE::Private::SRiveImage::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, InTouchEvent);
-			StateMachine->OnMouseButtonUp(InputCoordinates);
-		}
-		Artboard->EndInput();
-	}
-#endif // WITH_RIVE
+	});
 	
 	return SCompoundWidget::OnTouchEnded(MyGeometry, InTouchEvent);
 }
@@ -196,6 +137,29 @@ FReply SRiveImage::OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent
 void SRiveImage::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards)
 {
 	Artboards = InArtboards;
+}
+
+void SRiveImage::OnInput(const FGeometry& MyGeometry, const FPointerEvent& InEvent, const FStateMachineInputCallback& InStateMachineInputCallback)
+{
+#if WITH_RIVE
+	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
+	for (URiveArtboard* Artboard : Artboards)
+	{
+		if (!ensure(Artboard))
+		{
+			continue;	
+		}
+		
+		Artboard->BeginInput();
+		if (const auto StateMachine = Artboard->GetStateMachine())
+		{
+			FVector2f InputCoordinates = UE::Private::SRiveImage::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, InEvent);
+			
+			InStateMachineInputCallback(InputCoordinates, StateMachine);
+		}
+		Artboard->EndInput();
+	}
+#endif // WITH_RIVE
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

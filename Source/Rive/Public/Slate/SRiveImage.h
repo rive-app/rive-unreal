@@ -5,6 +5,11 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
+namespace UE::Rive::Core
+{
+	class FURStateMachine;
+}
+
 class URiveArtboard;
 class URiveTexture;
 /**
@@ -13,6 +18,9 @@ class URiveTexture;
 class RIVE_API SRiveImage : public SCompoundWidget
 {
 public:
+	using StateMachinePtr = UE::Rive::Core::FURStateMachine*;
+	using FStateMachineInputCallback = TFunction<void(const FVector2f&, StateMachinePtr)>;
+	
 	SLATE_BEGIN_ARGS(SRiveImage)
 		{
 		}
@@ -35,6 +43,9 @@ public:
 	// End SWidget overrides
 
 	void RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards);
+private:
+	void OnInput(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, const FStateMachineInputCallback& InStateMachineInputCallback);
+	
 private:
 	TArray<URiveArtboard*> Artboards;
 	FSlateBrush RiveBrush;
