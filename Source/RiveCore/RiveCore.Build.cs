@@ -30,6 +30,9 @@ public class RiveCore : ModuleRules
 			new string[]
 			{
 				"Core",
+				"RHICore",
+				"RHI",
+				"RenderCore"
 			}
 		);
 			

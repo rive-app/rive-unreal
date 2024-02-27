@@ -54,52 +54,10 @@ void URiveFile::Tick(float InDeltaSeconds)
 #if WITH_RIVE
 	if (IsInitialized() && bIsRendering)
 	{
-		// Empty reported events at the beginning
-		TickRiveReportedEvents.Empty();
 		if (GetArtboard())
 		{
-			UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine();
-			if (StateMachine && StateMachine->IsValid() && ensure(RiveRenderTarget))
-			{
-				if (!bIsReceivingInput)
-				{
-					auto AdvanceStateMachine = [this, StateMachine, InDeltaSeconds]()
-					{
-						if (StateMachine->HasAnyReportedEvents())
-						{
-							PopulateReportedEvents();
-						}
-#if PLATFORM_ANDROID
-						UE_LOG(LogRive, Verbose, TEXT("[%s] StateMachine->Advance"), IsInRHIThread() ? TEXT("RHIThread") : (IsInRenderingThread() ? TEXT("RenderThread") : TEXT("OtherThread")));
-#endif
-						StateMachine->Advance(InDeltaSeconds);
-					};
-					
-					if (UE::Rive::Renderer::IRiveRendererModule::RunInGameThread())
-					{
-						AdvanceStateMachine();
-					}
-					else
-					{
-						ENQUEUE_RENDER_COMMAND(StateMachineAdvance)(
-							[AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](
-							FRHICommandListImmediate& RHICmdList) mutable
-							{
-#if PLATFORM_ANDROID
-								RHICmdList.EnqueueLambda(TEXT("StateMachine->Advance"),
-									[AdvanceStateMachine = MoveTemp(AdvanceStateMachine)](FRHICommandListImmediate& RHICmdList)
-								{
-#endif
-								AdvanceStateMachine();
-#if PLATFORM_ANDROID
-								});
-#endif
-							});
-					}
-				}
-			}
-			
-			RiveRenderTarget->Submit();
+			Artboard->Tick(InDeltaSeconds);
+			RiveRenderTarget->SubmitAndClear();
 		}
 	}
 #endif // WITH_RIVE
@@ -420,15 +378,22 @@ void URiveFile::Initialize()
 		
 		if (ensure(PLSRenderContext))
 		{
+			ArtboardNames.Empty();
 			if (!ParentRiveFile)
 			{
 				const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
 					UE::Rive::Assets::FURFileAssetLoader>(this, GetAssets());
 				rive::ImportResult ImportResult;
-				
+
+				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 				RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult,
 													   FileAssetLoader.Get());
-
+				// UI Helper
+				for (int i = 0; i < RiveNativeFilePtr->artboardCount(); ++i)
+				{
+					rive::Artboard* NativeArtboard = RiveNativeFilePtr->artboard(i);
+					ArtboardNames.Add(NativeArtboard->name().c_str());
+				}
 				if (ImportResult != rive::ImportResult::success)
 				{
 					UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
@@ -436,17 +401,22 @@ void URiveFile::Initialize()
 					return;
 				}
 			}
+			else if (ensure(IsValid(ParentRiveFile)))
+			{
+				ArtboardNames = ParentRiveFile->ArtboardNames;
+			}
 			
-			InstantiateArtboard_Internal(RiveRenderer);
+			InstantiateArtboard(false); // We want the ArtboardChanged event to be raised after the Initialization Result
 			if (ensure(GetArtboard()))
 			{
 				BroadcastInitializationResult(true);
 			}
 			else
 			{
-				UE_LOG(LogRive, Error, TEXT("Failed to instantiate the Artboard after importing hte rive file."));
+				UE_LOG(LogRive, Error, TEXT("Failed to instantiate the Artboard after importing the rive file."));
 				BroadcastInitializationResult(false);
 			}
+			OnArtboardChanged.Broadcast(this, Artboard); // Now we can broadcast the Artboard Changed Event
 			return;
 		}
 
@@ -475,8 +445,10 @@ void URiveFile::BroadcastInitializationResult(bool bSuccess)
 	OnInitializedDelegate.Broadcast(this, bSuccess);
 }
 
-void URiveFile::InstantiateArtboard()
+void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 {
+	Artboard = nullptr;
+	
 	if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
 	{
 		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
@@ -502,8 +474,33 @@ void URiveFile::InstantiateArtboard()
 		UE_LOG(LogRive, Error, TEXT("Could not instance artboard as our native rive file is invalid."));
 		return;
 	}
+	
+	Artboard = NewObject<URiveArtboard>(this);
+	
+	RiveRenderTarget.Reset();
+	RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
+	RiveRenderTarget->SetClearColor(ClearColor);
+	
+	if (ArtboardName.IsEmpty())
+	{
+		Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardIndex, StateMachineName);
+	}
+	else
+	{
+		Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardName, StateMachineName);
+	}
 
-	InstantiateArtboard_Internal(RiveRenderer);
+	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveFile::OnArtboardTickRender);
+
+	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
+	RiveRenderTarget->Initialize();
+
+	PrintStats();
+	
+	if (bRaiseArtboardChangedEvent)
+	{
+		OnArtboardChanged.Broadcast(this, Artboard);
+	}
 }
 
 void URiveFile::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const
@@ -513,6 +510,12 @@ void URiveFile::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHI
 	{
 		RenderTarget->CacheTextureTarget_RenderThread(RHICmdList, NewResource);
 	}
+}
+
+void URiveFile::OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard)
+{
+	InArtboard->Align(RiveFitType, RiveAlignment);
+	InArtboard->Draw();
 }
 
 void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
@@ -531,86 +534,9 @@ const URiveArtboard* URiveFile::GetArtboard() const
 	return nullptr;
 }
 
-void URiveFile::PopulateReportedEvents()
-{
-#if WITH_RIVE
-
-	if (!GetArtboard())
-	{
-		return;
-	}
-
-	if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
-	{
-		const int32 NumReportedEvents = StateMachine->GetReportedEventsCount();
-
-		TickRiveReportedEvents.Reserve(NumReportedEvents);
-
-		for (int32 EventIndex = 0; EventIndex < NumReportedEvents; EventIndex++)
-		{
-			const rive::EventReport ReportedEvent = StateMachine->GetReportedEvent(EventIndex);
-			if (ReportedEvent.event() != nullptr)
-			{
-				FRiveEvent RiveEvent;
-				RiveEvent.Initialize(ReportedEvent);
-				TickRiveReportedEvents.Add(MoveTemp(RiveEvent));
-			}
-		}
-
-		if (!TickRiveReportedEvents.IsEmpty())
-		{
-			RiveEventDelegate.Broadcast(TickRiveReportedEvents.Num());
-		}
-	}
-	else
-	{
-		UE_LOG(LogRive, Error,
-			   TEXT("Failed to populate reported event(s) as we could not retrieve native state machine."));
-	}
-
-#endif // WITH_RIVE
-}
-
-URiveArtboard* URiveFile::InstantiateArtboard_Internal(UE::Rive::Renderer::IRiveRenderer* RiveRenderer)
-{
-	RiveRenderTarget.Reset();
-
-	if (GetNativeFile())
-	{
-		Artboard = NewObject<URiveArtboard>(this);
-		if (ArtboardName.IsEmpty())
-		{
-			Artboard->Initialize(GetNativeFile(), ArtboardIndex, StateMachineName);
-		}
-		else
-		{
-			Artboard->Initialize(GetNativeFile(), ArtboardName, StateMachineName);
-		}
-
-		PrintStats();
-		
-		ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
-		
-		// Initialize Rive Render Target Only after we resize the texture
-		RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
-
-		// It will remove old reference if exists
-		RiveRenderTarget->SetClearColor(ClearColor);
-		RiveRenderTarget->Initialize();
-
-		// Setup the draw pipeline; only needs to be called once
-		// The list of draw commands won't get cleared, and instead will be called each time via Submit()
-		RiveRenderTarget->Align(RiveFitType, FRiveAlignment::GetAlignment(RiveAlignment), Artboard->GetNativeArtboard());
-		RiveRenderTarget->Draw(Artboard->GetNativeArtboard());
-		
-		return Artboard;
-	}
-	return nullptr;
-}
-
 void URiveFile::PrintStats() const
 {
-	rive::File* NativeFile = GetNativeFile();
+	const rive::File* NativeFile = GetNativeFile();
 	if (!NativeFile)
 	{
 		UE_LOG(LogRive, Error, TEXT("Could not print statistics as we have detected an empty rive file."));

@@ -64,6 +64,7 @@ namespace UE::Rive::Renderer
 		virtual void Save() = 0;
 		virtual void Restore() = 0;
 		virtual void Transform(float X1, float Y1, float X2, float Y2, float TX, float TY) = 0;
+		virtual void Translate(const FVector2f& InVector) = 0;
 		virtual void Draw(rive::Artboard* InArtboard) = 0;
 		virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) = 0;
 

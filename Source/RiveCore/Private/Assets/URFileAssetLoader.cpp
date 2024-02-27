@@ -40,8 +40,7 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 			UE_LOG(LogRiveCore, Error, TEXT("Could not find pre-loaded asset. This means the initial import probably failed."));
 			return false;
 		}
-
-		//todo: What happens to this Asset? are we supposed to keep it?
+		
 		RiveAsset = NewObject<URiveAsset>(Outer, URiveAsset::StaticClass(),
 			MakeUniqueObjectName(Outer, URiveAsset::StaticClass(), FName{FString::Printf(TEXT("%d"),InAsset.assetId())}),
 			RF_Transient);

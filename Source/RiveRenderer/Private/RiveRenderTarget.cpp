@@ -97,6 +97,16 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Transform(float X1, float Y
 	RenderCommands.Push(RenderCommand);
 }
 
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Translate(const FVector2f& InVector)
+{
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
+	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Translate);
+	RenderCommand.X = InVector.X;
+	RenderCommand.Y = InVector.Y;
+	RenderCommands.Push(RenderCommand);
+}
+
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Draw(rive::Artboard* InArtboard)
 {
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
@@ -241,13 +251,18 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
 			// TODO: Support ClipPath
 			break;
 		case ERiveRenderCommandType::AlignArtboard:
-			rive::Mat2D Transform = rive::computeAlignment(
-				static_cast<rive::Fit>(RenderCommand.FitType),
-				rive::Alignment(RenderCommand.X, RenderCommand.Y),
-				rive::AABB(0.f, 0.f, GetWidth(), GetHeight()),
-				RenderCommand.NativeArtboard->bounds());
+			{
+				rive::Mat2D Transform = rive::computeAlignment(
+					static_cast<rive::Fit>(RenderCommand.FitType),
+					rive::Alignment(RenderCommand.X, RenderCommand.Y),
+					rive::AABB(0.f, 0.f, GetWidth(), GetHeight()),
+					RenderCommand.NativeArtboard->bounds());
 
-			PLSRenderer->transform(Transform);
+				PLSRenderer->transform(Transform);
+				break;
+			}
+		case ERiveRenderCommandType::Translate:
+			PLSRenderer->translate(RenderCommand.X, RenderCommand.Y);
 			break;
 		}
 	}
