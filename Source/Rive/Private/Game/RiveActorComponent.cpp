@@ -52,7 +52,7 @@ void URiveActorComponent::InitializeRenderTarget(int32 SizeX, int32 SizeY)
     UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     
     RiveRenderer->CallOrRegister_OnInitialized(UE::Rive::Renderer::IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
-    [=](UE::Rive::Renderer::IRiveRenderer* InRiveRenderer)
+    [this, SizeX, SizeY](UE::Rive::Renderer::IRiveRenderer* InRiveRenderer)
     {
         RenderTarget = NewObject<URiveTexture>();
         // Initialize Rive Render Target Only after we resize the texture
