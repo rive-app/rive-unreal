@@ -21,6 +21,16 @@ class RIVE_API URiveImageUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
+public:
+	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
+	TObjectPtr<UCanvasPanel> RootCanvasPanel;
+
+	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
+	TObjectPtr<URiveImage> RiveImage;
+
+	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
+	TObjectPtr<UCanvasPanelSlot> RiveImageSlot;
+
 protected:
 	//~ Begin UUserWidget Interface
 	virtual bool Initialize() override;
@@ -32,15 +42,6 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	static void CalculateCenterPlacementInViewport(const FVector2f& TextureSize, const FVector2f& InViewportSize, FVector2f& OutPosition, FVector2f& OutSize);
-
-	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
-	TObjectPtr<UCanvasPanel> RootCanvasPanel;
-
-	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
-	TObjectPtr<URiveImage> RiveImage;
-
-	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
-	TObjectPtr<UCanvasPanelSlot> RiveImageSlot;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Rive|UI")
 	TObjectPtr<URiveFile> RiveFile;

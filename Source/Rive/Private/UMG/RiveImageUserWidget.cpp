@@ -18,6 +18,7 @@ TSharedRef<SWidget> URiveImageUserWidget::RebuildWidget()
 	RootCanvasPanel = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
 	WidgetTree->RootWidget = RootCanvasPanel;
 	RiveImage = WidgetTree->ConstructWidget<URiveImage>(URiveImage::StaticClass());
+	RiveImage->SetUserWidget(this);
 	RiveImageSlot = RootCanvasPanel->AddChildToCanvas(RiveImage);
 	
 	return RootCanvasPanel->TakeWidget();

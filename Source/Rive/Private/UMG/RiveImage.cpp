@@ -2,7 +2,10 @@
 
 #include "UMG/RiveImage.h"
 
+#include "Components/CanvasPanelSlot.h"
+#include "Rive/RiveTexture.h"
 #include "Slate/SRiveImage.h"
+#include "UMG/RiveImageUserWidget.h"
 
 #define LOCTEXT_NAMESPACE "URiveImage"
 
@@ -29,6 +32,16 @@ void URiveImage::Setup(URiveTexture* InRiveTexture, const TArray<URiveArtboard*>
 {
 	SetRiveTexture(InRiveTexture);
 	RegisterArtboardInputs(InArtboards);
+
+	if (UserWidget && UserWidget->RiveImageSlot)
+	{
+		UserWidget->RiveImageSlot->SetSize(InRiveTexture->Size);
+	}
+}
+
+void URiveImage::SetUserWidget(URiveImageUserWidget* InUserWidget)
+{
+	UserWidget = InUserWidget;
 }
 
 void URiveImage::ReleaseSlateResources(bool bReleaseChildren)

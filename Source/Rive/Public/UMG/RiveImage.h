@@ -20,7 +20,6 @@ class RIVE_API URiveImage : public UWidget
 	GENERATED_BODY()
 
 public:
-public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetRiveTexture(URiveTexture* InRiveTexture);
 
@@ -29,6 +28,8 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void Setup(URiveTexture* InRiveTexture, const TArray<URiveArtboard*> InArtboards);
+
+	void SetUserWidget(URiveImageUserWidget* InUserWidget);
 
 	//~ Begin UVisual Interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
