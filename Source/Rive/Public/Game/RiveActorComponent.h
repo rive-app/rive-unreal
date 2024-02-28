@@ -14,6 +14,8 @@ class URiveFile;
 UCLASS(ClassGroup = (Custom), Meta = (BlueprintSpawnableComponent))
 class RIVE_API URiveActorComponent : public UActorComponent
 {
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
+    
     GENERATED_BODY()
 
     /**

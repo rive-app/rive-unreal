@@ -24,8 +24,8 @@ URiveActorComponent::URiveActorComponent(): Size(500, 500)
 
 void URiveActorComponent::BeginPlay()
 {
-    Super::BeginPlay();
     InitializeRenderTarget(Size.X, Size.Y);
+    Super::BeginPlay();
 }
 
 void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -50,15 +50,20 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 void URiveActorComponent::InitializeRenderTarget(int32 SizeX, int32 SizeY)
 {
     UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-    RenderTarget = NewObject<URiveTexture>();
-
-    // Initialize Rive Render Target Only after we resize the texture
-    RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), RenderTarget);
-    RiveRenderTarget->SetClearColor(FLinearColor::Transparent);
-    RenderTarget->ResizeRenderTargets(FIntPoint(SizeX, SizeY));
-    RiveRenderTarget->Initialize();
     
-    RenderTarget->OnResourceInitializedOnRenderThread.AddUObject(this, &URiveActorComponent::OnResourceInitialized_RenderThread);
+    RiveRenderer->CallOrRegister_OnInitialized(UE::Rive::Renderer::IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
+    [=, this](UE::Rive::Renderer::IRiveRenderer* InRiveRenderer)
+    {
+        RenderTarget = NewObject<URiveTexture>();
+        // Initialize Rive Render Target Only after we resize the texture
+        RiveRenderTarget = InRiveRenderer->CreateTextureTarget_GameThread(GetFName(), RenderTarget);
+        RiveRenderTarget->SetClearColor(FLinearColor::Transparent);
+        RenderTarget->ResizeRenderTargets(FIntPoint(SizeX, SizeY));
+        RiveRenderTarget->Initialize();
+
+        RenderTarget->OnResourceInitializedOnRenderThread.AddUObject(this, &URiveActorComponent::OnResourceInitialized_RenderThread);
+        OnRiveReady.Broadcast();
+    }));
 }
 
 void URiveActorComponent::ResizeRenderTarget(int32 InSizeX, int32 InSizeY)
