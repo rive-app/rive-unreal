@@ -5,6 +5,7 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Slate/RiveWidgetHelpers.h"
 #include "UMG/RiveImage.h"
 
@@ -20,6 +21,10 @@ TSharedRef<SWidget> URiveImageUserWidget::RebuildWidget()
 	RiveImage = WidgetTree->ConstructWidget<URiveImage>(URiveImage::StaticClass());
 	RiveImage->SetUserWidget(this);
 	RiveImageSlot = RootCanvasPanel->AddChildToCanvas(RiveImage);
+
+	// Resize to canvas
+	RiveImageSlot->SetAnchors(FAnchors(0, 0, 1, 1));
+	RiveImageSlot->SetOffsets(FMargin(0,0,0,0));
 	
 	return RootCanvasPanel->TakeWidget();
 }

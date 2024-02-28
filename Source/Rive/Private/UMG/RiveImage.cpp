@@ -32,11 +32,6 @@ void URiveImage::Setup(URiveTexture* InRiveTexture, const TArray<URiveArtboard*>
 {
 	SetRiveTexture(InRiveTexture);
 	RegisterArtboardInputs(InArtboards);
-
-	if (UserWidget && UserWidget->RiveImageSlot)
-	{
-		UserWidget->RiveImageSlot->SetSize(InRiveTexture->Size);
-	}
 }
 
 void URiveImage::SetUserWidget(URiveImageUserWidget* InUserWidget)

@@ -42,7 +42,4 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	static void CalculateCenterPlacementInViewport(const FVector2f& TextureSize, const FVector2f& InViewportSize, FVector2f& OutPosition, FVector2f& OutSize);
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Rive|UI")
-	TObjectPtr<URiveFile> RiveFile;
 };
