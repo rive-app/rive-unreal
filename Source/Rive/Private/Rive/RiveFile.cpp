@@ -164,7 +164,7 @@ FLinearColor URiveFile::GetClearColor() const
 	return ClearColor;
 }
 
-FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition) const
+FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition)
 {
 #if WITH_RIVE
 	if (GetArtboard())
@@ -464,6 +464,7 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	}
 
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveFile::OnArtboardTickRender);
+	Artboard->OnGetLocalCoordinates.BindDynamic(this, &URiveFile::GetLocalCoordinates);
 
 	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
 	RiveRenderTarget->Initialize();
@@ -496,7 +497,7 @@ void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
 	WidgetClass = InWidgetClass;
 }
 
-const URiveArtboard* URiveFile::GetArtboard() const
+URiveArtboard* URiveFile::GetArtboard() const
 {
 #if WITH_RIVE
 	if (IsValid(Artboard) && Artboard->IsInitialized())

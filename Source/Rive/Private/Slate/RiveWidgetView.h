@@ -7,7 +7,6 @@
 class FRiveSceneViewport;
 class FRiveViewportClient;
 class URiveFile;
-class FRiveSlateViewport;
 
 /**
  *
@@ -57,8 +56,6 @@ public:
 private:
 
     TObjectPtr<URiveFile> RiveFile;
-
-    TSharedPtr<FRiveSlateViewport> RiveSlateViewport;
 
     /** Reference to Slate Viewport */
     TSharedPtr<SViewport> ViewportWidget;

@@ -96,7 +96,7 @@ public:
 	FLinearColor GetClearColor() const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition) const;
+	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition);
 
 	/**
 	 * Returns the coordinates in the current Artboard space
@@ -113,22 +113,6 @@ public:
 
 	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
 
-	void BeginInput()
-	{
-		if (IsValid(Artboard))
-		{
-			Artboard->BeginInput();
-		}
-	}
-
-	void EndInput()
-	{
-		if (IsValid(Artboard))
-		{
-			Artboard->EndInput();
-		}
-	}
-
 #if WITH_EDITOR
 
 	bool EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer);
@@ -144,7 +128,7 @@ public:
 
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
-	const URiveArtboard* GetArtboard() const;
+	URiveArtboard* GetArtboard() const;
 
 	ERiveInitState InitializationState() const { return InitState; }
 	UFUNCTION(BlueprintPure, Category = Rive)
@@ -171,10 +155,6 @@ public:
 
 	UPROPERTY()
 	FString RiveFilePath;
-
-	// TODO. REMOVE IT!!, just for testing
-	UPROPERTY(EditAnywhere, Category = Rive)
-	bool bUseViewportClientTestProperty = true;
 
 	UPROPERTY(VisibleAnywhere, Category=Rive)
 	TMap<uint32, TObjectPtr<URiveAsset>> Assets;

@@ -30,12 +30,6 @@ public:
 public:
 
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
-
-	FVector2f CalculateLocalPointerCoordinatesFromViewport(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const;
-	/**
-	 * Calculates the extents of the RiveFIle RenderTarget to be 'Contained' within the given viewport
-	 */
-	FBox2f CalculateRenderTextureExtentsInViewport(const FVector2f& InViewportSize) const;
 	
 	virtual UWorld* GetWorld() const override { return nullptr; }
 
