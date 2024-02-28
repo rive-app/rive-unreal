@@ -13,7 +13,6 @@ class RIVE_API FRiveTextureResource : public FTextureResource
 {
 public:
 	FRiveTextureResource(URiveTexture* Owner);
-	virtual ~FRiveTextureResource() override;
 
 	virtual void InitRHI(FRHICommandListBase& RHICmdList) override;
 	virtual void ReleaseRHI() override;
@@ -23,5 +22,5 @@ public:
 	SIZE_T GetResourceSize();
 
 private:
-	TObjectPtr<URiveTexture> RiveFile;
+	TObjectPtr<URiveTexture> RiveTexture;
 };

@@ -3,6 +3,9 @@
 
 #include "Rive/RiveTexture.h"
 
+#include "IRiveRenderer.h"
+#include "IRiveRendererModule.h"
+
 #include "RiveArtboard.h"
 #include "RiveTextureResource.h"
 #include "Logs/RiveLog.h"
@@ -26,6 +29,9 @@ URiveTexture::URiveTexture()
 
 FTextureResource* URiveTexture::CreateResource()
 {
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	
 	// UTexture::ReleaseResource() calls the delete
 	CurrentResource = new FRiveTextureResource(this);
 	SetResource(CurrentResource);
@@ -46,12 +52,16 @@ void URiveTexture::PostLoad()
 
 void URiveTexture::ResizeRenderTargets(const FIntPoint InNewSize)
 {
+	if (Size == InNewSize)
+	{
+		return;
+	}
+	
 	if (!(ensure(InNewSize.X >= RIVE_MIN_TEX_RESOLUTION) || ensure(InNewSize.Y >= RIVE_MIN_TEX_RESOLUTION)
 		|| ensure(InNewSize.X <= RIVE_MAX_TEX_RESOLUTION) || ensure(InNewSize.Y <= RIVE_MAX_TEX_RESOLUTION)))
 	{
 		UE_LOG(LogRive, Error, TEXT("Wrong Rive Texture Size X:%d, Y:%d"), InNewSize.X, InNewSize.Y);
 	}
-
 	
 	SizeX = Size.X = InNewSize.X;
 	SizeY = Size.Y = InNewSize.Y;
@@ -94,6 +104,9 @@ void URiveTexture::InitializeResources() const
 {
 	ENQUEUE_RENDER_COMMAND(FRiveTextureResourceeUpdateTextureReference)
 	([this](FRHICommandListImmediate& RHICmdList) {
+		UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		
 		FTextureRHIRef RenderableTexture;
 
 		FRHITextureCreateDesc RenderTargetTextureDesc =
