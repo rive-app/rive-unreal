@@ -28,7 +28,7 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveEventDelegate, URiveArtboard*, Artboard, TArray<FRiveEvent>, ReportedEvents);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveNamedEventDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveNamedEventsDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
-	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(FVector2f, FRiveCoordinatesDelegate, const FVector2f&, InTexturePosition);
+	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FVector2f, FRiveCoordinatesDelegate, URiveArtboard*, Artboard, const FVector2f&, TexturePosition);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveTickDelegate, float, DeltaTime, URiveArtboard*, Artboard);
 	
 	virtual void BeginDestroy() override;
@@ -43,7 +43,7 @@ public:
 	FRiveTickDelegate OnArtboardTick_StateMachine;
 
 	UPROPERTY(BlueprintReadWrite)
-	FRiveCoordinatesDelegate OnGetLocalCoordinates;
+	FRiveCoordinatesDelegate OnGetLocalCoordinate;
 	
 	UFUNCTION(BlueprintCallable)
 	FVector2f GetSize() const;
@@ -62,7 +62,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void Draw();
-
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void FireTrigger(const FString& InPropertyName) const;
@@ -84,15 +83,17 @@ public:
 	bool TriggerNamedRiveEvent(const FString& EventName, float ReportedDelaySeconds);
 
 
+	// Used to convert from a given point (InPosition) on a texture local position
+	// to the position for this artboard, taking into account alignment, fit, and an offset (if custom translation has been used)
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition, FVector2f TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const;
-
+	FVector2f GetLocalCoordinate(const FVector2f& InPosition, const FIntPoint& InTextureSize, const FVector2f& InArtboardOffset, ERiveAlignment InAlignment, ERiveFitType InFit) const;
+	
 	/**
 	 * Returns the coordinates in the current Artboard space
 	 * @param InExtents Extents of the RenderTarget, will be mapped to the RenderTarget size
 	 */
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents, FVector2f TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const;
+	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents, const FIntPoint& TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const;
 	
 #if WITH_RIVE
 	

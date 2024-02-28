@@ -23,18 +23,16 @@ namespace UE::Private::SRiveImage
 
 		// We ask our artboard delegate (if there is one) to provide us with the translation offset it could be rendering in
 		// This is useful when artboards implement their own blueprint render code, and are dynamically shifting the position of the artboard inside the render target
-		FVector2f ArtboardOffset;
-		if (InRiveArtboard->OnGetLocalCoordinates.IsBound())
+		FVector2f InputVector;
+		if (InRiveArtboard->OnGetLocalCoordinate.IsBound())
 		{
-			ArtboardOffset = InRiveArtboard->OnGetLocalCoordinates.Execute({0, 0});
+			InputVector = InRiveArtboard->OnGetLocalCoordinate.Execute(InRiveArtboard, {LocalPosition.X, LocalPosition.Y});
+		} else
+		{
+			InputVector = InRiveArtboard->GetLocalCoordinate(LocalPosition, InRiveTexture->Size, {0,0}, ERiveAlignment::TopLeft, ERiveFitType::None);
 		}
-
-		float InputX = LocalPosition.X / ScaleFactorWidth - ArtboardOffset.X;
-		float InputY = LocalPosition.Y / ScaleFactorHeight - ArtboardOffset.Y;
-		return {
-			static_cast<float>(FMath::Clamp(InputX, 0.0, InputX)),
-			static_cast<float>(FMath::Clamp(InputY, 0.0, InputY)),
-		};
+		
+		return {InputVector.X, InputVector.Y};
 	}
 }
 

@@ -96,7 +96,7 @@ public:
 	FLinearColor GetClearColor() const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition);
+	FVector2f GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2f& InPosition);
 
 	/**
 	 * Returns the coordinates in the current Artboard space
