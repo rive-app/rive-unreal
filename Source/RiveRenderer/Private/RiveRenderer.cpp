@@ -14,6 +14,8 @@ UE::Rive::Renderer::Private::FRiveRenderer::~FRiveRenderer()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
     InitializationState = ERiveInitState::Deinitializing;
+
+    FlushRenderingCommands();
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
