@@ -43,6 +43,9 @@ public:
     
     void InitializeRenderTarget(int32 SizeX, int32 SizeY);
 
+    UPROPERTY(BlueprintAssignable)
+    FRiveReadyDelegate OnRiveReady;
+    
     UFUNCTION(BlueprintCallable)
     void ResizeRenderTarget(int32 InSizeX, int32 InSizeY);
 
