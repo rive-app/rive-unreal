@@ -52,7 +52,7 @@ void URiveTexture::PostLoad()
 
 void URiveTexture::ResizeRenderTargets(const FIntPoint InNewSize)
 {
-	if (Size == InNewSize)
+	if (InNewSize.X == SizeX && InNewSize.Y == SizeY)
 	{
 		return;
 	}
