@@ -3,15 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RiveArtboard.h"
 #include "Blueprint/UserWidget.h"
 #include "RiveImageUserWidget.generated.h"
 
 class URiveTexture;
-class UCanvasPanel;
-class URiveImage;
-class UCanvasPanelSlot;
-class URiveFile;
+class URiveArtboard;
+class SRiveImage;
 
 /**
  * 
@@ -22,24 +19,26 @@ class RIVE_API URiveImageUserWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
-	TObjectPtr<UCanvasPanel> RootCanvasPanel;
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetRiveTexture(URiveTexture* InRiveTexture);
 
-	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
-	TObjectPtr<URiveImage> RiveImage;
-
-	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
-	TObjectPtr<UCanvasPanelSlot> RiveImageSlot;
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards);
+	
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void Setup(URiveTexture* InRiveTexture, const TArray<URiveArtboard*> InArtboards);
 
 protected:
-	//~ Begin UUserWidget Interface
-	virtual bool Initialize() override;
-	//~ End UUserWidget Interface
-	
 	//~ Begin UWidget Interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	//~ End UWidget Interface
 
-	UFUNCTION(BlueprintCallable, Category = Rive)
-	static void CalculateCenterPlacementInViewport(const FVector2f& TextureSize, const FVector2f& InViewportSize, FVector2f& OutPosition, FVector2f& OutSize);
+	//~ Begin UVisual Interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	//~ End UVisual Interface
+
+private:
+	TSharedPtr<SRiveImage> RiveImage;
+
+	TArray<TObjectPtr<URiveArtboard>> Artboards;
 };
