@@ -8,7 +8,10 @@
 #include "RiveImageUserWidget.generated.h"
 
 class URiveTexture;
-class SRiveImage;
+class UCanvasPanel;
+class URiveImage;
+class UCanvasPanelSlot;
+class URiveFile;
 
 /**
  * 
@@ -18,29 +21,27 @@ class RIVE_API URiveImageUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-	UFUNCTION(BlueprintCallable, Category = Rive)
-	void SetRiveTexture(URiveTexture* InRiveTexture);
-
-	UFUNCTION(BlueprintCallable, Category = Rive)
-	void RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards);
-
-	//~ Begin UVisual Interface
-	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End UVisual Interface
-
-#if WITH_EDITOR
-	//~ Begin UWidget Interface
-	virtual const FText GetPaletteCategory() override;
-	//~ End UWidget Interface
-#endif
-
 protected:
+	//~ Begin UUserWidget Interface
+	virtual bool Initialize() override;
+	//~ End UUserWidget Interface
+	
 	//~ Begin UWidget Interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	//~ End UWidget Interface
 
-private:
-	TSharedPtr<SRiveImage> RiveImage;
-	TArray<URiveArtboard*> Artboards;
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	static void CalculateCenterPlacementInViewport(const FVector2f& TextureSize, const FVector2f& InViewportSize, FVector2f& OutPosition, FVector2f& OutSize);
+
+	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
+	TObjectPtr<UCanvasPanel> RootCanvasPanel;
+
+	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
+	TObjectPtr<URiveImage> RiveImage;
+
+	UPROPERTY(Transient, BlueprintReadOnly, VisibleAnywhere, Category = "Rive|UI")
+	TObjectPtr<UCanvasPanelSlot> RiveImageSlot;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Rive|UI")
+	TObjectPtr<URiveFile> RiveFile;
 };

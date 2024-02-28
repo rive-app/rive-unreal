@@ -7,14 +7,13 @@ FVector2f RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(URiveT
 {
 	const FVector2f MouseLocal = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 	const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-	const FBox2f TextureBox = CalculateRenderTextureExtentsInViewport(InRiveTexture, ViewportSize);
+	const FBox2f TextureBox = CalculateRenderTextureExtentsInViewport(InRiveTexture->Size, ViewportSize);
 	return InRiveTexture->GetLocalCoordinatesFromExtents(InArtboard, MouseLocal, TextureBox);
 }
 
-FBox2f RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(URiveTexture* InRiveTexture, const FVector2f& InViewportSize)
+FBox2f RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(const FVector2f& InTextureSize, const FVector2f& InViewportSize)
 {
-	const FVector2f RiveTextureSize = {(float)InRiveTexture->SizeX, (float)InRiveTexture->SizeY};
-	const float TextureAspectRatio = RiveTextureSize.X / RiveTextureSize.Y;
+	const float TextureAspectRatio = InTextureSize.X / InTextureSize.Y;
 	const float ViewportAspectRatio = InViewportSize.X / InViewportSize.Y;
 
 	if (ViewportAspectRatio > TextureAspectRatio) // Viewport wider than the Texture => height should be the same

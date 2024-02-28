@@ -10,5 +10,5 @@ public:
 	/**
 	 * Calculates the extents of the RiveFIle RenderTarget to be 'Contained' within the given viewport
 	 */
-	static FBox2f CalculateRenderTextureExtentsInViewport(URiveTexture* InRiveTexture, const FVector2f& InViewportSize);
+	static FBox2f CalculateRenderTextureExtentsInViewport(const FVector2f& TextureSize, const FVector2f& InViewportSize);
 };

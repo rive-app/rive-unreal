@@ -39,7 +39,7 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	//todo: to review with drawing of multiple artboards
 	const FIntPoint ViewportSize = Viewport->GetSizeXY();
-	const FBox2f RiveTextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(RiveFile, ViewportSize);
+	const FBox2f RiveTextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(RiveFile->Size, ViewportSize);
 	const FVector2f RiveTextureSize = RiveTextureBox.GetSize();
 
 #if WITH_EDITOR

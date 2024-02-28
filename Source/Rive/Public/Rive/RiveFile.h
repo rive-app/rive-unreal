@@ -121,6 +121,7 @@ public:
 
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	URiveArtboard* GetArtboard() const;
 
 	ERiveInitState InitializationState() const { return InitState; }

@@ -3,48 +3,30 @@
 
 #include "UMG/RiveImageUserWidget.h"
 
-#include "Slate/SRiveImage.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/CanvasPanel.h"
+#include "Slate/RiveWidgetHelpers.h"
+#include "UMG/RiveImage.h"
 
-#define LOCTEXT_NAMESPACE "RiveWidget"
-
-void URiveImageUserWidget::SetRiveTexture(URiveTexture* InRiveTexture)
+bool URiveImageUserWidget::Initialize()
 {
-	if (!RiveImage)
-	{
-		return;
-	}
-	
-	RiveImage->SetRiveTexture(InRiveTexture);
+	return Super::Initialize();
 }
-
-void URiveImageUserWidget::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards)
-{
-	Artboards = InArtboards;
-	if (RiveImage)
-	{
-		RiveImage->RegisterArtboardInputs(Artboards);
-	}
-}
-
-void URiveImageUserWidget::ReleaseSlateResources(bool bReleaseChildren)
-{
-	Super::ReleaseSlateResources(bReleaseChildren);
-	RiveImage.Reset();
-}
-
-#if WITH_EDITOR
-const FText URiveImageUserWidget::GetPaletteCategory()
-{
-	return LOCTEXT("Rive", "Rive");
-
-}
-#endif
 
 TSharedRef<SWidget> URiveImageUserWidget::RebuildWidget()
 {
-	RiveImage = SNew(SRiveImage);
-	RiveImage->RegisterArtboardInputs(Artboards);
-	return RiveImage.ToSharedRef();
+	RootCanvasPanel = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+	WidgetTree->RootWidget = RootCanvasPanel;
+	RiveImage = WidgetTree->ConstructWidget<URiveImage>(URiveImage::StaticClass());
+	RiveImageSlot = RootCanvasPanel->AddChildToCanvas(RiveImage);
+	
+	return RootCanvasPanel->TakeWidget();
 }
 
-#undef LOCTEXT_NAMESPACE
+void URiveImageUserWidget::CalculateCenterPlacementInViewport(const FVector2f& TextureSize, const FVector2f& InViewportSize, FVector2f& OutPosition, FVector2f& OutSize)
+{
+	const FBox2f Box = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(TextureSize, InViewportSize);
+	OutPosition = Box.Min;
+	OutSize = Box.GetSize();
+}
+
