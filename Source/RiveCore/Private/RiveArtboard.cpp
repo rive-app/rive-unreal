@@ -48,7 +48,7 @@ void URiveArtboard::AdvanceStateMachine(float InDeltaSeconds)
 				PopulateReportedEvents();
 			}
 #if PLATFORM_ANDROID
-			UE_LOG(LogRive, Verbose, TEXT("[%s] StateMachine->Advance"), IsInRHIThread() ? TEXT("RHIThread") : (IsInRenderingThread() ? TEXT("RenderThread") : TEXT("OtherThread")));
+			UE_LOG(LogRiveCore, Verbose, TEXT("[%s] StateMachine->Advance"), IsInRHIThread() ? TEXT("RHIThread") : (IsInRenderingThread() ? TEXT("RenderThread") : TEXT("OtherThread")));
 #endif
 			StateMachine->Advance(InDeltaSeconds);
 		}
