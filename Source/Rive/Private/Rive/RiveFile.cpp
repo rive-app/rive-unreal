@@ -132,10 +132,7 @@ void URiveFile::FireTrigger(const FString& InPropertyName) const
 #if WITH_RIVE
 	if (GetArtboard())
 	{
-		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
-		{
-			StateMachine->FireTrigger(InPropertyName);
-		}
+		GetArtboard()->FireTrigger(InPropertyName);
 	}
 #endif // WITH_RIVE
 }
@@ -145,13 +142,9 @@ bool URiveFile::GetBoolValue(const FString& InPropertyName) const
 #if WITH_RIVE
 	if (GetArtboard())
 	{
-		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
-		{
-			return StateMachine->GetBoolValue(InPropertyName);
-		}
+		return GetArtboard()->GetBoolValue(InPropertyName);
 	}
 #endif // !WITH_RIVE
-	
 	return false;
 }
 
@@ -160,13 +153,9 @@ float URiveFile::GetNumberValue(const FString& InPropertyName) const
 #if WITH_RIVE
 	if (GetArtboard())
 	{
-		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
-		{
-			return StateMachine->GetNumberValue(InPropertyName);
-		}
+		return GetArtboard()->GetNumberValue(InPropertyName);
 	}
 #endif // !WITH_RIVE
-
 	return 0.f;
 }
 
@@ -178,24 +167,22 @@ FLinearColor URiveFile::GetClearColor() const
 FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition)
 {
 #if WITH_RIVE
-
 	if (GetArtboard())
 	{
-		const FVector2f RiveAlignmentXY = FRiveAlignment::GetAlignment(RiveAlignment);
-
-		const rive::Mat2D Transform = rive::computeAlignment(
-			(rive::Fit)RiveFitType,
-			rive::Alignment(RiveAlignmentXY.X, RiveAlignmentXY.Y),
-			rive::AABB(0, 0, Size.X, Size.Y),
-			Artboard->GetBounds()
-		);
-
-		const rive::Vec2D ResultingVector = Transform.invertOrIdentity() * rive::Vec2D(InTexturePosition.X, InTexturePosition.Y);
-		return {ResultingVector.x, ResultingVector.y};
+		return GetArtboard()->GetLocalCoordinates(InTexturePosition, Size, RiveAlignment, RiveFitType);
 	}
-
 #endif // WITH_RIVE
+	return FVector2f::ZeroVector;
+}
 
+FVector2f URiveFile::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const
+{
+#if WITH_RIVE
+	if (GetArtboard())
+	{
+		return GetArtboard()->GetLocalCoordinatesFromExtents(InPosition, InExtents, Size, RiveAlignment, RiveFitType);
+	}
+#endif // WITH_RIVE
 	return FVector2f::ZeroVector;
 }
 
@@ -204,10 +191,7 @@ void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 #if WITH_RIVE
 	if (GetArtboard())
 	{
-		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
-		{
-			StateMachine->SetBoolValue(InPropertyName, bNewValue);
-		}
+		Artboard->SetBoolValue(InPropertyName, bNewValue);
 	}
 #endif // WITH_RIVE
 }
@@ -217,10 +201,7 @@ void URiveFile::SetNumberValue(const FString& InPropertyName, float NewValue)
 #if WITH_RIVE
 	if (GetArtboard())
 	{
-		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
-		{
-			StateMachine->SetNumberValue(InPropertyName, NewValue);
-		}
+		Artboard->SetNumberValue(InPropertyName, NewValue);
 	}
 #endif // WITH_RIVE
 }
@@ -470,6 +451,7 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	
 	RiveRenderTarget.Reset();
 	RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
+	OnResourceInitializedOnRenderThread.AddUObject(this, &URiveFile::OnResourceInitialized_RenderThread);
 	RiveRenderTarget->SetClearColor(ClearColor);
 	
 	if (ArtboardName.IsEmpty())
@@ -518,7 +500,7 @@ void URiveFile::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
 URiveArtboard* URiveFile::GetArtboard() const
 {
 #if WITH_RIVE
-	if (Artboard && Artboard->IsInitialized())
+	if (IsValid(Artboard) && Artboard->IsInitialized())
 	{
 		return Artboard;
 	}

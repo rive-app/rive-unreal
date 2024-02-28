@@ -60,12 +60,11 @@ namespace UE::Rive::Renderer::Private
 		virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const = 0;
 		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame();
 		virtual void EndFrame() const;
-		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList);
-		virtual void Render_Internal();
+		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands);
+		virtual void Render_Internal(const TArray<FRiveRenderCommand>& RiveRenderCommands);
 #endif // WITH_RIVE
 	
 	protected:
-		mutable bool bClearQueue = false;
 		mutable bool bIsCleared = false;
 		FLinearColor ClearColor = FLinearColor::Transparent;
 		FName RiveName;

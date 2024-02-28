@@ -15,8 +15,6 @@ THIRD_PARTY_INCLUDES_END
 
 FTimespan UE::Rive::Renderer::Private::FRiveRenderTarget::ResetTimeLimit = FTimespan(0, 0, 20);
 
-UE_DISABLE_OPTIMIZATION
-
 UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 	: RiveName(InRiveName)
 	, RenderTarget(InRenderTarget)
@@ -49,44 +47,34 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Submit()
 
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
+	// Making a copy of the RenderCommands to be processed on RenderingThread
 	ENQUEUE_RENDER_COMMAND(Render)(
-		[this](FRHICommandListImmediate& RHICmdList)
+		[this, RiveRenderCommands = RenderCommands](FRHICommandListImmediate& RHICmdList)
 		{
-			Render_RenderThread(RHICmdList);
+			Render_RenderThread(RHICmdList, RiveRenderCommands);
 		});
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::SubmitAndClear()
 {
-	{
-		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-		bClearQueue = true;
-	}
-	
 	Submit();
+	RenderCommands.Empty();
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Save()
 {
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-
 	const FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Save);
 	RenderCommands.Push(RenderCommand);
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Restore()
 {
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-
 	const FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Restore);
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Transform(float X1, float Y1, float X2, float Y2, float TX,
-	float TY)
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Transform(float X1, float Y1, float X2, float Y2, float TX, float TY)
 {
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Transform);
 	RenderCommand.X = X1;
 	RenderCommand.Y = Y1;
@@ -99,8 +87,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Transform(float X1, float Y
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Translate(const FVector2f& InVector)
 {
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Translate);
 	RenderCommand.X = InVector.X;
 	RenderCommand.Y = InVector.Y;
@@ -109,8 +95,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Translate(const FVector2f& 
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Draw(rive::Artboard* InArtboard)
 {
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::DrawArtboard);
 	RenderCommand.NativeArtboard = InArtboard;
 	RenderCommands.Push(RenderCommand);
@@ -118,8 +102,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Draw(rive::Artboard* InArtb
 
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
 {
-	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::AlignArtboard);
 	RenderCommand.FitType = InFit;
 	RenderCommand.X = InAlignment.X;
@@ -171,13 +153,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush %p", PLSRenderContextPtr);
 #endif
 	PLSRenderContextPtr->flush();
-
-	const FDateTime Now = FDateTime::Now();
-	const int32 TimeElapsed = (Now - LastResetTime).GetSeconds();
-	if (TimeElapsed >= ResetTimeLimit.GetSeconds())
-	{
-		LastResetTime = Now;
-	}
 }
 
 uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetWidth() const
@@ -191,25 +166,24 @@ uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetHeight() const
 }
 
 DECLARE_GPU_STAT_NAMED(Render, TEXT("RiveRenderTarget::Render"));
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICommandListImmediate& RHICmdList)
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
 {
 	SCOPED_GPU_STAT(RHICmdList, Render);
 	check(IsInRenderingThread());
 
-	Render_Internal();
+	Render_Internal(RiveRenderCommands);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRenderCommands)
 {
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
 	// Sometimes Render commands can be empty (perhaps an issue with Lock contention)
 	// Checking for empty here will prevent rendered "blank" frames
-	if (RenderCommands.IsEmpty())
+	if (RiveRenderCommands.IsEmpty())
 	{
 		return;
 	}
-	
 	// Begin Frame
 	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = BeginFrame();
 	if (PLSRenderer == nullptr)
@@ -218,7 +192,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
 	}
 
 	// UE_LOG(LogRiveRenderer, Log, TEXT("Executing queue with %d items"), RenderCommands.Num());
-	for (const FRiveRenderCommand& RenderCommand : RenderCommands)
+	for (const FRiveRenderCommand& RenderCommand : RiveRenderCommands)
 	{
 		switch (RenderCommand.Type)
 		{
@@ -268,12 +242,4 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal()
 	}
 
 	EndFrame();
-	
-	if (bClearQueue)
-	{
-		bClearQueue = false;
-		RenderCommands.Empty();
-	}
 }
-
-UE_ENABLE_OPTIMIZATION

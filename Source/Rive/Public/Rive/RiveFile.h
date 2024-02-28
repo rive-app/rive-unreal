@@ -83,13 +83,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	URiveFile* CreateInstance(const FString& InArtboardName, const FString& InStateMachineName);
 
-	UFUNCTION(BlueprintCallable, Category = Rive)
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->FireTrigger instead"))
 	void FireTrigger(const FString& InPropertyName) const;
 
-	UFUNCTION(BlueprintCallable, Category = Rive)
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->GetBoolValue instead"))
 	bool GetBoolValue(const FString& InPropertyName) const;
 
-	UFUNCTION(BlueprintCallable, Category = Rive)
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->GetNumberValue instead"))
 	float GetNumberValue(const FString& InPropertyName) const;
 
 	UFUNCTION(BlueprintPure, Category = Rive)
@@ -98,10 +98,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition);
 
+	/**
+	 * Returns the coordinates in the current Artboard space
+	 * @param InExtents Extents of the RenderTarget, will be mapped to the RenderTarget size
+	 */
 	UFUNCTION(BlueprintCallable, Category = Rive)
+	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
+
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetBoolValue instead"))
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 
-	UFUNCTION(BlueprintCallable, Category = Rive)
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetNumberValue instead"))
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
 
 	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
@@ -138,7 +145,7 @@ private:
 protected:
 	void InstantiateArtboard(bool bRaiseArtboardChangedEvent = true);
 
-	virtual void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const override;
+	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = Rive)
