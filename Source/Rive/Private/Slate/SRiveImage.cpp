@@ -141,6 +141,11 @@ void SRiveImage::OnInput(const FGeometry& MyGeometry, const FPointerEvent& InEve
 {
 #if WITH_RIVE
 	URiveTexture* RiveTexture = Cast<URiveTexture>(RiveBrush.GetResourceObject());
+	if (!RiveTexture)
+	{
+		return;
+	}
+	
 	for (URiveArtboard* Artboard : Artboards)
 	{
 		if (!ensure(Artboard))
