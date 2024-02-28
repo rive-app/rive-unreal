@@ -114,6 +114,6 @@ void URiveTexture::InitializeResources() const
 
 		RHIUpdateTextureReference(TextureReference.TextureReferenceRHI, CurrentResource->TextureRHI);
 		// When the resource change, we need to tell the RiveFile otherwise we will keep on drawing on an outdated RT
-		OnResourceInitialized_RenderThread(RHICmdList, CurrentResource->TextureRHI);
+		OnResourceInitializedOnRenderThread.Broadcast(RHICmdList, CurrentResource->TextureRHI);
 	});
 }

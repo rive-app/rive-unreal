@@ -57,6 +57,8 @@ void URiveActorComponent::InitializeRenderTarget(int32 SizeX, int32 SizeY)
     RiveRenderTarget->SetClearColor(FLinearColor::Transparent);
     RenderTarget->ResizeRenderTargets(FIntPoint(SizeX, SizeY));
     RiveRenderTarget->Initialize();
+    
+    RenderTarget->OnResourceInitializedOnRenderThread.AddUObject(this, &URiveActorComponent::OnResourceInitialized_RenderThread);
 }
 
 void URiveActorComponent::ResizeRenderTarget(int32 InSizeX, int32 InSizeY)
@@ -102,4 +104,13 @@ URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, c
     RenderObjects.Add(Artboard);
     
     return Artboard;
+}
+
+void URiveActorComponent::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const
+{
+    // When the resource change, we need to tell the Render Target otherwise we will keep on drawing on an outdated RT
+    if (const UE::Rive::Renderer::IRiveRenderTargetPtr RTarget = RiveRenderTarget) //todo: might need a lock
+    {
+        RTarget->CacheTextureTarget_RenderThread(RHICmdList, NewResource);
+    }
 }

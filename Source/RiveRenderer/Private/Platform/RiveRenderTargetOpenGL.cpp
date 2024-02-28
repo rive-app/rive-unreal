@@ -77,7 +77,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Submit()
 	
 	if (IRiveRendererModule::RunInGameThread())
 	{
-		Render_Internal();
+		Render_Internal(RenderCommands);
 	}
 	else
 	{
@@ -191,14 +191,14 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
 	}
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Render_RenderThread(FRHICommandListImmediate& RHICmdList)
+void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInRenderingThread());
 	
-	RHICmdList.EnqueueLambda([this](FRHICommandListImmediate& RHICmdList)
+	RHICmdList.EnqueueLambda([this, RiveRenderCommands = RiveRenderCommands](FRHICommandListImmediate& RHICmdList)
 	{
-		Render_Internal();
+		Render_Internal(RiveRenderCommands);
 	});
 }
 

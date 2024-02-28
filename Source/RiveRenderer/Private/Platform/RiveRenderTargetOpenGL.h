@@ -47,7 +47,7 @@ namespace UE::Rive::Renderer::Private
 		virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
 		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame() override;
 		virtual void EndFrame() const override;
-		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList) override;
+		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands) override;
 		//~ END : FRiveRenderTarget Interface
 		
 	private:
