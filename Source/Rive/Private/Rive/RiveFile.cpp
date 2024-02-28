@@ -451,6 +451,7 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	
 	RiveRenderTarget.Reset();
 	RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
+	OnResourceInitializedOnRenderThread.AddUObject(this, &URiveFile::OnResourceInitialized_RenderThread);
 	RiveRenderTarget->SetClearColor(ClearColor);
 	
 	if (ArtboardName.IsEmpty())

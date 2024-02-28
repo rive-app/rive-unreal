@@ -20,6 +20,8 @@ class RIVE_API URiveTexture : public UTexture2DDynamic
 {
 	GENERATED_BODY()
 
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnResourceInitializedOnRenderThread, FRHICommandListImmediate& /*RHICmdList*/, FTextureRHIRef& /*NewResource*/)
+	
 public:
 	URiveTexture();
 	
@@ -42,6 +44,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	virtual void ResizeRenderTargets(const FIntPoint InNewSize);
 	
+	FOnResourceInitializedOnRenderThread OnResourceInitializedOnRenderThread;
+
 protected:
 	/**
 	 * Create Texture Rendering resource on RHI Thread
@@ -53,7 +57,6 @@ protected:
 	 */
 	virtual void ResizeRenderTargets(const FVector2f InNewSize);
 
-	virtual void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const {};
 protected:
 
 	/**

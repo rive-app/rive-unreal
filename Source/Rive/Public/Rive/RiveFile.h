@@ -160,7 +160,7 @@ private:
 protected:
 	void InstantiateArtboard(bool bRaiseArtboardChangedEvent = true);
 
-	virtual void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const override;
+	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = Rive)

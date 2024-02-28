@@ -48,6 +48,7 @@ public:
     URiveArtboard* InstantiateArtboard(URiveFile* InRiveFile, const FString& InArtboardName, const FString& InStateMachineName);
     
 protected:
+    void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
     /**
      * Attribute(s)
      */
