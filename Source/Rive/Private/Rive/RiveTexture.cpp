@@ -61,6 +61,7 @@ void URiveTexture::ResizeRenderTargets(const FIntPoint InNewSize)
 		|| ensure(InNewSize.X <= RIVE_MAX_TEX_RESOLUTION) || ensure(InNewSize.Y <= RIVE_MAX_TEX_RESOLUTION)))
 	{
 		UE_LOG(LogRive, Error, TEXT("Wrong Rive Texture Size X:%d, Y:%d"), InNewSize.X, InNewSize.Y);
+		return;
 	}
 	
 	SizeX = Size.X = InNewSize.X;
