@@ -29,6 +29,10 @@ public:
 	void Setup(URiveTexture* InRiveTexture, const TArray<URiveArtboard*> InArtboards);
 
 protected:
+	//~ Begin UUserWidget Interface
+	virtual bool Initialize() override;
+	//~ End UUserWidget Interface
+
 	//~ Begin UWidget Interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	//~ End UWidget Interface
@@ -39,6 +43,8 @@ protected:
 
 private:
 	TSharedPtr<SRiveImage> RiveImage;
+
+	TObjectPtr<URiveTexture> RiveTexture;
 
 	TArray<TObjectPtr<URiveArtboard>> Artboards;
 };

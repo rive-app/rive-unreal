@@ -6,6 +6,8 @@
 
 void URiveImageUserWidget::SetRiveTexture(URiveTexture* InRiveTexture)
 {
+	RiveTexture = InRiveTexture;
+
 	if (!RiveImage)
 	{
 		return;
@@ -29,11 +31,22 @@ void URiveImageUserWidget::Setup(URiveTexture* InRiveTexture, const TArray<URive
 	RegisterArtboardInputs(InArtboards);
 }
 
+bool URiveImageUserWidget::Initialize()
+{
+	const bool bParentReturn = Super::Initialize();
+
+	RiveImage = SNew(SRiveImage);
+
+	return bParentReturn;
+}
 
 TSharedRef<SWidget> URiveImageUserWidget::RebuildWidget()
 {
-	RiveImage = SNew(SRiveImage);
-	RiveImage->RegisterArtboardInputs(Artboards);
+	if (!RiveImage.IsValid())
+	{
+		RiveImage = SNew(SRiveImage);
+	}
+	Setup(RiveTexture, Artboards);
 	return RiveImage.ToSharedRef();
 }
 
