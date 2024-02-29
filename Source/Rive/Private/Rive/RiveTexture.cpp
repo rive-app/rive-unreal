@@ -99,7 +99,9 @@ FVector2f URiveTexture::GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard
 	}
 	else
 	{
-		return InArtboard->GetLocalCoordinate(TextureRelativePosition, Size, ERiveAlignment::TopLeft, ERiveFitType::None);
+		const FMatrix Matrix = InArtboard->GetLastDrawTransformMatrix();
+		const FVector LocalCoordinate = Matrix.InverseTransformPosition(FVector(TextureRelativePosition.X, TextureRelativePosition.Y, 0));
+		return FVector2f(LocalCoordinate.X, LocalCoordinate.Y);
 	}
 }
 

@@ -109,6 +109,7 @@ void URiveArtboard::Draw()
 		return;
 	}
 	RiveRenderTarget->Draw(GetNativeArtboard());
+	LastDrawTransform = GetTransformMatrix();
 }
 
 void URiveArtboard::FireTrigger(const FString& InPropertyName) const

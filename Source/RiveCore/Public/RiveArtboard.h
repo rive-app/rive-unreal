@@ -64,7 +64,11 @@ public:
 
 	/** Returns the transformation Matrix from the start of the Render Queue up to now */
 	UFUNCTION(BlueprintCallable)
-	virtual FMatrix GetTransformMatrix() const;
+	FMatrix GetTransformMatrix() const;
+
+	/** Returns the transformation Matrix from the start of the Render Queue up to now */
+	UFUNCTION(BlueprintCallable)
+	FMatrix GetLastDrawTransformMatrix() const { return LastDrawTransform; }
 
 	UFUNCTION(BlueprintCallable)
 	void Draw();
@@ -171,6 +175,9 @@ private:
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
 	TArray<FString> StateMachineNames;
+
+	/** The Matrix at the time of the last call to Draw for this Artboard **/
+	FMatrix LastDrawTransform = FMatrix::Identity;
 
 public:
 	UFUNCTION()
