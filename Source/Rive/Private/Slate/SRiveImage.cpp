@@ -21,15 +21,18 @@ namespace UE::Private::SRiveImage
 		float ScaleFactorWidth = ViewportSize.X / (float)InRiveTexture->SizeX;
 		float ScaleFactorHeight = ViewportSize.Y / (float)InRiveTexture->SizeY;
 
+		float InputX = LocalPosition.X / ScaleFactorWidth;
+		float InputY = LocalPosition.Y / ScaleFactorHeight;
+		
 		// We ask our artboard delegate (if there is one) to provide us with the translation offset it could be rendering in
 		// This is useful when artboards implement their own blueprint render code, and are dynamically shifting the position of the artboard inside the render target
 		FVector2f InputVector;
 		if (InRiveArtboard->OnGetLocalCoordinate.IsBound())
 		{
-			InputVector = InRiveArtboard->OnGetLocalCoordinate.Execute(InRiveArtboard, {LocalPosition.X, LocalPosition.Y});
+			InputVector = InRiveArtboard->OnGetLocalCoordinate.Execute(InRiveArtboard, {InputX, InputY});
 		} else
 		{
-			InputVector = InRiveArtboard->GetLocalCoordinate(LocalPosition, InRiveTexture->Size, {0,0}, ERiveAlignment::TopLeft, ERiveFitType::None);
+			InputVector = InRiveArtboard->GetLocalCoordinate({InputX, InputY}, InRiveTexture->Size, {0,0}, ERiveAlignment::TopLeft, ERiveFitType::None);
 		}
 		
 		return {InputVector.X, InputVector.Y};
