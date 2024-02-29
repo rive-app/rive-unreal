@@ -18,23 +18,6 @@ THIRD_PARTY_INCLUDES_END
 #include "RiveArtboard.generated.h"
 
 
-USTRUCT(BlueprintType)
-struct FRiveArtboardLocalCoordinateData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, Category = Rive)
-	FVector2f Position = {0,0};
-
-	UPROPERTY(BlueprintReadWrite, Category = Rive)
-	FVector2f Offset = {0, 0};
-	
-	FVector2f GetCalculatedCoordinate()
-	{
-		return Position - Offset;
-	}
-};
-
 UCLASS(BlueprintType)
 class RIVECORE_API URiveArtboard : public UObject
 {
@@ -44,7 +27,7 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveEventDelegate, URiveArtboard*, Artboard, TArray<FRiveEvent>, ReportedEvents);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveNamedEventDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveNamedEventsDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
-	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FRiveArtboardLocalCoordinateData, FRiveCoordinatesDelegate, URiveArtboard*, Artboard, const FVector2f&, TexturePosition);
+	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FVector2f, FRiveCoordinatesDelegate, URiveArtboard*, Artboard, const FVector2f&, TexturePosition);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveTickDelegate, float, DeltaTime, URiveArtboard*, Artboard);
 	
 	virtual void BeginDestroy() override;

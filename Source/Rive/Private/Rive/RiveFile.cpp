@@ -186,19 +186,6 @@ FVector2f URiveFile::GetLocalCoordinatesFromExtents(const FVector2f& InPosition,
 	return FVector2f::ZeroVector;
 }
 
-FRiveArtboardLocalCoordinateData URiveFile::GetCoordinateData(URiveArtboard* InArtboard, const FVector2f& InPosition)
-{
-	FRiveArtboardLocalCoordinateData CoordinateData;
-
-#if WITH_RIVE
-	if (GetArtboard())
-	{
-		CoordinateData.Position = GetLocalCoordinate(GetArtboard(), InPosition);
-	}
-#endif
-		return CoordinateData;
-}
-
 void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 {
 #if WITH_RIVE
@@ -477,7 +464,7 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	}
 
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveFile::OnArtboardTickRender);
-	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveFile::GetCoordinateData);
+	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveFile::GetLocalCoordinate);
 
 	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
 	RiveRenderTarget->Initialize();

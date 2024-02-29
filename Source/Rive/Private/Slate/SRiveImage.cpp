@@ -20,8 +20,7 @@ namespace UE::Private::SRiveImage
 		// Because our RiveTexture can be a different pixel size than our viewport, we have to scale the x,y coords 
 		const FVector2f ViewportSize = MyGeometry.GetLocalSize();
 		const FBox2f TextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(InRiveTexture->Size, ViewportSize);
-		FRiveArtboardLocalCoordinateData CoordinateData = InRiveTexture->GetLocalCoordinateDataFromExtents(InRiveArtboard, LocalPosition, TextureBox);
-		return CoordinateData.GetCalculatedCoordinate();
+		return InRiveTexture->GetLocalCoordinatesFromExtents(InRiveArtboard, LocalPosition, TextureBox);
 	}
 }
 

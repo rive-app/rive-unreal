@@ -104,9 +104,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
-
-	UFUNCTION()
-	FRiveArtboardLocalCoordinateData GetCoordinateData(URiveArtboard* InArtboard, const FVector2f& InPosition);
 	
 	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetBoolValue instead"))
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
