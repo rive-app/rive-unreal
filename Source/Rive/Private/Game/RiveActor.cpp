@@ -95,6 +95,13 @@ void ARiveActor::BeginPlay()
 {
 	RequestGameDisplay();
 
+	UWorld* ActorWorld = GetWorld();
+
+	if (ActorWorld && (ActorWorld->WorldType == EWorldType::PIE))
+	{
+		RiveFile->InstantiateArtboard();
+	}
+	
 	Super::BeginPlay();
 }
 
@@ -110,6 +117,11 @@ void ARiveActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		{
 			ScreenUserWidget->Hide();
 		}
+	}
+
+	if (EndPlayReason == EEndPlayReason::EndPlayInEditor)
+	{
+		RiveFile->InstantiateArtboard();
 	}
 }
 

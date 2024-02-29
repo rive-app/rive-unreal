@@ -123,7 +123,7 @@ public:
 	 * Initialize this Rive file by creating the Render Targets and importing the native Rive File 
 	 */
 	void Initialize();
-
+	void InstantiateArtboard(bool bRaiseArtboardChangedEvent = true);
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
@@ -143,7 +143,6 @@ private:
 	FOnRiveFileInitialized OnInitializedDelegate;
 	
 protected:
-	void InstantiateArtboard(bool bRaiseArtboardChangedEvent = true);
 
 	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
 
