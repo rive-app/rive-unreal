@@ -189,13 +189,13 @@ bool URiveArtboard::TriggerNamedRiveEvent(const FString& EventName, float Report
 	return false;
 }
 
-FVector2f URiveArtboard::GetLocalCoordinate(const FVector2f& InPosition, const FIntPoint& InTextureSize, const FVector2f& InArtboardOffset, ERiveAlignment InAlignment, ERiveFitType InFit) const
+FVector2f URiveArtboard::GetLocalCoordinate(const FVector2f& InPosition, const FIntPoint& InTextureSize, ERiveAlignment InAlignment, ERiveFitType InFit) const
 {
 	FVector2f Alignment = FRiveAlignment::GetAlignment(InAlignment);
 	rive::Mat2D Transform = rive::computeAlignment(
 					static_cast<rive::Fit>(InFit),
 					rive::Alignment(Alignment.X, Alignment.Y),
-					rive::AABB(InArtboardOffset.X, InArtboardOffset.Y, InTextureSize.X, InTextureSize.Y),
+					rive::AABB(0.f, 0.f, InTextureSize.X, InTextureSize.Y),
 					NativeArtboardPtr->bounds());
 
 	rive::Vec2D Vector = Transform.invertOrIdentity() * rive::Vec2D(InPosition.X, InPosition.Y);
@@ -208,7 +208,7 @@ FVector2f URiveArtboard::GetLocalCoordinatesFromExtents(const FVector2f& InPosit
 	const FVector2f Ratio { TextureSize.X / InExtents.GetSize().X, TextureSize.Y / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
 	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
 	
-	return GetLocalCoordinate(TextureRelativePosition, TextureSize, {0,0}, Alignment, FitType);
+	return GetLocalCoordinate(TextureRelativePosition, TextureSize, Alignment, FitType);
 }
 
 void URiveArtboard::Initialize(rive::File* InNativeFilePtr, const UE::Rive::Renderer::IRiveRenderTargetPtr& InRiveRenderTarget)

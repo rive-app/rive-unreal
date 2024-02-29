@@ -18,6 +18,22 @@ THIRD_PARTY_INCLUDES_END
 #include "RiveArtboard.generated.h"
 
 
+USTRUCT(BlueprintType)
+struct FRiveArtboardLocalCoordinateData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = Rive)
+	FVector2f Position = {0,0};
+
+	UPROPERTY(BlueprintReadWrite, Category = Rive)
+	FVector2f Offset = {0, 0};
+	
+	FVector2f GetCalculatedCoordinate()
+	{
+		return Position - Offset;
+	}
+};
 
 UCLASS(BlueprintType)
 class RIVECORE_API URiveArtboard : public UObject
@@ -28,7 +44,7 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveEventDelegate, URiveArtboard*, Artboard, TArray<FRiveEvent>, ReportedEvents);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveNamedEventDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveNamedEventsDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
-	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FVector2f, FRiveCoordinatesDelegate, URiveArtboard*, Artboard, const FVector2f&, TexturePosition);
+	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FRiveArtboardLocalCoordinateData, FRiveCoordinatesDelegate, URiveArtboard*, Artboard, const FVector2f&, TexturePosition);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveTickDelegate, float, DeltaTime, URiveArtboard*, Artboard);
 	
 	virtual void BeginDestroy() override;
@@ -86,7 +102,7 @@ public:
 	// Used to convert from a given point (InPosition) on a texture local position
 	// to the position for this artboard, taking into account alignment, fit, and an offset (if custom translation has been used)
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinate(const FVector2f& InPosition, const FIntPoint& InTextureSize, const FVector2f& InArtboardOffset, ERiveAlignment InAlignment, ERiveFitType InFit) const;
+	FVector2f GetLocalCoordinate(const FVector2f& InPosition, const FIntPoint& InTextureSize, ERiveAlignment InAlignment, ERiveFitType InFit) const;
 	
 	/**
 	 * Returns the coordinates in the current Artboard space

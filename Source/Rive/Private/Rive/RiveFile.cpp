@@ -169,7 +169,7 @@ FVector2f URiveFile::GetLocalCoordinate(URiveArtboard* InArtboard, const FVector
 #if WITH_RIVE
 	if (InArtboard)
 	{
-		return InArtboard->GetLocalCoordinate(InPosition, Size, {0, 0}, RiveAlignment, RiveFitType);
+		return InArtboard->GetLocalCoordinate(InPosition, Size, RiveAlignment, RiveFitType);
 	}
 #endif // WITH_RIVE
 	return FVector2f::ZeroVector;
@@ -184,6 +184,19 @@ FVector2f URiveFile::GetLocalCoordinatesFromExtents(const FVector2f& InPosition,
 	}
 #endif // WITH_RIVE
 	return FVector2f::ZeroVector;
+}
+
+FRiveArtboardLocalCoordinateData URiveFile::GetCoordinateData(URiveArtboard* InArtboard, const FVector2f& InPosition)
+{
+	FRiveArtboardLocalCoordinateData CoordinateData;
+
+#if WITH_RIVE
+	if (GetArtboard())
+	{
+		CoordinateData.Position = GetLocalCoordinate(GetArtboard(), InPosition);
+	}
+#endif
+		return CoordinateData;
 }
 
 void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
@@ -464,7 +477,7 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	}
 
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveFile::OnArtboardTickRender);
-	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveFile::GetLocalCoordinate);
+	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveFile::GetCoordinateData);
 
 	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
 	RiveRenderTarget->Initialize();

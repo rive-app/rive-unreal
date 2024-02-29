@@ -88,17 +88,25 @@ void URiveTexture::ResizeRenderTargets(const FVector2f InNewSize)
 
 FVector2f URiveTexture::GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const
 {
+	FRiveArtboardLocalCoordinateData CoordinateData = GetLocalCoordinateDataFromExtents(InArtboard, InPosition, InExtents);
+	return CoordinateData.Position;
+}
+
+FRiveArtboardLocalCoordinateData URiveTexture::GetLocalCoordinateDataFromExtents(URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const
+{
+	FRiveArtboardLocalCoordinateData CoordinateData;
+	
 	const FVector2f RelativePosition = InPosition - InExtents.Min;
 	const FVector2f Ratio { Size.X / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
 	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
 
 	if (InArtboard->OnGetLocalCoordinate.IsBound())
 	{
-		return InArtboard->OnGetLocalCoordinate.Execute(InArtboard, TextureRelativePosition);
-	} else
-	{
-		return FVector2f::ZeroVector;
+		CoordinateData = InArtboard->OnGetLocalCoordinate.Execute(InArtboard, TextureRelativePosition);
+		return CoordinateData;
 	}
+
+	return CoordinateData;
 }
 
 void URiveTexture::InitializeResources() const
