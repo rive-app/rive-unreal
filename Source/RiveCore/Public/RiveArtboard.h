@@ -74,7 +74,14 @@ public:
 	void Translate(const FVector2f& InVector);
 	
 	UFUNCTION(BlueprintCallable)
-	void Align(ERiveFitType InFitType, ERiveAlignment InAlignment);
+	void AlignToBox(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment);
+
+	UFUNCTION(BlueprintCallable)
+	void AlignToArtboard(ERiveFitType InFitType, ERiveAlignment InAlignment);
+
+	/** Returns the transformation Matrix from the start of the Render Queue up to now */
+	UFUNCTION(BlueprintCallable)
+	virtual FMatrix GetTransformMatrix() const;
 
 	UFUNCTION(BlueprintCallable)
 	void Draw();

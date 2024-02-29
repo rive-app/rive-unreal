@@ -75,13 +75,31 @@ void URiveArtboard::Translate(const FVector2f& InVector)
 	RiveRenderTarget->Translate(InVector);
 }
 
-void URiveArtboard::Align(ERiveFitType InFitType, ERiveAlignment InAlignment)
+void URiveArtboard::AlignToBox(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment)
 {
 	if (!RiveRenderTarget)
 	{
 		return;
 	}
-	RiveRenderTarget->Align(InFitType, FRiveAlignment::GetAlignment(InAlignment), GetNativeArtboard());
+	RiveRenderTarget->AlignToBox(InBox, InFitType, FRiveAlignment::GetAlignment(InAlignment), GetNativeArtboard());
+}
+
+void URiveArtboard::AlignToArtboard(ERiveFitType InFitType, ERiveAlignment InAlignment)
+{
+	if (!RiveRenderTarget)
+	{
+		return;
+	}
+	RiveRenderTarget->AlignToArtboard(InFitType, FRiveAlignment::GetAlignment(InAlignment), GetNativeArtboard());
+}
+
+FMatrix URiveArtboard::GetTransformMatrix() const
+{
+	if (!RiveRenderTarget)
+	{
+		return {};
+	}
+	return RiveRenderTarget->GetTransformMatrix();
 }
 
 void URiveArtboard::Draw()

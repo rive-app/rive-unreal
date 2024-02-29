@@ -501,7 +501,7 @@ void URiveFile::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHI
 
 void URiveFile::OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard)
 {
-	InArtboard->Align(RiveFitType, RiveAlignment);
+	InArtboard->AlignToArtboard(RiveFitType, RiveAlignment);
 	InArtboard->Draw();
 }
 

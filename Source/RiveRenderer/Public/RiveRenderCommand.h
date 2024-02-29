@@ -42,7 +42,7 @@ public:
 	                                                             TX(0), TY(0)
 	{
 	};
-	explicit FRiveRenderCommand(rive::Mat2D Matrix) : Type(ERiveRenderCommandType::Transform), FitType(),
+	explicit FRiveRenderCommand(const rive::Mat2D& Matrix) : Type(ERiveRenderCommandType::Transform), FitType(),
 		X(Matrix.xx()), Y(Matrix.xy()), X2(Matrix.yx()), Y2(Matrix.yy()), TX(Matrix.tx()), TY(Matrix.ty())
 	{
 	};
@@ -73,4 +73,16 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	float TY;
+
+	rive::Mat2D GetSaved2DTransform() const;
+	
+	FMatrix GetSavedTransform() const
+	{
+		const rive::Mat2D Mat2d = GetSaved2DTransform();
+		return FMatrix(
+			FVector{Mat2d.xx(), Mat2d.xy(), 0},
+			FVector{Mat2d.yx(), Mat2d.yy(), 0},
+			FVector{0, 0, 1},
+			FVector{Mat2d.tx(), Mat2d.ty(), 0});
+	}
 };
