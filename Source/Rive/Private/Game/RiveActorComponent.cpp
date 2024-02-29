@@ -37,14 +37,18 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
         return;
     }
 
-    for (URiveArtboard* Artboard : RenderObjects) 
+    if (RiveRenderTarget)
     {
-        RiveRenderTarget->Save();
-        Artboard->Tick(DeltaTime);
-        RiveRenderTarget->Restore();
-    }
+        for (URiveArtboard* Artboard : RenderObjects)
+        {
+            RiveRenderTarget->Save();
+            Artboard->Tick(DeltaTime);
+            RiveRenderTarget->Restore();
+        }
 
-    RiveRenderTarget->SubmitAndClear();
+
+        RiveRenderTarget->SubmitAndClear();
+    }
 }
 
 void URiveActorComponent::InitializeRenderTarget(int32 SizeX, int32 SizeY)
