@@ -46,6 +46,7 @@ TSharedRef<SWidget> URiveImageUserWidget::RebuildWidget()
 	{
 		RiveImage = SNew(SRiveImage);
 	}
+	Setup(RiveTexture, Artboards);
 	return RiveImage.ToSharedRef();
 }
 
