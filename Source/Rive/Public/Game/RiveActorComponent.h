@@ -43,7 +43,7 @@ public:
     
     void InitializeRenderTarget(int32 SizeX, int32 SizeY);
 
-    UPROPERTY(BlueprintAssignable)
+    UPROPERTY(BlueprintAssignable, Category = Rive)
     FRiveReadyDelegate OnRiveReady;
     
     UFUNCTION(BlueprintCallable)
