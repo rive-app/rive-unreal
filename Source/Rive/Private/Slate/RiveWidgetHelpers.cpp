@@ -3,7 +3,7 @@
 #include "RiveArtboard.h"
 #include "Rive/RiveTexture.h"
 
-FVector2f RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(URiveTexture* InRiveTexture, const URiveArtboard* InArtboard, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FVector2f RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(URiveTexture* InRiveTexture, URiveArtboard* InArtboard, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	const FVector2f MouseLocal = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 	const FVector2f ViewportSize = MyGeometry.GetLocalSize();

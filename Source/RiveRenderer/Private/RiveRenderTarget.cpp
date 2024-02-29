@@ -88,8 +88,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Transform(float X1, float Y
 void UE::Rive::Renderer::Private::FRiveRenderTarget::Translate(const FVector2f& InVector)
 {
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Translate);
-	RenderCommand.X = InVector.X;
-	RenderCommand.Y = InVector.Y;
+	RenderCommand.TX = InVector.X;
+	RenderCommand.TY = InVector.Y;
 	RenderCommands.Push(RenderCommand);
 }
 
@@ -100,14 +100,52 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Draw(rive::Artboard* InArtb
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
+void UE::Rive::Renderer::Private::FRiveRenderTarget::AlignToBox(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
 {
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::AlignArtboard);
 	RenderCommand.FitType = InFit;
 	RenderCommand.X = InAlignment.X;
 	RenderCommand.Y = InAlignment.Y;
+
+	RenderCommand.TX = InBox.Min.X;
+	RenderCommand.TY = InBox.Min.Y;
+	RenderCommand.X2 = InBox.Max.X;
+	RenderCommand.Y2 = InBox.Max.Y;
+	
 	RenderCommand.NativeArtboard = InArtboard;
 	RenderCommands.Push(RenderCommand);
+}
+
+void UE::Rive::Renderer::Private::FRiveRenderTarget::AlignToArtboard(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
+{
+	AlignToBox(FBox2f(FVector2f{0.f,0.f},FVector2f(GetWidth(), GetHeight())), InFit, InAlignment, InArtboard);
+}
+
+FMatrix UE::Rive::Renderer::Private::FRiveRenderTarget::GetTransformMatrix() const
+{
+	TArray<FMatrix> SavedMatrices;
+	FMatrix CurrentMatrix = FMatrix::Identity;
+	
+	for (const FRiveRenderCommand& RenderCommand : RenderCommands)
+	{
+		switch (RenderCommand.Type)
+		{
+		case ERiveRenderCommandType::Save:
+			SavedMatrices.Add(CurrentMatrix);
+			break;
+		case ERiveRenderCommandType::Restore:
+			CurrentMatrix = SavedMatrices.IsEmpty() ? FMatrix::Identity : SavedMatrices.Pop();
+			break;
+		case ERiveRenderCommandType::AlignArtboard:
+		case ERiveRenderCommandType::Transform:
+		case ERiveRenderCommandType::Translate:
+			CurrentMatrix = RenderCommand.GetSavedTransform() * CurrentMatrix;
+			break;
+		default:
+			break;
+		}
+	}
+	return CurrentMatrix;
 }
 
 std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTarget::BeginFrame()
@@ -202,16 +240,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 		case ERiveRenderCommandType::Restore:
 			PLSRenderer->restore();
 			break;
-		case ERiveRenderCommandType::Transform:
-			PLSRenderer->transform(
-				rive::Mat2D(
-					RenderCommand.X,
-					RenderCommand.Y,
-					RenderCommand.X2,
-					RenderCommand.Y2,
-					RenderCommand.TX,
-					RenderCommand.TY));
-			break;
 		case ERiveRenderCommandType::DrawArtboard:
 #if PLATFORM_ANDROID
 			RIVE_DEBUG_VERBOSE("RenderCommand.NativeArtboard->draw()");
@@ -224,19 +252,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 		case ERiveRenderCommandType::ClipPath:
 			// TODO: Support ClipPath
 			break;
+		case ERiveRenderCommandType::Transform:
 		case ERiveRenderCommandType::AlignArtboard:
-			{
-				rive::Mat2D Transform = rive::computeAlignment(
-					static_cast<rive::Fit>(RenderCommand.FitType),
-					rive::Alignment(RenderCommand.X, RenderCommand.Y),
-					rive::AABB(0.f, 0.f, GetWidth(), GetHeight()),
-					RenderCommand.NativeArtboard->bounds());
-
-				PLSRenderer->transform(Transform);
-				break;
-			}
 		case ERiveRenderCommandType::Translate:
-			PLSRenderer->translate(RenderCommand.X, RenderCommand.Y);
+			PLSRenderer->transform(RenderCommand.GetSaved2DTransform());
 			break;
 		}
 	}

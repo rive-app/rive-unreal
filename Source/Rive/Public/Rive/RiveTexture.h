@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RiveArtboard.h"
 #include "Engine/Texture2DDynamic.h"
 #include "RiveTexture.generated.h"
 
@@ -45,7 +46,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	virtual void ResizeRenderTargets(const FIntPoint InNewSize);
 	
-	FVector2f GetLocalCoordinatesFromExtents(const URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const;
+	FVector2f GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const;
+
 	
 	FOnResourceInitializedOnRenderThread OnResourceInitializedOnRenderThread;
 protected:

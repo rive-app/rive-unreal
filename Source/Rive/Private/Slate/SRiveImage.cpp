@@ -3,6 +3,7 @@
 
 #include "Slate/SRiveImage.h"
 #include "RiveArtboard.h"
+#include "RiveWidgetHelpers.h"
 #include "Widgets/Images/SImage.h"
 #include "SlateOptMacros.h"
 #include "Rive/RiveTexture.h"
@@ -18,23 +19,8 @@ namespace UE::Private::SRiveImage
 
 		// Because our RiveTexture can be a different pixel size than our viewport, we have to scale the x,y coords 
 		const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-		float ScaleFactorWidth = ViewportSize.X / (float)InRiveTexture->SizeX;
-		float ScaleFactorHeight = ViewportSize.Y / (float)InRiveTexture->SizeY;
-
-		// We ask our artboard delegate (if there is one) to provide us with the translation offset it could be rendering in
-		// This is useful when artboards implement their own blueprint render code, and are dynamically shifting the position of the artboard inside the render target
-		FVector2f ArtboardOffset;
-		if (InRiveArtboard->OnGetLocalCoordinates.IsBound())
-		{
-			ArtboardOffset = InRiveArtboard->OnGetLocalCoordinates.Execute({0, 0});
-		}
-
-		float InputX = LocalPosition.X / ScaleFactorWidth - ArtboardOffset.X;
-		float InputY = LocalPosition.Y / ScaleFactorHeight - ArtboardOffset.Y;
-		return {
-			static_cast<float>(FMath::Clamp(InputX, 0.0, InputX)),
-			static_cast<float>(FMath::Clamp(InputY, 0.0, InputY)),
-		};
+		const FBox2f TextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(InRiveTexture->Size, ViewportSize);
+		return InRiveTexture->GetLocalCoordinatesFromExtents(InRiveArtboard, LocalPosition, TextureBox);
 	}
 }
 

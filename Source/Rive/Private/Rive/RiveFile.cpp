@@ -164,12 +164,12 @@ FLinearColor URiveFile::GetClearColor() const
 	return ClearColor;
 }
 
-FVector2f URiveFile::GetLocalCoordinates(const FVector2f& InTexturePosition)
+FVector2f URiveFile::GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2f& InPosition)
 {
 #if WITH_RIVE
-	if (GetArtboard())
+	if (InArtboard)
 	{
-		return GetArtboard()->GetLocalCoordinates(InTexturePosition, Size, RiveAlignment, RiveFitType);
+		return InArtboard->GetLocalCoordinate(InPosition, Size, RiveAlignment, RiveFitType);
 	}
 #endif // WITH_RIVE
 	return FVector2f::ZeroVector;
@@ -464,7 +464,7 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	}
 
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveFile::OnArtboardTickRender);
-	Artboard->OnGetLocalCoordinates.BindDynamic(this, &URiveFile::GetLocalCoordinates);
+	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveFile::GetLocalCoordinate);
 
 	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
 	RiveRenderTarget->Initialize();
@@ -488,7 +488,7 @@ void URiveFile::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHI
 
 void URiveFile::OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard)
 {
-	InArtboard->Align(RiveFitType, RiveAlignment);
+	InArtboard->AlignToArtboard(RiveFitType, RiveAlignment);
 	InArtboard->Draw();
 }
 

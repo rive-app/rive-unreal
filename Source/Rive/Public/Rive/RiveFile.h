@@ -96,7 +96,7 @@ public:
 	FLinearColor GetClearColor() const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinates(const FVector2f& InTexturePosition);
+	FVector2f GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2f& InPosition);
 
 	/**
 	 * Returns the coordinates in the current Artboard space
@@ -104,7 +104,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
-
+	
 	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetBoolValue instead"))
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 

@@ -54,8 +54,10 @@ namespace UE::Rive::Renderer::Private
 		virtual void Transform(float X1, float Y1, float X2, float Y2, float TX, float TY) override;
 		virtual void Translate(const FVector2f& InVector) override;
 		virtual void Draw(rive::Artboard* InArtboard) override;
-		virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
-		
+		virtual void AlignToBox(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
+		virtual void AlignToArtboard(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
+		virtual FMatrix GetTransformMatrix() const override;
+
 	protected:
 		virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const = 0;
 		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame();
