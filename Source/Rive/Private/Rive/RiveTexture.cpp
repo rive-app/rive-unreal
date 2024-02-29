@@ -104,6 +104,9 @@ FRiveArtboardLocalCoordinateData URiveTexture::GetLocalCoordinateDataFromExtents
 	{
 		CoordinateData = InArtboard->OnGetLocalCoordinate.Execute(InArtboard, TextureRelativePosition);
 		return CoordinateData;
+	} else
+	{
+		CoordinateData.Position = InArtboard->GetLocalCoordinate(TextureRelativePosition, Size, ERiveAlignment::TopLeft, ERiveFitType::None);
 	}
 
 	return CoordinateData;
