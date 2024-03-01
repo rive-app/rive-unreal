@@ -17,21 +17,9 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE_DISABLE_OPTIMIZATION
-
 // ---------------------------------------------------
 // --------------- FRiveRendererOpenGL ---------------
 // ---------------------------------------------------
-
-UE::Rive::Renderer::Private::FRiveRendererOpenGL::FRiveRendererOpenGL()
-{
-	RIVE_DEBUG_FUNCTION_INDENT;
-}
-
-UE::Rive::Renderer::Private::FRiveRendererOpenGL::~FRiveRendererOpenGL()
-{
-	RIVE_DEBUG_FUNCTION_INDENT;
-}
 
 void UE::Rive::Renderer::Private::FRiveRendererOpenGL::Initialize()
 {
@@ -193,6 +181,7 @@ bool UE::Rive::Renderer::Private::FRiveRendererOpenGL::IsRHIOpenGL()
 	return GDynamicRHI != nullptr && GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::OpenGL;
 }
 
+
 void UE::Rive::Renderer::Private::FRiveRendererOpenGL::DebugLogOpenGLStatus()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
@@ -229,6 +218,5 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::DebugLogOpenGLStatus()
 #undef RIVE_DEBUG_GL_INT_3
 }
 
-UE_ENABLE_OPTIMIZATION
 
 #endif // PLATFORM_ANDROID

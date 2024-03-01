@@ -2,9 +2,7 @@
 
 #include "RiveRendererModule.h"
 #include "RiveRenderer.h"
-#include "Framework/Application/SlateApplication.h"
 #include "Logs/RiveRendererLog.h"
-#include "Interfaces/IPluginManager.h"
 
 #if PLATFORM_WINDOWS
 #include "Platform/RiveRendererD3D11.h"
@@ -19,8 +17,6 @@
 void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
-    
-    LoadDll();
     
     check(GDynamicRHI);
     // Create Platform Specific Renderer
@@ -83,11 +79,7 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 
 void UE::Rive::Renderer::Private::FRiveRendererModule::ShutdownModule()
 {
-    if (RiveRenderer)
-    {
-        RiveRenderer.Reset();
-    }
-    ReleaseDll();
+    RiveRenderer.Reset();
 }
 
 UE::Rive::Renderer::IRiveRenderer* UE::Rive::Renderer::Private::FRiveRendererModule::GetRenderer()
@@ -105,21 +97,6 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::CallOrRegister_OnRenderer
     {
         OnRendererInitializedDelegate.Add(MoveTemp(Delegate));
     }
-}
-
-bool UE::Rive::Renderer::Private::FRiveRendererModule::LoadDll()
-{
-    RIVE_DEBUG_FUNCTION_INDENT;
-
-#if PLATFORM_ANDROID
-    FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
-#endif
-    return true;
-}
-
-void UE::Rive::Renderer::Private::FRiveRendererModule::ReleaseDll()
-{
-    RIVE_DEBUG_FUNCTION_INDENT;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -42,8 +42,6 @@ UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativ
     }
 }
 
-UE_DISABLE_OPTIMIZATION
-
 bool UE::Rive::Core::FURStateMachine::Advance(float InSeconds)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
@@ -259,6 +257,5 @@ bool UE::Rive::Core::FURStateMachine::HasAnyReportedEvents() const
     return NativeStateMachinePtr->reportedEventCount() != 0;
 }
 
-UE_ENABLE_OPTIMIZATION
 
 #endif // WITH_RIVE

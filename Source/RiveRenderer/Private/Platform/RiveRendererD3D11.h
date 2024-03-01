@@ -61,11 +61,6 @@ namespace UE::Rive::Renderer::Private
 		 */
 
 	public:
-
-		FRiveRendererD3D11();
-
-		virtual ~FRiveRendererD3D11() override = default;
-
 		//~ BEGIN : IRiveRenderer Interface
 
 	public:

@@ -4,6 +4,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Logs/RiveRendererLog.h"
 #include "TextureResource.h"
+#include "rive/pls/pls_render_context.hpp"
 
 UE::Rive::Renderer::Private::FRiveRenderer::FRiveRenderer()
 {
@@ -14,6 +15,12 @@ UE::Rive::Renderer::Private::FRiveRenderer::~FRiveRenderer()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
     InitializationState = ERiveInitState::Deinitializing;
+
+    if (PLSRenderContext)
+    {
+        FScopeLock Lock(&ThreadDataCS);
+        PLSRenderContext->releaseResources();
+    }
 
     FlushRenderingCommands();
 }
