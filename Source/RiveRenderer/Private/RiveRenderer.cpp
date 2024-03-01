@@ -16,10 +16,14 @@ UE::Rive::Renderer::Private::FRiveRenderer::~FRiveRenderer()
     RIVE_DEBUG_FUNCTION_INDENT;
     InitializationState = ERiveInitState::Deinitializing;
 
-    if (PLSRenderContext)
+    if (!IsRunningCommandlet())
     {
-        FScopeLock Lock(&ThreadDataCS);
-        PLSRenderContext->releaseResources();
+
+        if (PLSRenderContext)
+        {
+            FScopeLock Lock(&ThreadDataCS);
+            PLSRenderContext->releaseResources();
+        }
     }
 
     FlushRenderingCommands();
