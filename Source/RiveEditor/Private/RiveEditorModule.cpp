@@ -2,10 +2,15 @@
 
 #include "RiveEditorModule.h"
 
+#include "RiveTextureThumbnailRenderer.h"
+#include "Rive/RiveFile.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
+
 #define LOCTEXT_NAMESPACE "RiveEditorModule"
 
 void UE::Rive::Editor::Private::FRiveEditorModuleModule::StartupModule()
 {
+	UThumbnailManager::Get().RegisterCustomRenderer(URiveFile::StaticClass(), URiveTextureThumbnailRenderer::StaticClass());
 }
 
 void UE::Rive::Editor::Private::FRiveEditorModuleModule::ShutdownModule()
