@@ -31,9 +31,6 @@ namespace UE::Rive::Renderer::Private
          */
 
     private:
-        bool LoadDll();
-        void ReleaseDll();
-
         TSharedPtr<IRiveRenderer> RiveRenderer;
         FSimpleMulticastDelegate OnRendererInitializedDelegate;
         FDelegateHandle OnBeginFrameHandle;

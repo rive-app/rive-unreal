@@ -16,8 +16,6 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE_DISABLE_OPTIMIZATION
-
 // ------------- FRiveRendererD3D11GPUAdapter -------------
 #if WITH_RIVE
 void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::Initialize(rive::pls::PLSRenderContextD3DImpl::ContextOptions& OutContextOptions)
@@ -112,10 +110,6 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::InitBlendState()
 
 // ------------- FRiveRendererD3D11 -------------
 
-UE::Rive::Renderer::Private::FRiveRendererD3D11::FRiveRendererD3D11()
-{
-}
-
 TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererD3D11::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 {
 	check(IsInGameThread());
@@ -154,29 +148,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
-	return; // TODO: When is this function needed?
-#if WITH_RIVE
-
-	if (PLSRenderContext == nullptr)
-	{
-		return;
-	}
-
-	check(IsInRenderingThread());
-
-	FScopeLock Lock(&ThreadDataCS);
-
-	SCOPED_GPU_STAT(RHICmdList, CreatePLSRenderer);
-
-	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
-	FrameDescriptor.renderTarget = nullptr;
-	FrameDescriptor.loadAction = rive::pls::LoadAction::clear;
-	FrameDescriptor.clearColor = 0x00000000;
-	FrameDescriptor.wireframe = false;
-	FrameDescriptor.fillsDisabled = false;
-	FrameDescriptor.strokesDisabled = false;
-	
-	PLSRenderer = std::make_unique<rive::pls::PLSRenderer>(PLSRenderContext.get());
+	RIVE_DEBUG_FUNCTION_INDENT;
 }
 
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::ResetBlendState() const
@@ -188,9 +160,5 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::ResetBlendState() const
 
 	D3D11GPUAdapter->ResetBlendState();
 }
-
-#endif // WITH_RIVE
-
-UE_ENABLE_OPTIMIZATION
 
 #endif // PLATFORM_WINDOWS

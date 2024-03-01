@@ -5,16 +5,18 @@
 #include "Slate/SRiveWidget.h"
 
 const FName FRiveAssetToolkit::RiveViewportTabID(TEXT("RiveViewportTabID"));
-
 const FName FRiveAssetToolkit::DetailsTabID(TEXT("DetailsTabID"));
+const FName FRiveAssetToolkit::AppIdentifier(TEXT("RiveFileApp"));
 
 #define LOCTEXT_NAMESPACE "FRiveAssetToolkit"
 
-FRiveAssetToolkit::FRiveAssetToolkit(UAssetEditor* InOwningAssetEditor)
-    : FBaseAssetToolkit(InOwningAssetEditor)
+void FRiveAssetToolkit::Initialize(URiveFile* InRiveFile, const EToolkitMode::Type InMode, const TSharedPtr<IToolkitHost>& InToolkitHost)
 {
+    check(InRiveFile);
+    RiveFile = InRiveFile;
+    
     // Setup our default layout
-    StandaloneDefaultLayout = FTabManager::NewLayout(FName("SmartObjectAssetEditorLayout3"))
+    const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout(FName("RiveFileEditorEditorLayout3"))
         ->AddArea
         (
             FTabManager::NewPrimaryArea()
@@ -43,42 +45,60 @@ FRiveAssetToolkit::FRiveAssetToolkit(UAssetEditor* InOwningAssetEditor)
                 )
             )
         );
+    
+    FAssetEditorToolkit::InitAssetEditor(
+        InMode,
+        InToolkitHost,
+        FRiveAssetToolkit::AppIdentifier,
+        Layout,
+        true,
+        true,
+        InRiveFile
+    );
+    
+    RegenerateMenusAndToolbars();
 }
 
-FRiveAssetToolkit::~FRiveAssetToolkit()
+FText FRiveAssetToolkit::GetBaseToolkitName() const
 {
+    return LOCTEXT("AppLabel", "Rive File Editor");
+}
+
+FName FRiveAssetToolkit::GetToolkitFName() const
+{
+    return FName("RiveFileEditor");
+}
+
+FLinearColor FRiveAssetToolkit::GetWorldCentricTabColorScale() const
+{
+    return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
+}
+
+FString FRiveAssetToolkit::GetWorldCentricTabPrefix() const
+{
+    return LOCTEXT("WorldCentricTabPrefix", "RiveFile ").ToString();
 }
 
 void FRiveAssetToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
 {
     FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
-
+    
     if (!AssetEditorTabsCategory.IsValid())
     {
         // Use the first child category of the local workspace root if there is one, otherwise use the root itself
         const TArray<TSharedRef<FWorkspaceItem>>& LocalCategories = InTabManager->GetLocalWorkspaceMenuRoot()->GetChildItems();
-
         AssetEditorTabsCategory = LocalCategories.Num() > 0 ? LocalCategories[0] : InTabManager->GetLocalWorkspaceMenuRoot();
     }
-
+    
     InTabManager->RegisterTabSpawner(RiveViewportTabID, FOnSpawnTab::CreateSP(this, &FRiveAssetToolkit::SpawnTab_RiveViewportTab))
         .SetDisplayName(LOCTEXT("Viewport", "Viewport"))
         .SetGroup(AssetEditorTabsCategory.ToSharedRef())
         .SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Viewports"));
-
+    
     InTabManager->RegisterTabSpawner(DetailsTabID, FOnSpawnTab::CreateSP(this, &FRiveAssetToolkit::SpawnTab_DetailsTabID))
         .SetDisplayName(LOCTEXT("Details", "Details"))
         .SetGroup(AssetEditorTabsCategory.ToSharedRef())
         .SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"));
-}
-
-void FRiveAssetToolkit::Tick(float DeltaTime)
-{
-}
-
-TStatId FRiveAssetToolkit::GetStatId() const
-{
-    RETURN_QUICK_DECLARE_CYCLE_STAT(FRiveAssetToolkit, STATGROUP_Tickables);
 }
 
 TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_RiveViewportTab(const FSpawnTabArgs& Args)
@@ -87,14 +107,12 @@ TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_RiveViewportTab(const FSpawnTab
 
     TSharedPtr<SWidget> ViewportWidget = nullptr;
 
-    if (URiveFile* RiveFile = CastChecked<URiveFile>(GetEditingObject()))
+    if (RiveFile)
     {
         RiveWidget = SNew(SRiveWidget, RiveFile)
 #if WITH_EDITOR
-            .bDrawCheckerboardInEditor(true)
+            .bDrawCheckerboardInEditor(true);
 #endif
-        ;
-        
         ViewportWidget = RiveWidget;
     }
     else
@@ -103,7 +121,6 @@ TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_RiveViewportTab(const FSpawnTab
     }
 
     TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab).Label(LOCTEXT("ViewportTab_Title", "Viewport"));
-
     SpawnedTab->SetContent(ViewportWidget.ToSharedRef());
 
     return SpawnedTab;
@@ -114,22 +131,18 @@ TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_DetailsTabID(const FSpawnTabArg
     DetailsTab = SNew(SDockTab).Label(LOCTEXT("DetailsTitle", "Details"));
 
     FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-
+    
     FDetailsViewArgs DetailsViewArgs;
-
     DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
-
     DetailsViewArgs.bHideSelectionTip = true;
-
     DetailsViewArgs.bAllowSearch = true;
-
     DetailsAssetView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
-
-    if (URiveFile* RiveFile = CastChecked<URiveFile>(GetEditingObject()))
+    
+    if (RiveFile)
     {
         DetailsAssetView->SetObject(RiveFile);
     }
-
+    
     DetailsTab->SetContent(DetailsAssetView.ToSharedRef());
 
     return DetailsTab.ToSharedRef();

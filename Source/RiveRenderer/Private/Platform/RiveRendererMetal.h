@@ -29,11 +29,6 @@ namespace UE::Rive::Renderer::Private
          */
         
     public:
-        
-        FRiveRendererMetal();
-        
-        ~FRiveRendererMetal();
-        
         //~ BEGIN : IRiveRenderer Interface
         
     public:

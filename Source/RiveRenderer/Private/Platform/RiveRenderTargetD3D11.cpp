@@ -9,8 +9,6 @@
 #include "RiveRenderer.h"
 
 
-UE_DISABLE_OPTIMIZATION
-
 UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 	: FRiveRenderTarget(InRiveRendererD3D11, InRiveName, InRenderTarget), RiveRendererD3D11(InRiveRendererD3D11)
 {
@@ -84,5 +82,4 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::ResetBlendState() cons
 }
 
 #endif // WITH_RIVE
-UE_ENABLE_OPTIMIZATION
 #endif // PLATFORM_WINDOWS

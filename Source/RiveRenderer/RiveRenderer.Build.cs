@@ -37,7 +37,6 @@ public class RiveRenderer : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-                "Projects",
                 "RHI",
 				"RenderCore",
 				"Renderer",

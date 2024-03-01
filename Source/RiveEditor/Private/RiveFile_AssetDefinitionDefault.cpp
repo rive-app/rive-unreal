@@ -4,18 +4,17 @@
 
 #include "ContentBrowserMenuContexts.h"
 #include "IAssetTools.h"
-#include "RiveAssetEditor.h"
+#include "RiveAssetToolkit.h"
 #include "Factories/RiveFileInstanceFactory.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
 
-#define LOCTEXT_NAMESPACE "AssetTypeActions"
+#define LOCTEXT_NAMESPACE "URiveFile_AssetDefinitionDefault"
 
 namespace MenuExtension_RiveFile
 {
 	void ExecuteCreateInstance(const FToolMenuContext& InContext)
 	{
-		UE_LOG(LogRiveEditor, Log, TEXT("Test!!!"));
 		const UContentBrowserAssetContextMenuContext* CBContext = UContentBrowserAssetContextMenuContext::FindContextWithAssets(InContext);
 
 		TArray<URiveFile*> x = CBContext->LoadSelectedObjects<URiveFile>();
@@ -56,7 +55,7 @@ namespace MenuExtension_RiveFile
 
 FText URiveFile_AssetDefinitionDefault::GetAssetDisplayName() const
 {
-	return LOCTEXT("AssetTypeActions_SmartObjectDefinition", "SmartObject Definition");
+	return LOCTEXT("AssetTypeActions_RiveFile", "Rive File");
 }
 
 FLinearColor URiveFile_AssetDefinitionDefault::GetAssetColor() const
@@ -78,15 +77,10 @@ TConstArrayView<FAssetCategoryPath> URiveFile_AssetDefinitionDefault::GetAssetCa
 
 EAssetCommandResult URiveFile_AssetDefinitionDefault::OpenAssets(const FAssetOpenArgs& OpenArgs) const
 {
-	UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
-
-	for (URiveFile* Definition : OpenArgs.LoadObjects<URiveFile>())
+	for (URiveFile* RiveFile : OpenArgs.LoadObjects<URiveFile>())
 	{
-		URiveAssetEditor* AssetEditor = NewObject<URiveAssetEditor>(AssetEditorSubsystem, NAME_None, RF_Transient);
-		
-		AssetEditor->SetObjectToEdit(Definition);
-		
-		AssetEditor->Initialize();
+		const TSharedRef<FRiveAssetToolkit> EditorToolkit = MakeShared<FRiveAssetToolkit>();
+		EditorToolkit->Initialize(RiveFile, OpenArgs.GetToolkitMode(), OpenArgs.ToolkitHost);
 	}
 
 	return EAssetCommandResult::Handled;

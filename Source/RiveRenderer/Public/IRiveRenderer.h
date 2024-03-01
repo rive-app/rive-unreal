@@ -44,9 +44,9 @@ namespace UE::Rive::Renderer
          */
 
     public:
-        DECLARE_MULTICAST_DELEGATE_OneParam( FOnRendererInitialized, IRiveRenderer* /* RiveRenderer */ );
+        virtual ~IRiveRenderer() {}
         
-        virtual ~IRiveRenderer() = default;
+        DECLARE_MULTICAST_DELEGATE_OneParam(FOnRendererInitialized, IRiveRenderer* /* RiveRenderer */);
 
         /**
          * Implementation(s)

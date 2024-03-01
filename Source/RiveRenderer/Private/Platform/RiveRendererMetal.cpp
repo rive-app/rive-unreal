@@ -19,17 +19,6 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE_DISABLE_OPTIMIZATION
-
-UE::Rive::Renderer::Private::FRiveRendererMetal::FRiveRendererMetal()
-{
-}
-
-UE::Rive::Renderer::Private::FRiveRendererMetal::~FRiveRendererMetal()
-{
-}
-
-
 TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererMetal::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 {
     check(IsInGameThread());
@@ -91,7 +80,5 @@ void UE::Rive::Renderer::Private::FRiveRendererMetal::CreatePLSRenderer_RenderTh
     
 #endif // WITH_RIVE
 }
-
-UE_ENABLE_OPTIMIZATION
 
 #endif // PLATFORM_APPLE

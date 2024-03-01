@@ -25,7 +25,6 @@ FRiveWidgetFactory::FRiveWidgetFactory(URiveFile* InRiveFile)
 {
 }
 
-UE_DISABLE_OPTIMIZATION
 
 bool FRiveWidgetFactory::SaveAsset(UWidgetBlueprint* InWidgetBlueprint)
 {
@@ -223,4 +222,3 @@ namespace
 
 #undef LOCTEXT_NAMESPACE
 
-UE_ENABLE_OPTIMIZATION

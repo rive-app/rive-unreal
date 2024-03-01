@@ -33,9 +33,7 @@ namespace UE::Rive::Renderer::Private
 		 * Structor(s)
 		 */
 	public:
-		FRiveRendererOpenGL();
-		virtual ~FRiveRendererOpenGL() override;
-
+		
 		//~ BEGIN : IRiveRenderer Interface
 	public:
 		virtual void Initialize() override;
