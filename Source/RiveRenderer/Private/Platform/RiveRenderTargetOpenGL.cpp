@@ -63,11 +63,21 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_Re
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInRenderingThread());
 
-	SCOPED_GPU_STAT(RHICmdList, CacheTextureTarget);
-	RHICmdList.EnqueueLambda([this, InTexture](FRHICommandListImmediate& RHICmdList)
+	if (IRiveRendererModule::RunInGameThread())
 	{
-		CacheTextureTarget_Internal(InTexture);
-	});
+		AsyncTask(ENamedThreads::GameThread,[this, InTexture]()
+		{
+			CacheTextureTarget_Internal(InTexture);
+		});
+	}
+	else
+	{
+		SCOPED_GPU_STAT(RHICmdList, CacheTextureTarget);
+		RHICmdList.EnqueueLambda([this, InTexture](FRHICommandListImmediate& RHICmdList)
+		{
+			CacheTextureTarget_Internal(InTexture);
+		});
+	}
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Submit()
@@ -83,17 +93,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Submit()
 	{
 		FRiveRenderTarget::Submit();
 	}
-}
-
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
-{
-	FRiveRenderTarget::Align(InFit, InAlignment, InArtboard);
-
-	// We need to invert the Y Axis for OpenGL
-	const uint32 TextureHeight = GetHeight();
-	const rive::Mat2D Transform = rive::Mat2D::fromScaleAndTranslation(1.f, -1.f, 0.f, TextureHeight);
-	const FRiveRenderCommand RenderCommand(Transform);
-	RenderCommands.Push(RenderCommand);
 }
 
 rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::GetRenderTarget() const

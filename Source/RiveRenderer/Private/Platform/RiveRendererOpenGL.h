@@ -52,6 +52,9 @@ namespace UE::Rive::Renderer::Private
 		static bool IsRHIOpenGL();
 	private:
 		mutable FCriticalSection ContextsCS;
+
+	public:
+		static void DebugLogOpenGLStatus();
 	};
 }
 

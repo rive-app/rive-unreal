@@ -228,7 +228,14 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 	{
 		return;
 	}
-
+	
+#if PLATFORM_ANDROID
+	UE_LOG(LogRiveRenderer, Warning, TEXT(" Render_Internal -BeginFrame for '%s'"), *RiveName.ToString())
+	UE_LOG(LogRiveRenderer, Warning, TEXT(" Render_Internal -- Size: %d x %d"), GetWidth(), GetHeight())
+	// We need to invert the Y Axis for OpenGL
+	PLSRenderer->transform(rive::Mat2D::fromScaleAndTranslation(1.f, -1.f, 0.f, GetHeight())); //todo: double check if that always works
+#endif
+	
 	// UE_LOG(LogRiveRenderer, Log, TEXT("Executing queue with %d items"), RenderCommands.Num());
 	for (const FRiveRenderCommand& RenderCommand : RiveRenderCommands)
 	{
@@ -255,6 +262,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 		case ERiveRenderCommandType::Transform:
 		case ERiveRenderCommandType::AlignArtboard:
 		case ERiveRenderCommandType::Translate:
+#if PLATFORM_ANDROID
+			UE_LOG(LogRiveRenderer, Warning, TEXT(" Render_Internal -- %s: %s"), *UEnum::GetValueAsString(RenderCommand.Type), *RenderCommand.GetSavedTransform().ToString())
+#endif
 			PLSRenderer->transform(RenderCommand.GetSaved2DTransform());
 			break;
 		}
