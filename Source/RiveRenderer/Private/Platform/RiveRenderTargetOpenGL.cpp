@@ -135,21 +135,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush()  %p", PLSRenderContextPtr);
 	PLSRenderContextPtr->flush();
 
-	TArray<FIntVector2> Points{{0,0}, {100,100}, {200,200}, {300,300}};
-	for (FIntVector2 Point : Points) 
-	{
-		if (Point.X < GetWidth() && Point.Y < GetHeight())
-		{
-			GLubyte pix[4];
-			glReadPixels(Point.X, Point.Y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pix);
-			RIVE_DEBUG_VERBOSE("Pixel [%d,%d] = %u %u %u %u", Point.X, Point.Y, pix[0], pix[1], pix[2], pix[3])
-		}
-	}
-
 	// Reset
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->unbindGLInternalResources() %p", PLSRenderContextPtr);
 	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->unbindGLInternalResources();
-
 
 	if (IsInRHIThread()) //todo: still not working, to be looked at
 	{
