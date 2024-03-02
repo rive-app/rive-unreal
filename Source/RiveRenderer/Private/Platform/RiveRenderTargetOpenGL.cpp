@@ -32,7 +32,7 @@ UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::FRiveRenderTargetOpenGL(co
 UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::~FRiveRenderTargetOpenGL()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
-	CachedPLSRenderTargetOpenGL.release();
+	CachedPLSRenderTargetOpenGL.reset();
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Initialize()
@@ -260,7 +260,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_In
 
 	if (CachedPLSRenderTargetOpenGL)
 	{
-		CachedPLSRenderTargetOpenGL.release();
+		CachedPLSRenderTargetOpenGL.reset();
 	}
 	
 	CachedPLSRenderTargetOpenGL = rive::make_rcp<rive::pls::TextureRenderTargetGL>(w, h);
