@@ -415,6 +415,10 @@ void URiveFile::BroadcastInitializationResult(bool bSuccess)
 	WasLastInitializationSuccessful = bSuccess;
 	InitState = bSuccess ? ERiveInitState::Initialized : ERiveInitState::Uninitialized;
 	OnInitializedDelegate.Broadcast(this, bSuccess);
+	if (bSuccess)
+	{
+		OnRiveReady.Broadcast();
+	}
 }
 
 void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)

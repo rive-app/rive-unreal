@@ -34,7 +34,8 @@ public class Rive : ModuleRules
 				"RenderCore",
 				"RiveCore",
 				"RiveLibrary",
-				"RiveRenderer",
+				"RiveRenderer", 
+				"Engine",
 				// ... add other public dependencies that you statically link with here ...
 			}
 		);
@@ -45,7 +46,6 @@ public class Rive : ModuleRules
 			{
 				"ApplicationCore",
 				"CoreUObject",
-				"Engine",
 				"Slate",
 				"SlateCore",
 				"Projects",
