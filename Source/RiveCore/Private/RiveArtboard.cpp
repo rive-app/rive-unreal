@@ -78,7 +78,7 @@ void URiveArtboard::Align(const FBox2f InBox, ERiveFitType InFitType, ERiveAlign
 	{
 		return;
 	}
-	RiveRenderTarget->AlignToBox(InBox, InFitType, FRiveAlignment::GetAlignment(InAlignment), GetNativeArtboard());
+	RiveRenderTarget->Align(InBox, InFitType, FRiveAlignment::GetAlignment(InAlignment), GetNativeArtboard());
 }
 
 void URiveArtboard::Align(ERiveFitType InFitType, ERiveAlignment InAlignment)
@@ -87,7 +87,7 @@ void URiveArtboard::Align(ERiveFitType InFitType, ERiveAlignment InAlignment)
 	{
 		return;
 	}
-	RiveRenderTarget->AlignToArtboard(InFitType, FRiveAlignment::GetAlignment(InAlignment), GetNativeArtboard());
+	RiveRenderTarget->Align(InFitType, FRiveAlignment::GetAlignment(InAlignment), GetNativeArtboard());
 }
 
 FMatrix URiveArtboard::GetTransformMatrix() const

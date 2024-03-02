@@ -100,7 +100,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Draw(rive::Artboard* InArtb
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::AlignToBox(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
 {
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::AlignArtboard);
 	RenderCommand.FitType = InFit;
@@ -116,9 +116,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::AlignToBox(const FBox2f& In
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::AlignToArtboard(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
 {
-	AlignToBox(FBox2f(FVector2f{0.f,0.f},FVector2f(GetWidth(), GetHeight())), InFit, InAlignment, InArtboard);
+	Align(FBox2f(FVector2f{0.f,0.f},FVector2f(GetWidth(), GetHeight())), InFit, InAlignment, InArtboard);
 }
 
 FMatrix UE::Rive::Renderer::Private::FRiveRenderTarget::GetTransformMatrix() const
