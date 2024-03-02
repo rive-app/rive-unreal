@@ -30,14 +30,16 @@ UCLASS(BlueprintType, Blueprintable)
 class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
-	
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveFile*, RiveFile, URiveArtboard*, Artboard);
 
+public:
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveFile*, RiveFile, URiveArtboard*, Artboard);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRiveFileInitialized, URiveFile*, bool /* bSuccess */ );
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
+	
 	/**
 	 * Structor(s)
 	 */
-
-public:
+	
 	URiveFile();
 	
 	virtual void BeginDestroy() override;
@@ -135,8 +137,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = Rive)
 	bool IsInitialized() const { return InitState == ERiveInitState::Initialized; }
 	
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRiveFileInitialized, URiveFile*, bool /* bSuccess */ );
 	virtual void CallOrRegister_OnInitialized(FOnRiveFileInitialized::FDelegate&& Delegate);
+
+	UPROPERTY(BlueprintAssignable, Category = Rive)
+	FRiveReadyDelegate OnRiveReady;
 private:
 	void BroadcastInitializationResult(bool bSuccess);
 	TOptional<bool> WasLastInitializationSuccessful{};

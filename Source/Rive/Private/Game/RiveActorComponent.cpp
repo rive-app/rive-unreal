@@ -82,9 +82,14 @@ void URiveActorComponent::ResizeRenderTarget(int32 InSizeX, int32 InSizeY)
 
 URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, const FString& InArtboardName, const FString& InStateMachineName)
 {
-    if (!InRiveFile)
+    if (!IsValid(InRiveFile))
     {
         UE_LOG(LogRive, Error, TEXT("Can't instantiate an artboard without a valid RiveFile."));
+        return nullptr;
+    }
+    if (!InRiveFile->IsInitialized())
+    {
+        UE_LOG(LogRive, Error, TEXT("Can't instantiate an artboard a RiveFile that is not initialized!"));
         return nullptr;
     }
 	

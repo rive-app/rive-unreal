@@ -47,9 +47,6 @@ void URiveArtboard::AdvanceStateMachine(float InDeltaSeconds)
 			{
 				PopulateReportedEvents();
 			}
-#if PLATFORM_ANDROID
-			UE_LOG(LogRiveCore, Verbose, TEXT("[%s] StateMachine->Advance"), IsInRHIThread() ? TEXT("RHIThread") : (IsInRenderingThread() ? TEXT("RenderThread") : TEXT("OtherThread")));
-#endif
 			StateMachine->Advance(InDeltaSeconds);
 		}
 	}
@@ -75,7 +72,7 @@ void URiveArtboard::Translate(const FVector2f& InVector)
 	RiveRenderTarget->Translate(InVector);
 }
 
-void URiveArtboard::AlignToBox(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment)
+void URiveArtboard::Align(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment)
 {
 	if (!RiveRenderTarget)
 	{
@@ -84,7 +81,7 @@ void URiveArtboard::AlignToBox(const FBox2f InBox, ERiveFitType InFitType, ERive
 	RiveRenderTarget->AlignToBox(InBox, InFitType, FRiveAlignment::GetAlignment(InAlignment), GetNativeArtboard());
 }
 
-void URiveArtboard::AlignToArtboard(ERiveFitType InFitType, ERiveAlignment InAlignment)
+void URiveArtboard::Align(ERiveFitType InFitType, ERiveAlignment InAlignment)
 {
 	if (!RiveRenderTarget)
 	{

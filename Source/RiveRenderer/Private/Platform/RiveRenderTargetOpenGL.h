@@ -40,7 +40,6 @@ namespace UE::Rive::Renderer::Private
 
 		//~ BEGIN : FRiveRenderTarget Interface
 		virtual void Submit() override;
-		virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
 
 	protected:
 		// It Might need to be on rendering thread, render QUEUE is required

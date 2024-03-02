@@ -63,11 +63,21 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_Re
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInRenderingThread());
 
-	SCOPED_GPU_STAT(RHICmdList, CacheTextureTarget);
-	RHICmdList.EnqueueLambda([this, InTexture](FRHICommandListImmediate& RHICmdList)
+	if (IRiveRendererModule::RunInGameThread())
 	{
-		CacheTextureTarget_Internal(InTexture);
-	});
+		AsyncTask(ENamedThreads::GameThread,[this, InTexture]()
+		{
+			CacheTextureTarget_Internal(InTexture);
+		});
+	}
+	else
+	{
+		SCOPED_GPU_STAT(RHICmdList, CacheTextureTarget);
+		RHICmdList.EnqueueLambda([this, InTexture](FRHICommandListImmediate& RHICmdList)
+		{
+			CacheTextureTarget_Internal(InTexture);
+		});
+	}
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Submit()
@@ -83,17 +93,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Submit()
 	{
 		FRiveRenderTarget::Submit();
 	}
-}
-
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
-{
-	FRiveRenderTarget::Align(InFit, InAlignment, InArtboard);
-
-	// We need to invert the Y Axis for OpenGL
-	const uint32 TextureHeight = GetHeight();
-	const rive::Mat2D Transform = rive::Mat2D::fromScaleAndTranslation(1.f, -1.f, 0.f, TextureHeight);
-	const FRiveRenderCommand RenderCommand(Transform);
-	RenderCommands.Push(RenderCommand);
 }
 
 rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::GetRenderTarget() const
@@ -136,21 +135,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush()  %p", PLSRenderContextPtr);
 	PLSRenderContextPtr->flush();
 
-	TArray<FIntVector2> Points{{0,0}, {100,100}, {200,200}, {300,300}};
-	for (FIntVector2 Point : Points) 
-	{
-		if (Point.X < GetWidth() && Point.Y < GetHeight())
-		{
-			GLubyte pix[4];
-			glReadPixels(Point.X, Point.Y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pix);
-			RIVE_DEBUG_VERBOSE("Pixel [%d,%d] = %u %u %u %u", Point.X, Point.Y, pix[0], pix[1], pix[2], pix[3])
-		}
-	}
-
 	// Reset
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->unbindGLInternalResources() %p", PLSRenderContextPtr);
 	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->unbindGLInternalResources();
-
 
 	if (IsInRHIThread()) //todo: still not working, to be looked at
 	{

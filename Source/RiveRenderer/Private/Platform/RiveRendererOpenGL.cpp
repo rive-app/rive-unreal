@@ -68,7 +68,7 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::Initialize()
 rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::GetPLSRenderContextPtr()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
-	if (ensure(GDynamicRHI != nullptr && GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::OpenGL))
+	if (ensure(IsRHIOpenGL()))
 	{
 		FScopeLock Lock(&ContextsCS);
 		if (PLSRenderContext)
@@ -135,6 +135,7 @@ rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::G
 			return PLSRenderContext.get();
 		}
 		
+		DebugLogOpenGLStatus();
 		
 		RIVE_DEBUG_VERBOSE("--- OpenGL Console Variables ---");
 		RIVE_DEBUG_VERBOSE(" - FOpenGL::SupportsBufferStorage():  %s", FOpenGL::SupportsBufferStorage() ? TEXT("TRUE") : TEXT("false"));
@@ -179,5 +180,43 @@ bool UE::Rive::Renderer::Private::FRiveRendererOpenGL::IsRHIOpenGL()
 {
 	return GDynamicRHI != nullptr && GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::OpenGL;
 }
+
+
+void UE::Rive::Renderer::Private::FRiveRendererOpenGL::DebugLogOpenGLStatus()
+{
+	RIVE_DEBUG_FUNCTION_INDENT;
+	
+	// -- Macros to make it easier to Log
+#define RIVE_DEBUG_GL_BOOL(Param) RIVE_DEBUG_VERBOSE(" - glIsEnabled(%s):   %s", TEXT(#Param),  glIsEnabled(Param) ? TEXT("TRUE") : TEXT("FALSE"));
+	
+#define RIVE_DEBUG_GL_INT_2(Param, Val1, Val2) \
+	{ \
+	GLint Rive_Debug_GL_Int = 0; \
+	glGetIntegerv(Param, &Rive_Debug_GL_Int); \
+	RIVE_DEBUG_VERBOSE(" - glGetIntegerv(%s):   %s", TEXT(#Param),  Rive_Debug_GL_Int == Val1 ? TEXT(#Val1) : TEXT(#Val2)); \
+	}
+	
+#define RIVE_DEBUG_GL_INT_3(Param, Val1, Val2, Val3) \
+	{ \
+	GLint Rive_Debug_GL_Int = 0; \
+	glGetIntegerv(Param, &Rive_Debug_GL_Int); \
+	RIVE_DEBUG_VERBOSE(" - glGetIntegerv(%s):   %s", TEXT(#Param),  Rive_Debug_GL_Int == Val1 ? TEXT(#Val1) : (Rive_Debug_GL_Int == Val2 ? TEXT(#Val2) : TEXT(#Val3))); \
+	}
+	
+	// -- Actual Logging
+	RIVE_DEBUG_GL_BOOL(GL_CULL_FACE)
+	RIVE_DEBUG_GL_INT_3(GL_CULL_FACE_MODE, GL_FRONT, GL_BACK, GL_FRONT_AND_BACK);
+	RIVE_DEBUG_GL_INT_2(GL_FRONT_FACE, GL_CW, GL_CCW);
+	RIVE_DEBUG_GL_BOOL(GL_DEPTH_CLAMP);
+	RIVE_DEBUG_GL_BOOL(GL_POLYGON_OFFSET_FILL);
+	RIVE_DEBUG_GL_BOOL(GL_POLYGON_OFFSET_LINE);
+	RIVE_DEBUG_GL_BOOL(GL_POLYGON_OFFSET_POINT);
+
+	// -- Undef of the Macros
+#undef RIVE_DEBUG_GL_BOOL
+#undef RIVE_DEBUG_GL_INT_2
+#undef RIVE_DEBUG_GL_INT_3
+}
+
 
 #endif // PLATFORM_ANDROID

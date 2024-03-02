@@ -228,8 +228,13 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 	{
 		return;
 	}
-
-	// UE_LOG(LogRiveRenderer, Log, TEXT("Executing queue with %d items"), RenderCommands.Num());
+	
+#if PLATFORM_ANDROID
+	// We need to invert the Y Axis for OpenGL, and this needs to not affect input transforms
+	PLSRenderer->transform(rive::Mat2D::fromScaleAndTranslation(1.f, -1.f, 0.f, GetHeight()));
+#endif
+	
+	RIVE_DEBUG_VERBOSE("Executing queue with %d items", RenderCommands.Num());
 	for (const FRiveRenderCommand& RenderCommand : RiveRenderCommands)
 	{
 		switch (RenderCommand.Type)

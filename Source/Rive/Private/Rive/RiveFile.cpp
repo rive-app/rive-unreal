@@ -415,6 +415,10 @@ void URiveFile::BroadcastInitializationResult(bool bSuccess)
 	WasLastInitializationSuccessful = bSuccess;
 	InitState = bSuccess ? ERiveInitState::Initialized : ERiveInitState::Uninitialized;
 	OnInitializedDelegate.Broadcast(this, bSuccess);
+	if (bSuccess)
+	{
+		OnRiveReady.Broadcast();
+	}
 }
 
 void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
@@ -488,7 +492,7 @@ void URiveFile::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHI
 
 void URiveFile::OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard)
 {
-	InArtboard->AlignToArtboard(RiveFitType, RiveAlignment);
+	InArtboard->Align(RiveFitType, RiveAlignment);
 	InArtboard->Draw();
 }
 
