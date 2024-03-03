@@ -76,7 +76,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
 #if WITH_RIVE
         if (CachedPLSRenderTargetMetal)
         {
-            CachedPLSRenderTargetMetal.reset();
+            CachedPLSRenderTargetMetal.release();
         }
         
         // For now we just set one renderer and one texture

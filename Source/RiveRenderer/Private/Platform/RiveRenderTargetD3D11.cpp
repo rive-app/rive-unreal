@@ -17,7 +17,7 @@ UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(cons
 UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::~FRiveRenderTargetD3D11()
 {
 	RIVE_DEBUG_FUNCTION_INDENT
-	CachedPLSRenderTargetD3D.reset();
+	CachedPLSRenderTargetD3D.release();
 }
 
 DECLARE_GPU_STAT_NAMED(CacheTextureTarget, TEXT("FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread"));
@@ -53,7 +53,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 #if WITH_RIVE
 		if (CachedPLSRenderTargetD3D)
 		{
-			CachedPLSRenderTargetD3D.reset();
+			CachedPLSRenderTargetD3D.release();
 		}
 		// For now we just set one renderer and one texture
 		rive::pls::PLSRenderContextD3DImpl* const PLSRenderContextD3DImpl = PLSRenderContext->static_impl_cast<rive::pls::PLSRenderContextD3DImpl>();
