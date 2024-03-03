@@ -2,6 +2,8 @@
 
 #include "RiveFileFactory.h"
 
+#include "IRiveRenderer.h"
+#include "IRiveRendererModule.h"
 #include "RiveWidgetFactory.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
@@ -23,6 +25,12 @@ bool URiveFileFactory::FactoryCanImport(const FString& Filename)
 
 UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags InFlags, const FString& InFilename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
+    if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+    {
+        UE_LOG(LogRiveEditor, Error, TEXT("RiveRenderer is null, unable to import the Rive file '%s'"), *InFilename);
+        return nullptr;
+    }
+    
     const FString FileExtension = FPaths::GetExtension(InFilename);
     const TCHAR* Type = *FileExtension;
 

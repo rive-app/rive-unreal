@@ -234,7 +234,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 	PLSRenderer->transform(rive::Mat2D::fromScaleAndTranslation(1.f, -1.f, 0.f, GetHeight()));
 #endif
 	
-	RIVE_DEBUG_VERBOSE("Executing queue with %d items", RenderCommands.Num());
+	RIVE_DEBUG_VERBOSE("Executing queue with %d items for '%s'", RiveRenderCommands.Num(), *RiveName.ToString());
 	for (const FRiveRenderCommand& RenderCommand : RiveRenderCommands)
 	{
 		switch (RenderCommand.Type)

@@ -239,6 +239,12 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::
 	StateMachineName = InStateMachineName;
 	
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (!RiveRenderer)
+	{
+		UE_LOG(LogRiveCore, Error, TEXT("Failed to Initialize the Artboard as we do not have a valid renderer."));
+		return;
+	}
+	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
 	if (!InNativeFilePtr)
@@ -269,6 +275,12 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::
 	StateMachineName = InStateMachineName;
 	
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (!RiveRenderer)
+	{
+		UE_LOG(LogRiveCore, Error, TEXT("Failed to Initialize the Artboard as we do not have a valid renderer."));
+		return;
+	}
+	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
 	if (!InNativeFilePtr)
@@ -333,11 +345,17 @@ void URiveArtboard::Tick(float InDeltaSeconds)
 rive::Artboard* URiveArtboard::GetNativeArtboard() const
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (!RiveRenderer)
+	{
+		UE_LOG(LogRiveCore, Error, TEXT("Failed to retrieve the NativeArtboard as we do not have a valid renderer."));
+		return nullptr;
+	}
+	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
 	if (!NativeArtboardPtr)
 	{
-		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard as we have detected an empty rive atrboard."));
+		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard as we have detected an empty rive artboard."));
 
 		return nullptr;
 	}
@@ -348,11 +366,17 @@ rive::Artboard* URiveArtboard::GetNativeArtboard() const
 rive::AABB URiveArtboard::GetBounds() const
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (!RiveRenderer)
+	{
+		UE_LOG(LogRiveCore, Error, TEXT("Failed to GetBounds for the Artboard as we do not have a valid renderer."));
+		return {};
+	}
+	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
 	if (!NativeArtboardPtr)
 	{
-		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard bounds as we have detected an empty rive atrboard."));
+		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard bounds as we have detected an empty rive artboard."));
 
 		return {0, 0, 0, 0};
 	}
@@ -363,11 +387,17 @@ rive::AABB URiveArtboard::GetBounds() const
 FVector2f URiveArtboard::GetSize() const
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (!RiveRenderer)
+	{
+		UE_LOG(LogRiveCore, Error, TEXT("Failed to GetSize for the Artboard as we do not have a valid renderer."));
+		return {};
+	}
+	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
 	if (!NativeArtboardPtr)
 	{
-		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard size as we have detected an empty rive atrboard."));
+		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard size as we have detected an empty rive artboard."));
 
 		return FVector2f::ZeroVector;
 	}
@@ -378,6 +408,12 @@ FVector2f URiveArtboard::GetSize() const
 UE::Rive::Core::FURStateMachine* URiveArtboard::GetStateMachine() const
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (!RiveRenderer)
+	{
+		UE_LOG(LogRiveCore, Error, TEXT("Failed to GetStateMachine for the Artboard as we do not have a valid renderer."));
+		return nullptr;
+	}
+	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
 	if (!DefaultStateMachinePtr)
