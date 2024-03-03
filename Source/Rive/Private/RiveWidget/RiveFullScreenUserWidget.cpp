@@ -214,49 +214,30 @@ void URiveFullScreenUserWidget::BeginDestroy()
 
 void URiveFullScreenUserWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	FProperty* Property = PropertyChangedEvent.MemberProperty;
+	const FProperty* Property = PropertyChangedEvent.MemberProperty;
+	const FName MemberPropertyName = PropertyChangedEvent.GetMemberPropertyName();
 
-	if (Property && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
+	if (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
-		static FName NAME_WidgetClass = GET_MEMBER_NAME_CHECKED(URiveFullScreenUserWidget, WidgetClass);
+		static const TArray<FName> PropertyRequiringRebuilding {
+			NAME_None, // In case on an Undo/Redo, the property is null but we want to rebuild
+			GET_MEMBER_NAME_CHECKED(URiveFullScreenUserWidget, WidgetClass),
+			GET_MEMBER_NAME_CHECKED(URiveFullScreenUserWidget, EditorDisplayType),
+			GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessMaterial),
+			GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, WidgetDrawSize),
+			GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, bWindowFocusable),
+			GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, WindowVisibility),
+			GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, bReceiveHardwareInput),
+			GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, RenderTargetBackgroundColor),
+			GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, RenderTargetBlendMode),
+			GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessTintColorAndOpacity),
+			GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessOpacityFromTexture)
+		};
 		
-		static FName NAME_EditorDisplayType = GET_MEMBER_NAME_CHECKED(URiveFullScreenUserWidget, EditorDisplayType);
-		
-		static FName NAME_PostProcessMaterial = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessMaterial);
-		
-		static FName NAME_WidgetDrawSize = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, WidgetDrawSize);
-		
-		static FName NAME_WindowFocusable = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, bWindowFocusable);
-		
-		static FName NAME_WindowVisibility = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, WindowVisibility);
-		
-		static FName NAME_ReceiveHardwareInput = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, bReceiveHardwareInput);
-		
-		static FName NAME_RenderTargetBackgroundColor = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, RenderTargetBackgroundColor);
-		
-		static FName NAME_RenderTargetBlendMode = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, RenderTargetBlendMode);
-		
-		static FName NAME_PostProcessTintColorAndOpacity = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessTintColorAndOpacity);
-		
-		static FName NAME_PostProcessOpacityFromTexture = GET_MEMBER_NAME_CHECKED(FRiveFullScreenUserWidget_PostProcess, PostProcessOpacityFromTexture);
-
-		if (Property->GetFName() == NAME_WidgetClass
-			|| Property->GetFName() == NAME_EditorDisplayType
-			|| Property->GetFName() == NAME_PostProcessMaterial
-			|| Property->GetFName() == NAME_WidgetDrawSize
-			|| Property->GetFName() == NAME_WindowFocusable
-			|| Property->GetFName() == NAME_WindowVisibility
-			|| Property->GetFName() == NAME_ReceiveHardwareInput
-			|| Property->GetFName() == NAME_RenderTargetBackgroundColor
-			|| Property->GetFName() == NAME_RenderTargetBlendMode
-			|| Property->GetFName() == NAME_PostProcessTintColorAndOpacity
-			|| Property->GetFName() == NAME_PostProcessOpacityFromTexture
-			)
+		if (PropertyRequiringRebuilding.Contains(MemberPropertyName))
 		{
 			const bool bWasRequestedDisplay = bDisplayRequested;
-		
 			UWorld* CurrentWorld = World.Get();
-			
 			Hide();
 			
 			if (bWasRequestedDisplay && CurrentWorld)
