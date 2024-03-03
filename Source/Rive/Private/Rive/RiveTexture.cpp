@@ -30,6 +30,12 @@ URiveTexture::URiveTexture()
 FTextureResource* URiveTexture::CreateResource()
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (!RiveRenderer)
+	{
+		UE_LOG(LogRive, Error, TEXT("RiveRenderer is null, unable to create the RiveTextureResource"));
+		return nullptr;
+	}
+	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
 	// UTexture::ReleaseResource() calls the delete
@@ -107,6 +113,12 @@ FVector2f URiveTexture::GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard
 
 void URiveTexture::InitializeResources() const
 {
+	if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+	{
+		UE_LOG(LogRive, Error, TEXT("Failed to InitializeResources for the RiveTexture as we do not have a valid renderer."));
+		return;
+	}
+	
 	ENQUEUE_RENDER_COMMAND(FRiveTextureResourceeUpdateTextureReference)
 	([this](FRHICommandListImmediate& RHICmdList) {
 		UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();

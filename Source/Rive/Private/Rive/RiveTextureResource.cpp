@@ -7,6 +7,7 @@
 #include "IRiveRendererModule.h"
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
+#include "Logs/RiveLog.h"
 #include "Rive/RiveTexture.h"
 
 namespace UE::Rive::Renderer
@@ -22,6 +23,12 @@ FRiveTextureResource::FRiveTextureResource(URiveTexture* Owner)
 void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+	{
+		UE_LOG(LogRive, Error, TEXT("Failed to InitRHI for the RiveTextureResource as we do not have a valid renderer."));
+		return;
+	}
+	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
 	if (RiveTexture)
@@ -30,13 +37,17 @@ void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
 			(ESamplerFilter)UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetSamplerFilter(RiveTexture),
 			AM_Border, AM_Border, AM_Wrap);
 		SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
-
 	}
 }
 
 void FRiveTextureResource::ReleaseRHI()
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
+	{
+		RiveRenderer->GetThreadDataCS().Lock();
+	}
+	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
 	if (RiveTexture)
@@ -45,6 +56,11 @@ void FRiveTextureResource::ReleaseRHI()
 	}
 
 	FTextureResource::ReleaseRHI();
+
+	if (RiveRenderer)
+	{
+		RiveRenderer->GetThreadDataCS().Unlock();
+	}
 }
 
 uint32 FRiveTextureResource::GetSizeX() const

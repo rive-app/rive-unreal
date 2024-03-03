@@ -54,6 +54,11 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 void URiveActorComponent::InitializeRenderTarget(int32 SizeX, int32 SizeY)
 {
     UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRive, Error, TEXT("RiveRenderer is null, unable to initialize the RenderTarget for Rive file '%s'"), *GetFullNameSafe(this));
+        return;
+    }
     
     RiveRenderer->CallOrRegister_OnInitialized(UE::Rive::Renderer::IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
     [this, SizeX, SizeY](UE::Rive::Renderer::IRiveRenderer* InRiveRenderer)
@@ -103,7 +108,7 @@ URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, c
 
     if (!RiveRenderer)
     {
-        UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
+        UE_LOG(LogRive, Error, TEXT("Failed to instantiate the Artboard of Rive file '%s' as we do not have a valid renderer."), *GetFullNameSafe(InRiveFile));
         return nullptr;
     }
 

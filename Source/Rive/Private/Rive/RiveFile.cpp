@@ -253,6 +253,12 @@ ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
 
 bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer)
 {
+	if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+	{
+		UE_LOG(LogRive, Error, TEXT("Unable to Import the RiveFile '%s' as the RiveRenderer is null"), *InRiveFilePath);
+		return false;
+	}
+	
 	RiveFilePath = InRiveFilePath;
 	RiveFileData = MoveTemp(InRiveFileBuffer);
 	SetFlags(RF_NeedPostLoad);
@@ -261,7 +267,8 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 	// In Theory, the import should be synchronous as the IRiveRendererModule::Get().GetRenderer() should have been initialized,
 	// and the parent Rive File (if any) should already be loaded
 	ensureMsgf(WasLastInitializationSuccessful.IsSet(),
-		TEXT("The initialization of the Rive File '%s' ended up being asynchronous. EditorImport returning true as we don't know if the import was successful."));
+		TEXT("The initialization of the Rive File '%s' ended up being asynchronous. EditorImport returning true as we don't know if the import was successful."),
+		*InRiveFilePath);
 	
 	return WasLastInitializationSuccessful.Get(true);
 }
@@ -435,7 +442,7 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 
 	if (!RiveRenderer)
 	{
-		UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
+		UE_LOG(LogRive, Error, TEXT("Failed to instantiate the Artboard of Rive file '%s' as we do not have a valid renderer."), *GetFullNameSafe(this));
 		return;
 	}
 

@@ -20,12 +20,16 @@ rive::EventReport UE::Rive::Core::FURStateMachine::NullEvent = rive::EventReport
 UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativeArtboardInst, const FString& InStateMachineName)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    if (ensure(RiveRenderer))
+    {
+        RiveRenderer->GetThreadDataCS().Lock();
+    }
     
     if (InStateMachineName.IsEmpty())
     {
         NativeStateMachinePtr = InNativeArtboardInst->defaultStateMachine();
-    } else
+    }
+    else
     {
         NativeStateMachinePtr = InNativeArtboardInst->stateMachineNamed(TCHAR_TO_UTF8(*InStateMachineName));
     }
@@ -40,11 +44,22 @@ UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativ
     {
         StateMachineName = NativeStateMachinePtr->name().c_str();
     }
+
+    if (RiveRenderer)
+    {
+        RiveRenderer->GetThreadDataCS().Unlock();
+    }
 }
 
 bool UE::Rive::Core::FURStateMachine::Advance(float InSeconds)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to Advance the StateMachine as we do not have a valid renderer."));
+        return false;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (NativeStateMachinePtr)
@@ -58,6 +73,12 @@ bool UE::Rive::Core::FURStateMachine::Advance(float InSeconds)
 uint32 UE::Rive::Core::FURStateMachine::GetInputCount() const
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to GetInputCount on the StateMachine as we do not have a valid renderer."));
+        return 0;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (NativeStateMachinePtr)
@@ -71,6 +92,12 @@ uint32 UE::Rive::Core::FURStateMachine::GetInputCount() const
 rive::SMIInput* UE::Rive::Core::FURStateMachine::GetInput(uint32 AtIndex) const
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to GetInput on the StateMachine as we do not have a valid renderer."));
+        return nullptr;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (NativeStateMachinePtr)
@@ -103,6 +130,12 @@ void UE::Rive::Core::FURStateMachine::FireTrigger(const FString& InPropertyName)
 bool UE::Rive::Core::FURStateMachine::GetBoolValue(const FString& InPropertyName) const
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to GetBoolValue on the StateMachine as we do not have a valid renderer."));
+        return false;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (!NativeStateMachinePtr)
@@ -122,6 +155,12 @@ bool UE::Rive::Core::FURStateMachine::GetBoolValue(const FString& InPropertyName
 float UE::Rive::Core::FURStateMachine::GetNumberValue(const FString& InPropertyName) const
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to GetNumberValue on the StateMachine as we do not have a valid renderer."));
+        return 0.f;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (!NativeStateMachinePtr)
@@ -141,6 +180,12 @@ float UE::Rive::Core::FURStateMachine::GetNumberValue(const FString& InPropertyN
 void UE::Rive::Core::FURStateMachine::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to SetBoolValue on the StateMachine as we do not have a valid renderer."));
+        return;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (!NativeStateMachinePtr)
@@ -160,6 +205,12 @@ void UE::Rive::Core::FURStateMachine::SetBoolValue(const FString& InPropertyName
 void UE::Rive::Core::FURStateMachine::SetNumberValue(const FString& InPropertyName, float NewValue)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to SetNumberValue on the StateMachine as we do not have a valid renderer."));
+        return;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (!NativeStateMachinePtr)
@@ -179,6 +230,12 @@ void UE::Rive::Core::FURStateMachine::SetNumberValue(const FString& InPropertyNa
 bool UE::Rive::Core::FURStateMachine::OnMouseButtonDown(const FVector2f& NewPosition)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to call OnMouseButtonDown on the StateMachine as we do not have a valid renderer."));
+        return false;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
     if (!NativeStateMachinePtr)
@@ -193,6 +250,12 @@ bool UE::Rive::Core::FURStateMachine::OnMouseButtonDown(const FVector2f& NewPosi
 bool UE::Rive::Core::FURStateMachine::OnMouseMove(const FVector2f& NewPosition)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to call OnMouseMove on the StateMachine as we do not have a valid renderer."));
+        return false;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (!NativeStateMachinePtr)
@@ -207,6 +270,12 @@ bool UE::Rive::Core::FURStateMachine::OnMouseMove(const FVector2f& NewPosition)
 bool UE::Rive::Core::FURStateMachine::OnMouseButtonUp(const FVector2f& NewPosition)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to call OnMouseButtonUp on the StateMachine as we do not have a valid renderer."));
+        return false;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (!NativeStateMachinePtr)
@@ -221,6 +290,12 @@ bool UE::Rive::Core::FURStateMachine::OnMouseButtonUp(const FVector2f& NewPositi
 const rive::EventReport UE::Rive::Core::FURStateMachine::GetReportedEvent(int32 AtIndex) const
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to GetReportedEvent on the StateMachine as we do not have a valid renderer."));
+        return NullEvent;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (!NativeStateMachinePtr || !HasAnyReportedEvents())
@@ -234,6 +309,12 @@ const rive::EventReport UE::Rive::Core::FURStateMachine::GetReportedEvent(int32 
 int32 UE::Rive::Core::FURStateMachine::GetReportedEventsCount() const
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to GetReportedEventsCount on the StateMachine as we do not have a valid renderer."));
+        return 0;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (!NativeStateMachinePtr || !HasAnyReportedEvents())
@@ -247,6 +328,12 @@ int32 UE::Rive::Core::FURStateMachine::GetReportedEventsCount() const
 bool UE::Rive::Core::FURStateMachine::HasAnyReportedEvents() const
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to HasAnyReportedEvents on the StateMachine as we do not have a valid renderer."));
+        return false;
+    }
+    
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
     if (!NativeStateMachinePtr)

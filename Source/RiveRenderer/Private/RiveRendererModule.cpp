@@ -26,20 +26,20 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 #if PLATFORM_WINDOWS
     case ERHIInterfaceType::D3D11:
         {
-            RIVE_DEBUG_VERBOSE("Rive running on RHI 'D3D11'")
+            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'D3D11'"))
             RiveRenderer = MakeShared<FRiveRendererD3D11>();
             break;
         }
     case ERHIInterfaceType::D3D12:
         {
-            RIVE_DEBUG_VERBOSE("Rive running on RHI 'D3D12'")
+            UE_LOG(LogRiveRenderer, Error, TEXT("Rive is NOT compatible with RHI 'D3D12'"))
             break;
         }
 #endif // PLATFORM_WINDOWS
 #if PLATFORM_ANDROID
     case ERHIInterfaceType::OpenGL:
         {
-            RIVE_DEBUG_VERBOSE("Rive running on RHI 'OpenGL'")
+            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'OpenGL'"))
             RiveRenderer = MakeShared<FRiveRendererOpenGL>();
             break;
         }
@@ -47,7 +47,7 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 #if PLATFORM_APPLE
         case ERHIInterfaceType::Metal:
         {
-            RIVE_DEBUG_VERBOSE("Rive running on RHI 'Metal'")
+            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'Rive running on RHI 'Metal'"))
 #if defined(WITH_RIVE_MAC_ARM64)
             RIVE_DEBUG_VERBOSE("Rive running on a Mac M1/M2 processor (Arm64)")
 #elif defined(WITH_RIVE_MAC_INTEL)
@@ -59,9 +59,14 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 #endif // PLATFORM_APPLE
     case ERHIInterfaceType::Vulkan:
         {
+            UE_LOG(LogRiveRenderer, Error, TEXT("Rive is NOT compatible with RHI 'Vulkan'"))
             break;
         }
     default:
+        if(!IsRunningCommandlet())
+        {
+            UE_LOG(LogRiveRenderer, Error, TEXT("Rive is NOT compatible with the current unknown RHI"))
+        }
         break;
     }
     

@@ -4,6 +4,7 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "Logs/RiveCoreLog.h"
 
 #if WITH_RIVE
 #include "PreRiveHeaders.h"
@@ -20,6 +21,12 @@ THIRD_PARTY_INCLUDES_END
 void FRiveEvent::Initialize(const rive::EventReport& InEventReport)
 {
     UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (!RiveRenderer)
+	{
+		UE_LOG(LogRiveCore, Error, TEXT("Failed to Initialize the RiveEvent as we do not have a valid renderer."));
+		return;
+	}
+	
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     
 	DelayInSeconds = InEventReport.secondsDelay();
