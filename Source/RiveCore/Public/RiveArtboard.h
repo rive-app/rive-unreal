@@ -57,8 +57,9 @@ public:
 	void Translate(const FVector2f& InVector);
 	
 	UFUNCTION(BlueprintCallable)
-	void Align(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment);
-	
+	void AlignInBox(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment);
+
+	UFUNCTION(BlueprintCallable)
 	void Align(ERiveFitType InFitType, ERiveAlignment InAlignment);
 
 	/** Returns the transformation Matrix from the start of the Render Queue up to now */

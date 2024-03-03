@@ -72,7 +72,7 @@ void URiveArtboard::Translate(const FVector2f& InVector)
 	RiveRenderTarget->Translate(InVector);
 }
 
-void URiveArtboard::Align(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment)
+void URiveArtboard::AlignInBox(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment)
 {
 	if (!RiveRenderTarget)
 	{
