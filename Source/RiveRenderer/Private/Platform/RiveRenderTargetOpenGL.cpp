@@ -135,6 +135,18 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush()  %p", PLSRenderContextPtr);
 	PLSRenderContextPtr->flush();
 
+	//todo: android texture blink if we don't call glReadPixels? to investigate
+	TArray<FIntVector2> Points{ {0,0}, { 100,100 }, { 200,200 }, { 300,300 }}; 
+	for (FIntVector2 Point : Points) 
+	{
+		if (Point.X < GetWidth() && Point.Y < GetHeight())
+		{
+			GLubyte pix[4];
+			glReadPixels(Point.X, Point.Y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pix);
+			RIVE_DEBUG_VERBOSE("Pixel [%d,%d] = %u %u %u %u", Point.X, Point.Y, pix[0], pix[1], pix[2], pix[3])
+		}
+	}
+	
 	// Reset
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->unbindGLInternalResources() %p", PLSRenderContextPtr);
 	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->unbindGLInternalResources();
@@ -252,10 +264,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_In
 		UE_LOG(LogRiveRenderer, Error, TEXT("The size of the Texture Target is 0!   w: %d, h: %d"), w, h);
 		return;
 	}
-	// if (!ensureMsgf(w == GetWidth() && h == GetHeight(), TEXT("Texture Size retrieved from OpenGL is not matching Render Target!  GL: %dx%d  RT: %dx%d"), w, h, GetWidth(), GetHeight()))
-	// {
-	// 	return;
-	// }
 	RIVE_DEBUG_VERBOSE("OpenGLResourcePtr %d texture size %dx%d", OpenGLResourcePtr, w, h);
 
 	if (CachedPLSRenderTargetOpenGL)
