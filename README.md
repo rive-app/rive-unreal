@@ -9,13 +9,12 @@ Currently supported platforms and backends include:
 - Metal on Mac
 - Metal on iOS
 - D3D11 on Windows
-- OpenGL on Windows
+- OpenGL on Android
 
 Planned support for:
 
-- D3D12
-- WebGL
-- Vulkan
+- D3D12 on Windows
+- Vulkan on Linux, Android, Windows
 
 ### Feature Support
 
