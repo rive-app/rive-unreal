@@ -1,4 +1,4 @@
-﻿// Copyright Rive, Inc. All rights reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 
 #include "Rive/RiveTexture.h"
@@ -12,11 +12,7 @@
 
 URiveTexture::URiveTexture()
 {
-#if PLATFORM_IOS || PLATFORM_MAC
-	SRGB = false;
-#else
-	SRGB = true;
-#endif
+    SRGB = true;
 
 #if PLATFORM_ANDROID
 	Format = PF_R8G8B8A8_SNORM;

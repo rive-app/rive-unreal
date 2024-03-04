@@ -26,7 +26,7 @@ enum class ERiveFitType : uint8
 	ScaleDown = 6
 };
 
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta=(ScriptName="ERiveAlignment"))
 enum class ERiveAlignment : uint8
 {
 	TopLeft = 0,
