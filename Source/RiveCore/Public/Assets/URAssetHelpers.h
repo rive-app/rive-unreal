@@ -1,19 +1,18 @@
-﻿// Copyright Rive, Inc. All rights reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #pragma once
 
-struct FUREmbeddedAsset;
+class URiveAsset;
+struct FURAsset;
 
 class URAssetHelpers
 {
 public:
-	static TArray<FString> AssetPaths(const FString& InBasePath, const FString& InAssetName, uint32_t InAssetId, const TArray<FString>& InExtensions);
+	static TArray<FString> AssetPaths(const FString& InBasePath, URiveAsset* InRiveAsset, const TArray<FString>& InExtensions);
 
-    static bool FindRegistryAsset(const FString& InRiveAssetPath, const FUREmbeddedAsset& InEmbeddedAsset, TArray<uint8>& OutAssetBytes);
+    static bool FindRegistryAsset(const FString& InRiveAssetPath, const FURAsset& InEmbeddedAsset, TArray<uint8>& OutAssetBytes);
 
-    static bool FindDiskAsset(const FString& InBasePath, const FUREmbeddedAsset& InEmbeddedAsset, FString& OutPath); //TArray<uint8>& OutAssetBytes)
-
-    static bool LoadDiskAsset(const FString& InAssetPath, FUREmbeddedAsset& InEmbeddedAsset);
+    static bool FindDiskAsset(const FString& InBasePath, URiveAsset* InRiveAsset); //TArray<uint8>& OutAssetBytes)
 
 	inline const static TArray<FString> FontExtensions = {"ttf", "otf"};
 	inline const static TArray<FString> ImageExtensions = {"png"};

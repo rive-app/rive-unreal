@@ -17,42 +17,77 @@ class PLSRenderContextD3DImpl;
 class PLSRenderTargetD3D : public PLSRenderTarget
 {
 public:
+    PLSRenderTargetD3D(PLSRenderContextD3DImpl*, uint32_t width, uint32_t height);
     ~PLSRenderTargetD3D() override {}
 
     void setTargetTexture(ComPtr<ID3D11Texture2D> tex);
+
     ID3D11Texture2D* targetTexture() const { return m_targetTexture.Get(); }
+    bool targetTextureSupportsUAV() const { return m_targetTextureSupportsUAV; }
+    ID3D11RenderTargetView* targetRTV();
+
+    // Alternate rendering target when targetTextureSupportsUAV() is false.
+    ID3D11Texture2D* offscreenTexture();
+
+    // Returns an unordered access view of targetTexture(), if targetTextureSupportsUAV() is true,
+    // otherwise returns a UAV of offscreenTexture().
+    ID3D11UnorderedAccessView* targetUAV();
+
+    ID3D11UnorderedAccessView* coverageUAV();
+    ID3D11UnorderedAccessView* clipUAV();
+    ID3D11UnorderedAccessView* originalDstColorUAV();
 
 private:
-    friend class PLSRenderContextD3DImpl;
-
-    PLSRenderTargetD3D(PLSRenderContextD3DImpl*, uint32_t width, uint32_t height);
-
-    ComPtr<ID3D11Device> m_gpu;
+    const ComPtr<ID3D11Device> m_gpu;
+    const bool m_gpuSupportsTypedUAVLoadStore;
 
     ComPtr<ID3D11Texture2D> m_targetTexture;
+    bool m_targetTextureSupportsUAV = false;
+
+    ComPtr<ID3D11Texture2D> m_offscreenTexture;
     ComPtr<ID3D11Texture2D> m_coverageTexture;
     ComPtr<ID3D11Texture2D> m_originalDstColorTexture;
     ComPtr<ID3D11Texture2D> m_clipTexture;
 
+    ComPtr<ID3D11RenderTargetView> m_targetRTV;
     ComPtr<ID3D11UnorderedAccessView> m_targetUAV;
     ComPtr<ID3D11UnorderedAccessView> m_coverageUAV;
-    ComPtr<ID3D11UnorderedAccessView> m_originalDstColorUAV;
     ComPtr<ID3D11UnorderedAccessView> m_clipUAV;
+    ComPtr<ID3D11UnorderedAccessView> m_originalDstColorUAV;
 };
 
 // D3D backend implementation of PLSRenderContextImpl.
 class PLSRenderContextD3DImpl : public PLSRenderContextHelperImpl
 {
 public:
+    struct ContextOptions
+    {
+        bool disableRasterizerOrderedViews = false; // Primarily for testing.
+        bool disableTypedUAVLoadStore = false;      // Primarily for testing.
+        bool isIntel = false;
+    };
+
     static std::unique_ptr<PLSRenderContext> MakeContext(ComPtr<ID3D11Device>,
                                                          ComPtr<ID3D11DeviceContext>,
-                                                         bool isIntel);
+                                                         const ContextOptions&);
 
-    rcp<PLSRenderTargetD3D> makeRenderTarget(uint32_t width, uint32_t height);
+    rcp<PLSRenderTargetD3D> makeRenderTarget(uint32_t width, uint32_t height)
+    {
+        return make_rcp<PLSRenderTargetD3D>(this, width, height);
+    }
 
-    // D3D helpers
+    struct D3DCapabilities
+    {
+        bool supportsRasterizerOrderedViews = false;
+        bool supportsTypedUAVLoadStore = false; // Can we load/store all UAV formats used by Rive?
+        bool isIntel = false;
+    };
+
+    const D3DCapabilities& d3dCapabilities() const { return m_d3dCapabilities; }
     ID3D11Device* gpu() const { return m_gpu.Get(); }
     ID3D11DeviceContext* gpuContext() const { return m_gpuContext.Get(); }
+
+    // D3D helpers
     ComPtr<ID3D11Texture2D> makeSimple2DTexture(DXGI_FORMAT format,
                                                 UINT width,
                                                 UINT height,
@@ -69,14 +104,9 @@ public:
                                          const char* target);
 
 private:
-    struct Features
-    {
-        bool rasterizerOrderedViews = false;
-        bool uavRGBA8LoadStore = false;
-        bool isIntel = false;
-    };
-
-    PLSRenderContextD3DImpl(ComPtr<ID3D11Device>, ComPtr<ID3D11DeviceContext>, const Features&);
+    PLSRenderContextD3DImpl(ComPtr<ID3D11Device>,
+                            ComPtr<ID3D11DeviceContext>,
+                            const D3DCapabilities&);
 
     rcp<RenderBuffer> makeRenderBuffer(RenderBufferType, RenderBufferFlags, size_t) override;
 
@@ -101,9 +131,12 @@ private:
                                                          UINT highLevelStructCount,
                                                          UINT firstHighLevelStruct);
 
-    void setPipelineLayoutAndShaders(DrawType, ShaderFeatures, pls::InterlockMode);
+    void setPipelineLayoutAndShaders(DrawType,
+                                     pls::ShaderFeatures,
+                                     pls::InterlockMode,
+                                     pls::ShaderMiscFlags pixelShaderMiscFlags);
 
-    const Features m_features;
+    const D3DCapabilities m_d3dCapabilities;
 
     ComPtr<ID3D11Device> m_gpu;
     ComPtr<ID3D11DeviceContext> m_gpuContext;
@@ -116,8 +149,8 @@ private:
     ComPtr<ID3D11ShaderResourceView> m_tessTextureSRV;
     ComPtr<ID3D11RenderTargetView> m_tessTextureRTV;
 
-    ComPtr<ID3D11RasterizerState> m_pathRasterState[2];
-    ComPtr<ID3D11RasterizerState> m_imageRasterState[2];
+    ComPtr<ID3D11RasterizerState> m_backCulledRasterState[2];
+    ComPtr<ID3D11RasterizerState> m_doubleSidedRasterState[2];
 
     ComPtr<ID3D11InputLayout> m_colorRampLayout;
     ComPtr<ID3D11VertexShader> m_colorRampVertexShader;
@@ -140,7 +173,7 @@ private:
     ComPtr<ID3D11Buffer> m_patchVertexBuffer;
     ComPtr<ID3D11Buffer> m_patchIndexBuffer;
 
-    // Vertex/index buffers for drawing image rects. (Atomic mode only.)
+    // Vertex/index buffers for drawing image rects. (pls::InterlockMode::atomics only.)
     ComPtr<ID3D11Buffer> m_imageRectVertexBuffer;
     ComPtr<ID3D11Buffer> m_imageRectIndexBuffer;
 
@@ -160,5 +193,7 @@ private:
 
     ComPtr<ID3D11SamplerState> m_linearSampler;
     ComPtr<ID3D11SamplerState> m_mipmapSampler;
+
+    ComPtr<ID3D11BlendState> m_srcOverBlendState;
 };
 } // namespace rive::pls

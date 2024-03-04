@@ -5,7 +5,7 @@
 #include "IRiveRenderTarget.h"
 
 class URiveFile;
-class UTextureRenderTarget2D;
+class UTexture2DDynamic;
 
 #if WITH_RIVE
 
@@ -44,8 +44,9 @@ namespace UE::Rive::Renderer
          */
 
     public:
-
-        virtual ~IRiveRenderer() = default;
+        virtual ~IRiveRenderer() {}
+        
+        DECLARE_MULTICAST_DELEGATE_OneParam(FOnRendererInitialized, IRiveRenderer* /* RiveRenderer */);
 
         /**
          * Implementation(s)
@@ -59,13 +60,17 @@ namespace UE::Rive::Renderer
         
         virtual void QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile) = 0;
 
-        virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) = 0;
-
+        virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) = 0;
+        
         virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) = 0;
 
         virtual void CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList) = 0;
 
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) = 0;
+
+        virtual FCriticalSection& GetThreadDataCS() = 0;
+
+        virtual void CallOrRegister_OnInitialized(FOnRendererInitialized::FDelegate&& Delegate) = 0;
     
 #if WITH_RIVE
 

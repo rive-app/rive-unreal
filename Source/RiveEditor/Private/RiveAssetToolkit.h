@@ -2,49 +2,24 @@
 
 #pragma once
 
-#include "Tools/BaseAssetToolkit.h"
+#include "Toolkits/AssetEditorToolkit.h"
 
+class URiveFile;
 class IDetailsView;
 class SRiveWidget;
 
-class RIVEEDITOR_API FRiveAssetToolkit : public FBaseAssetToolkit, public FTickableEditorObject
+class RIVEEDITOR_API FRiveAssetToolkit : public FAssetEditorToolkit
 {
-    /**
-     * Structor(s)
-     */
-
 public:
-
-    explicit FRiveAssetToolkit(UAssetEditor* InOwningAssetEditor);
-
-    virtual ~FRiveAssetToolkit();
-
-    //~ BEGIN : FBaseAssetToolkit Interface
-
-public:
-
+    void Initialize(URiveFile* InRiveFile, const EToolkitMode::Type InMode, const TSharedPtr<IToolkitHost>& InToolkitHost);
+	
+    //~ BEGIN IToolkit interface
+    virtual FText GetBaseToolkitName() const override;
+    virtual FName GetToolkitFName() const override;
+    virtual FLinearColor GetWorldCentricTabColorScale() const override;
+    virtual FString GetWorldCentricTabPrefix() const override;
     virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
-
-    //~ END : FBaseAssetToolkit Interface
-
-    //~ BEGIN FTickableEditorObject Interface
-
-public:
-
-    virtual void Tick(float DeltaTime) override;
-
-    virtual ETickableTickType GetTickableTickType() const override
-    {
-        return ETickableTickType::Always;
-    }
-
-    virtual TStatId GetStatId() const override;
-
-    //~ END FTickableEditorObject Interface
-
-    /**
-     * Implementation(s)
-     */
+    //~ END : IToolkit Interface
 
 public:
 
@@ -52,20 +27,17 @@ public:
 
     TSharedRef<SDockTab> SpawnTab_DetailsTabID(const FSpawnTabArgs& Args);
 
-    /**
-     * Attribute(s)
-     */
-
 private:
 
     /** Additional Tab to select mesh/actor to add a 3D preview in the scene. */
     static const FName RiveViewportTabID;
-
     static const FName DetailsTabID;
+    static const FName AppIdentifier;
 
     TSharedPtr<SDockTab> DetailsTab;
-
     TSharedPtr<IDetailsView> DetailsAssetView;
-
     TSharedPtr<SRiveWidget> RiveWidget;
+
+    /** The rive file asset being edited. */
+    TObjectPtr<URiveFile> RiveFile;
 };

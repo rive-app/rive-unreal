@@ -1,26 +1,15 @@
 ﻿// Copyright Rive, Inc. All rights reserved.
 
 #include "Assets/URAssetHelpers.h"
+#include "Assets/RiveAsset.h"
 
-#include "Assets/URAssetImporter.h"
-#include "Assets/UREmbeddedAsset.h"
-#include "Logs/RiveCoreLog.h"
-
-#if WITH_RIVE
-THIRD_PARTY_INCLUDES_START
-#include "rive/generated/assets/font_asset_base.hpp"
-#include "rive/generated/assets/image_asset_base.hpp"
-THIRD_PARTY_INCLUDES_END
-#endif // WITH_RIVE
-
-TArray<FString> URAssetHelpers::AssetPaths(const FString& InBasePath, const FString& InAssetName, uint32_t InAssetId,
-                                           const TArray<FString>& InExtensions)
+TArray<FString> URAssetHelpers::AssetPaths(const FString& InBasePath, URiveAsset* InRiveAsset, const TArray<FString>& InExtensions)
 {
 	TArray<FString> Paths;
-	FString CombinedPath = FPaths::Combine(InBasePath, InAssetName);
+	FString CombinedPath = FPaths::Combine(InBasePath, InRiveAsset->Name);
 	for (auto Extension : InExtensions)
 	{
-		Paths.Add(FString::Printf(TEXT("%s-%u.%s"), *CombinedPath, InAssetId, *Extension));
+		Paths.Add(FString::Printf(TEXT("%s-%u.%s"), *CombinedPath, InRiveAsset->Id, *Extension));
 		Paths.Add(FString::Printf(TEXT("%s.%s"), *CombinedPath, *Extension));
 
 	}
@@ -29,35 +18,34 @@ TArray<FString> URAssetHelpers::AssetPaths(const FString& InBasePath, const FStr
 }
 
 bool URAssetHelpers::FindRegistryAsset(const FString& InRiveAssetPath,
-	const FUREmbeddedAsset& InEmbeddedAsset, TArray<uint8>& OutAssetBytes)
+	const FURAsset& InEmbeddedAsset, TArray<uint8>& OutAssetBytes)
 {
 	return false;
 }
 
-bool URAssetHelpers::FindDiskAsset(const FString& InBasePath, const FUREmbeddedAsset& InEmbeddedAsset,
-	FString& OutPath)
+bool URAssetHelpers::FindDiskAsset(const FString& InBasePath, URiveAsset* InRiveAsset)
 {
-#if WITH_RIVE
-
 	// Passed in BasePath will be the Rive file, so we'll parse it out
 	FString Directory;
 	FString FileName;
 	FString Extension;
 	FPaths::Split(InBasePath, Directory, FileName, Extension);
-
+        
+        
 	const TArray<FString>* Extensions = nullptr;
 
 	// Just grab our file file extensions first
-	switch (InEmbeddedAsset.Type)
+	switch (InRiveAsset->Type)
 	{
-	case rive::FontAssetBase::typeKey:
+	case ERiveAssetType::Font:
 		Extensions = &FontExtensions;
 		break;
-	case rive::ImageAssetBase::typeKey:
+	case ERiveAssetType::Image:
 		Extensions = &ImageExtensions;
 		break;
 	default:
-		return false;  // this means we don't
+		assert(true);
+		return false;  // this means we don't support this asset type
 	}
 
 	// If we don't have any extensions, we couldn't determine type of asset
@@ -69,7 +57,7 @@ bool URAssetHelpers::FindDiskAsset(const FString& InBasePath, const FUREmbeddedA
 	// Search for the first disk asset match
 	bool bHasFileMatch = false;
 	FString FilePath;
-	TArray<FString> FilePaths = AssetPaths(Directory, FileName, InEmbeddedAsset.Id, *Extensions);
+	TArray<FString> FilePaths = AssetPaths(Directory, InRiveAsset, *Extensions);
 	for (const FString& Path : FilePaths)
 	{
 		if (FPaths::FileExists(Path))
@@ -86,20 +74,6 @@ bool URAssetHelpers::FindDiskAsset(const FString& InBasePath, const FUREmbeddedA
 		return false;
 	}
 
-	OutPath = FilePath;
-   
-#endif // WITH_RIVE
-
-	return true;
-}
-
-bool URAssetHelpers::LoadDiskAsset(const FString& InAssetPath, FUREmbeddedAsset& InEmbeddedAsset)
-{
-	if (!FFileHelper::LoadFileToArray(InEmbeddedAsset.Bytes, *InAssetPath))
-	{
-		UE_LOG(LogRiveCore, Error, TEXT("Could not load Asset: %s at path %s"), *InEmbeddedAsset.Name, *InAssetPath);
-		return false;
-	}
-
+	InRiveAsset->AssetPath = FilePath;
 	return true;
 }

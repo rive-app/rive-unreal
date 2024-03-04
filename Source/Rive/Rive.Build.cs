@@ -12,30 +12,33 @@ public class Rive : ModuleRules
 			new string[] {
 				// ... add public include paths required here ...
 			}
-			);
+		);
 				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
 			}
-			);
+		);
 			
 		
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
+				"CoreUObject",
 				"InputCore",
-                "Projects",
-                "RHICore",
+				"Projects",
+				"RHICore",
+				"RHI",
 				"RenderCore",
 				"RiveCore",
-                "RiveLibrary",
-                "RiveRenderer",
+				"RiveLibrary",
+				"RiveRenderer", 
+				"Engine",
 				// ... add other public dependencies that you statically link with here ...
 			}
-            );
+		);
 			
 		
 		PrivateDependencyModuleNames.AddRange(
@@ -43,28 +46,27 @@ public class Rive : ModuleRules
 			{
 				"ApplicationCore",
 				"CoreUObject",
-				"Engine",
 				"Slate",
 				"SlateCore",
 				"Projects",
+				"RiveCore",
 				"RiveRenderer",
 				"RHI",
 				"RenderCore",
 				"Renderer",
-				"RiveCore",
 				"RiveLibrary",
 				"Slate",
 				"SlateCore",
-				"UMG",
+				"UMG"
             }
-			);
+		);
 		
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
 				// ... add any modules that your module loads dynamically here ...
 			}
-			);
+		);
 		
 		if (Target.Type == TargetType.Editor)
 		{
@@ -75,6 +77,8 @@ public class Rive : ModuleRules
 					"LevelEditor",
 					"UnrealEd",
 					"ViewportInteraction",
+					"AssetTools",
+					"TextureEditor",
 				}
 			);
 		}

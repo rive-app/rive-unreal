@@ -4,13 +4,15 @@
 
 #if WITH_RIVE
 
-struct FUREmbeddedAsset;
+class URiveAsset;
+class URiveFile;
 
 namespace rive
 {
     class Asset;
 }
 
+#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/file_asset_loader.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -18,13 +20,6 @@ THIRD_PARTY_INCLUDES_END
 
 namespace UE::Rive::Assets
 {
-    class FURFileAssetLoader;
-
-    /**
-     * Type definition for unique pointer reference to the instance of FURFileAssetLoader.
-     */
-    using FURFileAssetLoaderPtr = TUniquePtr<FURFileAssetLoader>;
-
     /**
      * Unreal extension of rive::FileAssetLoader implementation (partial) for the Unreal RHI.
      * This loads assets (either embedded or OOB by using their loaded bytes)
@@ -40,7 +35,7 @@ namespace UE::Rive::Assets
 
     public:
 
-        FURFileAssetLoader(TMap<uint32, FUREmbeddedAsset>& InAssetMap);
+        FURFileAssetLoader(UObject* InOuter, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets);
 
 #if WITH_RIVE
 
@@ -61,6 +56,7 @@ namespace UE::Rive::Assets
          */
     
     private:
-        TMap<uint32, FUREmbeddedAsset>* AssetMap;
+        TObjectPtr<UObject> Outer;
+        TMap<uint32, TObjectPtr<URiveAsset>>& Assets;
     };
 }

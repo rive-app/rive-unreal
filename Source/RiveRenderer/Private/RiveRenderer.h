@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IRiveRenderer.h"
+#include "RiveTypes.h"
 
 #if WITH_RIVE
 
@@ -28,7 +29,7 @@ namespace UE::Rive::Renderer::Private
 
         FRiveRenderer();
 
-        virtual ~FRiveRenderer();
+        virtual ~FRiveRenderer() override;
 
         //~ BEGIN : IRiveRenderer Interface
     
@@ -36,13 +37,17 @@ namespace UE::Rive::Renderer::Private
 
         virtual void Initialize() override;
 
-        virtual bool IsInitialized() const override { return bIsInitialized; }
+        virtual bool IsInitialized() const override { return InitializationState == ERiveInitState::Initialized; }
 
         virtual void QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile) override;
 
-        virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget) override { return nullptr; }
+        virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override { return nullptr; }
 
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) override;
+
+        virtual FCriticalSection& GetThreadDataCS() override { return ThreadDataCS; }
+
+        virtual void CallOrRegister_OnInitialized(FOnRendererInitialized::FDelegate&& Delegate) override;
 
 #if WITH_RIVE
 
@@ -74,8 +79,8 @@ namespace UE::Rive::Renderer::Private
 
         mutable FCriticalSection ThreadDataCS;
 
-    private:
-
-        bool bIsInitialized = false;
+    protected:
+        ERiveInitState InitializationState = ERiveInitState::Uninitialized;
+        FOnRendererInitialized OnInitializedDelegate;
     };
 }

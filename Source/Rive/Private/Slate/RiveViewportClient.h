@@ -22,8 +22,8 @@ class FRiveViewportClient : public FViewportClient
 public:
 	
 	FRiveViewportClient(URiveFile* InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView);
-	
-	~FRiveViewportClient();
+
+	virtual ~FRiveViewportClient() override;
 
 	//~ BEGIN : FViewportClient Interface
 
@@ -45,4 +45,16 @@ private:
 
 	/** Weak Ptr to view widget */
 	TWeakPtr<SRiveWidgetView> WidgetViewWeakPtr;
+
+#if WITH_EDITOR // Implementation of Checkerboard textures, as per FTextureEditorViewportClient::ModifyCheckerboardTextureColors
+public:
+	bool bDrawCheckeredTexture = false;
+private:
+	/** Modifies the checkerboard texture's data */
+	void ModifyCheckerboardTextureColors();
+	/** Destroy the checkerboard texture if one exists */
+	void DestroyCheckerboardTexture();
+	/** Checkerboard texture */
+	TObjectPtr<UTexture2D> CheckerboardTexture;
+#endif
 };

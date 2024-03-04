@@ -25,7 +25,6 @@ FRiveWidgetFactory::FRiveWidgetFactory(URiveFile* InRiveFile)
 {
 }
 
-UE_DISABLE_OPTIMIZATION
 
 bool FRiveWidgetFactory::SaveAsset(UWidgetBlueprint* InWidgetBlueprint)
 {
@@ -139,7 +138,7 @@ UWidgetBlueprint* FRiveWidgetFactory::CreateWidgetBlueprint()
 	UPackage* RiveWidgetPackage = CreatePackage(*PackageName);
 		
 	return CastChecked<UWidgetBlueprint>(FKismetEditorUtilities::CreateBlueprint(
-		CurrentParentClass, RiveWidgetPackage, RiveWidgetName, BPTYPE_Interface, UWidgetBlueprint::StaticClass(),
+		CurrentParentClass, RiveWidgetPackage, RiveWidgetName, BPTYPE_Normal, UWidgetBlueprint::StaticClass(),
 		UWidgetBlueprintGeneratedClass::StaticClass()));
 }
 
@@ -203,7 +202,7 @@ namespace
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateLambda([]()
 		{
 			FToolMenuOwnerScoped OwnerScoped(UE_MODULE_NAME);
-			UToolMenu* Menu = UE::ContentBrowser::ExtendToolMenu_AssetContextMenu(UTextureRenderTarget::StaticClass());
+			UToolMenu* Menu = UE::ContentBrowser::ExtendToolMenu_AssetContextMenu(UTexture2DDynamic::StaticClass());
 	        
 			FToolMenuSection& Section = Menu->FindOrAddSection("GetAssetActions");
 			Section.AddDynamicEntry(TEXT("Rive"), FNewToolMenuSectionDelegate::CreateLambda([](FToolMenuSection& InSection)
@@ -223,4 +222,3 @@ namespace
 
 #undef LOCTEXT_NAMESPACE
 
-UE_ENABLE_OPTIMIZATION

@@ -6,7 +6,6 @@
 
 #include "rive/pls/gl/gl_state.hpp"
 #include "rive/pls/pls_render_context_helper_impl.hpp"
-#include "rive/pls/gl/pls_render_target_gl.hpp"
 #include <map>
 
 namespace rive::pls
@@ -19,33 +18,23 @@ class PLSRenderTargetGL;
 class PLSRenderContextGLImpl : public PLSRenderContextHelperImpl
 {
 public:
-    static std::unique_ptr<PLSRenderContext> MakeContext();
+    struct ContextOptions
+    {
+        bool disableFragmentShaderInterlock = false;
+    };
+
+    static std::unique_ptr<PLSRenderContext> MakeContext(const ContextOptions&);
+    static std::unique_ptr<PLSRenderContext> MakeContext() { return MakeContext(ContextOptions()); }
+
     ~PLSRenderContextGLImpl() override;
 
-    // Called when the GL context has been modified outside of Rive.
-    void resetGLState();
+    // Called *after* the GL context has been modified externally.
+    // Re-binds Rive internal resources and invalidates the internal cache of GL state.
+    void invalidateGLState();
 
-    // Creates a PLSRenderTarget that draws directly into the given GL framebuffer.
-    // Returns null if the framebuffer doesn't support pixel local storage.
-    rcp<PLSRenderTargetGL> wrapGLRenderTarget(GLuint framebufferID, uint32_t width, uint32_t height)
-    {
-        return m_plsImpl->wrapGLRenderTarget(framebufferID, width, height, m_platformFeatures);
-    }
-
-    // Creates a PLSRenderTarget that draws to a new, offscreen GL framebuffer. This method is
-    // guaranteed to succeed, but the caller must call glBlitFramebuffer() to view the rendering
-    // results.
-    rcp<PLSRenderTargetGL> makeOffscreenRenderTarget(
-        uint32_t width,
-        uint32_t height,
-        PLSRenderTargetGL::TargetTextureOwnership targetTextureOwnership =
-            PLSRenderTargetGL::TargetTextureOwnership::internal)
-    {
-        return m_plsImpl->makeOffscreenRenderTarget(width,
-                                                    height,
-                                                    targetTextureOwnership,
-                                                    m_platformFeatures);
-    }
+    // Called *before* the GL context will be modified externally.
+    // Unbinds Rive internal resources before yielding control of the GL context.
+    void unbindGLInternalResources();
 
     rcp<RenderBuffer> makeRenderBuffer(RenderBufferType, RenderBufferFlags, size_t) override;
 
@@ -65,34 +54,30 @@ private:
     public:
         virtual void init(rcp<GLState>) {}
 
-        virtual rcp<PLSRenderTargetGL> wrapGLRenderTarget(GLuint framebufferID,
-                                                          uint32_t width,
-                                                          uint32_t height,
-                                                          const PlatformFeatures&) = 0;
-        virtual rcp<PLSRenderTargetGL> makeOffscreenRenderTarget(
-            uint32_t width,
-            uint32_t height,
-            PLSRenderTargetGL::TargetTextureOwnership,
-            const PlatformFeatures&) = 0;
+        virtual bool supportsRasterOrdering(const GLCapabilities&) const = 0;
 
         virtual void activatePixelLocalStorage(PLSRenderContextGLImpl*, const FlushDescriptor&) = 0;
-        virtual void deactivatePixelLocalStorage(PLSRenderContextGLImpl*) = 0;
+        virtual void deactivatePixelLocalStorage(PLSRenderContextGLImpl*,
+                                                 const FlushDescriptor&) = 0;
+
+        // Optimization for when rendering to an offscreen framebuffer in atomic mode.
+        //
+        // It renders the final PLS resolve operation to the destination framebuffer in a single
+        // pass, instead of (1) resolving the offscreen framebuffer, and (2) blitting offscreen
+        // framebuffer to the destination framebuffer.
+        virtual bool supportsCoalescedPLSResolveAndTransfer(const PLSRenderTargetGL*) const
+        {
+            return false;
+        }
+        virtual void setupCoalescedPLSResolveAndTransfer(PLSRenderTargetGL*) {}
 
         virtual const char* shaderDefineName() const = 0;
 
-        void ensureRasterOrderingEnabled(bool enabled)
-        {
-            if (m_rasterOrderingEnabled != enabled)
-            {
-                onBarrier();
-                onEnableRasterOrdering(enabled);
-                m_rasterOrderingEnabled = enabled;
-            }
-        }
+        void ensureRasterOrderingEnabled(PLSRenderContextGLImpl* plsContextImpl, bool enabled);
 
-        virtual void barrier()
+        void barrier()
         {
-            assert(!m_rasterOrderingEnabled);
+            assert(m_rasterOrderState == RasterOrderingState::disabled);
             onBarrier();
         }
 
@@ -102,7 +87,14 @@ private:
         virtual void onEnableRasterOrdering(bool enabled) {}
         virtual void onBarrier() {}
 
-        bool m_rasterOrderingEnabled = true;
+        enum RasterOrderingState
+        {
+            disabled,
+            enabled,
+            unknown
+        };
+
+        RasterOrderingState m_rasterOrderState = RasterOrderingState::unknown;
     };
 
     class PLSImplEXTNative;
@@ -129,7 +121,11 @@ private:
     public:
         DrawProgram(const DrawProgram&) = delete;
         DrawProgram& operator=(const DrawProgram&) = delete;
-        DrawProgram(PLSRenderContextGLImpl*, DrawType, ShaderFeatures, pls::InterlockMode);
+        DrawProgram(PLSRenderContextGLImpl*,
+                    pls::DrawType,
+                    pls::ShaderFeatures,
+                    pls::InterlockMode,
+                    pls::ShaderMiscFlags);
         ~DrawProgram();
 
         GLuint id() const { return m_id; }

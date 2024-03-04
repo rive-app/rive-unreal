@@ -13,9 +13,10 @@ ARiveActor::ARiveActor()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent0"));
-	
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent0"));	
 	check(RootComponent);
+
+	RootComponent->Mobility = EComponentMobility::Movable;
 	
 	ScreenUserWidget = CreateDefaultSubobject<URiveFullScreenUserWidget>(TEXT("ScreenUserWidget"));
 	
@@ -94,6 +95,13 @@ void ARiveActor::BeginPlay()
 {
 	RequestGameDisplay();
 
+	UWorld* ActorWorld = GetWorld();
+
+	if (ActorWorld && (ActorWorld->WorldType == EWorldType::PIE))
+	{
+		RiveFile->InstantiateArtboard();
+	}
+	
 	Super::BeginPlay();
 }
 
@@ -109,6 +117,11 @@ void ARiveActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		{
 			ScreenUserWidget->Hide();
 		}
+	}
+
+	if (EndPlayReason == EEndPlayReason::EndPlayInEditor)
+	{
+		RiveFile->InstantiateArtboard();
 	}
 }
 

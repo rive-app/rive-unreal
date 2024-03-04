@@ -11,10 +11,9 @@ namespace UE::Rive::Renderer::Private
         //~ BEGIN : IModuleInterface Interface
 
     public:
+        virtual void StartupModule() override;
 
-        void StartupModule() override;
-
-        void ShutdownModule() override;
+        virtual void ShutdownModule() override;
 
         //~ END : IModuleInterface Interface
 
@@ -23,15 +22,17 @@ namespace UE::Rive::Renderer::Private
     public:
 
         virtual IRiveRenderer* GetRenderer() override;
-
         //~ END : IRiveRendererModule Interface
 
+        virtual void CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate&& Delegate) override;
+        
         /**
          * Attribute(s)
          */
 
     private:
-
         TSharedPtr<IRiveRenderer> RiveRenderer;
+        FSimpleMulticastDelegate OnRendererInitializedDelegate;
+        FDelegateHandle OnBeginFrameHandle;
     };
 }

@@ -2,14 +2,60 @@
 
 #include "RiveFile_AssetDefinitionDefault.h"
 
-#include "RiveAssetEditor.h"
+#include "ContentBrowserMenuContexts.h"
+#include "IAssetTools.h"
+#include "RiveAssetToolkit.h"
+#include "Factories/RiveFileInstanceFactory.h"
+#include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
 
-#define LOCTEXT_NAMESPACE "AssetTypeActions"
+#define LOCTEXT_NAMESPACE "URiveFile_AssetDefinitionDefault"
+
+namespace MenuExtension_RiveFile
+{
+	void ExecuteCreateInstance(const FToolMenuContext& InContext)
+	{
+		const UContentBrowserAssetContextMenuContext* CBContext = UContentBrowserAssetContextMenuContext::FindContextWithAssets(InContext);
+
+		TArray<URiveFile*> x = CBContext->LoadSelectedObjects<URiveFile>();
+
+		IAssetTools::Get().CreateAssetsFrom<URiveFile>(CBContext->LoadSelectedObjects<URiveFile>(), URiveFile::StaticClass(), TEXT("_Inst"), [](URiveFile* SourceObject)
+		{
+			UE_LOG(LogRiveEditor, Log, TEXT("Instancing Rive File: %s"), *SourceObject->GetName());
+			URiveFileInstanceFactory* Factory = NewObject<URiveFileInstanceFactory>();
+			Factory->InitialRiveFile = SourceObject;
+			return Factory;
+			
+		});
+	}
+
+	static FDelayedAutoRegisterHelper DelayedAutoRegister(EDelayedRegisterRunPhase::EndOfEngineInit, []{ 
+		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateLambda([]()
+		{
+			FToolMenuOwnerScoped OwnerScoped(UE_MODULE_NAME);
+			UToolMenu* Menu = UE::ContentBrowser::ExtendToolMenu_AssetContextMenu(URiveFile::StaticClass());
+		
+			FToolMenuSection& Section = Menu->FindOrAddSection("GetAssetActions");
+				Section.AddDynamicEntry(NAME_None, FNewToolMenuSectionDelegate::CreateLambda([](FToolMenuSection& InSection)
+				{
+					if (const UContentBrowserAssetContextMenuContext* Context = UContentBrowserAssetContextMenuContext::FindContextWithAssets(InSection))
+					{
+						{
+							const TAttribute<FText> Label = LOCTEXT("RiveFile_CreateInstance", "Create Rive Instance");
+							const TAttribute<FText> ToolTip = LOCTEXT("RiveFile_CreateInstanceTooltip", "Creates a new Rive instance using this file.");
+							const FSlateIcon Icon = FSlateIcon(FAppStyle::GetAppStyleSetName(), "ClassIcon.Material");
+							const FToolMenuExecuteAction UIAction = FToolMenuExecuteAction::CreateStatic(&ExecuteCreateInstance);
+							InSection.AddMenuEntry("RiveFile_CreateInstance", Label, ToolTip, Icon, UIAction);
+						}
+					}
+				}));
+		}));
+	});
+}
 
 FText URiveFile_AssetDefinitionDefault::GetAssetDisplayName() const
 {
-	return LOCTEXT("AssetTypeActions_SmartObjectDefinition", "SmartObject Definition");
+	return LOCTEXT("AssetTypeActions_RiveFile", "Rive File");
 }
 
 FLinearColor URiveFile_AssetDefinitionDefault::GetAssetColor() const
@@ -31,15 +77,10 @@ TConstArrayView<FAssetCategoryPath> URiveFile_AssetDefinitionDefault::GetAssetCa
 
 EAssetCommandResult URiveFile_AssetDefinitionDefault::OpenAssets(const FAssetOpenArgs& OpenArgs) const
 {
-	UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
-
-	for (URiveFile* Definition : OpenArgs.LoadObjects<URiveFile>())
+	for (URiveFile* RiveFile : OpenArgs.LoadObjects<URiveFile>())
 	{
-		URiveAssetEditor* AssetEditor = NewObject<URiveAssetEditor>(AssetEditorSubsystem, NAME_None, RF_Transient);
-		
-		AssetEditor->SetObjectToEdit(Definition);
-		
-		AssetEditor->Initialize();
+		const TSharedRef<FRiveAssetToolkit> EditorToolkit = MakeShared<FRiveAssetToolkit>();
+		EditorToolkit->Initialize(RiveFile, OpenArgs.GetToolkitMode(), OpenArgs.ToolkitHost);
 	}
 
 	return EAssetCommandResult::Handled;

@@ -2,22 +2,17 @@
 
 #pragma once
 #if WITH_RIVE
+class URiveAsset;
+class URiveFile;
+
+#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/file_asset_loader.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-struct FUREmbeddedAsset;
-
 namespace UE::Rive::Assets
 {
-	class FURAssetImporter;
-	
-	/**
-	 * Type definition for unique pointer reference to the instance of FURFileAssetLoader.
-	 */
-	using FUREmbeddedAssetLoaderPtr = TUniquePtr<FURAssetImporter>;
-	
 	/**
 	 * Unreal extension of rive::FileAssetLoader implementation (partial) for the Unreal RHI.
 	 */
@@ -32,15 +27,14 @@ namespace UE::Rive::Assets
 
 	public:
 
-		FURAssetImporter(const FString& InRiveFilePath, TMap<uint32, FUREmbeddedAsset>& InAssetMap);
+		FURAssetImporter(UPackage* InPackage, const FString& InRiveFilePath, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets);
 
 #if WITH_RIVE
 
 		//~ BEGIN : rive::FileAssetLoader Interface
 
 	public:
-		
-		bool loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes, rive::Factory* InFactory) override;
+		virtual bool loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes, rive::Factory* InFactory) override;
 
 		//~ END : rive::FileAssetLoader Interface
 
@@ -52,7 +46,8 @@ namespace UE::Rive::Assets
 
 	public:
 
-		TMap<uint32, FUREmbeddedAsset>* AssetMap;
+		UPackage* RivePackage;
 		FString RiveFilePath;
+		TMap<uint32, TObjectPtr<URiveAsset>>& Assets;
 	};
 }

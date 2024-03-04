@@ -99,6 +99,8 @@ public:
     PLSRenderContextImpl* impl() { return m_impl.get(); }
     template <typename T> T* static_impl_cast() { return static_cast<T*>(m_impl.get()); }
 
+    const pls::PlatformFeatures& platformFeatures() const;
+
     // Returns the number of flushes that have been executed over the entire lifetime of this class,
     // logical or otherwise.
     uint64_t getFlushCount() const { return m_flushCount; }
@@ -106,13 +108,12 @@ public:
     // Options for controlling how and where a frame is rendered.
     struct FrameDescriptor
     {
-        rcp<const PLSRenderTarget> renderTarget;
+        rcp<PLSRenderTarget> renderTarget;
         LoadAction loadAction = LoadAction::clear;
         ColorInt clearColor = 0;
 
-        // Enables an experimental pixel local storage mode that makes use of atomics and barriers
-        // instead of raster ordering in order to synchronize overlapping fragments.
-        bool enableExperimentalAtomicMode = false;
+        // Force pls::InterlockMode::experimentalAtomics, even if raster ordering is supported.
+        bool forceAtomicInterlockMode = false;
 
         // Testing flags.
         bool wireframe = false;
@@ -133,6 +134,13 @@ public:
         assert(m_didBeginFrame);
         return m_frameDescriptor;
     }
+
+    const pls::InterlockMode frameInterlockMode() const { return m_frameInterlockMode; }
+
+    // If the frame doesn't support image paints, the client must draw images with pushImageRect().
+    // If it DOES support image paints, the client CANNOT use pushImageRect(); it should draw images
+    // as rectangular paths with an image paint.
+    bool frameSupportsImagePaintForPaths() const;
 
     // Generates a unique clip ID that is guaranteed to not exist in the current clip buffer.
     //
@@ -166,14 +174,9 @@ public:
     //
     void flush(pls::FlushType = pls::FlushType::endOfFrame);
 
-    // Reallocates all GPU resources to the basline minimum allocation size.
-    void resetGPUResources();
-
-    // Shrinks GPU resource allocations to the maximum per-flush limits seen since the most recent
-    // previous call to shrinkGPUResourcesToFit(). This method is intended to be called at a fixed
-    // temporal interval. (GPU resource allocations automatically grow based on usage, but can only
-    // shrink if the application calls this method.)
-    void shrinkGPUResourcesToFit();
+    // Called when the client will stop rendering. Releases all CPU and GPU resources associated
+    // with this render context.
+    void releaseResources();
 
     // Returns the context's TrivialBlockAllocator, which is automatically reset at the end of every
     // frame. (Memory in this allocator is preserved between logical flushes.)
@@ -272,9 +275,11 @@ private:
 
     ResourceAllocationCounts m_currentResourceAllocations;
     ResourceAllocationCounts m_maxRecentResourceRequirements;
+    double m_lastResourceTrimTimeInSeconds;
 
     // Per-frame state.
     FrameDescriptor m_frameDescriptor;
+    pls::InterlockMode m_frameInterlockMode;
     RIVE_DEBUG_CODE(bool m_didBeginFrame = false;)
 
     // The number of flushes that have been executed over the entire lifetime of this class, logical
@@ -332,12 +337,12 @@ private:
     public:
         LogicalFlush(PLSRenderContext* parent);
 
-        // Resets the CPU-side STL containers so they don't have unbounded growth.
-        void resetContainers();
-
         // Rewinds this flush object back to an empty state without shrinking any internal
         // allocations held by CPU-side STL containers.
         void rewind();
+
+        // Resets the CPU-side STL containers so they don't have unbounded growth.
+        void resetContainers();
 
         // Access this flush's pls::FlushDescriptor (which is not valid until layoutResources()).
         // NOTE: Some fields in the FlushDescriptor (tessVertexSpanCount, hasTriangleVertices,
@@ -551,10 +556,6 @@ private:
         // Running counts of GPU data records that need to be allocated for draws.
         ResourceCounters m_resourceCounts;
 
-        // High-level draw list. These get built into a low-level list of pls::DrawBatch objects
-        // during writeResources().
-        std::vector<PLSDrawUniquePtr> m_plsDraws;
-
         // Simple gradients have one stop at t=0 and one stop at t=1. They're implemented with 2
         // texels.
         std::unordered_map<uint64_t, uint32_t> m_simpleGradients; // [color0, color1] -> texelsIdx.
@@ -567,33 +568,38 @@ private:
             m_complexGradients; // [colors[0..n], stops[0..n]] -> rowIdx
         std::vector<const PLSGradient*> m_pendingComplexColorRampDraws;
 
+        // High-level draw list. These get built into a low-level list of pls::DrawBatch objects
+        // during writeResources().
+        std::vector<PLSDrawUniquePtr> m_plsDraws;
+        IAABB m_combinedDrawBounds;
+
         // Layout state.
-        uint32_t m_pathPaddingCount = 0;
-        uint32_t m_paintPaddingCount = 0;
-        uint32_t m_paintAuxPaddingCount = 0;
-        uint32_t m_contourPaddingCount = 0;
-        uint32_t m_midpointFanTessEndLocation = 0;
-        uint32_t m_outerCubicTessEndLocation = 0;
-        uint32_t m_outerCubicTessVertexIdx = 0;
-        uint32_t m_midpointFanTessVertexIdx = 0;
+        uint32_t m_pathPaddingCount;
+        uint32_t m_paintPaddingCount;
+        uint32_t m_paintAuxPaddingCount;
+        uint32_t m_contourPaddingCount;
+        uint32_t m_midpointFanTessEndLocation;
+        uint32_t m_outerCubicTessEndLocation;
+        uint32_t m_outerCubicTessVertexIdx;
+        uint32_t m_midpointFanTessVertexIdx;
 
         pls::FlushDescriptor m_flushDesc;
         pls::GradTextureLayout m_gradTextureLayout; // Not determined until writeResources().
 
         BlockAllocatedLinkedList<DrawBatch> m_drawList;
-        pls::ShaderFeatures m_combinedShaderFeatures = pls::ShaderFeatures::NONE;
+        pls::ShaderFeatures m_combinedShaderFeatures;
 
         // Most recent path and contour state.
-        bool m_currentPathIsStroked = false;
-        bool m_currentPathNeedsMirroredContours = false;
-        uint32_t m_currentPathID = 0;
-        uint32_t m_currentContourID = 0;
-        uint32_t m_currentContourPaddingVertexCount = 0; // Padding to add to the first curve.
-        uint32_t m_pathTessLocation = 0;
-        uint32_t m_pathMirroredTessLocation = 0; // Used for back-face culling and mirrored patches.
-        RIVE_DEBUG_CODE(uint32_t m_expectedPathTessLocationAtEndOfPath = 0;)
-        RIVE_DEBUG_CODE(uint32_t m_expectedPathMirroredTessLocationAtEndOfPath = 0;)
-        RIVE_DEBUG_CODE(uint32_t m_pathCurveCount = 0;)
+        bool m_currentPathIsStroked;
+        bool m_currentPathNeedsMirroredContours;
+        uint32_t m_currentPathID;
+        uint32_t m_currentContourID;
+        uint32_t m_currentContourPaddingVertexCount; // Padding to add to the first curve.
+        uint32_t m_pathTessLocation;
+        uint32_t m_pathMirroredTessLocation; // Used for back-face culling and mirrored patches.
+        RIVE_DEBUG_CODE(uint32_t m_expectedPathTessLocationAtEndOfPath;)
+        RIVE_DEBUG_CODE(uint32_t m_expectedPathMirroredTessLocationAtEndOfPath;)
+        RIVE_DEBUG_CODE(uint32_t m_pathCurveCount;)
 
         RIVE_DEBUG_CODE(bool m_hasDoneLayout = false;)
     };

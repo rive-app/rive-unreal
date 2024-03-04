@@ -7,6 +7,7 @@
 #if PLATFORM_WINDOWS
 
 #if WITH_RIVE
+#include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -20,52 +21,48 @@ namespace rive::pls
 
 namespace UE::Rive::Renderer::Private
 {
+	class FRiveRendererD3D11;
+
 	class FRiveRenderTargetD3D11 final : public FRiveRenderTarget
 	{
+	public:
 		/**
 		 * Structor(s)
 		 */
 
-	public:
-
-		FRiveRenderTargetD3D11(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTextureRenderTarget2D* InRenderTarget);
-
+		FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget);
+		virtual ~FRiveRenderTargetD3D11() override;
 		//~ BEGIN : IRiveRenderTarget Interface
 
 	public:
-
-		virtual void Initialize() override;
-
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override;
 
 #if WITH_RIVE
-
-		virtual void DrawArtboard(uint8 Fit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
-
+		
 		//~ END : IRiveRenderTarget Interface
 
 		//~ BEGIN : FRiveRenderTarget Interface
 
 	protected:
-
-		virtual void DrawArtboard_RenderThread(FRHICommandListImmediate& RHICmdList, uint8 InFit, float AlignX, float AlignY, rive::Artboard* InNativeArtboard, const FLinearColor DebugColor) override;
-
 		// It Might need to be on rendering thread, render QUEUE is required
-		virtual std::unique_ptr<rive::pls::PLSRenderer> GetPLSRenderer(const FLinearColor DebugColor) const override;
-		
+		virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
+		virtual void EndFrame() const override;
+
 		//~ END : FRiveRenderTarget Interface
-		
+
 		/**
 		 * Attribute(s)
 		 */
 
 	private:
+		void ResetBlendState() const;
+
+	private:
+		TSharedRef<FRiveRendererD3D11> RiveRendererD3D11;
 
 		rive::rcp<rive::pls::PLSRenderTargetD3D> CachedPLSRenderTargetD3D;
 
 #endif // WITH_RIVE
-
-		mutable bool bIsCleared = false;
 	};
 }
 

@@ -3,295 +3,266 @@
 #pragma once
 
 #include "IRiveRenderTarget.h"
-#include "Assets/UREmbeddedAsset.h"
-#include "Assets/URFile.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "RiveArtboard.h"
+#include "RiveTypes.h"
+#include "RiveTexture.h"
+#include "RiveEvent.h"
 #include "RiveFile.generated.h"
 
-USTRUCT(Blueprintable)
-struct RIVE_API FRiveStateMachineEvent
+#if WITH_RIVE
+
+class URiveArtboard;
+class FRiveTextureResource;
+
+namespace rive
 {
-    GENERATED_BODY()
+	class File;
+}
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    FIntPoint MousePosition = FIntPoint(0, 0);
-};
+#endif // WITH_RIVE
 
-UENUM(BlueprintType)
-enum class ERiveFitType : uint8
-{
-    Fill = 0,
-
-    Contain = 1,
-    
-    Cover = 2,
-    
-    FitWidth = 3,
-    
-    FitHeight = 4,
-    
-    None = 5,
-    
-    ScaleDown = 6
-};
-
-USTRUCT()
-struct RIVE_API FRiveAlignment
-{
-    GENERATED_BODY()
-
-public:
-
-    inline static FVector2f TopLeft = FVector2f(-1.f, -1.f);
-    
-    inline static FVector2f TopCenter = FVector2f(0.f, -1.f);
-    
-    inline static FVector2f TopRight = FVector2f(1.f, -1.f);
-    
-    inline static FVector2f CenterLeft = FVector2f(-1.f, 0.f);
-    
-    inline static FVector2f Center = FVector2f(0.f, 0.f);
-    
-    inline static FVector2f CenterRight = FVector2f(1.f, 0.f);
-    
-    inline static FVector2f BottomLeft = FVector2f(-1.f, 1.f);
-    
-    inline static FVector2f BottomCenter = FVector2f(0.f, 1.f);
-    
-    inline static FVector2f BottomRight = FVector2f(1.f, 1.f);
-};
-
-UENUM(BlueprintType)
-enum class ERiveAlignment : uint8
-{
-    TopLeft = 0,
-
-    TopCenter = 1,
-    
-    TopRight = 2,
-    
-    CenterLeft = 3,
-    
-    Center = 4,
-    
-    CenterRight = 5,
-    
-    BottomLeft = 6,
-    
-    BottomCenter = 7,
-    
-    BottomRight = 8,
-};
-
-UENUM(BlueprintType)
-enum class ERiveBlendMode : uint8
-{
-    SE_BLEND_Opaque = 0 UMETA(DisplayName = "Opaque"),
-
-    SE_BLEND_Masked UMETA(DisplayName = "Masked"),
-
-    SE_BLEND_Translucent UMETA(DisplayName = "Translucent"),
-
-    SE_BLEND_Additive UMETA(DisplayName = "Additive"),
-
-    SE_BLEND_Modulate UMETA(DisplayName = "Modulate"),
-
-    SE_BLEND_MaskedDistanceField UMETA(DisplayName = "Masked Distance Field"),
-
-    SE_BLEND_MaskedDistanceFieldShadowed UMETA(DisplayName = "Masked Distance Field Shadowed"),
-
-    SE_BLEND_TranslucentDistanceField UMETA(DisplayName = "Translucent Distance Field"),
-
-    SE_BLEND_TranslucentDistanceFieldShadowed UMETA(DisplayName = "Translucent Distance Field Shadowed"),
-
-    SE_BLEND_AlphaComposite UMETA(DisplayName = "Alpha Composite"),
-
-    SE_BLEND_AlphaHoldout UMETA(DisplayName = "Alpha Holdout"),
-};
+class URiveAsset;
 
 /**
  *
  */
 UCLASS(BlueprintType, Blueprintable)
-class RIVE_API URiveFile : public UTextureRenderTarget2D, public FTickableGameObject
+class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 {
-    GENERATED_BODY()
-
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRiveStateMachineDelegate, FRiveStateMachineEvent, RiveStateMachineEvent);
-
-    /**
-     * Structor(s)
-     */
+	GENERATED_BODY()
 
 public:
-
-    URiveFile();
-
-    //~ BEGIN : FTickableGameObject Interface
-
-public:
-
-    virtual TStatId GetStatId() const override;
-
-    virtual void Tick(float InDeltaSeconds) override;
-
-    virtual bool IsTickable() const override;
-
-    virtual bool IsTickableInEditor() const override
-    {
-        return true;
-    }
-    virtual ETickableTickType GetTickableTickType() const override
-    {
-        return ETickableTickType::Conditional;
-    }
-
-    //~ END : FTickableGameObject Interface
-
-    //~ BEGIN : UTexture Interface
-
-    virtual uint32 CalcTextureMemorySizeEnum(ETextureMipCount Enum) const override;
-
-    //~ END : UObject UTexture
-
-    //~ BEGIN : UObject Interface
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveFile*, RiveFile, URiveArtboard*, Artboard);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRiveFileInitialized, URiveFile*, bool /* bSuccess */ );
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
+	
+	/**
+	 * Structor(s)
+	 */
+	
+	URiveFile();
+	
+	virtual void BeginDestroy() override;
+	
+	//~ BEGIN : FTickableGameObject Interface
 
 public:
+	virtual TStatId GetStatId() const override;
 
-    virtual void PostLoad() override;
+	virtual void Tick(float InDeltaSeconds) override;
+
+	virtual bool IsTickable() const override;
+
+	virtual bool IsTickableInEditor() const override
+	{
+		return true;
+	}
+
+	virtual ETickableTickType GetTickableTickType() const override
+	{
+		return ETickableTickType::Conditional;
+	}
+
+	//~ END : FTickableGameObject Interface
+
+	//~ BEGIN : UObject Interface
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 
-    virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 
 #endif // WITH_EDITOR
 
-    //~ END : UObject Interface
+	//~ END : UObject Interface
 
-    /**
-     * Implementation(s)
-     */
-
-public:
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void FireTrigger(const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    bool GetBoolValue(const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
-    bool GetCustomBoolValue(const FString& InEventName, const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
-    float GetCustomNumberValue(const FString& InEventName, const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Rive | Reported Events")
-    const FString GetCustomStringValue(const FString& InEventName, const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    float GetNumberValue(const FString& InPropertyName) const;
-
-    UFUNCTION(BlueprintPure, Category = Rive)
-    FLinearColor GetDebugColor() const;
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    FVector2f GetLocalCoordinates(const FVector2f& InScreenPosition, const FBox2f& InScreenRect, const FIntPoint& InViewportSize) const;
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void SetBoolValue(const FString& InPropertyName, bool bNewValue);
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void SetNumberValue(const FString& InPropertyName, float NewValue);
-
-    // TODO. We need function in URiveFile to calculate it , based on RiveFitType
-    FIntPoint CalculateRenderTextureSize(const FIntPoint& InViewportSize) const;
-
-    // TODO. We need function in URiveFile to calculate it , based on RiveAlignment
-    FIntPoint CalculateRenderTexturePosition(const FIntPoint& InViewportSize, const FIntPoint& InTextureSize) const;
-
-    FVector2f GetRiveAlignment() const;
-
-    ESimpleElementBlendMode GetSimpleElementBlendMode() const;
-
-    void BeginInput()
-    {
-        bIsReceivingInput = true;
-    }
-
-    void EndInput()
-    {
-        bIsReceivingInput = false;
-    }
-
-#if UE_EDITOR
-    void EditorImport(const FString& InRiveFilePath);
-#endif
-    
-    void Initialize();
-
-    void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
-
-    TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
-
-    UE::Rive::Core::FURArtboard* GetArtboard() const;
-    
-    /**
-     * Attribute(s)
-     */
+	/**
+	 * Implementation(s)
+	 */
 
 public:
+	// Called to create a new rive file instance at runtime
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	URiveFile* CreateInstance(const FString& InArtboardName, const FString& InStateMachineName);
 
-    UPROPERTY(EditAnywhere, Category = Rive)
-    TObjectPtr<UTextureRenderTarget2D> CopyRenderTarget;
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->FireTrigger instead"))
+	void FireTrigger(const FString& InPropertyName) const;
 
-    // This Event is triggered any time new LiveLink data is available, including in the editor
-    UPROPERTY(BlueprintAssignable, Category = "LiveLink")
-    FRiveStateMachineDelegate OnRiveStateMachineDelegate;
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->GetBoolValue instead"))
+	bool GetBoolValue(const FString& InPropertyName) const;
 
-    UPROPERTY()
-    TArray<uint8> TempFileBuffer;
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->GetNumberValue instead"))
+	float GetNumberValue(const FString& InPropertyName) const;
 
-    UPROPERTY()
-    FString RiveFilePath;
+	UFUNCTION(BlueprintPure, Category = Rive)
+	FLinearColor GetClearColor() const;
 
-    UPROPERTY(Transient)
-    TObjectPtr<UTextureRenderTarget2D> RenderTarget;
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	FVector2f GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2f& InPosition);
 
-    // TODO. REMOVE IT!!, just for testing
-    UPROPERTY(EditAnywhere, Category = Rive)
-    bool bUseViewportClientTestProperty = true;
+	/**
+	 * Returns the coordinates in the current Artboard space
+	 * @param InExtents Extents of the RenderTarget, will be mapped to the RenderTarget size
+	 */
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
+	
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetBoolValue instead"))
+	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 
-    UPROPERTY(VisibleAnywhere, Category=Rive)
-    TMap<uint32, FUREmbeddedAsset> Assets;
+	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetNumberValue instead"))
+	void SetNumberValue(const FString& InPropertyName, float NewValue);
+
+	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
+
+#if WITH_EDITOR
+
+	bool EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer);
+
+#endif // WITH_EDITOR
+
+	/**
+	 * Initialize this Rive file by creating the Render Targets and importing the native Rive File 
+	 */
+	void Initialize();
+	void InstantiateArtboard(bool bRaiseArtboardChangedEvent = true);
+	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
+
+	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
+
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	URiveArtboard* GetArtboard() const;
+
+	ERiveInitState InitializationState() const { return InitState; }
+	UFUNCTION(BlueprintPure, Category = Rive)
+	bool IsInitialized() const { return InitState == ERiveInitState::Initialized; }
+	
+	virtual void CallOrRegister_OnInitialized(FOnRiveFileInitialized::FDelegate&& Delegate);
+
+	UPROPERTY(BlueprintAssignable, Category = Rive)
+	FRiveReadyDelegate OnRiveReady;
 private:
+	void BroadcastInitializationResult(bool bSuccess);
+	TOptional<bool> WasLastInitializationSuccessful{};
+	FOnRiveFileInitialized OnInitializedDelegate;
+	
+protected:
 
-    UPROPERTY(EditAnywhere, Category = Rive)
-    FLinearColor DebugColor = FLinearColor::Transparent;
+	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
 
-    UPROPERTY(EditAnywhere, Category = Rive)
-    ERiveFitType RiveFitType = ERiveFitType::Contain;
+public:
+	UPROPERTY(BlueprintAssignable, Category = Rive)
+	FOnArtboardChanged OnArtboardChanged;
 
-    /* This property is not editable via Editor in Unity, so we'll hide it also */
-    UPROPERTY()
-    ERiveAlignment RiveAlignment = ERiveAlignment::Center;
-    
-    UPROPERTY(EditAnywhere, Category = Rive)
-    ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_Opaque;
+	UPROPERTY()
+	TArray<uint8> RiveFileData;
 
-    UPROPERTY(EditAnywhere, Category = Rive)
-    bool bIsRendering = true;
+	UPROPERTY()
+	FString RiveFilePath;
 
-    UPROPERTY(EditAnywhere, Category=Rive)
-    TSubclassOf<UUserWidget> WidgetClass;
-    
-    bool bIsInitialized = false;
+	UPROPERTY(VisibleAnywhere, Category=Rive)
+	TMap<uint32, TObjectPtr<URiveAsset>> Assets;
 
-    bool bIsReceivingInput = false;
+	TMap<uint32, TObjectPtr<URiveAsset>>& GetAssets()
+	{
+		return IsValid(ParentRiveFile) ? ParentRiveFile->GetAssets() : Assets;
+	}
 
-    UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
+	rive::File* GetNativeFile() const
+	{
+		if (IsValid(ParentRiveFile))
+		{
+			return ParentRiveFile->GetNativeFile();
+		}
+		else if (RiveNativeFilePtr)
+		{
+			return RiveNativeFilePtr.get();
+		}
 
-    bool bDrawOnceTest = false;
+		return nullptr;
+	}
 
-    UE::Rive::Assets::FURFilePtr UnrealRiveFile;
+	UPROPERTY(VisibleAnywhere, Category=Rive)
+	TObjectPtr<URiveFile> ParentRiveFile;
+
+public:
+	// Index of the artboard this Rive file instance will default to; not exposed
+	UPROPERTY(BlueprintReadWrite, Category=Rive)
+	int32 ArtboardIndex;
+
+	// Artboard Name is used if specified, otherwise ArtboardIndex will always be used
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetArtboardNamesForDropdown"))
+	FString ArtboardName;
+
+	// StateMachine name to pass into our default artboard instance
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetStateMachineNamesForDropdown"))
+	FString StateMachineName;
+
+private:
+	UFUNCTION()
+	void OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);
+	
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
+	TArray<FString> ArtboardNames;
+
+	UFUNCTION()
+	TArray<FString> GetArtboardNamesForDropdown() const
+	{
+		TArray<FString> Names {FString{}};
+		Names.Append(ArtboardNames);
+		return Names;
+	}
+	UFUNCTION()
+	TArray<FString> GetStateMachineNamesForDropdown() const
+	{
+		return Artboard ? Artboard->GetStateMachineNamesForDropdown() : TArray<FString>{};
+	}
+	
+	UPROPERTY(EditAnywhere, Category = Rive)
+	FLinearColor ClearColor = FLinearColor::Transparent;
+
+	UPROPERTY(EditAnywhere, Category = Rive)
+	ERiveFitType RiveFitType = ERiveFitType::Contain;
+
+	/* This property is not editable via Editor in Unity, so we'll hide it also */
+	UPROPERTY()
+	ERiveAlignment RiveAlignment = ERiveAlignment::Center;
+
+	UPROPERTY(EditAnywhere, Category = Rive)
+	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_Opaque;
+
+	UPROPERTY(EditAnywhere, Category = Rive)
+	bool bIsRendering = true;
+
+	/** Control Size of Render Texture Manually */
+	UPROPERTY(EditAnywhere, Category = Rive)
+	bool bManualSize = false;
+
+	UPROPERTY(EditAnywhere, Category=Rive)
+	TSubclassOf<UUserWidget> WidgetClass;
+
+	UPROPERTY(VisibleInstanceOnly, Transient, Category=Rive, meta=(NoResetToDefault))
+	ERiveInitState InitState = ERiveInitState::Uninitialized;
+
+	UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
+
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
+	URiveArtboard* Artboard = nullptr;
+
+	rive::Span<const uint8> RiveNativeFileSpan;
+
+	rive::Span<const uint8>& GetNativeFileSpan()
+	{
+		if (ParentRiveFile)
+		{
+			return ParentRiveFile->GetNativeFileSpan();
+		}
+
+		return RiveNativeFileSpan;
+	}
+
+
+	std::unique_ptr<rive::File> RiveNativeFilePtr;
+	
+	void PrintStats() const;
 };

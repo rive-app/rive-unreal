@@ -2,12 +2,16 @@
 
 #include "RiveSceneViewport.h"
 
+#include "RiveViewportClient.h"
+#include "RiveWidgetHelpers.h"
 #include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
+#include "RiveCore/Public/RiveArtboard.h"
+#include "RiveCore/Public/URStateMachine.h"
 
-FRiveSceneViewport::FRiveSceneViewport(FViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveFile* InRiveFile)
+FRiveSceneViewport::FRiveSceneViewport(FRiveViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveFile* InRiveFile)
 	: FSceneViewport(InViewportClient, InViewportWidget)
-	, RiveFile(InRiveFile)
+	, RiveViewportClient(InViewportClient), RiveFile(InRiveFile)
 {
 }
 
@@ -33,30 +37,20 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 	FReply NewReplyState = FSceneViewport::OnMouseButtonDown(MyGeometry, MouseEvent);
 
 #if WITH_RIVE
-
-	RiveFile->BeginInput();
-
-	if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+	if (URiveArtboard* Artboard = RiveFile->GetArtboard())
 	{
+		Artboard->BeginInput();
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FSlateRect BoundingRect = MyGeometry.GetLayoutBoundingRect();
-
-			const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
-
-			const FIntPoint ViewportSize = GetSizeXY();
-
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, ViewportSize);
+			const  FVector2f LocalPosition = RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(RiveFile, Artboard, MyGeometry, MouseEvent);
 
 			if (StateMachine->OnMouseButtonDown(LocalPosition))
 			{
 				UE_LOG(LogRive, Warning, TEXT("Handled FRiveSceneViewport::OnMouseButtonDown at '%s'"), *LocalPosition.ToString())
 			}
 		}
+		Artboard->EndInput();
 	}
-
-	RiveFile->EndInput();
-
 #endif // WITH_RIVE
 
 	return NewReplyState;
@@ -80,30 +74,20 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 	FReply NewReplyState = FSceneViewport::OnMouseButtonUp(MyGeometry, MouseEvent);
 
 #if WITH_RIVE
-
-	RiveFile->BeginInput();
-
-	if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+	if (URiveArtboard* Artboard = RiveFile->GetArtboard())
 	{
+		Artboard->BeginInput();
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FSlateRect BoundingRect = MyGeometry.GetLayoutBoundingRect();
-
-			const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
-
-			const FIntPoint ViewportSize = GetSizeXY();
-
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, ViewportSize);
+			const FVector2f LocalPosition = RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(RiveFile, Artboard, MyGeometry, MouseEvent);
 
 			if (StateMachine->OnMouseButtonUp(LocalPosition))
 			{
 				UE_LOG(LogRive, Warning, TEXT("Handled FRiveSceneViewport::OnMouseButtonUp at '%s'"), *LocalPosition.ToString())
 			}
 		}
+		Artboard->EndInput();
 	}
-
-	RiveFile->EndInput();
-
 #endif // WITH_RIVE
 	
 	return NewReplyState;
@@ -127,30 +111,20 @@ FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 	FReply NewReplyState = FSceneViewport::OnMouseMove(MyGeometry, MouseEvent);
 
 #if WITH_RIVE
-
-	RiveFile->BeginInput();
-
-	if (const UE::Rive::Core::FURArtboard* Artboard = RiveFile->GetArtboard())
+	if (URiveArtboard* Artboard = RiveFile->GetArtboard())
 	{
+		Artboard->BeginInput();
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			const FSlateRect BoundingRect = MyGeometry.GetLayoutBoundingRect();
-
-			const FBox2f ScreenRect({ BoundingRect.Left, BoundingRect.Top }, { BoundingRect.Right, BoundingRect.Bottom });
-
-			const FIntPoint ViewportSize = GetSizeXY();
-
-			const FVector2f LocalPosition = RiveFile->GetLocalCoordinates(MouseEvent.GetScreenSpacePosition(), ScreenRect, ViewportSize);
-
+			const FVector2f LocalPosition = RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(RiveFile, Artboard, MyGeometry, MouseEvent);
+			
 			if (StateMachine->OnMouseMove(LocalPosition))
 			{
 				LastMousePosition = MouseEvent.GetScreenSpacePosition();
 			}
 		}
+		Artboard->EndInput();
 	}
-
-	RiveFile->EndInput();
-
 #endif // WITH_RIVE
 	
 	return NewReplyState;
