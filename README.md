@@ -44,9 +44,7 @@ open-source runtime libraries allow them to load their animations into apps, gam
 
 ## Getting Started
 
-Check out the example project to see a few techniques for adding Rive graphics in an Unreal project:
-- [Mac](https://github.com/rive-app/rive-unreal/releases/download/0.1.0/MacSiliconExampleProject.zip)
-- [Windows](https://github.com/rive-app/rive-unreal/releases/download/0.1.0/WindowsSampleProject.zip)
+Check out the [example project](https://github.com/rive-app/rive-unreal/releases/download/0.1.0/SampleProjectSource.zip) to see a few techniques for adding Rive graphics in an Unreal project.
 
 To see how to add Rive to your Unreal project and how to navigate the example project, see some quick docs in the [0.1.0 release here](https://github.com/rive-app/rive-unreal/releases/tag/0.1.0). Stay tuned for more detailed and official documentation on using Rive in Unreal.
 
