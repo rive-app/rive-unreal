@@ -10,15 +10,12 @@
 
 void UE::Rive::Editor::Private::FRiveEditorModuleModule::StartupModule()
 {
-	if (GIsEditor)
-	{
-		UThumbnailManager::Get().RegisterCustomRenderer(URiveFile::StaticClass(), URiveTextureThumbnailRenderer::StaticClass());
-	}
+	UThumbnailManager::Get().RegisterCustomRenderer(URiveFile::StaticClass(), URiveTextureThumbnailRenderer::StaticClass());
 }
 
 void UE::Rive::Editor::Private::FRiveEditorModuleModule::ShutdownModule()
 {
-	if (UObjectInitialized() && GIsEditor)
+	if (UObjectInitialized())
 	{
 		UThumbnailManager::Get().UnregisterCustomRenderer(URiveFile::StaticClass());
 	}
