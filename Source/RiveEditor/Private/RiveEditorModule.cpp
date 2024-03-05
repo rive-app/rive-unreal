@@ -10,11 +10,18 @@
 
 void UE::Rive::Editor::Private::FRiveEditorModuleModule::StartupModule()
 {
-	UThumbnailManager::Get().RegisterCustomRenderer(URiveFile::StaticClass(), URiveTextureThumbnailRenderer::StaticClass());
+	if (GIsEditor)
+	{
+		UThumbnailManager::Get().RegisterCustomRenderer(URiveFile::StaticClass(), URiveTextureThumbnailRenderer::StaticClass());
+	}
 }
 
 void UE::Rive::Editor::Private::FRiveEditorModuleModule::ShutdownModule()
 {
+	if (UObjectInitialized() && GIsEditor)
+	{
+		UThumbnailManager::Get().UnregisterCustomRenderer(URiveFile::StaticClass());
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
