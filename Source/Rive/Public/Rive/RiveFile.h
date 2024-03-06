@@ -265,4 +265,6 @@ private:
 	std::unique_ptr<rive::File> RiveNativeFilePtr;
 	
 	void PrintStats() const;
+
+	bool bNeedsImport = false;
 };

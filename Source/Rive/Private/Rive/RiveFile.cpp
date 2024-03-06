@@ -258,12 +258,12 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 		UE_LOG(LogRive, Error, TEXT("Unable to Import the RiveFile '%s' as the RiveRenderer is null"), *InRiveFilePath);
 		return false;
 	}
-	
+	bNeedsImport = true;
 	RiveFilePath = InRiveFilePath;
 	RiveFileData = MoveTemp(InRiveFileBuffer);
 	SetFlags(RF_NeedPostLoad);
 	ConditionalPostLoad();
-
+	
 	// In Theory, the import should be synchronous as the IRiveRendererModule::Get().GetRenderer() should have been initialized,
 	// and the parent Rive File (if any) should already be loaded
 	ensureMsgf(WasLastInitializationSuccessful.IsSet(),
@@ -358,6 +358,22 @@ void URiveFile::Initialize()
 		if (ensure(PLSRenderContext))
 		{
 			ArtboardNames.Empty();
+			if (bNeedsImport)
+			{
+				bNeedsImport = false;
+				TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(GetOutermost(), RiveFilePath, GetAssets());
+				rive::ImportResult ImportResult;
+
+				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+				RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext,
+										   &ImportResult, AssetImporter.Get());
+				if (ImportResult != rive::ImportResult::success)
+				{
+					UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
+					return;
+				}
+			}
+
 			if (!ParentRiveFile)
 			{
 				const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
