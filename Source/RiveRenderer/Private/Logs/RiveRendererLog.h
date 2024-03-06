@@ -2,7 +2,7 @@
 
 #pragma once
 
-DECLARE_LOG_CATEGORY_EXTERN(LogRiveRenderer, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogRiveRenderer, Display, All);
 
 class FDebugLogger
 {
