@@ -244,6 +244,9 @@ ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
 	case ERiveBlendMode::SE_BLEND_AlphaHoldout:
 		NewBlendMode = SE_BLEND_AlphaHoldout;
 		break;
+	case ERiveBlendMode::SE_BLEND_AlphaBlend:
+		NewBlendMode = SE_BLEND_AlphaBlend;
+		break;
 	}
 
 	return NewBlendMode;
