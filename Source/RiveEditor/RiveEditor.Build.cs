@@ -31,7 +31,8 @@ public class RiveEditor : ModuleRules
                 "UnrealEd",
                 "ToolMenus",
                 "UMG",
-                "UMGEditor",
+                "UMGEditor", 
+                "TextureEditor",
             }
         );
     }
