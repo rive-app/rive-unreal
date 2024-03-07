@@ -2,6 +2,7 @@
 
 #include "RiveWidgetFactory.h"
 
+#include "AssetToolsModule.h"
 #include "ContentBrowserMenuContexts.h"
 #include "PackageTools.h"
 #include "WidgetBlueprint.h"
@@ -126,19 +127,20 @@ UWidgetBlueprint* FRiveWidgetFactory::CreateWidgetBlueprint()
 	}
 	
 	const UPackage* const RivePackage = RiveFile->GetOutermost();
-
 	const FString RivePackageName = RivePackage->GetName();
-
 	const FString RiveWidgetFolderName = *FPackageName::GetLongPackagePath(RivePackageName);
-
-	const FName RiveWidgetName = MakeUniqueObjectName(RiveFile, URiveWidget::StaticClass(), *(RiveFile->GetName() + FString("_Widget")));
-
-	const FString PackageName = UPackageTools::SanitizePackageName(	RiveWidgetFolderName + TEXT("/") + RiveWidgetName.ToString());
 	
-	UPackage* RiveWidgetPackage = CreatePackage(*PackageName);
+	const FString BaseWidgetPackageName = RiveWidgetFolderName + TEXT("/") + RiveFile->GetName();
+	
+	FString RiveWidgetName;
+	FString RiveWidgetPackageName;
+	const FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	AssetToolsModule.Get().CreateUniqueAssetName(BaseWidgetPackageName, FString("_Widget"), /*out*/ RiveWidgetPackageName, /*out*/ RiveWidgetName);
+	
+	UPackage* RiveWidgetPackage = CreatePackage(*RiveWidgetPackageName);
 		
 	return CastChecked<UWidgetBlueprint>(FKismetEditorUtilities::CreateBlueprint(
-		CurrentParentClass, RiveWidgetPackage, RiveWidgetName, BPTYPE_Normal, UWidgetBlueprint::StaticClass(),
+		CurrentParentClass, RiveWidgetPackage, FName(RiveWidgetName), BPTYPE_Normal, UWidgetBlueprint::StaticClass(),
 		UWidgetBlueprintGeneratedClass::StaticClass()));
 }
 
