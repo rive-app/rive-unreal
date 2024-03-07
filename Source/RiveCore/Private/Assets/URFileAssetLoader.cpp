@@ -23,6 +23,12 @@ UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(UObject* InOuter, TMap<
 bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes,
                                                         rive::Factory* InFactory)
 {
+	// Just proceed to load the base type without processing it
+	if (InAsset.coreType() == rive::FileAssetBase::typeKey)
+	{
+		return true;
+	}
+	
 	const rive::Span<const uint8>* AssetBytes = &InBandBytes;
 	const bool bUseInBand = InBandBytes.size() > 0;
 	
@@ -44,6 +50,11 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 		RiveAsset = NewObject<URiveAsset>(Outer, URiveAsset::StaticClass(),
 			MakeUniqueObjectName(Outer, URiveAsset::StaticClass(), FName{FString::Printf(TEXT("%d"),InAsset.assetId())}),
 			RF_Transient);
+
+		RiveAsset->Id = InAsset.assetId();
+		RiveAsset->Name = RiveAsset->GetName();
+		RiveAsset->Type = static_cast<ERiveAssetType>(InAsset.coreType());
+		RiveAsset->bIsInBand = true;
 	}
 	else
 	{

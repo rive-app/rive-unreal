@@ -230,7 +230,7 @@ private:
 	ERiveAlignment RiveAlignment = ERiveAlignment::Center;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
-	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_Opaque;
+	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaBlend;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;
@@ -267,7 +267,10 @@ private:
 	
 	void PrintStats() const;
 
+
 #if WITH_EDITORONLY_DATA
 	void OnImportDataChanged(const FAssetImportInfo& OldData, const class UAssetImportData* NewData);
 #endif
+
+	bool bNeedsImport = false;
 };

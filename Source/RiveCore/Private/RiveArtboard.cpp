@@ -111,43 +111,101 @@ void URiveArtboard::Draw()
 
 void URiveArtboard::FireTrigger(const FString& InPropertyName) const
 {
-	if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
 	{
-		StateMachine->FireTrigger(InPropertyName);
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+		{
+			StateMachine->FireTrigger(InPropertyName);
+		}
 	}
 }
 
 bool URiveArtboard::GetBoolValue(const FString& InPropertyName) const
 {
-	if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
 	{
-		return StateMachine->GetBoolValue(InPropertyName);
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+		{
+			return StateMachine->GetBoolValue(InPropertyName);
+		}
 	}
 	return false;
 }
 
 float URiveArtboard::GetNumberValue(const FString& InPropertyName) const
 {
-	if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
 	{
-		return StateMachine->GetNumberValue(InPropertyName);
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+		{
+			return StateMachine->GetNumberValue(InPropertyName);
+		}
 	}
 	return 0.f;
 }
 
+FString URiveArtboard::GetTextValue(const FString& InPropertyName) const
+{
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
+	{
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+		{
+			if (const rive::TextValueRunBase* TextValueRun = NativeArtboardPtr->find<rive::TextValueRunBase>(TCHAR_TO_UTF8(*InPropertyName)))
+			{
+				return FString{TextValueRun->text().c_str()};
+			}
+		}
+	}
+	return {};
+}
+
 void URiveArtboard::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 {
-	if (UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
 	{
-		StateMachine->SetBoolValue(InPropertyName, bNewValue);
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		if (UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+		{
+			StateMachine->SetBoolValue(InPropertyName, bNewValue);
+		}
 	}
 }
 
 void URiveArtboard::SetNumberValue(const FString& InPropertyName, float NewValue)
 {
-	if (UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
 	{
-		StateMachine->SetNumberValue(InPropertyName, NewValue);
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		if (UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+		{
+			StateMachine->SetNumberValue(InPropertyName, NewValue);
+		}
+	}
+}
+
+void URiveArtboard::SetTextValue(const FString& InPropertyName, const FString& NewValue)
+{
+	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
+	{
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		if (const UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine())
+		{
+			if (rive::TextValueRunBase* TextValueRun = NativeArtboardPtr->find<rive::TextValueRunBase>(TCHAR_TO_UTF8(*InPropertyName)))
+			{
+				TextValueRun->text(TCHAR_TO_UTF8(*NewValue));
+			}
+		}
 	}
 }
 
