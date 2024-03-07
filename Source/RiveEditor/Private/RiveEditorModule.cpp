@@ -15,6 +15,10 @@ void UE::Rive::Editor::Private::FRiveEditorModuleModule::StartupModule()
 
 void UE::Rive::Editor::Private::FRiveEditorModuleModule::ShutdownModule()
 {
+	if (UObjectInitialized())
+	{
+		UThumbnailManager::Get().UnregisterCustomRenderer(URiveFile::StaticClass());
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -23,7 +23,7 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 {
 	if (!RiveFile)
 	{
-		UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSceneViewport::OnMouseButtonDown as we have an empty rive file."));
+		UE_LOG(LogRive, Verbose, TEXT("Could not process FRiveSceneViewport::OnMouseButtonDown as we have an empty rive file."));
 
 		return FReply::Unhandled();
 	}
@@ -46,7 +46,7 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 
 			if (StateMachine->OnMouseButtonDown(LocalPosition))
 			{
-				UE_LOG(LogRive, Warning, TEXT("Handled FRiveSceneViewport::OnMouseButtonDown at '%s'"), *LocalPosition.ToString())
+				UE_LOG(LogRive, Verbose, TEXT("Handled FRiveSceneViewport::OnMouseButtonDown at '%s'"), *LocalPosition.ToString())
 			}
 		}
 		Artboard->EndInput();
@@ -60,7 +60,7 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 {
 	if (!RiveFile)
 	{
-		UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSceneViewport::OnMouseButtonUp as we have an empty rive file."));
+		UE_LOG(LogRive, Verbose, TEXT("Could not process FRiveSceneViewport::OnMouseButtonUp as we have an empty rive file."));
 
 		return FReply::Unhandled();
 	}
@@ -83,7 +83,7 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 
 			if (StateMachine->OnMouseButtonUp(LocalPosition))
 			{
-				UE_LOG(LogRive, Warning, TEXT("Handled FRiveSceneViewport::OnMouseButtonUp at '%s'"), *LocalPosition.ToString())
+				UE_LOG(LogRive, Verbose, TEXT("Handled FRiveSceneViewport::OnMouseButtonUp at '%s'"), *LocalPosition.ToString())
 			}
 		}
 		Artboard->EndInput();
@@ -97,7 +97,7 @@ FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 {
 	if (!RiveFile)
 	{
-		UE_LOG(LogRive, Warning, TEXT("Could not process FRiveSceneViewport::OnMouseMove as we have an empty rive file."));
+		UE_LOG(LogRive, Verbose, TEXT("Could not process FRiveSceneViewport::OnMouseMove as we have an empty rive file."));
 
 		return FReply::Unhandled();
 	}
