@@ -35,41 +35,41 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetStateMachineNamesForDropdown"))
 	FString StateMachineName;
 	
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category = Rive)
 	FRiveTickDelegate OnArtboardTick_Render;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category = Rive)
 	FRiveTickDelegate OnArtboardTick_StateMachine;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category = Rive)
 	FRiveCoordinatesDelegate OnGetLocalCoordinate;
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetSize() const;
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	void AdvanceStateMachine(float InDeltaSeconds);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	void Transform(const FVector2f& One, const FVector2f& Two, const FVector2f& T);
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	void Translate(const FVector2f& InVector);
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	void Align(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment);
 	
 	void Align(ERiveFitType InFitType, ERiveAlignment InAlignment);
 
 	/** Returns the transformation Matrix from the start of the Render Queue up to now */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	FMatrix GetTransformMatrix() const;
 
 	/** Returns the transformation Matrix from the start of the Render Queue up to now */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	FMatrix GetLastDrawTransformMatrix() const { return LastDrawTransform; }
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	void Draw();
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
@@ -88,11 +88,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetTextValue(const FString& InPropertyName, const FString& NewValue);
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	bool BindNamedRiveEvent(const FString& EventName, const FRiveNamedEventDelegate& Event);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	bool UnbindNamedRiveEvent(const FString& EventName, const FRiveNamedEventDelegate& Event);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	bool TriggerNamedRiveEvent(const FString& EventName, float ReportedDelaySeconds);
 
 

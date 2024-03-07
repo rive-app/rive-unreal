@@ -37,7 +37,7 @@ public:
 
 public:
 	/** UI representation of Texture Size */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive, meta = (ClampMin = 1, UIMin = 1, ClampMax = 3840, UIMax = 3840))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive, meta = (ClampMin = 1, UIMin = 1, ClampMax = 3840, UIMax = 3840, NoResetToDefault))
 	FIntPoint Size;
 
 	/**

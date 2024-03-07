@@ -27,7 +27,7 @@ class URiveAsset;
 /**
  *
  */
-UCLASS(BlueprintType, Blueprintable)
+UCLASS(BlueprintType, Blueprintable, HideCategories="ImportSettings")
 class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
@@ -158,7 +158,7 @@ public:
 	UPROPERTY()
 	TArray<uint8> RiveFileData;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rive, meta=(NoResetToDefault))
 	FString RiveFilePath;
 
 	UPROPERTY(VisibleAnywhere, Category=Rive)
