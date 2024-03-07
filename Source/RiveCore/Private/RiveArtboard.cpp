@@ -167,7 +167,7 @@ FString URiveArtboard::GetTextValue(const FString& InPropertyName) const
 	return {};
 }
 
-void URiveArtboard::SetBoolValue(const FString& InPropertyName, const bool bNewValue)
+void URiveArtboard::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 	if (ensure(RiveRenderer))
@@ -180,7 +180,7 @@ void URiveArtboard::SetBoolValue(const FString& InPropertyName, const bool bNewV
 	}
 }
 
-void URiveArtboard::SetNumberValue(const FString& InPropertyName, const float NewValue)
+void URiveArtboard::SetNumberValue(const FString& InPropertyName, float NewValue)
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 	if (ensure(RiveRenderer))
