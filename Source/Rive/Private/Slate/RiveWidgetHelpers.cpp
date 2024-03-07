@@ -1,4 +1,6 @@
-﻿#include "RiveWidgetHelpers.h"
+﻿// Copyright Rive, Inc. All rights reserved.
+
+#include "RiveWidgetHelpers.h"
 
 #include "RiveArtboard.h"
 #include "Rive/RiveTexture.h"
