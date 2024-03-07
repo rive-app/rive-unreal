@@ -3,8 +3,7 @@
 
 #include "RiveFile_AssetTypeActions.h"
 
-#include "Interfaces/ITextureEditorModule.h"
-#include "Interfaces/ITextureEditorModule.h"
+#include "RiveAssetToolkit.h"
 #include "Rive/RiveFile.h"
 
 #define LOCTEXT_NAMESPACE "RiveEditorModule"
@@ -41,14 +40,13 @@ bool FRiveFile_AssetTypeActions::IsImportedAsset() const
 
 void FRiveFile_AssetTypeActions::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor)
 {
-	if (ensure(InObjects.Num() == 1) && InObjects[0]->IsA<URiveFile>())
+	for (UObject* Obj : InObjects)
 	{
-		ITextureEditorModule* TextureEditorModule = &FModuleManager::LoadModuleChecked<ITextureEditorModule>("TextureEditor");
-		TextureEditorModule->CreateTextureEditor(EToolkitMode::Standalone, EditWithinLevelEditor, Cast<URiveFile>(InObjects[0]));
-	}
-	else
-	{
-		FSimpleAssetEditor::CreateEditor(EToolkitMode::Standalone, EditWithinLevelEditor, InObjects);
+		if (URiveFile* RiveFile = Cast<URiveFile>(Obj))
+		{
+			const TSharedRef<FRiveAssetToolkit> EditorToolkit = MakeShared<FRiveAssetToolkit>();
+			EditorToolkit->Initialize(RiveFile, EToolkitMode::Standalone, EditWithinLevelEditor);
+		}
 	}
 }
 

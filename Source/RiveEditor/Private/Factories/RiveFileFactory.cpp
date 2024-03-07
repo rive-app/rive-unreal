@@ -106,7 +106,7 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
 {
     URiveFile* RiveFile = Cast<URiveFile>(Obj);
 
-    if (!IsValid(Obj)) // || !GDTF->GetGDTFAssetImportData())
+    if (!IsValid(Obj))
     {
         return EReimportResult::Failed;
     }
