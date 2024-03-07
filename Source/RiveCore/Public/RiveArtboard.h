@@ -78,11 +78,15 @@ public:
 	bool GetBoolValue(const FString& InPropertyName) const;
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	float GetNumberValue(const FString& InPropertyName) const;
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	FString GetTextValue(const FString& InPropertyName) const;
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetTextValue(const FString& InPropertyName, const FString& NewValue);
 	
 	UFUNCTION(BlueprintCallable)
 	bool BindNamedRiveEvent(const FString& EventName, const FRiveNamedEventDelegate& Event);
