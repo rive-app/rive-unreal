@@ -54,6 +54,7 @@ enum class ERiveBlendMode : uint8
 	SE_BLEND_TranslucentDistanceFieldShadowed UMETA(DisplayName = "Translucent Distance Field Shadowed"),
 	SE_BLEND_AlphaComposite UMETA(DisplayName = "Alpha Composite"),
 	SE_BLEND_AlphaHoldout UMETA(DisplayName = "Alpha Holdout"),
+	SE_BLEND_AlphaBlend UMETA(DisplayName = "Alpha Blend"),
 };
 
 USTRUCT(BlueprintType)

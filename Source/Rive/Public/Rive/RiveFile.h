@@ -229,7 +229,7 @@ private:
 	ERiveAlignment RiveAlignment = ERiveAlignment::Center;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
-	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_Opaque;
+	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaBlend;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;

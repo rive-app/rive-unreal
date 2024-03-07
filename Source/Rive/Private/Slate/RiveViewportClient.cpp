@@ -77,7 +77,7 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 			RiveFile->GetResource(),
 			FVector2D{RiveTextureSize},
 			FLinearColor::White);
-		TileItem.BlendMode = SE_BLEND_AlphaBlend;
+		TileItem.BlendMode = RiveFile->GetSimpleElementBlendMode();
 		TileItem.BatchedElementParameters = nullptr;
 		
 		Canvas->DrawItem(TileItem);
