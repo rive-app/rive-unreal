@@ -6,7 +6,6 @@
 
 class URiveFile;
 class UTexture2DDynamic;
-class UTextureRenderTarget2D;
 
 #if WITH_RIVE
 

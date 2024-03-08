@@ -4,7 +4,6 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Logs/RiveRendererLog.h"
 #include "TextureResource.h"
-#include "Async/Async.h"
 #include "rive/pls/pls_render_context.hpp"
 
 UE::Rive::Renderer::Private::FRiveRenderer::FRiveRenderer()

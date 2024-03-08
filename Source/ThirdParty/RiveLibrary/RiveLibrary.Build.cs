@@ -62,9 +62,6 @@ public class RiveLibrary : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
-            bEnableObjCAutomaticReferenceCounting = true;
-            PCHUsage = ModuleRules.PCHUsageMode.NoPCHs;
-            
             string LibDirectory = Path.Combine(RootDir, "Libraries", "Mac");
             if (Target.Architecture == UnrealArch.Arm64)
             {
