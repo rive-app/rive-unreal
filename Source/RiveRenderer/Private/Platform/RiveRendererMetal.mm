@@ -18,7 +18,6 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/pls/pls_renderer.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
-#include "../Mac/AutoreleasePool.h"
 
 TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererMetal::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 {
@@ -36,7 +35,6 @@ TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::F
 DECLARE_GPU_STAT_NAMED(CreatePLSContext, TEXT("CreatePLSContext_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRendererMetal::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
-    AutoreleasePool pool;
     check(IsInRenderingThread());
     
     FScopeLock Lock(&ThreadDataCS);
@@ -46,11 +44,11 @@ void UE::Rive::Renderer::Private::FRiveRendererMetal::CreatePLSContext_RenderThr
     if (GDynamicRHI != nullptr && GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Metal)
     {
         // Get the underlying metal device.
-        id<MTLDevice> MetalDevice = (id<MTLDevice>)GDynamicRHI->RHIGetNativeDevice();
+        id<MTLDevice> MetalDevice = (__bridge id<MTLDevice>)GDynamicRHI->RHIGetNativeDevice();
         
         check(MetalDevice);
         
-        id<MTLCommandQueue> MetalCommandQueue = (id<MTLCommandQueue>)GDynamicRHI->RHIGetNativeGraphicsQueue();
+        id<MTLCommandQueue> MetalCommandQueue = (__bridge id<MTLCommandQueue>)GDynamicRHI->RHIGetNativeGraphicsQueue();
         
         check(MetalCommandQueue);
 

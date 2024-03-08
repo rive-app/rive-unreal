@@ -70,6 +70,9 @@ public class RiveRenderer : ModuleRules
 		}
         else if (Target.Platform.IsInGroup(UnrealPlatformGroup.Apple))
         {
+            bEnableObjCAutomaticReferenceCounting = true;
+            PCHUsage = ModuleRules.PCHUsageMode.NoPCHs;
+            
             PublicIncludePathModuleNames.AddAll("MetalRHI");
             
             PublicDependencyModuleNames.Add("MetalRHI");

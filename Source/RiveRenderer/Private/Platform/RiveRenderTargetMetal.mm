@@ -18,7 +18,6 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/pls/metal/pls_render_context_metal_impl.h"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
-#include "../Mac/AutoreleasePool.h"
 
 UE::Rive::Renderer::Private::FRiveRenderTargetMetal::FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
     : FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget)
@@ -34,7 +33,6 @@ UE::Rive::Renderer::Private::FRiveRenderTargetMetal::~FRiveRenderTargetMetal()
 DECLARE_GPU_STAT_NAMED(CacheTextureTarget, TEXT("FRiveRenderTargetMetal::CacheTextureTarget_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
 {
-    AutoreleasePool pool;
     check(IsInRenderingThread());
     
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
@@ -68,7 +66,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
     if (bIsValidRHI && InTexture.IsValid())
     {        
         // Get the underlying metal texture so we can render to it.
-        id<MTLTexture> MetalTexture = (id<MTLTexture>)InTexture->GetNativeResource();
+        id<MTLTexture> MetalTexture = (__bridge id<MTLTexture>)InTexture->GetNativeResource();
         
         check(MetalTexture);
         NSUInteger Format = MetalTexture.pixelFormat;

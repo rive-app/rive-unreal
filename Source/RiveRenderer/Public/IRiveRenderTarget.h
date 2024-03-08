@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "Math/Vector2D.h"
+#include "Math/Box2D.h"
+#include "Math/Matrix.h"
+#include "RHICommandList.h"
+#include "Math/Color.h"
+#include "HAL/Platform.h"
+#include "Templates/SharedPointer.h"
 #if WITH_RIVE
 
 enum class ERiveFitType : uint8;
