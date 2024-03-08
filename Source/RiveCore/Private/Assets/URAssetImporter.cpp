@@ -20,7 +20,8 @@ THIRD_PARTY_INCLUDES_END
 
 #if WITH_RIVE
 
-UE::Rive::Assets::FURAssetImporter::FURAssetImporter(UPackage* InPackage, const FString& InRiveFilePath, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets) : RivePackage(InPackage), RiveFilePath(InRiveFilePath), Assets(InAssets)
+UE::Rive::Assets::FURAssetImporter::FURAssetImporter(UPackage* InPackage, const FString& InRiveFilePath, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets)
+	: RivePackage(InPackage), RiveFilePath(InRiveFilePath), Assets(InAssets)
 {
 }
 

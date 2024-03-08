@@ -14,7 +14,8 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(UObject* InOuter, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets) : Outer(InOuter), Assets(InAssets)
+UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(UObject* InOuter, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets)
+	: Outer(InOuter), Assets(InAssets)
 {
 }
 
@@ -52,7 +53,7 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 			RF_Transient);
 
 		RiveAsset->Id = InAsset.assetId();
-		RiveAsset->Name = RiveAsset->GetName();
+		RiveAsset->Name = FString(UTF8_TO_TCHAR(InAsset.name().c_str()));
 		RiveAsset->Type = static_cast<ERiveAssetType>(InAsset.coreType());
 		RiveAsset->bIsInBand = true;
 	}

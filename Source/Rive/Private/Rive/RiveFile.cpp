@@ -380,42 +380,41 @@ void URiveFile::Initialize()
 		if (ensure(PLSRenderContext))
 		{
 			ArtboardNames.Empty();
-			if (bNeedsImport)
-			{
-				bNeedsImport = false;
-				TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(GetOutermost(), RiveFilePath, GetAssets());
-				rive::ImportResult ImportResult;
-
-				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-				RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext,
-										   &ImportResult, AssetImporter.Get());
-				if (ImportResult != rive::ImportResult::success)
-				{
-					UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
-					return;
-				}
-			}
 
 			if (!ParentRiveFile)
 			{
-				const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
-					UE::Rive::Assets::FURFileAssetLoader>(this, GetAssets());
-				rive::ImportResult ImportResult;
-
 				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-				RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult,
-													   FileAssetLoader.Get());
+				rive::ImportResult ImportResult;
+				if (bNeedsImport)
+				{
+					bNeedsImport = false;
+					const TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(GetOutermost(), RiveFilePath, GetAssets());
+					RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult, AssetImporter.Get());
+					if (ImportResult != rive::ImportResult::success)
+					{
+						UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
+						Lock.Unlock();
+						BroadcastInitializationResult(false);
+						return;
+					}
+				}
+				
+				const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<UE::Rive::Assets::FURFileAssetLoader>(this, GetAssets());
+				RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult, FileAssetLoader.Get());
+
+				if (ImportResult != rive::ImportResult::success)
+				{
+					UE_LOG(LogRive, Error, TEXT("Failed to load rive file."));
+					Lock.Unlock();
+					BroadcastInitializationResult(false);
+					return;
+				}
+				
 				// UI Helper
 				for (int i = 0; i < RiveNativeFilePtr->artboardCount(); ++i)
 				{
 					rive::Artboard* NativeArtboard = RiveNativeFilePtr->artboard(i);
 					ArtboardNames.Add(NativeArtboard->name().c_str());
-				}
-				if (ImportResult != rive::ImportResult::success)
-				{
-					UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
-					BroadcastInitializationResult(false);
-					return;
 				}
 			}
 			else if (ensure(IsValid(ParentRiveFile)))
