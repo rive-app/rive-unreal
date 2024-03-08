@@ -178,9 +178,6 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL PLSRenderContextPtr->beginFrame %p", PLSRenderContextPtr);
 #endif
     
-#if PLATFORM_APPLE
-    AutoreleasePool Pool;
-#endif
 	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
 	return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
 }
@@ -199,9 +196,6 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush %p", PLSRenderContextPtr);
 #endif
     
-#if PLATFORM_APPLE
-    AutoreleasePool Pool;
-#endif
 	PLSRenderContextPtr->flush();
 }
 
@@ -234,6 +228,11 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 	{
 		return;
 	}
+    
+#if PLATFORM_APPLE
+    AutoreleasePool Pool;
+#endif
+    
 	// Begin Frame
 	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = BeginFrame();
 	if (PLSRenderer == nullptr)
