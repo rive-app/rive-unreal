@@ -46,10 +46,10 @@ public:
     UPROPERTY(BlueprintAssignable, Category = Rive)
     FRiveReadyDelegate OnRiveReady;
     
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = Rive)
     void ResizeRenderTarget(int32 InSizeX, int32 InSizeY);
 
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = Rive)
     URiveArtboard* InstantiateArtboard(URiveFile* InRiveFile, const FString& InArtboardName, const FString& InStateMachineName);
     
 protected:
@@ -66,7 +66,7 @@ public:
     UPROPERTY(BlueprintReadWrite, SkipSerialization, Transient, Category=Rive)
     TArray<URiveArtboard*> RenderObjects;
 
-    UPROPERTY(BlueprintReadWrite, Transient)
+    UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
     TObjectPtr<URiveTexture> RenderTarget;
 
 private:

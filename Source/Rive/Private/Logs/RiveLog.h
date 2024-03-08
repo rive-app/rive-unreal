@@ -2,4 +2,4 @@
 
 #pragma once
 
-DECLARE_LOG_CATEGORY_EXTERN(LogRive, VeryVerbose, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogRive, Display, All);

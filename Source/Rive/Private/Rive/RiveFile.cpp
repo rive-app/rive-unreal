@@ -4,6 +4,7 @@
 #include "IRiveRenderTarget.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "EditorFramework/AssetImportData.h"
 #include "RiveCore/Public/RiveArtboard.h"
 #include "Logs/RiveLog.h"
 #include "RiveCore/Public/Assets/RiveAsset.h"
@@ -71,6 +72,17 @@ bool URiveFile::IsTickable() const
 void URiveFile::PostLoad()
 {
 	Super::PostLoad();
+	
+#if WITH_EDITORONLY_DATA
+	if (ensure(AssetImportData))
+	{
+		if (AssetImportData->GetFirstFilename().IsEmpty())
+		{
+			AssetImportData->UpdateFilenameOnly(RiveFilePath);
+		}
+		AssetImportData->OnImportDataChanged.AddUObject(this, &URiveFile::OnImportDataChanged);
+	}
+#endif
 	
 	if (!IsRunningCommandlet())
 	{
@@ -244,6 +256,9 @@ ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
 	case ERiveBlendMode::SE_BLEND_AlphaHoldout:
 		NewBlendMode = SE_BLEND_AlphaHoldout;
 		break;
+	case ERiveBlendMode::SE_BLEND_AlphaBlend:
+		NewBlendMode = SE_BLEND_AlphaBlend;
+		break;
 	}
 
 	return NewBlendMode;
@@ -258,12 +273,19 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 		UE_LOG(LogRive, Error, TEXT("Unable to Import the RiveFile '%s' as the RiveRenderer is null"), *InRiveFilePath);
 		return false;
 	}
-	
+	bNeedsImport = true;
 	RiveFilePath = InRiveFilePath;
 	RiveFileData = MoveTemp(InRiveFileBuffer);
 	SetFlags(RF_NeedPostLoad);
 	ConditionalPostLoad();
-
+	
+#if WITH_EDITORONLY_DATA
+	if (ensure(AssetImportData))
+	{
+		AssetImportData->Update(InRiveFilePath);
+	}
+#endif
+	
 	// In Theory, the import should be synchronous as the IRiveRendererModule::Get().GetRenderer() should have been initialized,
 	// and the parent Rive File (if any) should already be loaded
 	ensureMsgf(WasLastInitializationSuccessful.IsSet(),
@@ -358,6 +380,22 @@ void URiveFile::Initialize()
 		if (ensure(PLSRenderContext))
 		{
 			ArtboardNames.Empty();
+			if (bNeedsImport)
+			{
+				bNeedsImport = false;
+				TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(GetOutermost(), RiveFilePath, GetAssets());
+				rive::ImportResult ImportResult;
+
+				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+				RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext,
+										   &ImportResult, AssetImporter.Get());
+				if (ImportResult != rive::ImportResult::success)
+				{
+					UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
+					return;
+				}
+			}
+
 			if (!ParentRiveFile)
 			{
 				const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<
@@ -549,3 +587,13 @@ void URiveFile::PrintStats() const
 
 	UE_LOG(LogRive, Display, TEXT("%s"), *RiveFileLoadMsg.ToString());
 }
+
+#if WITH_EDITORONLY_DATA
+void URiveFile::OnImportDataChanged(const FAssetImportInfo& OldData, const UAssetImportData* NewData)
+{
+	if (NewData)
+	{
+		RiveFilePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NewData->GetFirstFilename());
+	}
+}
+#endif

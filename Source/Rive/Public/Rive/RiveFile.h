@@ -11,6 +11,7 @@
 
 #if WITH_RIVE
 
+struct FAssetImportInfo;
 class URiveArtboard;
 class FRiveTextureResource;
 
@@ -26,7 +27,7 @@ class URiveAsset;
 /**
  *
  */
-UCLASS(BlueprintType, Blueprintable)
+UCLASS(BlueprintType, Blueprintable, HideCategories="ImportSettings")
 class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
@@ -157,7 +158,7 @@ public:
 	UPROPERTY()
 	TArray<uint8> RiveFileData;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rive, meta=(NoResetToDefault))
 	FString RiveFilePath;
 
 	UPROPERTY(VisibleAnywhere, Category=Rive)
@@ -229,7 +230,7 @@ private:
 	ERiveAlignment RiveAlignment = ERiveAlignment::Center;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
-	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_Opaque;
+	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaBlend;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;
@@ -265,4 +266,11 @@ private:
 	std::unique_ptr<rive::File> RiveNativeFilePtr;
 	
 	void PrintStats() const;
+
+
+#if WITH_EDITORONLY_DATA
+	void OnImportDataChanged(const FAssetImportInfo& OldData, const class UAssetImportData* NewData);
+#endif
+
+	bool bNeedsImport = false;
 };

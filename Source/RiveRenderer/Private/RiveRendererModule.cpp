@@ -47,11 +47,11 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
 #if PLATFORM_APPLE
         case ERHIInterfaceType::Metal:
         {
-            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'Rive running on RHI 'Metal'"))
+            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'Metal'"))
 #if defined(WITH_RIVE_MAC_ARM64)
-            RIVE_DEBUG_VERBOSE("Rive running on a Mac M1/M2 processor (Arm64)")
+            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on a Mac M1/M2 processor (Arm64)"))
 #elif defined(WITH_RIVE_MAC_INTEL)
-            RIVE_DEBUG_VERBOSE("Rive running on a Mac Intel processor (x86 x64)")
+            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on a Mac Intel processor (x86 x64)"))
 #endif
             RiveRenderer = MakeShared<FRiveRendererMetal>();
             break;

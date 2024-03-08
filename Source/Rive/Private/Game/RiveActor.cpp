@@ -97,7 +97,7 @@ void ARiveActor::BeginPlay()
 
 	UWorld* ActorWorld = GetWorld();
 
-	if (ActorWorld && (ActorWorld->WorldType == EWorldType::PIE))
+	if (IsValid(RiveFile) && IsValid(ActorWorld) && (ActorWorld->WorldType == EWorldType::PIE))
 	{
 		RiveFile->InstantiateArtboard();
 	}
