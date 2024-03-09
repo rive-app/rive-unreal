@@ -3,8 +3,13 @@
 #pragma once
 class AutoreleasePool {
 public:
-    AutoreleasePool();
-    ~AutoreleasePool();
+#if PLATFORM_APPLE
+    AutoreleasePool() : Pool([NSAutoreleasePool new]) {}
+    ~AutoreleasePool() { [this->Pool drain]; }
+#else
+    AutoreleasePool() {}
+    ~AutoreleasePool() {}
+#endif
 
 private:
 #if PLATFORM_APPLE
