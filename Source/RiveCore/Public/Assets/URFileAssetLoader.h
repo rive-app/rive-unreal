@@ -42,8 +42,7 @@ namespace UE::Rive::Assets
         //~ BEGIN : rive::FileAssetLoader Interface
 
     public:
-
-        bool loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes, rive::Factory* InFactory) override;
+        virtual bool loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes, rive::Factory* InFactory) override;
 
         //~ END : rive::FileAssetLoader Interface
 

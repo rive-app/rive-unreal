@@ -13,6 +13,10 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/pls/pls_renderer.hpp"
 THIRD_PARTY_INCLUDES_END
 
+#if PLATFORM_APPLE
+#include "Mac/AutoreleasePool.h"
+#endif
+
 FTimespan UE::Rive::Renderer::Private::FRiveRenderTarget::ResetTimeLimit = FTimespan(0, 0, 20);
 
 UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
@@ -173,6 +177,7 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 #if PLATFORM_ANDROID
 	RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL PLSRenderContextPtr->beginFrame %p", PLSRenderContextPtr);
 #endif
+    
 	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
 	return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
 }
@@ -190,6 +195,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
 #if PLATFORM_ANDROID
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush %p", PLSRenderContextPtr);
 #endif
+    
 	PLSRenderContextPtr->flush();
 }
 
@@ -222,6 +228,11 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 	{
 		return;
 	}
+    
+#if PLATFORM_APPLE
+    AutoreleasePool Pool;
+#endif
+    
 	// Begin Frame
 	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = BeginFrame();
 	if (PLSRenderer == nullptr)

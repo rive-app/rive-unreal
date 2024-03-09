@@ -18,6 +18,7 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/pls/metal/pls_render_context_metal_impl.h"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
+#include "Mac/AutoreleasePool.h"
 
 UE::Rive::Renderer::Private::FRiveRenderTargetMetal::FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
     : FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget)
@@ -27,12 +28,13 @@ UE::Rive::Renderer::Private::FRiveRenderTargetMetal::FRiveRenderTargetMetal(cons
 UE::Rive::Renderer::Private::FRiveRenderTargetMetal::~FRiveRenderTargetMetal()
 {
     RIVE_DEBUG_FUNCTION_INDENT
-    CachedPLSRenderTargetMetal.release();
+    CachedPLSRenderTargetMetal.reset();
 }
 
 DECLARE_GPU_STAT_NAMED(CacheTextureTarget, TEXT("FRiveRenderTargetMetal::CacheTextureTarget_RenderThread"));
 void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
 {
+    AutoreleasePool pool;
     check(IsInRenderingThread());
     
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
