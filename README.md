@@ -2,7 +2,7 @@
 
 An Unreal runtime library for [Rive](https://rive.app). This is currently a **technical preview** for Mac and Windows installs of Unreal. We're hoping to gather feedback about the API and feature-set as we expand platform support.
 
-### Rendering Support
+### Rendering support
 
 Currently supported platforms and backends include:
 
@@ -16,9 +16,22 @@ Planned support for:
 - D3D12 on Windows
 - Vulkan on Linux, Android, Windows
 
-### Feature Support
+### Feature support
 
-The rive-unreal runtime utilizes the latest Rive C++ runtime. All Rive features are supported for playback. Work is in progress to add runtime configuration support to the Unreal package for Rive-specific features.
+The rive-unreal runtime uses the latest Rive C++ runtime.
+
+| Feature                      | Supported   |
+| ---------------------------- | ----------- |
+| Animation Playback           | ✅           |
+| Fit and Alignment            | ✅           |
+| Listeners                    | ✅           |
+| Setting State Machine Inputs | ✅           |
+| Listening to Events          | ✅           |
+| Updating text at runtime     | ✅           |
+| Out-of-band assets           | ✅           |
+| Procedural rendering         | Coming soon |
+| PNG images                   | ✅           |
+| WEBP and JPEG images         | Coming soon |
 
 ## Table of contents
 
@@ -27,7 +40,7 @@ The rive-unreal runtime utilizes the latest Rive C++ runtime. All Rive features 
 - 👨‍💻 [Contributing](#contributing)
 - ❓ [Issues](#issues)
 
-## Rive Overview
+## Rive overview
 
 [Rive](https://rive.app) is a real-time interactive design and animation tool that helps teams
 create and run interactive animations anywhere. Designers and developers use our collaborative
@@ -42,7 +55,7 @@ open-source runtime libraries allow them to load their animations into apps, gam
 
 🛠 [Learning Rive](https://rive.app/learn-rive/)
 
-## Getting Started
+## Getting started
 
 Check out the latest example project from the [releases page](https://github.com/rive-app/rive-unreal/releases) to see a few techniques for adding Rive graphics in an Unreal project, as well as documentation on navigating the samples.
 
@@ -50,9 +63,9 @@ Stay tuned for more detailed and official documentation on using Rive in Unreal.
 
 You will need to work in the **Unreal 5.3** editor that supports OpenGL or D3D11 for Windows, or a Mac with ARM64 (M1, M2, etc) architecture.
 
-Select either D3D11/OpenGL for Windows, or Metal for Mac/iOS as the Renderer ID under Editor Preferences -> Plugins - Graphics Switching in Unreal.
+Select either D3D11/OpenGL for Windows, or Metal for Mac/iOS as the Renderer ID under Editor Preferences -> Plugins - Graphics Switching in Unreal. If you are making an Android Build, make sure to use OpenGL instead of Vulcan.
 
-### Adding the Rive Unreal Plugin
+### Adding the Rive Unreal plugin
 
 For this technical preview, you can add the Rive Unreal plugin to your existing Unreal projects by downloading the plugin from the Github Releases, and copy/pasting the Rive folder into your `Plugins/` folder of your project (or creating one). 
 
