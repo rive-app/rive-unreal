@@ -18,7 +18,7 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/pls/pls_renderer.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
-#include "../Mac/AutoreleasePool.h"
+#include "Mac/AutoreleasePool.h"
 
 TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererMetal::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 {
