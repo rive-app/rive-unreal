@@ -88,9 +88,9 @@ public:
     std::tuple<const GlyphRun*, uint32_t> operator*() const { return {*m_run, m_glyphIndex}; }
 
 private:
-    const OrderedLine* m_line;
-    const rive::GlyphRun* const* m_run;
-    uint32_t m_glyphIndex;
+    const OrderedLine* m_line = nullptr;
+    const rive::GlyphRun* const* m_run = nullptr;
+    uint32_t m_glyphIndex = {};
 };
 
 // Represents a line of text with runs ordered visually. Also tracks logical
@@ -132,9 +132,9 @@ public:
 private:
     const GlyphRun* m_startLogical = nullptr;
     const GlyphRun* m_endLogical = nullptr;
-    uint32_t m_startGlyphIndex;
-    uint32_t m_endGlyphIndex;
-    std::vector<const GlyphRun*> m_runs;
+    uint32_t m_startGlyphIndex = {};
+    uint32_t m_endGlyphIndex = {};
+    std::vector<const GlyphRun*> m_runs = {};
 
 public:
     const GlyphRun* lastRun() const { return m_runs.back(); }
@@ -217,23 +217,23 @@ protected:
 private:
 #ifdef WITH_RIVE_TEXT
     void updateOriginWorldTransform();
-    std::vector<TextValueRun*> m_runs;
-    std::vector<TextStyle*> m_renderStyles;
-    SimpleArray<Paragraph> m_shape;
-    SimpleArray<Paragraph> m_modifierShape;
-    SimpleArray<SimpleArray<GlyphLine>> m_lines;
-    SimpleArray<SimpleArray<GlyphLine>> m_modifierLines;
+    std::vector<TextValueRun*> m_runs = {};
+    std::vector<TextStyle*> m_renderStyles = {};
+    SimpleArray<Paragraph> m_shape = {};
+    SimpleArray<Paragraph> m_modifierShape = {};
+    SimpleArray<SimpleArray<GlyphLine>> m_lines = {};
+    SimpleArray<SimpleArray<GlyphLine>> m_modifierLines = {};
     // Runs ordered by paragraph line.
-    std::vector<OrderedLine> m_orderedLines;
-    GlyphRun m_ellipsisRun;
-    rcp<RenderPath> m_clipRenderPath;
-    AABB m_bounds;
-    std::vector<TextModifierGroup*> m_modifierGroups;
+    std::vector<OrderedLine> m_orderedLines = {};
+    GlyphRun m_ellipsisRun = {};
+    rcp<RenderPath> m_clipRenderPath = nullptr;
+    AABB m_bounds = {};
+    std::vector<TextModifierGroup*> m_modifierGroups = {};
 
-    StyledText m_styledText;
-    StyledText m_modifierStyledText;
+    StyledText m_styledText = {};
+    StyledText m_modifierStyledTex = {};
 
-    GlyphLookup m_glyphLookup;
+    GlyphLookup m_glyphLookup = {};
 #endif
 };
 } // namespace rive

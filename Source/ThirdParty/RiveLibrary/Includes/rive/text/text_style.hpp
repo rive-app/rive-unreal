@@ -48,14 +48,14 @@ protected:
     void letterSpacingChanged() override;
 
 private:
-    std::unique_ptr<TextVariationHelper> m_variationHelper;
-    std::unordered_map<float, rcp<RenderPath>> m_opacityPaths;
-    rcp<Font> m_variableFont;
-    rcp<RenderPath> m_path;
+    std::unique_ptr<TextVariationHelper> m_variationHelper = {};
+    std::unordered_map<float, rcp<RenderPath>> m_opacityPaths = {};
+    rcp<Font> m_variableFont = nullptr;
+    rcp<RenderPath> m_path = nullptr;
     bool m_hasContents = false;
-    std::vector<Font::Coord> m_coords;
-    std::vector<TextStyleAxis*> m_variations;
-    std::vector<rcp<RenderPaint>> m_paintPool;
+    std::vector<Font::Coord> m_coords = {};
+    std::vector<TextStyleAxis*> m_variations = {};
+    std::vector<rcp<RenderPaint>> m_paintPool = {};
 };
 } // namespace rive
 

@@ -14,7 +14,7 @@ public:
     void compute(Span<const Unichar> text, const SimpleArray<Paragraph>& shape);
 
 private:
-    std::vector<uint32_t> m_glyphIndices;
+    std::vector<uint32_t> m_glyphIndices = {};
 
 public:
     uint32_t count(uint32_t index) const;
