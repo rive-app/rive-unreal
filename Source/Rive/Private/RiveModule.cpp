@@ -4,6 +4,8 @@
 
 #include "Interfaces/IPluginManager.h"
 #include "Logs/RiveLog.h"
+#include "Misc/Paths.h"
+#include "ShaderCore.h"
 
 #if WITH_RIVE
 #include "PreRiveHeaders.h"

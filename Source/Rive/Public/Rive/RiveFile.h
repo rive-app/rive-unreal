@@ -4,9 +4,10 @@
 
 #include "IRiveRenderTarget.h"
 #include "RiveArtboard.h"
-#include "RiveTypes.h"
-#include "RiveTexture.h"
 #include "RiveEvent.h"
+#include "RiveTexture.h"
+#include "RiveTypes.h"
+#include "Tickable.h"
 #include "RiveFile.generated.h"
 
 #if WITH_RIVE
