@@ -2,8 +2,10 @@
 
 #include "RiveRenderer.h"
 
+#include "Async/Async.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Logs/RiveRendererLog.h"
+#include "RenderingThread.h"
 #include "TextureResource.h"
 #include "UObject/Package.h"
 

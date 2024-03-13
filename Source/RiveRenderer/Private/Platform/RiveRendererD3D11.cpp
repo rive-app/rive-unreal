@@ -3,10 +3,11 @@
 #include "RiveRendererD3D11.h"
 
 #if PLATFORM_WINDOWS
+#include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
+#include "ProfilingDebugging/RealtimeGPUProfiler.h"
 #include "RiveRenderTargetD3D11.h"
 #include "Windows/D3D11ThirdParty.h"
-#include "ID3D11DynamicRHI.h"
 
 #if WITH_RIVE
 #include "RiveCore/Public/PreRiveHeaders.h"
