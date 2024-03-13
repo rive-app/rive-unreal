@@ -2,6 +2,7 @@
 
 #include "Assets/RiveAsset.h"
 #include "Logs/RiveCoreLog.h"
+#include "Misc/FileHelper.h"
 #include "rive/factory.hpp"
 
 void URiveAsset::PostLoad()

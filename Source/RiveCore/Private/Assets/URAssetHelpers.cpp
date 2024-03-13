@@ -2,6 +2,7 @@
 
 #include "Assets/URAssetHelpers.h"
 #include "Assets/RiveAsset.h"
+#include "Misc/Paths.h"
 
 TArray<FString> URAssetHelpers::AssetPaths(const FString& InBasePath, URiveAsset* InRiveAsset, const TArray<FString>& InExtensions)
 {

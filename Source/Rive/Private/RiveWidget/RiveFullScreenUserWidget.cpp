@@ -3,12 +3,14 @@
 #include "RiveWidget/RiveFullScreenUserWidget.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Engine/GameViewportClient.h"
 #include "Engine/UserInterfaceSettings.h"
 #include "Framework/Application/SlateApplication.h"
 #include "HAL/PlatformApplicationMisc.h"
 #include "Logs/RiveLog.h"
 #include "Slate/SceneViewport.h"
 #include "UMG/RiveWidget.h"
+#include "UObject/ConstructorHelpers.h"
 #include "Widgets/Layout/SConstraintCanvas.h"
 #include "Widgets/Layout/SDPIScaler.h"
 
