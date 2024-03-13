@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "RHICommandList.h"
+
 #if WITH_RIVE
 
 enum class ERiveFitType : uint8;
