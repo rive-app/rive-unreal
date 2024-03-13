@@ -44,16 +44,16 @@ public:
     rive_hb_font_t* m_font = nullptr;
 
     // The features list to pass directly to Harfbuzz.
-    std::vector<rive_hb_feature_t> m_features = {};
+    std::vector<rive_hb_feature_t> m_features;
 
 private:
     rive_hb_draw_funcs_t* m_drawFuncs = nullptr;;
 
     // Feature value lookup based on tag.
-    std::unordered_map<uint32_t, uint32_t> m_featureValues = {};
+    std::unordered_map<uint32_t, uint32_t> m_featureValues;
 
     // Axis value lookup based on for the feature.
-    std::unordered_map<uint32_t, float> m_axisValues = {};
+    std::unordered_map<uint32_t, float> m_axisValues;
 };
 
 #endif

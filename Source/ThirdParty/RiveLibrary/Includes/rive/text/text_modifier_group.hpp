@@ -92,13 +92,13 @@ protected:
     void scaleYChanged() override;
 
 private:
-    std::vector<TextModifierRange*> m_ranges = {};
-    std::vector<TextModifier*> m_modifiers = {};
-    std::vector<TextShapeModifier*> m_shapeModifiers = {};
-    std::vector<float> m_coverage = {};
-    rcp<Font> m_variableFont = nullptr;
-    std::vector<Font::Coord> m_variationCoords = {};
-    std::vector<TextRun> m_nextTextRuns = {};
+    std::vector<TextModifierRange*> m_ranges;
+    std::vector<TextModifier*> m_modifiers;
+    std::vector<TextShapeModifier*> m_shapeModifiers;
+    std::vector<float> m_coverage;
+    rcp<Font> m_variableFont;
+    std::vector<Font::Coord> m_variationCoords;
+    std::vector<TextRun> m_nextTextRuns;
 };
 } // namespace rive
 

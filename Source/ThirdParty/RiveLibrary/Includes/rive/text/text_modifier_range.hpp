@@ -86,11 +86,11 @@ private:
     /// Each item in this list represents the index (in unicode codepoints) of
     /// the selectable element. Always has length 1+unitLengths.length as it's
     /// expected to always include the final index with 0 length.
-    std::vector<uint32_t> m_unitCharacterIndices = {};
+    std::vector<uint32_t> m_unitCharacterIndices;
 
     /// Each item in this list represents the length of the matching element at
     /// the same index in the _unitIndices list.
-    std::vector<uint32_t> m_unitLengths = {};
+    std::vector<uint32_t> m_unitLengths;
 };
 
 class CubicInterpolatorComponent;
@@ -129,7 +129,7 @@ protected:
     void offsetChanged() override;
 
 private:
-    RangeMapper m_rangeMapper = {};
+    RangeMapper m_rangeMapper;
     // Cache indices.
     float m_indexFrom = 0.0f;
     float m_indexTo = 0.0f;
