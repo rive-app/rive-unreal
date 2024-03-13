@@ -6,6 +6,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "GameFramework/WorldSettings.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "TextureResource.h"
 
 namespace UE::RiveUtilities::Private
 {

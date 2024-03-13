@@ -3,11 +3,16 @@
 #include "RiveRendererOpenGL.h"
 
 #if PLATFORM_ANDROID
-#include "IRiveRendererModule.h"
-#include "OpenGLDrv.h"
-#include "DynamicRHI.h"
 #include "RiveRenderTargetOpenGL.h"
+
+#include "Async/Async.h"
+#include "DynamicRHI.h"
+#include "IRiveRendererModule.h"
 #include "Logs/RiveRendererLog.h"
+#include "OpenGLDrv.h"
+#include "ProfilingDebugging/RealtimeGPUProfiler.h"
+#include "TextureResource.h"
+#include "UObject/UObjectGlobals.h"
 
 #if WITH_RIVE
 #include "RiveCore/Public/PreRiveHeaders.h"

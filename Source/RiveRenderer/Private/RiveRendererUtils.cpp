@@ -1,10 +1,12 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveRendererUtils.h"
+
+#include "Engine/TextureRenderTarget2D.h"
 #include "MediaShaders.h"
 #include "RenderGraphBuilder.h"
 #include "ScreenPass.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "UObject/Package.h"
 
 UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget(FIntPoint InTargetSize, EPixelFormat PixelFormat, bool bCanCreateUAV)
 {

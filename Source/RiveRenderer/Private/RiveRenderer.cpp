@@ -1,9 +1,12 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveRenderer.h"
+
 #include "Engine/TextureRenderTarget2D.h"
 #include "Logs/RiveRendererLog.h"
 #include "TextureResource.h"
+#include "UObject/Package.h"
+
 #include "rive/pls/pls_render_context.hpp"
 
 UE::Rive::Renderer::Private::FRiveRenderer::FRiveRenderer()
