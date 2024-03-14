@@ -9,8 +9,7 @@ public class RiveLibrary : ModuleRules
 	public RiveLibrary(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
-        bUsePrecompiled = true;
-        
+
         bool bIsPlatformAdded = false;
 
         PrivateDependencyModuleNames.Add("Vulkan");

@@ -10,7 +10,6 @@ public class RiveCore : ModuleRules
 	public RiveCore(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		bUsePrecompiled = true;
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
