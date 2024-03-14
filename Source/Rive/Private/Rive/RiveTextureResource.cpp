@@ -3,10 +3,10 @@
 
 #include "RiveTextureResource.h"
 
-#include "IRiveRenderer.h"
-#include "IRiveRendererModule.h"
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
+#include "IRiveRenderer.h"
+#include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
 #include "RenderUtils.h"
 #include "Rive/RiveTexture.h"
