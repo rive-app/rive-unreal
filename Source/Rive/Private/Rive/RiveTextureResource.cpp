@@ -8,6 +8,7 @@
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "Logs/RiveLog.h"
+#include "RenderUtils.h"
 #include "Rive/RiveTexture.h"
 
 namespace UE::Rive::Renderer
