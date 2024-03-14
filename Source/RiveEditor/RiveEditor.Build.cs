@@ -7,7 +7,8 @@ public class RiveEditor : ModuleRules
     public RiveEditor(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-
+        bUsePrecompiled = true;
+        
         PublicDependencyModuleNames.AddRange(
             new string[]
             {

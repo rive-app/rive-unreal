@@ -10,6 +10,7 @@ public class RiveRenderer : ModuleRules
 	public RiveRenderer(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		bUsePrecompiled = true;
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
