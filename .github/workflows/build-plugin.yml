@@ -1,0 +1,238 @@
+#### Secrets #####
+# Requires "TOKEN" to be defined with an access token from a github account that has access to the UnrealEngine source code
+
+#### Runner requirements ####
+## macOS ##
+# 1. A valid Xcode environment with macOS and iOS SDKs
+# 2. brew
+
+## Windows/Android/Linux ##
+# 1. Visual Studio 2022
+# 2. Android NDK setup: https://docs.unrealengine.com/5.3/en-US/how-to-set-up-android-sdk-and-ndk-for-your-unreal-engine-development-environment/
+# 3. Linux cross-compile toolchain: https://docs.unrealengine.com/5.3/en-US/linux-development-requirements-for-unreal-engine/ ; We could use another linux runner, but it'll save quite a bit of time to just cross compile to linux instead of having to build yet-another UE build
+
+
+name: Build Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      ENGINE_VERSION:
+        type: string
+        description: Unreal Engine Release Version
+        default: "5.3.2"
+      REF:
+        type: string
+        description: Branch or ref to build plugin source from
+        default: "main"
+  push:
+    tags:
+      - "*"
+
+jobs:
+  build-plugin-apple:
+    runs-on: [self-hosted, macOS]
+    steps:
+      # grab a small cli json parser
+      - name: setup
+        run: |
+          brew install jq
+
+      # checkout rive-unreal
+      - uses: actions/checkout@v2
+        with:
+          clean: true
+          lfs: true
+          repository: "rive-app/rive-unreal"
+          path: "RiveUnreal"
+          ref: "${{inputs.REF}}"
+
+      # lfs
+      - name: pull lfs because checkout doesnt
+        run: |
+          git lfs pull
+        working-directory: RiveUnreal
+
+      # required for hooks on macOS
+      - name: Make library/services in our temp directory, required for post checkout hook FixDependencyFiles.sh for macOS
+        run: |
+          mkdir -p "${{runner.temp}}/Library/Services"
+          echo "${{runner.temp}}/Library/Services"
+          ls -al "${{runner.temp}}/Library/Services"
+
+      # grab UE5 of our input version
+      - name: Clone UE5 Source
+        uses: actions/checkout@v2
+        with:
+          repository: "EpicGames/UnrealEngine" # Adjust if using a fork
+          ref: "${{inputs.ENGINE_VERSION}}-release"
+          path: UE-${{inputs.ENGINE_VERSION}}
+          token: ${{ secrets.TOKEN }} # Ensure you have access to UE5 repo
+          clean: false
+          fetch-depth: 1
+        continue-on-error: true
+
+      # ensure we have UE5
+      - name: Check if UE source successfully got fetched, we expect the previous checkout to fail due to UE posthook to FixDependencyFiles.sh using the ~ token to copy to Library/Services that doesnt exist in our environment
+        run: |
+          if [ ! -d "${{github.workspace}}/UE-${{inputs.ENGINE_VERSION}}" ]; then
+            echo "Did not successfully checkout UE source"
+            exit 1
+          fi
+
+      # We just need to use Setup and Generate, as we don't actually need to build here, we can let the BuildPlugin step do the work for us, as it will determine what needs to be built
+      - name: Build UE5
+        run: |
+          ./Setup.sh
+          ./GenerateProjectFiles.sh
+          # xcodebuild -workspace UE5.xcworkspace -scheme "UnrealEditor" -sdk macosx
+        working-directory: UE-${{inputs.ENGINE_VERSION}}
+
+      - name: Version info
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            version=${GITHUB_REF#refs/tags/}
+          else
+            version=${GITHUB_SHA}
+          fi
+          echo "Setting VersionName to $version"
+
+          echo "RIVE_VERSION=$version" >> $GITHUB_ENV
+
+          upluginPath="${GITHUB_WORKSPACE}/RiveUnreal/Rive.uplugin"
+
+          # Read the .uplugin file and parse it as JSON, update VersionName, and save
+          jq '.VersionName = "'$version'"' "$upluginPath" > temp.json && mv temp.json "$upluginPath"
+
+      - name: Build Plugin macOS arm64
+        run: |
+          ./Engine/Build/BatchFiles/RunUAT.sh -Verbose BuildPlugin -Plugin="${{github.workspace}}/RiveUnreal/Rive.uplugin" -Package="${{github.workspace}}/RiveUnreal/Output/Apple" -precompile -TargetPlatforms=Mac+IOS -Architecture_Mac=arm64
+        working-directory: UE-${{inputs.ENGINE_VERSION}}
+
+      - name: Build Plugin macOS x64
+        run: |
+          ./Engine/Build/BatchFiles/RunUAT.sh -Verbose BuildPlugin -Plugin="${{github.workspace}}/RiveUnreal/Rive.uplugin" -Package="${{github.workspace}}/RiveUnreal/Output/x64" -precompile -TargetPlatforms=Mac -Architecture_Mac=x64
+        working-directory: UE-${{inputs.ENGINE_VERSION}}
+
+      - name: Copy x64 intermediates
+        run: |
+          cp -r "${{github.workspace}}/RiveUnreal/Output/x64/Intermediate/Build/Mac/x64" "${{github.workspace}}/RiveUnreal/Output/Apple/Intermediate/Build/Mac/"
+
+      - name: Upload macOS + iOS Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RiveUnreal-${{ env.RIVE_VERSION }}-ue-${{ inputs.ENGINE_VERSION }}-apple
+          path: RiveUnreal/Output/Apple
+
+  # build windows, android
+  build-plugin-allelse:
+    runs-on: [self-hosted, Windows]
+    steps:
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - uses: actions/checkout@v2
+        with:
+          clean: true
+          lfs: true
+          repository: "rive-app/rive-unreal"
+          path: "RiveUnreal"
+          ref: "${{inputs.REF}}"
+
+      - name: pull lfs because checkout doesnt
+        run: |
+          git lfs pull
+        working-directory: RiveUnreal
+
+      - name: Clone UE5 Source
+        uses: actions/checkout@v2
+        with:
+          repository: "EpicGames/UnrealEngine" # Adjust if using a fork
+          ref: "${{inputs.ENGINE_VERSION}}-release"
+          path: UE-${{inputs.ENGINE_VERSION}}
+          token: ${{ secrets.TOKEN }} # Ensure you have access to UE5 repo
+          clean: false
+
+      - name: Build UE5
+        run: |
+          .\Setup.bat
+          .\GenerateProjectFiles.bat
+          # msbuild UE5.sln /p:"Configuration=Development Editor" /p:Platform=Win64 /m
+        working-directory: UE-${{inputs.ENGINE_VERSION}}
+
+      - name: Version info
+        run: |
+          if("${{ github.ref }}" -match "^refs/tags/") {
+             $version = "${{ github.ref }}".Replace("refs/tags/", "")
+           } else {
+             $version = "${{ github.sha }}"
+           }
+           Write-Host "Setting VersionName to $version"
+
+           echo "RIVE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+           $upluginPath = "${{github.workspace}}/RiveUnreal/Rive.uplugin"
+
+           # Read the .uplugin file and parse it as JSON
+           $upluginContent = Get-Content $upluginPath | Out-String | ConvertFrom-Json
+
+           # Update the VersionName
+           $upluginContent.VersionName = $version
+
+           # Convert back to JSON and save
+           $upluginContent | ConvertTo-Json -Depth 100 | Set-Content $upluginPath
+
+      - name: Build Win64 and Android Plugin
+        run: |
+          .\Engine\Build\BatchFiles\RunUAT.bat -Verbose BuildPlugin -Plugin="${{github.workspace}}/RiveUnreal/Rive.uplugin" -Package="${{github.workspace}}/RiveUnreal/Output" -precompile -TargetPlatforms=Win64+Android
+        working-directory: UE-${{inputs.ENGINE_VERSION}}
+
+      - name: Remove PDB files
+        run: |
+          Get-ChildItem "${{github.workspace}}/RiveUnreal/Output/Binaries/*.pdb" -Recurse | Remove-Item
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RiveUnreal-${{ env.RIVE_VERSION }}-ue-${{ inputs.ENGINE_VERSION}}
+          path: RiveUnreal/Output
+
+  combine-binaries:
+    needs: [build-plugin-apple, build-plugin-allelse]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Version info
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            version=${GITHUB_REF#refs/tags/}
+          else
+            version=${GITHUB_SHA}
+          fi
+          echo "Setting VersionName to $version"
+          echo "RIVE_VERSION=$version" >> $GITHUB_ENV
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts/
+
+      - name: Print folder
+        run: |
+          ls -al artifacts
+          ls -al artifacts/RiveUnreal-${{ env.RIVE_VERSION }}-ue-${{ inputs.ENGINE_VERSION}}/Binaries
+          ls -al artifacts/RiveUnreal-${{ env.RIVE_VERSION }}-ue-${{ inputs.ENGINE_VERSION}}/Intermediate/Build
+
+      - name: Combine
+        run: |
+          cp -r ./artifacts/RiveUnreal-${{ env.RIVE_VERSION }}-ue-${{ inputs.ENGINE_VERSION}}-apple/* ./artifacts/RiveUnreal-${{ env.RIVE_VERSION }}-ue-${{ inputs.ENGINE_VERSION}}/
+
+      - name: Zip
+        run: |
+          cd "artifacts/RiveUnreal-${{ env.RIVE_VERSION }}-ue-${{ inputs.ENGINE_VERSION}}"
+          zip -r ../../RiveUnreal-${{ env.RIVE_VERSION }}.zip .
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: RiveUnreal-${{ env.RIVE_VERSION }}.zip
