@@ -31,10 +31,6 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
         UE_LOG(LogRiveEditor, Error, TEXT("RiveRenderer is null, unable to import the Rive file '%s'"), *InFilename);
         return nullptr;
     }
-
-    // In case of reimport, we want to reuse the same widget and not create a new one
-    URiveFile* ExistingRiveFile = FindObject<URiveFile>(InParent, *InName.ToString(), true);
-    TSubclassOf<UUserWidget> ExistingWidgetClass = IsValid(ExistingRiveFile) ? ExistingRiveFile->GetWidgetClass() : nullptr;
     
     const FString FileExtension = FPaths::GetExtension(InFilename);
     const TCHAR* Type = *FileExtension;
@@ -63,12 +59,7 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
         return nullptr;
     }
     
-    // Create Rive UMG unless there is already one from the re-imported RIveFile
-    if (ExistingWidgetClass.Get())
-    {
-        RiveFile->SetWidgetClass(ExistingWidgetClass);
-    }
-    else if (!FRiveWidgetFactory(RiveFile).Create())
+    if (!FRiveWidgetFactory(RiveFile).Create())
     {
         return nullptr;
     }
@@ -106,26 +97,60 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
 {
     URiveFile* RiveFile = Cast<URiveFile>(Obj);
 
-    if (!IsValid(Obj))
+    if (!IsValid(RiveFile) && !ensure(GEditor))
     {
+        UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the RiveFile as it is invalid"));
         return EReimportResult::Failed;
     }
 
+    if (RiveFile->ParentRiveFile)
+    {
+        UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the RiveFile '%s' as it is an instance, reimport the Parent directly."), *GetFullNameSafe(RiveFile));
+        return EReimportResult::Failed;
+    }
+    
     const FString SourceFilename = RiveFile->RiveFilePath;
+    
+    if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+    {
+        UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the RiveFile '%s' with file '%s' as the RiveRenderer is null"), *GetFullNameSafe(RiveFile), *SourceFilename);
+        return EReimportResult::Failed;;
+    }
+    
     if (!FPaths::FileExists(SourceFilename))
     {
+        UE_LOG(LogRiveEditor, Error, TEXT("Failed to Reimport the RiveFile '%s' with file '%s' as the SourceFilename is null"), *GetFullNameSafe(RiveFile), *SourceFilename);
         return EReimportResult::Failed;
     }
 
-    const FString WidgetFullName = RiveFile->GetWidgetClass() ? RiveFile->GetWidgetClass()->GetFullName() : "";
-    
-    bool bOutCanceled = false;
-    if (ImportObject(Obj->GetClass(), Obj->GetOuter(), *Obj->GetName(), RF_Public | RF_Standalone, SourceFilename, *WidgetFullName, bOutCanceled))
+    TArray<uint8> FileBuffer;
+    if (!FFileHelper::LoadFileToArray(FileBuffer, *SourceFilename)) // load entire DNA file into the array
     {
-        return EReimportResult::Succeeded;
+        UE_LOG(LogRiveEditor, Error, TEXT("Failed to Reimport the RiveFile '%s' with file '%s' as the we could not read DNA file"), *GetFullNameSafe(RiveFile), *SourceFilename);
+        return EReimportResult::Failed;
     }
+    
+    UE_LOG(LogRiveEditor, Display, TEXT("Reimporting RiveFile '%s' with file '%s'"), *GetFullNameSafe(RiveFile), *SourceFilename);
+    // We don't actually recreate the whole UObject via reimport (which would lose a lot of data), we just change the file and initialize.
+    if (!RiveFile->EditorImport(SourceFilename, FileBuffer, true))
+    {
+        UE_LOG(LogRiveEditor, Error, TEXT("Reimported the RiveFile '%s' with file '%s' but the initialization was unsuccessful"), *GetFullNameSafe(RiveFile), *SourceFilename);
+        return EReimportResult::Failed;
+    }
+    else
+    {
+        for (TObjectIterator<URiveFile> It; It; ++It)
+        {
+            URiveFile* OtherRiveFile = *It;
+            if (IsValid(OtherRiveFile) && OtherRiveFile->ParentRiveFile == RiveFile)
+            {
+                UE_LOG(LogRiveEditor, Warning, TEXT("OtherRiveFile '%s' with parent '%s'"), *GetFullNameSafe(OtherRiveFile), *GetFullNameSafe(RiveFile));
+            }
+        }
+    }
+    GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetReimport(RiveFile);
 
-    return bOutCanceled ? EReimportResult::Cancelled : EReimportResult::Failed;
+    return EReimportResult::Succeeded;
 }
 
 int32 URiveFileFactory::GetPriority() const

@@ -74,15 +74,61 @@ void URiveFile::PostLoad()
 	Super::PostLoad();
 	
 #if WITH_EDITORONLY_DATA
+	// Here we make sure that the AssetImportData matches the RiveFilePath
 	if (ensure(AssetImportData))
 	{
-		if (AssetImportData->GetFirstFilename().IsEmpty())
+		AssetImportData->OnImportDataChanged.AddUObject(this, &URiveFile::OnImportDataChanged);
+		if (ParentRiveFile)
 		{
+			RiveFilePath = FString();
 			AssetImportData->UpdateFilenameOnly(RiveFilePath);
+		}
+		else
+		{
+			const FString Filename = AssetImportData->GetFirstFilename();
+			const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Filename);
+			if (Filename.IsEmpty()) // for old files
+			{
+				AssetImportData->UpdateFilenameOnly(RiveFilePath);
+			}
+			else if (!ensure(FPaths::IsSamePath(FullPath, RiveFilePath)))
+			{
+				UE_LOG(LogRive, Warning, TEXT("The path of RiveFile '%s' is not matching the AssetImportData, resetting to RiveFilePath. RiveFilePath: '%s'  AssetImportData: '%s'"),
+					*GetFullName(), *RiveFilePath, *FullPath)
+				AssetImportData->UpdateFilenameOnly(RiveFilePath);
+				// We want to mark the UObject dirty but that is not possible on PostLoad, so we start an AsyncTask
+				AsyncTask(ENamedThreads::GameThread, [this]()
+				{
+					Modify(true);
+				});
+			}
 		}
 		AssetImportData->OnImportDataChanged.AddUObject(this, &URiveFile::OnImportDataChanged);
 	}
 #endif
+
+	if (ParentRiveFile && !ParentRiveFile->OnStartInitializingDelegate.IsBoundToObject(this))
+	{
+		ParentRiveFile->OnStartInitializingDelegate.AddLambda([this](URiveFile* ParentRiveFile)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Parent of RiveFile '%s' is starting to initalize (Parent: '%s'). Invalidating Rive File..."), *GetFullName(), *GetFullNameSafe(ParentRiveFile))
+			InitState = ERiveInitState::Uninitialized; // to be able to enter the Initialize function
+			Initialize(); // This will just set our internal status to initializing, will not finish initializing now
+		});
+		ParentRiveFile->OnInitializedDelegate.AddLambda([this](URiveFile* ParentRiveFile, bool bSuccess)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Parent of RiveFile '%s' has just been initialized (Parent: '%s'). Invalidating Rive File..."), *GetFullName(), *GetFullNameSafe(ParentRiveFile))
+			InitState = ERiveInitState::Uninitialized; // to be able to enter the Initialize function
+			if (bSuccess)
+			{
+				Initialize(); // we are now ready to initialize
+			}
+			else
+			{
+				UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent '%s' cannot be initialized successfully"), *GetNameSafe(this), *GetNameSafe(ParentRiveFile));
+			}
+		});
+	}
 	
 	if (!IsRunningCommandlet())
 	{
@@ -94,7 +140,6 @@ void URiveFile::PostLoad()
 
 void URiveFile::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	// TODO. WE need custom implementation here to handle the Rive File Editor Changes
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	
 	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
@@ -135,7 +180,7 @@ URiveFile* URiveFile::CreateInstance(const FString& InArtboardName, const FStrin
 	NewRiveFileInstance->ArtboardName = InArtboardName.IsEmpty() ? ArtboardName : InArtboardName;
 	NewRiveFileInstance->StateMachineName = InStateMachineName.IsEmpty() ? StateMachineName : InStateMachineName;
 	NewRiveFileInstance->ArtboardIndex = ArtboardIndex;
-	NewRiveFileInstance->Initialize();
+	NewRiveFileInstance->PostLoad();
 	return NewRiveFileInstance;
 }
 
@@ -266,7 +311,7 @@ ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
 
 #if WITH_EDITOR
 
-bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer)
+bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer, bool bIsReimport)
 {
 	if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
 	{
@@ -276,13 +321,20 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 	bNeedsImport = true;
 	RiveFilePath = InRiveFilePath;
 	RiveFileData = MoveTemp(InRiveFileBuffer);
-	SetFlags(RF_NeedPostLoad);
-	ConditionalPostLoad();
+	if (bIsReimport)
+	{
+		Initialize();
+	}
+	else
+	{
+		SetFlags(RF_NeedPostLoad);
+		ConditionalPostLoad();
+	}
 	
 #if WITH_EDITORONLY_DATA
 	if (ensure(AssetImportData))
 	{
-		AssetImportData->Update(InRiveFilePath);
+		AssetImportData->Update(ParentRiveFile ? FString() : InRiveFilePath);
 	}
 #endif
 	
@@ -299,11 +351,19 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 
 void URiveFile::Initialize()
 {
-	if (InitState != ERiveInitState::Uninitialized)
+	if (!(InitState == ERiveInitState::Uninitialized || (InitState == ERiveInitState::Initialized && bNeedsImport)))
 	{
 		return;
 	}
+	
+	if (Artboard)
+	{
+		Artboard->ConditionalBeginDestroy();
+		Artboard = nullptr;
+	}
 	WasLastInitializationSuccessful.Reset();
+	InitState = ERiveInitState::Initializing;
+	OnStartInitializingDelegate.Broadcast(this);
 	
 	if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
 	{
@@ -337,30 +397,17 @@ void URiveFile::Initialize()
 			if (ParentRiveFile->InitState < ERiveInitState::Initializing) 
 			{
 				UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent '%s' cannot be initialized"), *GetNameSafe(this), *GetNameSafe(ParentRiveFile));
-				return;
+				BroadcastInitializationResult(false);
 			}
-			
-			InitState = ERiveInitState::Initializing;
-			ParentRiveFile->CallOrRegister_OnInitialized(FOnRiveFileInitialized::FDelegate::CreateLambda([this](URiveFile* ParentRiveFileInitialized, bool bSuccess)
-			{
-				InitState = ERiveInitState::Uninitialized; // to be able to enter the Initialize function
-				if (bSuccess)
-				{
-					Initialize();
-				}
-				else
-				{
-					UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent '%s' cannot be initialized successfully"), *GetNameSafe(this), *GetNameSafe(ParentRiveFileInitialized));
-				}
-			}));
 			return;
 		}
 	}
-	else if (RiveNativeFileSpan.empty())
+	else if (RiveNativeFileSpan.empty() || bNeedsImport)
 	{
 		if (RiveFileData.IsEmpty())
 		{
 			UE_LOG(LogRive, Error, TEXT("Could not load an empty Rive File Data."));
+			BroadcastInitializationResult(false);
 			return;
 		}
 		RiveNativeFileSpan = rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
@@ -442,7 +489,7 @@ void URiveFile::Initialize()
 #endif // WITH_RIVE
 }
 
-void URiveFile::CallOrRegister_OnInitialized(FOnRiveFileInitialized::FDelegate&& Delegate)
+void URiveFile::WhenInitialized(FOnRiveFileInitialized::FDelegate&& Delegate)
 {
 	if (WasLastInitializationSuccessful.IsSet())
 	{
@@ -450,7 +497,7 @@ void URiveFile::CallOrRegister_OnInitialized(FOnRiveFileInitialized::FDelegate&&
 	}
 	else
 	{
-		OnInitializedDelegate.Add(MoveTemp(Delegate));
+		OnInitializedOnceDelegate.Add(MoveTemp(Delegate));
 	}
 }
 
@@ -458,6 +505,9 @@ void URiveFile::BroadcastInitializationResult(bool bSuccess)
 {
 	WasLastInitializationSuccessful = bSuccess;
 	InitState = bSuccess ? ERiveInitState::Initialized : ERiveInitState::Uninitialized;
+	// First broadcast the one time fire delegate
+	OnInitializedOnceDelegate.Broadcast(this, bSuccess);
+	OnInitializedOnceDelegate.Clear();
 	OnInitializedDelegate.Broadcast(this, bSuccess);
 	if (bSuccess)
 	{
@@ -499,7 +549,10 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	
 	RiveRenderTarget.Reset();
 	RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
-	OnResourceInitializedOnRenderThread.AddUObject(this, &URiveFile::OnResourceInitialized_RenderThread);
+	if(!OnResourceInitializedOnRenderThread.IsBoundToObject(this))
+	{
+		OnResourceInitializedOnRenderThread.AddUObject(this, &URiveFile::OnResourceInitialized_RenderThread);
+	}
 	RiveRenderTarget->SetClearColor(ClearColor);
 	
 	if (ArtboardName.IsEmpty())
@@ -590,9 +643,16 @@ void URiveFile::PrintStats() const
 #if WITH_EDITORONLY_DATA
 void URiveFile::OnImportDataChanged(const FAssetImportInfo& OldData, const UAssetImportData* NewData)
 {
-	if (NewData)
+	if (!ParentRiveFile)
 	{
-		RiveFilePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NewData->GetFirstFilename());
+		if (NewData)
+		{
+			RiveFilePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NewData->GetFirstFilename());
+		}
+	}
+	else
+	{
+		RiveFilePath = FString();
 	}
 }
 #endif

@@ -22,9 +22,22 @@ UObject* URiveFileInstanceFactory::FactoryCreateNew(UClass* InClass, UObject* In
 		UE_LOG(LogRiveEditor, Error, TEXT("RiveRenderer is null, unable to create and instance of the Rive file '%s'"), *GetFullNameSafe(InitialRiveFile));
 		return nullptr;
 	}
+
+	// Finding the real parent, otherwise an instance could have another instance as parent
+	URiveFile* RiveFile = InitialRiveFile;
+	while (IsValid(RiveFile) && RiveFile->ParentRiveFile)
+	{
+		RiveFile = RiveFile->ParentRiveFile;
+	}
+
+	if (!ensure(IsValid(RiveFile)))
+	{
+		UE_LOG(LogRiveEditor, Error, TEXT("Unable to find a valid parent of Rive file '%s'"), *GetFullNameSafe(InitialRiveFile));
+		return nullptr;
+	}
 	
-	auto NewRiveFileInstance = NewObject<URiveFile>(InParent, URiveFile::StaticClass(), InName, RF_Public | RF_Standalone);
-	NewRiveFileInstance->ParentRiveFile = InitialRiveFile;
+	URiveFile* NewRiveFileInstance = NewObject<URiveFile>(InParent, URiveFile::StaticClass(), InName, RF_Public | RF_Standalone);
+	NewRiveFileInstance->ParentRiveFile = RiveFile;
 
 	TArray<uint8> EmptyData{};
 	if (!NewRiveFileInstance->EditorImport(FString{},EmptyData))
