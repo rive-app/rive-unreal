@@ -36,6 +36,7 @@ class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveFile*, RiveFile, URiveArtboard*, Artboard);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRiveFileInitialized, URiveFile*, bool /* bSuccess */ );
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRiveFileEvent, URiveFile*);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
 	
 	/**
@@ -119,7 +120,7 @@ public:
 
 #if WITH_EDITOR
 
-	bool EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer);
+	bool EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer, bool bIsReimport = false);
 
 #endif // WITH_EDITOR
 
@@ -138,15 +139,24 @@ public:
 	ERiveInitState InitializationState() const { return InitState; }
 	UFUNCTION(BlueprintPure, Category = Rive)
 	bool IsInitialized() const { return InitState == ERiveInitState::Initialized; }
-	
-	virtual void CallOrRegister_OnInitialized(FOnRiveFileInitialized::FDelegate&& Delegate);
+
+	/**
+	 * Call the given delegate once this RiveFile has been initialized.
+	 * It is already initialized, the delegate will fire instantly.
+	 * The delegate will be called only once.
+	 */
+	virtual void WhenInitialized(FOnRiveFileInitialized::FDelegate&& Delegate);
+	/** Delegate called everytime this RiveFile is Initialized */
+	FOnRiveFileInitialized OnInitializedDelegate;
+	/** Delegate called everytime this RiveFile is starting to Initialize */
+	FOnRiveFileEvent OnStartInitializingDelegate;
 
 	UPROPERTY(BlueprintAssignable, Category = Rive)
 	FRiveReadyDelegate OnRiveReady;
 private:
 	void BroadcastInitializationResult(bool bSuccess);
 	TOptional<bool> WasLastInitializationSuccessful{};
-	FOnRiveFileInitialized OnInitializedDelegate;
+	FOnRiveFileInitialized OnInitializedOnceDelegate;
 	
 protected:
 
