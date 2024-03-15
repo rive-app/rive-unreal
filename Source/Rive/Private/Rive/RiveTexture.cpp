@@ -5,10 +5,10 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-
+#include "Logs/RiveLog.h"
+#include "RenderingThread.h"
 #include "RiveArtboard.h"
 #include "RiveTextureResource.h"
-#include "Logs/RiveLog.h"
 
 URiveTexture::URiveTexture()
 {

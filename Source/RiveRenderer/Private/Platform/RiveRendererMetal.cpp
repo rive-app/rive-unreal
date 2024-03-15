@@ -7,6 +7,7 @@
 #include "CanvasTypes.h"
 #include "DynamicRHI.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "ProfilingDebugging/RealtimeGPUProfiler.h"
 #include "RiveRenderTargetMetal.h"
 #include <Metal/Metal.h>
 
