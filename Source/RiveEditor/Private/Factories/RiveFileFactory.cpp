@@ -26,45 +26,49 @@ bool URiveFileFactory::FactoryCanImport(const FString& Filename)
 
 UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags InFlags, const FString& InFilename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
+    const FString FileExtension = FPaths::GetExtension(InFilename);
+    const TCHAR* Type = *FileExtension;
+    GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPreImport(this, InClass, InParent, InName, Type);
+    
     if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
     {
-        UE_LOG(LogRiveEditor, Error, TEXT("RiveRenderer is null, unable to import the Rive file '%s'"), *InFilename);
+        UE_LOG(LogRiveEditor, Error, TEXT("Unable to import the Rive file '%s': the Renderer is null"), *InFilename);
+        GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, nullptr);
         return nullptr;
     }
     
-    const FString FileExtension = FPaths::GetExtension(InFilename);
-    const TCHAR* Type = *FileExtension;
-
-    GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPreImport(this, InClass, InParent, InName, Type);
-
-    URiveFile* RiveFile = NewObject<URiveFile>(InParent, InClass, InName, InFlags | RF_Public);
-    check(RiveFile);
-
     if (!FPaths::FileExists(InFilename))
     {
-        UE_LOG(LogRiveEditor, Error, TEXT("Rive file %s does not exist!"), *InFilename);
+        UE_LOG(LogRiveEditor, Error, TEXT("Unable to import the Rive file '%s': the file does not exist"), *InFilename);
+        GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, nullptr);
         return nullptr;
     }
 
     TArray<uint8> FileBuffer;
     if (!FFileHelper::LoadFileToArray(FileBuffer, *InFilename)) // load entire DNA file into the array
     {
-        UE_LOG(LogRiveEditor, Error, TEXT("Could not read DNA file %s!"), *InFilename);
+        UE_LOG(LogRiveEditor, Error, TEXT("Unable to import the Rive file '%s': Could not read the file"), *InFilename);
+        GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, nullptr);
         return nullptr;
     }
+    
+    URiveFile* RiveFile = NewObject<URiveFile>(InParent, InClass, InName, InFlags | RF_Public);
+    check(RiveFile);
     
     if (!RiveFile->EditorImport(InFilename, FileBuffer))
     {
-        UE_LOG(LogRiveEditor, Error, TEXT("Could not import riv file"));
-        return nullptr;
-    }
-    
-    if (!FRiveWidgetFactory(RiveFile).Create())
-    {
+        UE_LOG(LogRiveEditor, Error, TEXT("Failed to import the Rive file '%s': Could not import the riv file"), *InFilename);
+        RiveFile->ConditionalBeginDestroy();
+        GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, nullptr);
         return nullptr;
     }
 
     GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, RiveFile);
+    
+    if (!FRiveWidgetFactory(RiveFile).Create())
+    {
+        UE_LOG(LogRiveEditor, Warning, TEXT("Error after importing the Rive file '%s': Unable to create the Widget after importing the file"), *InFilename);
+    }
     
     return RiveFile;
 }
@@ -99,13 +103,13 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
 
     if (!IsValid(RiveFile) && !ensure(GEditor))
     {
-        UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the RiveFile as it is invalid"));
+        UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the RiveFile: it is invalid"));
         return EReimportResult::Failed;
     }
 
     if (RiveFile->ParentRiveFile)
     {
-        UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the RiveFile '%s' as it is an instance, reimport the Parent directly."), *GetFullNameSafe(RiveFile));
+        UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the Rive file '%s': it is an instance, reimport the Parent directly."), *GetFullNameSafe(RiveFile));
         return EReimportResult::Failed;
     }
     
@@ -113,20 +117,20 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
     
     if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
     {
-        UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the RiveFile '%s' with file '%s' as the RiveRenderer is null"), *GetFullNameSafe(RiveFile), *SourceFilename);
+        UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the Rive file '%s' with file '%s': the RiveRenderer is null"), *GetFullNameSafe(RiveFile), *SourceFilename);
         return EReimportResult::Failed;;
     }
     
     if (!FPaths::FileExists(SourceFilename))
     {
-        UE_LOG(LogRiveEditor, Error, TEXT("Failed to Reimport the RiveFile '%s' with file '%s' as the SourceFilename is null"), *GetFullNameSafe(RiveFile), *SourceFilename);
+        UE_LOG(LogRiveEditor, Error, TEXT("Failed to Reimport the Rive file '%s' with file '%s': the SourceFilename is null"), *GetFullNameSafe(RiveFile), *SourceFilename);
         return EReimportResult::Failed;
     }
 
     TArray<uint8> FileBuffer;
     if (!FFileHelper::LoadFileToArray(FileBuffer, *SourceFilename)) // load entire DNA file into the array
     {
-        UE_LOG(LogRiveEditor, Error, TEXT("Failed to Reimport the RiveFile '%s' with file '%s' as the we could not read DNA file"), *GetFullNameSafe(RiveFile), *SourceFilename);
+        UE_LOG(LogRiveEditor, Error, TEXT("Failed to Reimport the Rive file '%s' with file '%s': the we could not read the file"), *GetFullNameSafe(RiveFile), *SourceFilename);
         return EReimportResult::Failed;
     }
     
@@ -137,17 +141,7 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
         UE_LOG(LogRiveEditor, Error, TEXT("Reimported the RiveFile '%s' with file '%s' but the initialization was unsuccessful"), *GetFullNameSafe(RiveFile), *SourceFilename);
         return EReimportResult::Failed;
     }
-    else
-    {
-        for (TObjectIterator<URiveFile> It; It; ++It)
-        {
-            URiveFile* OtherRiveFile = *It;
-            if (IsValid(OtherRiveFile) && OtherRiveFile->ParentRiveFile == RiveFile)
-            {
-                UE_LOG(LogRiveEditor, Warning, TEXT("OtherRiveFile '%s' with parent '%s'"), *GetFullNameSafe(OtherRiveFile), *GetFullNameSafe(RiveFile));
-            }
-        }
-    }
+    
     GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetReimport(RiveFile);
 
     return EReimportResult::Succeeded;
