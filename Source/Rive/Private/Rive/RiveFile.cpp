@@ -109,15 +109,15 @@ void URiveFile::PostLoad()
 
 	if (ParentRiveFile && !ParentRiveFile->OnStartInitializingDelegate.IsBoundToObject(this))
 	{
-		ParentRiveFile->OnStartInitializingDelegate.AddLambda([this](URiveFile* ParentRiveFile)
+		ParentRiveFile->OnStartInitializingDelegate.AddLambda([this](URiveFile* ParentRive)
 		{
-			UE_LOG(LogRive, Warning, TEXT("Parent of RiveFile '%s' is starting to initalize (Parent: '%s'). Invalidating Rive File..."), *GetFullName(), *GetFullNameSafe(ParentRiveFile))
+			UE_LOG(LogRive, Warning, TEXT("Parent of RiveFile '%s' is starting to initalize (Parent: '%s'). Invalidating Rive File..."), *GetFullName(), *GetFullNameSafe(ParentRive))
 			InitState = ERiveInitState::Uninitialized; // to be able to enter the Initialize function
 			Initialize(); // This will just set our internal status to initializing, will not finish initializing now
 		});
-		ParentRiveFile->OnInitializedDelegate.AddLambda([this](URiveFile* ParentRiveFile, bool bSuccess)
+		ParentRiveFile->OnInitializedDelegate.AddLambda([this](URiveFile* ParentRive, bool bSuccess)
 		{
-			UE_LOG(LogRive, Warning, TEXT("Parent of RiveFile '%s' has just been initialized (Parent: '%s'). Invalidating Rive File..."), *GetFullName(), *GetFullNameSafe(ParentRiveFile))
+			UE_LOG(LogRive, Warning, TEXT("Parent of RiveFile '%s' has just been initialized (Parent: '%s'). Invalidating Rive File..."), *GetFullName(), *GetFullNameSafe(ParentRive))
 			InitState = ERiveInitState::Uninitialized; // to be able to enter the Initialize function
 			if (bSuccess)
 			{
@@ -125,7 +125,7 @@ void URiveFile::PostLoad()
 			}
 			else
 			{
-				UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent '%s' cannot be initialized successfully"), *GetNameSafe(this), *GetNameSafe(ParentRiveFile));
+				UE_LOG(LogRive, Error, TEXT("Unable to Initialize this URiveFile Instance '%s' because its Parent '%s' cannot be initialized successfully"), *GetNameSafe(this), *GetNameSafe(ParentRive));
 			}
 		});
 	}
