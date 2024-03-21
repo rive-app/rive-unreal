@@ -5,16 +5,12 @@
 
 #include "RiveSceneViewport.h"
 #include "RiveViewportClient.h"
-#include "Rive/RiveFile.h"
+#include "Rive/RiveTexture.h"
+#include "RiveArtboard.h"
 
-void SRiveWidgetView::Construct(const FArguments& InArgs, URiveFile* InRiveFile)
+void SRiveWidgetView::Construct(const FArguments& InArgs, URiveTexture* InRiveTexture, const TArray<URiveArtboard*> InArtboards)
 {
-    RiveFile = InRiveFile;
-
-    if (!RiveFile)
-    {
-        return;
-    }
+    RiveTexture = InRiveTexture;
     
     TSharedRef<SViewport> ViewportRef =
         SNew(SViewport)
@@ -30,12 +26,12 @@ void SRiveWidgetView::Construct(const FArguments& InArgs, URiveFile* InRiveFile)
         ];
 
 
-    RiveViewportClient = MakeShared<FRiveViewportClient>(InRiveFile, SharedThis(this));
+    RiveViewportClient = MakeShared<FRiveViewportClient>(InRiveTexture, InArtboards,  SharedThis(this));
 #if WITH_EDITOR
     RiveViewportClient->bDrawCheckeredTexture = InArgs._bDrawCheckerboardInEditor;
 #endif
     
-    RiveSceneViewport = MakeShared<FRiveSceneViewport>(RiveViewportClient.Get(), ViewportWidget, InRiveFile);
+    RiveSceneViewport = MakeShared<FRiveSceneViewport>(RiveViewportClient.Get(), ViewportWidget, InRiveTexture, InArtboards);
     
     ViewportWidget->SetViewportInterface(RiveSceneViewport.ToSharedRef());
 }
@@ -54,6 +50,18 @@ void SRiveWidgetView::Tick(const FGeometry& AllottedGeometry, const double InCur
             RiveSceneViewport->Invalidate();
         }
     }
+}
+
+void SRiveWidgetView::SetRiveTexture(URiveTexture* InRiveTexture)
+{
+    RiveViewportClient->SetRiveTexture(InRiveTexture);
+    RiveSceneViewport->SetRiveTexture(InRiveTexture);
+}
+
+void SRiveWidgetView::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards)
+{
+    RiveViewportClient->RegisterArtboardInputs(InArtboards);
+    RiveSceneViewport->RegisterArtboardInputs(InArtboards);
 }
 
 int32 SRiveWidgetView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const

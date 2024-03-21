@@ -116,8 +116,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetNumberValue instead"))
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
 
-	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
-
 #if WITH_EDITOR
 
 	bool EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer, bool bIsReimport = false);
@@ -239,9 +237,6 @@ private:
 	/* This property is not editable via Editor in Unity, so we'll hide it also */
 	UPROPERTY()
 	ERiveAlignment RiveAlignment = ERiveAlignment::Center;
-
-	UPROPERTY(EditAnywhere, Category = Rive)
-	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaBlend;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;

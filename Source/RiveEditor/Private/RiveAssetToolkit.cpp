@@ -109,10 +109,11 @@ TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_RiveViewportTab(const FSpawnTab
 
     if (RiveFile)
     {
-        RiveWidget = SNew(SRiveWidget, RiveFile)
+        RiveWidget = SNew(SRiveWidget)
 #if WITH_EDITOR
             .bDrawCheckerboardInEditor(true);
 #endif
+        RiveWidget->SetRiveFile(RiveFile);
         ViewportWidget = RiveWidget;
     }
     else

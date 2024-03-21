@@ -263,52 +263,6 @@ void URiveFile::SetNumberValue(const FString& InPropertyName, float NewValue)
 #endif // WITH_RIVE
 }
 
-ESimpleElementBlendMode URiveFile::GetSimpleElementBlendMode() const
-{
-	ESimpleElementBlendMode NewBlendMode = ESimpleElementBlendMode::SE_BLEND_Opaque;
-
-	switch (RiveBlendMode)
-	{
-	case ERiveBlendMode::SE_BLEND_Opaque:
-		break;
-	case ERiveBlendMode::SE_BLEND_Masked:
-		NewBlendMode = SE_BLEND_Masked;
-		break;
-	case ERiveBlendMode::SE_BLEND_Translucent:
-		NewBlendMode = SE_BLEND_Translucent;
-		break;
-	case ERiveBlendMode::SE_BLEND_Additive:
-		NewBlendMode = SE_BLEND_Additive;
-		break;
-	case ERiveBlendMode::SE_BLEND_Modulate:
-		NewBlendMode = SE_BLEND_Modulate;
-		break;
-	case ERiveBlendMode::SE_BLEND_MaskedDistanceField:
-		NewBlendMode = SE_BLEND_MaskedDistanceField;
-		break;
-	case ERiveBlendMode::SE_BLEND_MaskedDistanceFieldShadowed:
-		NewBlendMode = SE_BLEND_MaskedDistanceFieldShadowed;
-		break;
-	case ERiveBlendMode::SE_BLEND_TranslucentDistanceField:
-		NewBlendMode = SE_BLEND_TranslucentDistanceField;
-		break;
-	case ERiveBlendMode::SE_BLEND_TranslucentDistanceFieldShadowed:
-		NewBlendMode = SE_BLEND_TranslucentDistanceFieldShadowed;
-		break;
-	case ERiveBlendMode::SE_BLEND_AlphaComposite:
-		NewBlendMode = SE_BLEND_AlphaComposite;
-		break;
-	case ERiveBlendMode::SE_BLEND_AlphaHoldout:
-		NewBlendMode = SE_BLEND_AlphaHoldout;
-		break;
-	case ERiveBlendMode::SE_BLEND_AlphaBlend:
-		NewBlendMode = SE_BLEND_AlphaBlend;
-		break;
-	}
-
-	return NewBlendMode;
-}
-
 #if WITH_EDITOR
 
 bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer, bool bIsReimport)

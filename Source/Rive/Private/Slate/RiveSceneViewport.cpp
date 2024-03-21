@@ -5,127 +5,106 @@
 #include "RiveViewportClient.h"
 #include "RiveWidgetHelpers.h"
 #include "Logs/RiveLog.h"
-#include "Rive/RiveFile.h"
+#include "Rive/RiveTexture.h"
+#include "RiveArtboard.h"
 #include "RiveCore/Public/RiveArtboard.h"
 #include "RiveCore/Public/URStateMachine.h"
 
-FRiveSceneViewport::FRiveSceneViewport(FRiveViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveFile* InRiveFile)
-	: FSceneViewport(InViewportClient, InViewportWidget)
-	, RiveViewportClient(InViewportClient), RiveFile(InRiveFile)
+#include "RiveWidgetHelpers.h"
+
+namespace UE::Private::FRiveSceneViewport
 {
+	FVector2f GetInputCoordinates(URiveTexture* InRiveTexture, URiveArtboard* InRiveArtboard, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+	{
+		// Convert absolute input position to viewport local position
+		FDeprecateSlateVector2D LocalPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+
+		// Because our RiveTexture can be a different pixel size than our viewport, we have to scale the x,y coords 
+		const FVector2f ViewportSize = MyGeometry.GetLocalSize();
+		const FBox2f TextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(InRiveTexture->Size, ViewportSize);
+		return InRiveTexture->GetLocalCoordinatesFromExtents(InRiveArtboard, LocalPosition, TextureBox);
+	}
 }
 
-FRiveSceneViewport::~FRiveSceneViewport()
+FRiveSceneViewport::FRiveSceneViewport(FRiveViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveTexture* InRiveTexture, const TArray<URiveArtboard*> InArtboards)
+	: FSceneViewport(InViewportClient, InViewportWidget)
+	, RiveViewportClient(InViewportClient), RiveTexture(InRiveTexture), Artboards(InArtboards)
 {
 }
 
 FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (!RiveFile)
-	{
-		UE_LOG(LogRive, Verbose, TEXT("Could not process FRiveSceneViewport::OnMouseButtonDown as we have an empty rive file."));
-
-		return FReply::Unhandled();
-	}
-
-	if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
-	{
-		return FReply::Unhandled();
-	}
-
-	// Start a new reply state
-	FReply NewReplyState = FSceneViewport::OnMouseButtonDown(MyGeometry, MouseEvent);
-
-#if WITH_RIVE
-	if (URiveArtboard* Artboard = RiveFile->GetArtboard())
-	{
-		Artboard->BeginInput();
-		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
 		{
-			const  FVector2f LocalPosition = RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(RiveFile, Artboard, MyGeometry, MouseEvent);
-
-			if (StateMachine->OnMouseButtonDown(LocalPosition))
+			if (InStateMachine)
 			{
-				UE_LOG(LogRive, Verbose, TEXT("Handled FRiveSceneViewport::OnMouseButtonDown at '%s'"), *LocalPosition.ToString())
+				InStateMachine->OnMouseButtonDown(InputCoordinates);
 			}
-		}
-		Artboard->EndInput();
-	}
-#endif // WITH_RIVE
-
-	return NewReplyState;
+		});
 }
 
 FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (!RiveFile)
-	{
-		UE_LOG(LogRive, Verbose, TEXT("Could not process FRiveSceneViewport::OnMouseButtonUp as we have an empty rive file."));
-
-		return FReply::Unhandled();
-	}
-
-	if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
-	{
-		return FReply::Unhandled();
-	}
-
-	// Start a new reply state
-	FReply NewReplyState = FSceneViewport::OnMouseButtonUp(MyGeometry, MouseEvent);
-
-#if WITH_RIVE
-	if (URiveArtboard* Artboard = RiveFile->GetArtboard())
-	{
-		Artboard->BeginInput();
-		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
 		{
-			const FVector2f LocalPosition = RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(RiveFile, Artboard, MyGeometry, MouseEvent);
-
-			if (StateMachine->OnMouseButtonUp(LocalPosition))
+			if (InStateMachine)
 			{
-				UE_LOG(LogRive, Verbose, TEXT("Handled FRiveSceneViewport::OnMouseButtonUp at '%s'"), *LocalPosition.ToString())
+				InStateMachine->OnMouseButtonUp(InputCoordinates);
 			}
-		}
-		Artboard->EndInput();
-	}
-#endif // WITH_RIVE
-	
-	return NewReplyState;
+		});
 }
 
 FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (!RiveFile)
-	{
-		UE_LOG(LogRive, Verbose, TEXT("Could not process FRiveSceneViewport::OnMouseMove as we have an empty rive file."));
+	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
+		{
+			if (InStateMachine)
+			{
+				InStateMachine->OnMouseMove(InputCoordinates);
+			}
+		});
 
-		return FReply::Unhandled();
-	}
+}
 
-	if (MouseEvent.GetScreenSpacePosition() == LastMousePosition)
-	{
-		return FReply::Unhandled();
-	}
+void FRiveSceneViewport::SetRiveTexture(URiveTexture* InRiveTexture)
+{
+	RiveTexture = InRiveTexture;
+}
 
-	// Start a new reply state
-	FReply NewReplyState = FSceneViewport::OnMouseMove(MyGeometry, MouseEvent);
+void FRiveSceneViewport::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards)
+{
+	Artboards = InArtboards;
+}
+
+
+FReply FRiveSceneViewport::OnInput(const FGeometry& MyGeometry, const FPointerEvent& InEvent, const FStateMachineInputCallback& InStateMachineInputCallback)
+{
+	// TODO. Should it be Unhandled all the time?
+	FReply Replay = FReply::Unhandled();
 
 #if WITH_RIVE
-	if (URiveArtboard* Artboard = RiveFile->GetArtboard())
+	if (!RiveTexture)
 	{
-		Artboard->BeginInput();
-		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+		return Replay;
+	}
+
+	for (URiveArtboard* Artboard : Artboards)
+	{
+		if (!ensure(Artboard))
 		{
-			const FVector2f LocalPosition = RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(RiveFile, Artboard, MyGeometry, MouseEvent);
-			
-			if (StateMachine->OnMouseMove(LocalPosition))
-			{
-				LastMousePosition = MouseEvent.GetScreenSpacePosition();
-			}
+			continue;
+		}
+
+		Artboard->BeginInput();
+		if (const auto StateMachine = Artboard->GetStateMachine())
+		{
+			FVector2f InputCoordinates = UE::Private::FRiveSceneViewport::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, InEvent);
+
+			InStateMachineInputCallback(InputCoordinates, StateMachine);
 		}
 		Artboard->EndInput();
 	}
 #endif // WITH_RIVE
-	
-	return NewReplyState;
+
+	return Replay;
 }

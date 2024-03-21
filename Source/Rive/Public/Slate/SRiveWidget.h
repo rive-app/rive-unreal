@@ -4,6 +4,8 @@
 
 #include "Widgets/SCompoundWidget.h"
 
+class URiveArtboard;
+class URiveTexture;
 class URiveFile;
 class SRiveWidgetView;
 
@@ -32,9 +34,11 @@ public:
 public:
 
     /** Constructs this widget with InArgs */
-    void Construct(const FArguments& InArgs, URiveFile* InRiveFile);
+	void Construct(const FArguments& InArgs);
 
-    void SetRiveFile(URiveFile* InRiveFile);
+	void SetRiveTexture(URiveTexture* InRiveTexture);
+	void RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards);
+	void SetRiveFile(URiveFile* InRiveFile);
 
     /**
      * Attribute(s)
@@ -44,6 +48,4 @@ private:
 
     /** Reference to Avalanche View */
     TSharedPtr<SRiveWidgetView> RiveWidgetView;
-
-    TObjectPtr<URiveFile> RiveFile;
 };

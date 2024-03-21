@@ -6,7 +6,8 @@
 
 class FRiveSceneViewport;
 class FRiveViewportClient;
-class URiveFile;
+class URiveTexture;
+class URiveArtboard;
 
 /**
  *
@@ -38,7 +39,7 @@ public:
 
 public:
 
-    void Construct(const FArguments& InArgs, URiveFile* InRiveFile);
+    void Construct(const FArguments& InArgs, URiveTexture* InRiveTexture = nullptr, const TArray<URiveArtboard*> InArtboards = {});
 
     /** Get Parent slate window */
     TSharedPtr<SWindow> GetParentWindow() const;
@@ -53,9 +54,13 @@ public:
      * Attribute(s)
      */
 
+    void SetRiveTexture(URiveTexture* InRiveTexture);
+
+    void RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards);
+
 private:
 
-    TObjectPtr<URiveFile> RiveFile;
+    TObjectPtr<URiveTexture> RiveTexture;
 
     /** Reference to Slate Viewport */
     TSharedPtr<SViewport> ViewportWidget;
