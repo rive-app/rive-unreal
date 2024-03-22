@@ -31,8 +31,14 @@ public class RiveEditor : ModuleRules
                 "UnrealEd",
                 "ToolMenus",
                 "UMG",
-                "UMGEditor"
+                "UMGEditor", 
+                "SettingsEditor",
             }
         );
+
+        if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            PrivateDependencyModuleNames.Add("WindowsTargetPlatform");
+        }
     }
 }
