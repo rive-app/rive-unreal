@@ -35,7 +35,8 @@ namespace UE::Rive::Renderer::Private
 #if WITH_RIVE
 		void Initialize(rive::pls::PLSRenderContextD3DImpl::ContextOptions& OutContextOptions);
 #endif // WITH_RIVE
-		void ResetBlendState();
+		void ResetDXStateForRive();
+		void ResetDXState();
 		
 		ID3D11DynamicRHI* GetD3D11RHI() const { return D3D11RHI; }
 		ID3D11Device* GetD3D11DevicePtr() const { return D3D11DevicePtr; }
@@ -48,10 +49,10 @@ namespace UE::Rive::Renderer::Private
 		ID3D11DynamicRHI* D3D11RHI = nullptr;
 		ID3D11Device* D3D11DevicePtr = nullptr;
 		ID3D11DeviceContext* D3D11DeviceContext = nullptr;
-		IDXGIDevice* DXGIDevice = nullptr;
-	
-		TRefCountPtr<ID3D11BlendState> AlphaBlendState;
-		TRefCountPtr<ID3D11RasterizerState> NormalRasterState;
+		TRefCountPtr<IDXGIDevice> DXGIDevice = nullptr;
+		
+		TRefCountPtr<ID3D11DepthStencilState> DefaultDepthStencilState;
+		TRefCountPtr<ID3D11RasterizerState> DefaultRasterState;
 	};
 
 	class RIVERENDERER_API FRiveRendererD3D11 : public FRiveRenderer
@@ -73,7 +74,8 @@ namespace UE::Rive::Renderer::Private
 
 		//~ END : IRiveRenderer Interface
 
-		void ResetBlendState() const;
+		void ResetDXStateForRive() const;
+		void ResetDXState() const;
 
 	private:
 		TUniquePtr<UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter> D3D11GPUAdapter;
