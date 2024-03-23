@@ -32,7 +32,7 @@ FRiveViewportClient::~FRiveViewportClient()
 
 void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
-	if (!RiveTexture)
+	if (!IsValid(RiveTexture))
 	{
 		return;
 	}
@@ -91,7 +91,7 @@ void FRiveViewportClient::SetRiveTexture(URiveTexture* InRiveTexture)
 	RiveTexture = InRiveTexture;
 }
 
-void FRiveViewportClient::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards)
+void FRiveViewportClient::RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards)
 {
 }
 

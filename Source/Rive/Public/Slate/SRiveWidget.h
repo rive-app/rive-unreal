@@ -37,7 +37,7 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	void SetRiveTexture(URiveTexture* InRiveTexture);
-	void RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards);
+	void RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards);
 	void SetRiveFile(URiveFile* InRiveFile);
 
     /**

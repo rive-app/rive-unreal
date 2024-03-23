@@ -28,7 +28,7 @@ void SRiveWidget::SetRiveTexture(URiveTexture* InRiveTexture)
     }
 }
 
-void SRiveWidget::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards)
+void SRiveWidget::RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards)
 {
     if (RiveWidgetView)
     {
@@ -38,7 +38,7 @@ void SRiveWidget::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboard
 
 void SRiveWidget::SetRiveFile(URiveFile* InRiveFile)
 {
-    if (RiveWidgetView && InRiveFile)
+    if (RiveWidgetView && IsValid(InRiveFile))
     {
         RiveWidgetView->SetRiveTexture(InRiveFile);
         RiveWidgetView->RegisterArtboardInputs({ InRiveFile->GetArtboard() });

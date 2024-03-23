@@ -8,7 +8,7 @@
 #include "Rive/RiveTexture.h"
 #include "RiveArtboard.h"
 
-void SRiveWidgetView::Construct(const FArguments& InArgs, URiveTexture* InRiveTexture, const TArray<URiveArtboard*> InArtboards)
+void SRiveWidgetView::Construct(const FArguments& InArgs, URiveTexture* InRiveTexture, const TArray<URiveArtboard*>& InArtboards)
 {
     RiveTexture = InRiveTexture;
     
@@ -58,7 +58,7 @@ void SRiveWidgetView::SetRiveTexture(URiveTexture* InRiveTexture)
     RiveSceneViewport->SetRiveTexture(InRiveTexture);
 }
 
-void SRiveWidgetView::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards)
+void SRiveWidgetView::RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards)
 {
     RiveViewportClient->RegisterArtboardInputs(InArtboards);
     RiveSceneViewport->RegisterArtboardInputs(InArtboards);
@@ -72,9 +72,7 @@ int32 SRiveWidgetView::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
     if (!SlateParentWindowPtr.IsValid())
     {
         SWindow* ParentWindow = OutDrawElements.GetPaintWindow();
-
         TSharedRef<SWindow> SlateParentWindowRef = StaticCastSharedRef<SWindow>(ParentWindow->AsShared());
-
         SlateParentWindowPtr = SlateParentWindowRef;
     }
 

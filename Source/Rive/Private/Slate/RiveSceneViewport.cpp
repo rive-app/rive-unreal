@@ -34,6 +34,11 @@ FRiveSceneViewport::FRiveSceneViewport(FRiveViewportClient* InViewportClient, TS
 
 FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+	{
+		return FReply::Unhandled();
+	}
+	
 	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
 		{
 			if (InStateMachine)
@@ -45,6 +50,11 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 
 FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+	{
+		return FReply::Unhandled();
+	}
+	
 	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
 		{
 			if (InStateMachine)
@@ -71,7 +81,7 @@ void FRiveSceneViewport::SetRiveTexture(URiveTexture* InRiveTexture)
 	RiveTexture = InRiveTexture;
 }
 
-void FRiveSceneViewport::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards)
+void FRiveSceneViewport::RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards)
 {
 	Artboards = InArtboards;
 }
@@ -79,32 +89,29 @@ void FRiveSceneViewport::RegisterArtboardInputs(const TArray<URiveArtboard*> InA
 
 FReply FRiveSceneViewport::OnInput(const FGeometry& MyGeometry, const FPointerEvent& InEvent, const FStateMachineInputCallback& InStateMachineInputCallback)
 {
-	// TODO. Should it be Unhandled all the time?
-	FReply Replay = FReply::Unhandled();
-
 #if WITH_RIVE
-	if (!RiveTexture)
+	if (!IsValid(RiveTexture))
 	{
-		return Replay;
+		return FReply::Unhandled();
 	}
 
 	for (URiveArtboard* Artboard : Artboards)
 	{
-		if (!ensure(Artboard))
+		if (!ensure(IsValid(Artboard)))
 		{
 			continue;
 		}
 
 		Artboard->BeginInput();
-		if (const auto StateMachine = Artboard->GetStateMachine())
+		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
 			FVector2f InputCoordinates = UE::Private::FRiveSceneViewport::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, InEvent);
-
 			InStateMachineInputCallback(InputCoordinates, StateMachine);
 		}
 		Artboard->EndInput();
 	}
 #endif // WITH_RIVE
 
-	return Replay;
+	return FReply::Handled(); // TODO. Should it be Handled all the time?
+
 }

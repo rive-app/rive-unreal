@@ -30,15 +30,10 @@ public:
 	FRiveViewportClient* GetRiveViewportClient() const { return RiveViewportClient; }
 	
 	//~ BEGIN : FSceneViewport Interface 
-	
 public:
-
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	
 	//~ END : FSceneViewport Interface
 	
 	/**
@@ -46,8 +41,7 @@ public:
 	 */
 
 	void SetRiveTexture(URiveTexture* InRiveTexture);
-
-	void RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards);
+	void RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards);
 
 protected:
 	FRiveViewportClient* RiveViewportClient;
@@ -57,11 +51,8 @@ private:
 	using FStateMachineInputCallback = TFunction<void(const FVector2f&, StateMachinePtr)>;
 
 	FReply OnInput(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, const FStateMachineInputCallback& InStateMachineInputCallback);
-private:
 
 	TObjectPtr<URiveTexture> RiveTexture;
-
 	TArray<URiveArtboard*> Artboards;
-
 	FVector2f LastMousePosition = FVector2f::ZeroVector;
 };
