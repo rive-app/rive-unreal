@@ -23,7 +23,8 @@ void URiveWidget::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> URiveWidget::RebuildWidget()
 {
-    RiveWidget = SNew(SRiveWidget, RiveFile);
+    RiveWidget = SNew(SRiveWidget);
+    RiveWidget->SetRiveFile(RiveFile);
 
     return RiveWidget.ToSharedRef();
 }

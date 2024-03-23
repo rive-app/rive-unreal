@@ -3,27 +3,15 @@
 <root xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- init section is always evaluated once per architecture -->
     <init>
-        <setBool result="bSupported" value="false"/>
-        <isArch arch="arm64-v8a">
-            <setBool result="bSupported" value="true"/>
-        </isArch>
     </init>
     <!-- optional files or directories to copy to Intermediate/Android/APK -->
     <resourceCopies>
-        <isArch arch="arm64-v8a">
-            <copyFile src="$S(PluginDir)/Libraries/Android/librive_harfbuzz.so"
-                    dst="$S(BuildDir)/libs/arm64-v8a/librive_harfbuzz.so" />
-        </isArch>
     </resourceCopies>
 
-    <uses-feature android:glEsVersion="0x00020000"/>
+    <uses-feature android:glEsVersion="0x00030002" android:required="true" />
+    <uses-feature android:name="android.hardware.opengles.aep" android:required="true" />
 
     <!-- optional libraries to load in GameActivity.java before libUE4.so -->
     <soLoadLibrary>
-        <if condition="bSupported">
-            <true>
-                <loadLibrary name="rive_harfbuzz" failmsg="Failed to load librive_harfbuzz library" />
-            </true>
-        </if>
     </soLoadLibrary>
 </root>

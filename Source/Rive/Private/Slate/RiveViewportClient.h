@@ -9,7 +9,9 @@
 #include "ViewportClient.h"
 
 class SRiveWidgetView;
-class URiveFile;
+class URiveTexture;
+class URiveArtboard;
+
 /**
  * 
  */
@@ -18,31 +20,26 @@ class FRiveViewportClient : public FViewportClient
 	/**
 	 * Structor(s)
 	 */
-
 public:
-	
-	FRiveViewportClient(URiveFile* InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView);
+	FRiveViewportClient(URiveTexture* InRiveTexture, const TArray<URiveArtboard*> InArtboards, const TSharedRef<SRiveWidgetView>& InWidgetView);
 
 	virtual ~FRiveViewportClient() override;
 
 	//~ BEGIN : FViewportClient Interface
-
 public:
-
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
-	
 	virtual UWorld* GetWorld() const override { return nullptr; }
-
 	//~ END : FViewportClient Interface
 
 	/**
 	 * Attribute(s)
 	 */
 
+	void SetRiveTexture(URiveTexture* InRiveTexture);
+	void RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards);
+
 private:
-
-	TObjectPtr<URiveFile> RiveFile;
-
+	TObjectPtr<URiveTexture> RiveTexture;
 	/** Weak Ptr to view widget */
 	TWeakPtr<SRiveWidgetView> WidgetViewWeakPtr;
 

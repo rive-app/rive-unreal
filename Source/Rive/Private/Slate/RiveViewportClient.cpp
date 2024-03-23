@@ -5,15 +5,17 @@
 #include "CanvasItem.h"
 #include "CanvasTypes.h"
 #include "RiveWidgetHelpers.h"
-#include "Rive/RiveFile.h"
+#include "Rive/RiveTexture.h"
+#include "RiveArtboard.h"
+
 
 #if WITH_EDITOR // For Checkerboard Texture
 #include "TextureEditorSettings.h"
 #include "ImageUtils.h"
 #endif
 
-FRiveViewportClient::FRiveViewportClient(URiveFile* InRiveFile, const TSharedRef<SRiveWidgetView>& InWidgetView)
-	: RiveFile(InRiveFile)
+FRiveViewportClient::FRiveViewportClient(URiveTexture* InRiveTexture, const TArray<URiveArtboard*> InArtboards, const TSharedRef<SRiveWidgetView>& InWidgetView)
+	: RiveTexture(InRiveTexture)
 	, WidgetViewWeakPtr(InWidgetView)
 {
 #if WITH_EDITOR
@@ -30,7 +32,7 @@ FRiveViewportClient::~FRiveViewportClient()
 
 void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
-	if (!RiveFile)
+	if (!IsValid(RiveTexture))
 	{
 		return;
 	}
@@ -39,7 +41,7 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	//todo: to review with drawing of multiple artboards
 	const FIntPoint ViewportSize = Viewport->GetSizeXY();
-	const FBox2f RiveTextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(RiveFile->Size, ViewportSize);
+	const FBox2f RiveTextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(RiveTexture->Size, ViewportSize);
 	const FVector2f RiveTextureSize = RiveTextureBox.GetSize();
 
 #if WITH_EDITOR
@@ -71,17 +73,26 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 	}
 #endif
 	
-	if (RiveFile->GetResource() != nullptr)
+	if (RiveTexture->GetResource() != nullptr)
 	{
 		FCanvasTileItem TileItem(FVector2D{RiveTextureBox.Min},
-			RiveFile->GetResource(),
+			RiveTexture->GetResource(),
 			FVector2D{RiveTextureSize},
 			FLinearColor::White);
-		TileItem.BlendMode = RiveFile->GetSimpleElementBlendMode();
+		TileItem.BlendMode = RiveTexture->GetSimpleElementBlendMode();
 		TileItem.BatchedElementParameters = nullptr;
 		
 		Canvas->DrawItem(TileItem);
 	}
+}
+
+void FRiveViewportClient::SetRiveTexture(URiveTexture* InRiveTexture)
+{
+	RiveTexture = InRiveTexture;
+}
+
+void FRiveViewportClient::RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards)
+{
 }
 
 #if WITH_EDITOR

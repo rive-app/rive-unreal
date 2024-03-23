@@ -15,7 +15,7 @@ void URiveFileWhenReadyAsync::Activate()
 {
 	if (IsValid(RiveFile))
 	{
-		RiveFile->CallOrRegister_OnInitialized(URiveFile::FOnRiveFileInitialized::FDelegate::CreateUObject(this, &URiveFileWhenReadyAsync::OnRiveFileInitialized));
+		RiveFile->WhenInitialized(URiveFile::FOnRiveFileInitialized::FDelegate::CreateUObject(this, &URiveFileWhenReadyAsync::OnRiveFileInitialized));
 	}
 	else
 	{

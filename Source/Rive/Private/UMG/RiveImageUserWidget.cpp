@@ -2,26 +2,26 @@
 
 #include "UMG/RiveImageUserWidget.h"
 
-#include "Slate/SRiveImage.h"
+#include "Slate/SRiveWidget.h"
 
 void URiveImageUserWidget::SetRiveTexture(URiveTexture* InRiveTexture)
 {
 	RiveTexture = InRiveTexture;
 
-	if (!RiveImage)
+	if (!RiveWidget)
 	{
 		return;
 	}
 	
-	RiveImage->SetRiveTexture(InRiveTexture);
+	RiveWidget->SetRiveTexture(InRiveTexture);
 }
 
 void URiveImageUserWidget::RegisterArtboardInputs(const TArray<URiveArtboard*> InArtboards)
 {
 	Artboards = InArtboards;
-	if (RiveImage)
+	if (RiveWidget)
 	{
-		RiveImage->RegisterArtboardInputs(Artboards);
+		RiveWidget->RegisterArtboardInputs(Artboards);
 	}
 }
 
@@ -35,24 +35,24 @@ bool URiveImageUserWidget::Initialize()
 {
 	const bool bParentReturn = Super::Initialize();
 
-	RiveImage = SNew(SRiveImage);
+	RiveWidget = SNew(SRiveWidget);
 
 	return bParentReturn;
 }
 
 TSharedRef<SWidget> URiveImageUserWidget::RebuildWidget()
 {
-	if (!RiveImage.IsValid())
+	if (!RiveWidget.IsValid())
 	{
-		RiveImage = SNew(SRiveImage);
+		RiveWidget = SNew(SRiveWidget);
 	}
 	Setup(RiveTexture, Artboards);
-	return RiveImage.ToSharedRef();
+	return RiveWidget.ToSharedRef();
 }
 
 void URiveImageUserWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
-	RiveImage.Reset();
+	RiveWidget.Reset();
 }
 

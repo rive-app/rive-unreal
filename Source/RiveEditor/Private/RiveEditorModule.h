@@ -7,7 +7,7 @@
 
 namespace UE::Rive::Editor::Private
 {
-    class FRiveEditorModuleModule final : public IRiveEditorModuleModule
+    class FRiveEditorModule final : public IRiveEditorModuleModule
     {
         //~ BEGIN : IModuleInterface Interface
 
@@ -16,6 +16,11 @@ namespace UE::Rive::Editor::Private
         virtual void ShutdownModule() override;
         //~ END : IModuleInterface Interface
 
+        /**
+         * Checks the current RHI and create a notification if Rive is not supported for this RHI
+         * Returns true if the current RHI is supported.
+         */
+        bool CheckCurrentRHIAndNotify();
     private:
         void RegisterAssetTypeActions(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
 
@@ -23,5 +28,7 @@ namespace UE::Rive::Editor::Private
         
         /** All created asset type actions.  Cached here so that we can unregister them during shutdown. */
         TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
+        TSharedPtr<SNotificationItem> RHINotification;
+        FDelegateHandle OnBeginFrameHandle;
     };
 }

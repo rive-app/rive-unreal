@@ -18,22 +18,26 @@
 		{
 			"Name": "Rive",
 			"Type": "Runtime",
-			"LoadingPhase": "PostConfigInit"
+			"LoadingPhase": "PostConfigInit",
+			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
 		},
 		{
 			"Name": "RiveRenderer",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
 		},
 		{
 			"Name": "RiveEditor",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
 		},
 		{
 			"Name": "RiveCore",
 			"Type": "Runtime",
-			"LoadingPhase": "None"
+			"LoadingPhase": "None",
+			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
 		}
 	]
 }

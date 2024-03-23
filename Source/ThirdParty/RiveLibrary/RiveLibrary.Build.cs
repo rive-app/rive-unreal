@@ -136,6 +136,9 @@ public class RiveLibrary : ModuleRules
             
             PrecompileForTargets = PrecompileTargetsType.None;
             bIsPlatformAdded = true;
+            
+            string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
+            AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "RiveLibrary_APL.xml"));
         }
         else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
         {
