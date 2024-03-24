@@ -162,7 +162,9 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 
 	FColor Color = ClearColor.ToRGBE();
 	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
-	FrameDescriptor.renderTarget = GetRenderTarget(); // get the platform specific render target
+	// FrameDescriptor.renderTarget = GetRenderTarget(); // get the platform specific render target
+	FrameDescriptor.renderTargetWidth = GetWidth();
+	FrameDescriptor.renderTargetHeight = GetHeight();
 	FrameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
 	FrameDescriptor.clearColor = rive::colorARGB(Color.A, Color.R, Color.G, Color.B);
 	FrameDescriptor.wireframe = false;
@@ -195,8 +197,11 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
 #if PLATFORM_ANDROID
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush %p", PLSRenderContextPtr);
 #endif
-    
-	PLSRenderContextPtr->flush();
+	const rive::pls::PLSRenderContext::FlushResources FlushResources
+	{
+		GetRenderTarget().get()
+	};
+	PLSRenderContextPtr->flush(FlushResources);
 }
 
 uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetWidth() const

@@ -97,6 +97,25 @@ rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTa
 {
     return CachedPLSRenderTargetMetal;
 }
+
+void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::EndFrame() const
+{
+    rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
+    if (PLSRenderContextPtr == nullptr)
+    {
+        return;
+    }
+
+    // End drawing a frame.
+    // Flush
+    id<MTLCommandBuffer> flushCommandBuffer = [m_queue commandBuffer];
+    const rive::pls::PLSRenderContext::FlushResources FlushResources
+    {
+        GetRenderTarget().get(),
+        flushCommandBuffer
+    };
+    PLSRenderContextPtr->flush(FlushResources);
+}
 #endif // WITH_RIVE
 
 

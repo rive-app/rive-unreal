@@ -32,6 +32,7 @@ class RenderBuffer;
 // https://docs.google.com/document/d/1CRKihkFjbd1bwT08ErMCP4fwSR7D4gnHvgdw_esY9GM/edit
 namespace rive::pls
 {
+class PLSDraw;
 class PLSGradient;
 class PLSRenderContextImpl;
 class PLSRenderTarget;
@@ -91,8 +92,11 @@ constexpr static size_t kGradTextureWidthInSimpleRamps = kGradTextureWidth / 2;
 // Backend-specific capabilities/workarounds and fine tuning.
 struct PlatformFeatures
 {
-    uint8_t pathIDGranularity = 1; // Workaround for precision issues. Determines how far apart we
-                                   // space unique path IDs.
+    bool supportsPixelLocalStorage = true;
+    bool supportsRasterOrdering = true;     // Can pixel local storage accesses be raster ordered?
+    bool supportsKHRBlendEquations = false; // Use KHR_blend_equation_advanced in depthStencil mode?
+    bool supportsClipPlanes = false;        // Required for @ENABLE_CLIP_RECT in depthStencil mode.
+    bool supportsBindlessTextures = false;
     bool avoidFlatVaryings = false;
     bool invertOffscreenY = false;  // Invert Y when drawing to offscreen render targets? (Gradient
                                     // and tessellation textures.)
@@ -100,11 +104,11 @@ struct PlatformFeatures
                                     // to on-screen vertex shaders that needs to be undone.
     bool fragCoordBottomUp = false; // Does the built-in pixel coordinate in the fragment shader go
                                     // bottom-up or top-down?
-    bool supportsBindlessTextures = false;
-    bool supportsRasterOrdering = false; // Can pixel local storage accesses be raster ordered?
     bool atomicPLSMustBeInitializedAsDraw = false; // Backend cannot initialize PLS with typical
                                                    // clear/load APIs in atomic mode. Issue a
                                                    // "DrawType::plsAtomicInitialize" draw instead.
+    uint8_t pathIDGranularity = 1; // Workaround for precision issues. Determines how far apart we
+                                   // space unique path IDs.
 };
 
 // Gradient color stops are implemented as a horizontal span of pixels in a global gradient
@@ -342,6 +346,19 @@ enum class PatchType
     outerCurves,
 };
 
+// When tessellating path vertices, we have the ability to generate the triangles wound in forward
+// or reverse order.
+// Depending on the path and the rendering algorithm, we will either want the triangles wound
+// forward, reverse, or BOTH.
+enum class ContourDirections
+{
+    none = 0,
+    forward = 1 << 0,
+    reverse = 1 << 1,
+    reverseAndForward = reverse | forward, // Generate two sets of triangles: reverse then forward.
+};
+RIVE_MAKE_ENUM_BITSET(ContourDirections)
+
 struct PatchVertex
 {
     void set(float localVertexID_, float outset_, float fillCoverage_, float params_)
@@ -388,16 +405,20 @@ constexpr static uint32_t kOuterCurvePatchSegmentSpan = 17;
 constexpr static uint32_t kMidpointFanPatchVertexCount =
     kMidpointFanPatchSegmentSpan * 4 /*Stroke and/or AA outer ramp*/ +
     (kMidpointFanPatchSegmentSpan + 1) /*Curve fan*/ + 1 /*Triangle from path midpoint*/;
+constexpr static uint32_t kMidpointFanPatchBorderIndexCount =
+    kMidpointFanPatchSegmentSpan * 6 /*Stroke and/or AA outer ramp*/;
 constexpr static uint32_t kMidpointFanPatchIndexCount =
-    kMidpointFanPatchSegmentSpan * 6 /*Stroke and/or AA outer ramp*/ +
+    kMidpointFanPatchBorderIndexCount /*Stroke and/or AA outer ramp*/ +
     (kMidpointFanPatchSegmentSpan - 1) * 3 /*Curve fan*/ + 3 /*Triangle from path midpoint*/;
 constexpr static uint32_t kMidpointFanPatchBaseIndex = 0;
 static_assert((kMidpointFanPatchBaseIndex * sizeof(uint16_t)) % 4 == 0);
 constexpr static uint32_t kOuterCurvePatchVertexCount =
     kOuterCurvePatchSegmentSpan * 8 /*AA center ramp with bowtie*/ +
     kOuterCurvePatchSegmentSpan /*Curve fan*/;
+constexpr static uint32_t kOuterCurvePatchBorderIndexCount =
+    kOuterCurvePatchSegmentSpan * 12 /*AA center ramp with bowtie*/;
 constexpr static uint32_t kOuterCurvePatchIndexCount =
-    kOuterCurvePatchSegmentSpan * 12 /*AA center ramp with bowtie*/ +
+    kOuterCurvePatchBorderIndexCount /*AA center ramp with bowtie*/ +
     (kOuterCurvePatchSegmentSpan - 2) * 3 /*Curve fan*/;
 constexpr static uint32_t kOuterCurvePatchBaseIndex = kMidpointFanPatchIndexCount;
 static_assert((kOuterCurvePatchBaseIndex * sizeof(uint16_t)) % 4 == 0);
@@ -417,6 +438,7 @@ enum class DrawType : uint8_t
     imageMesh,
     plsAtomicInitialize, // Clear/init PLS data when we can't do it with existing clear/load APIs.
     plsAtomicResolve,    // Resolve PLS data to the final renderTarget color in atomic mode.
+    stencilClipReset,    // Clear or intersect (based on DrawContents) the stencil clip bit.
 };
 
 constexpr static uint32_t PatchSegmentSpan(DrawType drawType)
@@ -445,6 +467,24 @@ constexpr static uint32_t PatchIndexCount(DrawType drawType)
     }
 }
 
+constexpr static uint32_t PatchBorderIndexCount(DrawType drawType)
+{
+    switch (drawType)
+    {
+        case DrawType::midpointFanPatches:
+            return kMidpointFanPatchBorderIndexCount;
+        case DrawType::outerCurvePatches:
+            return kOuterCurvePatchBorderIndexCount;
+        default:
+            RIVE_UNREACHABLE();
+    }
+}
+
+constexpr static uint32_t PatchFanIndexCount(DrawType drawType)
+{
+    return PatchIndexCount(drawType) - PatchBorderIndexCount(drawType);
+}
+
 constexpr static uintptr_t PatchBaseIndex(DrawType drawType)
 {
     switch (drawType)
@@ -458,12 +498,25 @@ constexpr static uintptr_t PatchBaseIndex(DrawType drawType)
     }
 }
 
+constexpr static uintptr_t PatchFanBaseIndex(DrawType drawType)
+{
+    return PatchBaseIndex(drawType) + PatchBorderIndexCount(drawType);
+}
+
 // Specifies what to do with the render target at the beginning of a flush.
 enum class LoadAction
 {
     clear,
     preserveRenderTarget,
     dontCare,
+};
+
+// Synchronization method for pixel local storage with overlapping fragments.
+enum class InterlockMode
+{
+    rasterOrdering,
+    atomics,
+    depthStencil,
 };
 
 // "Uber shader" features that can be #defined in a draw shader.
@@ -486,48 +539,60 @@ enum class ShaderFeatures
 };
 RIVE_MAKE_ENUM_BITSET(ShaderFeatures)
 constexpr static size_t kShaderFeatureCount = 6;
+constexpr static ShaderFeatures kAllShaderFeatures =
+    static_cast<pls::ShaderFeatures>((1 << kShaderFeatureCount) - 1);
 constexpr static ShaderFeatures kVertexShaderFeaturesMask = ShaderFeatures::ENABLE_CLIPPING |
                                                             ShaderFeatures::ENABLE_CLIP_RECT |
                                                             ShaderFeatures::ENABLE_ADVANCED_BLEND;
-constexpr static ShaderFeatures kPathDrawShaderFeaturesMask =
-    static_cast<pls::ShaderFeatures>((1 << pls::kShaderFeatureCount) - 1);
-constexpr static ShaderFeatures kRasterOrderedImageDrawShaderFeaturesMask =
-    ShaderFeatures::ENABLE_CLIPPING | ShaderFeatures::ENABLE_CLIP_RECT |
-    ShaderFeatures::ENABLE_ADVANCED_BLEND | ShaderFeatures::ENABLE_HSL_BLEND_MODES;
-constexpr static ShaderFeatures kPLSInitializeShaderFeaturesMask =
-    ShaderFeatures::ENABLE_CLIPPING | ShaderFeatures::ENABLE_ADVANCED_BLEND;
 
-// Synchronization method for pixel local storage with overlapping frragments.
-enum class InterlockMode
+constexpr static ShaderFeatures ShaderFeaturesMaskFor(InterlockMode interlockMode)
 {
-    rasterOrdering,
-    atomics,
-};
+    switch (interlockMode)
+    {
+        case InterlockMode::rasterOrdering:
+            return kAllShaderFeatures;
+        case InterlockMode::atomics:
+            return kAllShaderFeatures & ~ShaderFeatures::ENABLE_NESTED_CLIPPING;
+        case InterlockMode::depthStencil:
+            return ShaderFeatures::ENABLE_CLIP_RECT | ShaderFeatures::ENABLE_ADVANCED_BLEND |
+                   ShaderFeatures::ENABLE_HSL_BLEND_MODES;
+    }
+    RIVE_UNREACHABLE();
+}
 
-constexpr static ShaderFeatures AllShaderFeaturesForDrawType(DrawType drawType,
-                                                             InterlockMode interlockMode)
+constexpr static ShaderFeatures ShaderFeaturesMaskFor(DrawType drawType,
+                                                      InterlockMode interlockMode)
 {
+    ShaderFeatures mask = ShaderFeatures::NONE;
     switch (drawType)
     {
         case DrawType::imageRect:
         case DrawType::imageMesh:
-            if (interlockMode == pls::InterlockMode::rasterOrdering)
+            if (interlockMode != pls::InterlockMode::atomics)
             {
-                return kRasterOrderedImageDrawShaderFeaturesMask;
+                mask = ShaderFeatures::ENABLE_CLIPPING | ShaderFeatures::ENABLE_CLIP_RECT |
+                       ShaderFeatures::ENABLE_ADVANCED_BLEND |
+                       ShaderFeatures::ENABLE_HSL_BLEND_MODES;
+                break;
             }
-            // Since atomic mode has to resolve previous draws, images need to consider all shader
-            // features for path draws.
+            // Since atomic mode has to resolve previous draws, images need to consider the same
+            // shader features for path draws.
             [[fallthrough]];
         case DrawType::midpointFanPatches:
         case DrawType::outerCurvePatches:
         case DrawType::interiorTriangulation:
         case DrawType::plsAtomicResolve:
-            return kPathDrawShaderFeaturesMask;
+            mask = kAllShaderFeatures;
+            break;
         case DrawType::plsAtomicInitialize:
-            assert(interlockMode == InterlockMode::atomics);
-            return kPLSInitializeShaderFeaturesMask;
+            assert(interlockMode == pls::InterlockMode::atomics);
+            mask = ShaderFeatures::ENABLE_CLIPPING | ShaderFeatures::ENABLE_ADVANCED_BLEND;
+            break;
+        case DrawType::stencilClipReset:
+            mask = ShaderFeatures::NONE;
+            break;
     }
-    RIVE_UNREACHABLE();
+    return mask & ShaderFeaturesMaskFor(interlockMode);
 }
 
 // Miscellaneous switches that *do* affect the behavior of a shader. A backend can add these to a
@@ -558,29 +623,47 @@ uint32_t ShaderUniqueKey(DrawType, ShaderFeatures, InterlockMode, ShaderMiscFlag
 
 extern const char* GetShaderFeatureGLSLName(ShaderFeatures feature);
 
-// Simple gradients only have 2 texels, so we write them to mapped texture memory from the CPU
-// instead of rendering them.
-struct TwoTexelRamp
+// Flags indicating the contents of a draw. These don't affect shaders, but in depthStencil mode
+// they are needed to break up batching. (depthStencil needs different stencil/blend state,
+// depending on the DrawContents.)
+//
+// These also affect the draw sort order, so we attempt associate more expensive shader branch
+// misses with higher flags.
+enum class DrawContents
 {
-    void set(const ColorInt colors[2])
-    {
-        UnpackColorToRGBA8(colors[0], colorData);
-        UnpackColorToRGBA8(colors[1], colorData + 4);
-    }
-    uint8_t colorData[8];
+    none = 0,
+    opaquePaint = 1 << 0,
+    stroke = 1 << 1,
+    evenOddFill = 1 << 2,
+    activeClip = 1 << 3,
+    clipUpdate = 1 << 4,
+    advancedBlend = 1 << 5,
 };
-static_assert(sizeof(TwoTexelRamp) == 8 * sizeof(uint8_t));
+RIVE_MAKE_ENUM_BITSET(DrawContents)
+
+// A nestedClip draw updates the clip buffer while simultaneously clipping against the outerClip
+// that is currently in the clip buffer.
+constexpr static pls::DrawContents kNestedClipUpdateMask =
+    (pls::DrawContents::activeClip | pls::DrawContents::clipUpdate);
 
 // Low-level batch of geometry to submit to the GPU.
 struct DrawBatch
 {
-    DrawBatch(DrawType drawType_, uint32_t baseElement_) :
-        drawType(drawType_), baseElement(baseElement_)
+    DrawBatch(DrawType drawType_,
+              const PLSDraw* internalDrawList_,
+              uint32_t elementCount_,
+              uint32_t baseElement_) :
+        drawType(drawType_),
+        internalDrawList(internalDrawList_),
+        elementCount(elementCount_),
+        baseElement(baseElement_)
     {}
 
     const DrawType drawType;
-    uint32_t baseElement;      // Base vertex, index, or instance.
-    uint32_t elementCount = 0; // Vertex, index, or instance count.
+    const PLSDraw* internalDrawList;
+    uint32_t elementCount; // Vertex, index, or instance count.
+    uint32_t baseElement;  // Base vertex, index, or instance.
+    DrawContents drawContents = DrawContents::none;
     ShaderFeatures shaderFeatures = ShaderFeatures::NONE;
     bool needsBarrier = false; // Pixel-local-storage barrier required after submitting this batch.
 
@@ -594,17 +677,18 @@ struct DrawBatch
     const RenderBuffer* indexBuffer;
 };
 
-enum class FlushType : uint8_t
+// Simple gradients only have 2 texels, so we write them to mapped texture memory from the CPU
+// instead of rendering them.
+struct TwoTexelRamp
 {
-    // This is a "logical" flush, in that it will break up the render pass and re-render the
-    // resource textures, but it won't submit any command buffers or rotate/synchronize the buffer
-    // rings.
-    logical,
-
-    // This is the final flush of the frame. It will submit any command buffers and
-    // rotate/synchronize the buffer rings.
-    endOfFrame,
+    void set(const ColorInt colors[2])
+    {
+        UnpackColorToRGBA8(colors[0], colorData);
+        UnpackColorToRGBA8(colors[1], colorData + 4);
+    }
+    uint8_t colorData[8];
 };
+static_assert(sizeof(TwoTexelRamp) == 8 * sizeof(uint8_t));
 
 // Detailed description of exactly how a PLSRenderContextImpl should bind its buffers and draw a
 // flush. A typical flush is done in 4 steps:
@@ -623,10 +707,10 @@ enum class FlushType : uint8_t
 //
 struct FlushDescriptor
 {
-    FlushType flushType;
     PLSRenderTarget* renderTarget = nullptr;
     ShaderFeatures combinedShaderFeatures = ShaderFeatures::NONE;
     InterlockMode interlockMode = InterlockMode::rasterOrdering;
+    int msaaSampleCount = 0; // (0 unless interlockMode is depthStencil.)
 
     LoadAction colorLoadAction = LoadAction::clear;
     ColorInt clearColor = 0; // When loadAction == LoadAction::clear.
@@ -656,7 +740,9 @@ struct FlushDescriptor
 
     bool hasTriangleVertices = false;
     bool wireframe = false;
-    void* backendSpecificData = nullptr; // (External command buffer on Metal.)
+
+    void* externalCommandBuffer = nullptr; // Required on Metal.
+    bool isFinalFlushOfFrame = false;
 };
 
 // Returns true if the PLS shaders emit color directly to the raster pipeline, instead of rendering
@@ -779,12 +865,12 @@ struct PathData
 public:
     constexpr static StorageBufferStructure kBufferStructure = StorageBufferStructure::uint32x4;
 
-    void set(const Mat2D&, float strokeRadius);
+    void set(const Mat2D&, float strokeRadius, uint32_t zIndex);
 
 private:
     WRITEONLY float m_matrix[6];
     WRITEONLY float m_strokeRadius; // "0" indicates that the path is filled, not stroked.
-    WRITEONLY uint32_t m_pad;
+    WRITEONLY uint32_t m_zIndex;    // pls::InterlockMode::depthStencil only.
 };
 static_assert(sizeof(PathData) == StorageBufferElementSizeInBytes(PathData::kBufferStructure) * 2);
 static_assert(256 % sizeof(PathData) == 0);
@@ -904,7 +990,8 @@ public:
                       float opacity,
                       const ClipRectInverseMatrix*,
                       uint32_t clipID,
-                      BlendMode);
+                      BlendMode,
+                      uint32_t zIndex);
 
 private:
     WRITEONLY float m_matrix[6];
@@ -913,8 +1000,9 @@ private:
     WRITEONLY float m_clipRectInverseMatrix[6];
     WRITEONLY uint32_t m_clipID;
     WRITEONLY uint32_t m_blendMode;
+    WRITEONLY uint32_t m_zIndex; // pls::InterlockMode::depthStencil only.
     // Uniform blocks must be multiples of 256 bytes in size.
-    WRITEONLY uint8_t m_padTo256Bytes[256 - 64];
+    WRITEONLY uint8_t m_padTo256Bytes[256 - 68];
 
     constexpr void staticChecks()
     {
@@ -1014,5 +1102,13 @@ private:
     T* m_mappedMemory;
     T* m_nextMappedItem;
     const T* m_mappingEnd;
+};
+
+// Utility for tracking booleans that may be unknown (e.g., lazily computed values, GL state, etc.)
+enum class TriState
+{
+    no,
+    yes,
+    unknown
 };
 } // namespace rive::pls
