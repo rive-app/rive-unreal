@@ -433,6 +433,7 @@ void URiveFile::Initialize()
 				UE_LOG(LogRive, Error, TEXT("Failed to instantiate the Artboard after importing the rive file."));
 				BroadcastInitializationResult(false);
 			}
+			OnArtboardChangedRaw.Broadcast(this, Artboard);
 			OnArtboardChanged.Broadcast(this, Artboard); // Now we can broadcast the Artboard Changed Event
 			return;
 		}
@@ -528,6 +529,7 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	
 	if (bRaiseArtboardChangedEvent)
 	{
+		OnArtboardChangedRaw.Broadcast(this, Artboard);
 		OnArtboardChanged.Broadcast(this, Artboard);
 	}
 }
