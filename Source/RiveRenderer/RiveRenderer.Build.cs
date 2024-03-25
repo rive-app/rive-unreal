@@ -46,10 +46,22 @@ public class RiveRenderer : ModuleRules
 		
 		if (Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
 		{
-			PublicIncludePathModuleNames.AddAll("D3D11RHI"); // , "D3D12RHI");
+			PublicDependencyModuleNames.Add("D3D11RHI");
+			PublicIncludePathModuleNames.AddAll("RHICore", "D3D11RHI"); // , "D3D12RHI");
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
-            // AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+			// AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+
+			// Adding the path needed to include the private file D3D11RHIPrivate.h
+			string enginePath = Path.GetFullPath(Target.RelativeEnginePath);
+			string sourcePath = Path.Combine(enginePath, "Source", "Runtime");
+			PrivateIncludePaths.Add(Path.Combine(sourcePath, "Windows", "D3D11RHI", "Private"));
+			PublicIncludePaths.Add(Path.Combine(sourcePath, "Windows", "D3D11RHI", "Private"));
+
+			// Copied from D3D11RHI.build.cs, needed to include the private file D3D11RHIPrivate.h
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "IntelExtensionsFramework");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "IntelMetricsDiscovery");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAftermath");
 		}
 		else if (Target.Platform.IsInGroup(UnrealPlatformGroup.Android))
 		{

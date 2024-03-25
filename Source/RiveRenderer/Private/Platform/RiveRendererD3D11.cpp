@@ -8,6 +8,7 @@
 #include "ProfilingDebugging/RealtimeGPUProfiler.h"
 #include "RiveRenderTargetD3D11.h"
 #include "Windows/D3D11ThirdParty.h"
+#include "D3D11RHIPrivate.h"
 
 #if WITH_RIVE
 #include "RiveCore/Public/PreRiveHeaders.h"
@@ -40,87 +41,16 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::Initialize(rive:
 				AdapterDesc.VendorId == 0x8086 || AdapterDesc.VendorId == 0x8087;
 		}
 	}
-
-	// Init Blend State to fix the issue with Slate UI rendering
-	InitBlendState();
 }
 #endif // WITH_RIVE
 
-void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::ResetDXStateForRive()
-{
-	if (!D3D11DeviceContext)
-	{
-		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11DeviceContext is nullptr while resetting the DirectX state"));
-		return;
-	}
-
-	// Rive is resetting the Rasterizer and BlendState in PLSRenderContextD3DImpl::flush, so no need to call them
-	// the DepthStencil is not set by Rive, so we reset to default
-	D3D11DeviceContext->OMSetDepthStencilState(nullptr, 0);
-}
-
 void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::ResetDXState()
 {
-	if (!D3D11DeviceContext)
+	// Clear the internal state kept by UE and reset DX
+	FD3D11DynamicRHI* DynRHI = static_cast<FD3D11DynamicRHI*>(D3D11RHI);
+	if (ensure(DynRHI))
 	{
-		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11DeviceContext is nullptr while resetting the DirectX state"));
-		return;
-	}
-	
-	// We don't need to set a BlendState because we can match the default with TStaticBlendState<>::GetRHI(); 
-	D3D11DeviceContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
-	// We need a Rasterizer because the default state sets D3D11_RASTERIZER_DESC::FrontCounterClockwise to false, but UE sets it to true
-	D3D11DeviceContext->RSSetState(DefaultRasterState);
-	// We also need a DepthStencil because the default raster state states D3D11_DEPTH_STENCIL_DESC::DepthWriteMask to D3D11_DEPTH_WRITE_MASK_ALL, but UE crashed with that option
-	D3D11DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
-}
-
-void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::InitBlendState()
-{
-	check(IsInRenderingThread());
-	check(D3D11DevicePtr);
-
-	// Below is matching TStaticRasterizerState<>::GetRHI();
-	D3D11_RASTERIZER_DESC RasterDesc;
-	FMemory::Memzero(&RasterDesc,sizeof(D3D11_RASTERIZER_DESC));
-	RasterDesc.CullMode = D3D11_CULL_NONE;
-	RasterDesc.FillMode = D3D11_FILL_SOLID;
-	RasterDesc.SlopeScaledDepthBias = 0.f;
-	RasterDesc.FrontCounterClockwise = true;
-	RasterDesc.DepthBias = 0.f;
-	RasterDesc.DepthClipEnable = true;
-	RasterDesc.MultisampleEnable = true;
-	RasterDesc.ScissorEnable = true;
-
-	RasterDesc.AntialiasedLineEnable = false;
-	RasterDesc.DepthBiasClamp = 0.f;
-
-	HRESULT Hr = D3D11DevicePtr->CreateRasterizerState(&RasterDesc, DefaultRasterState.GetInitReference());
-	if (FAILED(Hr))
-	{
-		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11DevicePtr->CreateRasterizerState( &RasterDesc, NormalRasterState.GetInitReference() ) Failed"));
-	}
-
-	// Below is matching TStaticDepthStencilState<false>::GetRHI();
-	D3D11_DEPTH_STENCIL_DESC DepthStencilDesc;
-	FMemory::Memzero(&DepthStencilDesc,sizeof(D3D11_DEPTH_STENCIL_DESC));
-	DepthStencilDesc.DepthEnable = true; // because DepthTest = CF_DepthNearOrEqual
-	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	DepthStencilDesc.DepthFunc = D3D11_COMPARISON_ALWAYS; // CF_DepthNearOrEqual has no match
-	
-	DepthStencilDesc.StencilEnable = false;
-	DepthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS ;
-	DepthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	DepthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-	DepthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	DepthStencilDesc.BackFace = DepthStencilDesc.FrontFace;
-	DepthStencilDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
-	DepthStencilDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
-	
-	Hr = D3D11DevicePtr->CreateDepthStencilState( &DepthStencilDesc, DefaultDepthStencilState.GetInitReference() );
-	if (FAILED(Hr))
-	{
-		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11DevicePtr->CreateDepthStencilState( &DepthStencilDesc, DepthStencilState.GetInitReference() ) Failed"));
+		DynRHI->ClearState();
 	}
 }
 
@@ -165,15 +95,6 @@ DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread")
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
-}
-
-void UE::Rive::Renderer::Private::FRiveRendererD3D11::ResetDXStateForRive() const
-{
-	check(IsInRenderingThread());
-	check(D3D11GPUAdapter.IsValid());
-
-	FScopeLock Lock(&ThreadDataCS);
-	D3D11GPUAdapter->ResetDXStateForRive();
 }
 
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::ResetDXState() const
