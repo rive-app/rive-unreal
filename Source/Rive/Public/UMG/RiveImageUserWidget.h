@@ -8,7 +8,7 @@
 
 class URiveTexture;
 class URiveArtboard;
-class SRiveImage;
+class SRiveWidget;
 
 /**
  * 
@@ -42,7 +42,7 @@ protected:
 	//~ End UVisual Interface
 
 private:
-	TSharedPtr<SRiveImage> RiveImage;
+	TSharedPtr<SRiveWidget> RiveWidget;
 
 	TObjectPtr<URiveTexture> RiveTexture;
 

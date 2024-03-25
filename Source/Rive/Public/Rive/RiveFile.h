@@ -34,7 +34,8 @@ class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 	GENERATED_BODY()
 
 public:
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveFile*, RiveFile, URiveArtboard*, Artboard);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChangedDynamic, URiveFile*, RiveFile, URiveArtboard*, Artboard);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveFile* /* RiveFile */, URiveArtboard* /* Artboard */);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRiveFileInitialized, URiveFile*, bool /* bSuccess */ );
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRiveFileEvent, URiveFile*);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
@@ -116,8 +117,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetNumberValue instead"))
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
 
-	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
-
 #if WITH_EDITOR
 
 	bool EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer, bool bIsReimport = false);
@@ -164,7 +163,8 @@ protected:
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = Rive)
-	FOnArtboardChanged OnArtboardChanged;
+	FOnArtboardChangedDynamic OnArtboardChanged;
+	FOnArtboardChanged OnArtboardChangedRaw;
 
 	UPROPERTY()
 	TArray<uint8> RiveFileData;
@@ -239,9 +239,6 @@ private:
 	/* This property is not editable via Editor in Unity, so we'll hide it also */
 	UPROPERTY()
 	ERiveAlignment RiveAlignment = ERiveAlignment::Center;
-
-	UPROPERTY(EditAnywhere, Category = Rive)
-	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaBlend;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;

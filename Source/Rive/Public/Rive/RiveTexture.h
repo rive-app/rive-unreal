@@ -48,6 +48,8 @@ public:
 	
 	FVector2f GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const;
 
+	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
+
 	
 	FOnResourceInitializedOnRenderThread OnResourceInitializedOnRenderThread;
 protected:
@@ -67,4 +69,7 @@ protected:
 	 * Rendering resource for Rive File
 	 */
 	FRiveTextureResource* CurrentResource = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = Rive)
+	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaComposite;
 };
