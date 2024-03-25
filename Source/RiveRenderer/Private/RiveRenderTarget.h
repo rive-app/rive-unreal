@@ -60,10 +60,10 @@ namespace UE::Rive::Renderer::Private
 
 	protected:
 		virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const = 0;
-		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame(FRHICommandListImmediate* RHICmdListPtr);
-		virtual void EndFrame(FRHICommandListImmediate* RHICmdListPtr) const;
+		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame();
+		virtual void EndFrame() const;
 		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands);
-		virtual void Render_Internal(const TArray<FRiveRenderCommand>& RiveRenderCommands, FRHICommandListImmediate* RHICmdListPtr);
+		virtual void Render_Internal(const TArray<FRiveRenderCommand>& RiveRenderCommands);
 #endif // WITH_RIVE
 	
 	protected:

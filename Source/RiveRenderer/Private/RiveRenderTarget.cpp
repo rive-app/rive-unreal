@@ -152,7 +152,7 @@ FMatrix UE::Rive::Renderer::Private::FRiveRenderTarget::GetTransformMatrix() con
 	return CurrentMatrix;
 }
 
-std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTarget::BeginFrame(FRHICommandListImmediate* RHICmdListPtr)
+std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTarget::BeginFrame()
 {
 	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
 	if (PLSRenderContextPtr == nullptr)
@@ -182,7 +182,7 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame(FRHICommandListImmediate* RHICmdListPtr) const
+void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
 {
 	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
 	if (PLSRenderContextPtr == nullptr)
@@ -215,10 +215,10 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICom
 	SCOPED_GPU_STAT(RHICmdList, Render);
 	check(IsInRenderingThread());
 	
-	Render_Internal(RiveRenderCommands, &RHICmdList);
+	Render_Internal(RiveRenderCommands);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRenderCommands, FRHICommandListImmediate* RHICmdListPtr)
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRenderCommands)
 {
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
@@ -234,7 +234,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 #endif
     
 	// Begin Frame
-	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = BeginFrame(RHICmdListPtr);
+	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = BeginFrame();
 	if (PLSRenderer == nullptr)
 	{
 		return;
@@ -276,5 +276,5 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 		}
 	}
 
-	EndFrame(RHICmdListPtr);
+	EndFrame();
 }

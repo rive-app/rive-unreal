@@ -6,7 +6,6 @@
 #include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
 #include "ProfilingDebugging/RealtimeGPUProfiler.h"
-#include "D3D11State.h"
 #include "RiveRenderTargetD3D11.h"
 #include "Windows/D3D11ThirdParty.h"
 

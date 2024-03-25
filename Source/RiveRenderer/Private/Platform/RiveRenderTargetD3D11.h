@@ -44,9 +44,6 @@ namespace UE::Rive::Renderer::Private
 		// It Might need to be on rendering thread, render QUEUE is required
 		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands) override;
 		virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
-		virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame(FRHICommandListImmediate* RHICmdList) override;
-		virtual void EndFrame(FRHICommandListImmediate* RHICmdList) const override;
-
 		//~ END : FRiveRenderTarget Interface
 
 		/**
