@@ -3,6 +3,11 @@
 #include "RiveRenderTargetD3D11.h"
 
 #if PLATFORM_WINDOWS
+#include "CommonRenderResources.h"
+#include "RenderGraphBuilder.h"
+#include "ScreenRendering.h"
+#include "Engine/Texture2DDynamic.h"
+
 #include "RiveRendererD3D11.h"
 #include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
@@ -63,23 +68,49 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 	}
 }
 
+void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
+{
+	// -- First, we start a render pass todo: might not be needed here
+	FTextureRHIRef TargetTexture = RenderTarget->GetResource()->TextureRHI;
+	RHICmdList.Transition(FRHITransitionInfo(TargetTexture, ERHIAccess::Unknown, ERHIAccess::RTV));
+	FRHIRenderPassInfo RPInfo(TargetTexture, ERenderTargetActions::Load_Store);
+	RHICmdList.BeginRenderPass(RPInfo, TEXT("RiveRenderingTexture"));
+	
+	// -- Then we render Rive, ensuring the DX11 states are reset before the call
+	RHICmdList.EnqueueLambda([this, RiveRenderCommands](FRHICommandListImmediate& RHICmdList)
+	{
+		RiveRendererD3D11->ResetDXStateForRive();
+		FRiveRenderTarget::Render_Internal(RiveRenderCommands);
+		RiveRendererD3D11->ResetDXState();
+	});
+
+	// -- Lastly, now that we have manually reset DX11, we need to update the state to ensure it matches the direct calls we just made
+	{
+		FGlobalShaderMap* ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+		TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
+		TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
+		
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		// same as default D3D11_BLEND_DESC which is same as passing null to OMSetBlendState
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI(); 
+		// NOT the same as default D3D11_RASTERIZER_DESC, a matching Rasterizer has been created in FRiveRendererD3D11GPUAdapter::InitBlendState
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		// NOT the same as default D3D11_DEPTH_STENCIL_DESC, a matching DepthStencil has been created in FRiveRendererD3D11GPUAdapter::InitBlendState
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false>::GetRHI();
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VertexShader.GetVertexShader();
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PixelShader.GetPixelShader();
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit, 0, EApplyRendertargetOption::CheckApply, false);
+	}
+	RHICmdList.EndRenderPass();
+	RHICmdList.Transition(FRHITransitionInfo(TargetTexture, ERHIAccess::RTV, ERHIAccess::SRVMask));
+
+}
+
 rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetRenderTarget() const
 {
 	return CachedPLSRenderTargetD3D;
 }
-
-#if WITH_RIVE
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::EndFrame() const
-{
-	FRiveRenderTarget::EndFrame();
-	ResetBlendState();
-}
-
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::ResetBlendState() const
-{
-	check(IsInRenderingThread());
-	RiveRendererD3D11->ResetBlendState();
-}
-
-#endif // WITH_RIVE
 #endif // PLATFORM_WINDOWS
