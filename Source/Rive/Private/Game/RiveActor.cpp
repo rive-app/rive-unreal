@@ -119,7 +119,7 @@ void ARiveActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 
-	if (EndPlayReason == EEndPlayReason::EndPlayInEditor)
+	if (EndPlayReason == EEndPlayReason::EndPlayInEditor && IsValid(RiveFile))
 	{
 		RiveFile->InstantiateArtboard();
 	}

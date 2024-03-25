@@ -27,6 +27,7 @@ public:
 #endif
     SLATE_END_ARGS()
 
+	~SRiveWidget() override;
     /**
      * Implementation(s)
      */
@@ -48,4 +49,6 @@ private:
 
     /** Reference to Avalanche View */
     TSharedPtr<SRiveWidgetView> RiveWidgetView;
+	URiveFile* RiveFile = nullptr;
+	FDelegateHandle OnArtboardChangedHandle;
 };
