@@ -69,10 +69,9 @@ bool UE::Rive::Editor::Private::FRiveEditorModule::CheckCurrentRHIAndNotify()
 		return true;
 	}
 
-	EDefaultGraphicsRHI WindowsExpectedRHI = EDefaultGraphicsRHI::DefaultGraphicsRHI_Default;
 #if PLATFORM_WINDOWS
 	ERHIInterfaceType ExpectedRHI = ERHIInterfaceType::D3D11;
-	WindowsExpectedRHI = EDefaultGraphicsRHI::DefaultGraphicsRHI_DX11;
+	EDefaultGraphicsRHI WindowsExpectedRHI = EDefaultGraphicsRHI::DefaultGraphicsRHI_DX11;
 	FString ExpectedRHIStr = TEXT("DirectX 11");
 #elif PLATFORM_APPLE
 	ERHIInterfaceType ExpectedRHI = ERHIInterfaceType::Metal;
@@ -97,7 +96,11 @@ bool UE::Rive::Editor::Private::FRiveEditorModule::CheckCurrentRHIAndNotify()
 
 	if (ExpectedRHI != ERHIInterfaceType::Null)
 	{
-		auto AdjustRHI = [this, WindowsExpectedRHI, ExpectedRHIStr]()
+		auto AdjustRHI = [this, 
+#if PLATFORM_WINDOWS
+						  WindowsExpectedRHI,
+#endif
+						  ExpectedRHIStr]()
 		{
 #if PLATFORM_WINDOWS
 			UE_LOG(LogRiveEditor, Warning, TEXT("Changing RHI to '%s'"), *ExpectedRHIStr)
