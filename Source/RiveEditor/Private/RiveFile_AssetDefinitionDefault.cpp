@@ -6,6 +6,7 @@
 #include "IAssetTools.h"
 #include "RiveAssetToolkit.h"
 #include "Factories/RiveFileInstanceFactory.h"
+#include "Factories/RiveWidgetFactory.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
 
@@ -28,6 +29,19 @@ namespace MenuExtension_RiveFile
 			
 		});
 	}
+	void ExecuteCreateWidget(const FToolMenuContext& InContext)
+	{
+		const UContentBrowserAssetContextMenuContext* CBContext = UContentBrowserAssetContextMenuContext::FindContextWithAssets(InContext);
+
+		TArray<URiveFile*> RiveFiles = CBContext->LoadSelectedObjects<URiveFile>();
+		for (URiveFile* RiveFile : RiveFiles)
+		{
+			if (IsValid(RiveFile))
+			{
+				FRiveWidgetFactory(RiveFile).Create();
+			}
+		}
+	}
 
 	static FDelayedAutoRegisterHelper DelayedAutoRegister(EDelayedRegisterRunPhase::EndOfEngineInit, []{ 
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateLambda([]()
@@ -46,6 +60,13 @@ namespace MenuExtension_RiveFile
 							const FSlateIcon Icon = FSlateIcon(FAppStyle::GetAppStyleSetName(), "ClassIcon.Material");
 							const FToolMenuExecuteAction UIAction = FToolMenuExecuteAction::CreateStatic(&ExecuteCreateInstance);
 							InSection.AddMenuEntry("RiveFile_CreateInstance", Label, ToolTip, Icon, UIAction);
+						}
+						{
+							const TAttribute<FText> Label = LOCTEXT("RiveFile_CreateWidget", "Create Rive Widget");
+							const TAttribute<FText> ToolTip = LOCTEXT("RiveFile_CreateWidgetTooltip", "Creates a new Rive Widget asset using this file.");
+							const FSlateIcon Icon = FSlateIcon(FAppStyle::GetAppStyleSetName(), "ClassIcon.WidgetBlueprint");
+							const FToolMenuExecuteAction UIAction = FToolMenuExecuteAction::CreateStatic(&ExecuteCreateWidget);
+							InSection.AddMenuEntry("RiveFile_CreateWidget", Label, ToolTip, Icon, UIAction);
 						}
 					}
 				}));

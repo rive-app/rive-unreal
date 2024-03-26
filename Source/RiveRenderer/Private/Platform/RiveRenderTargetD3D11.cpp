@@ -3,6 +3,11 @@
 #include "RiveRenderTargetD3D11.h"
 
 #if PLATFORM_WINDOWS
+#include "CommonRenderResources.h"
+#include "RenderGraphBuilder.h"
+#include "ScreenRendering.h"
+#include "Engine/Texture2DDynamic.h"
+
 #include "RiveRendererD3D11.h"
 #include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
@@ -63,23 +68,24 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 	}
 }
 
+void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
+{
+	// First, we transition the texture to a RenderTextureView
+	FTextureRHIRef TargetTexture = RenderTarget->GetResource()->TextureRHI;
+	RHICmdList.Transition(FRHITransitionInfo(TargetTexture, ERHIAccess::Unknown, ERHIAccess::RTV));
+	// Then we render Rive, ensuring the DX11 states are reset before and after the call
+	RHICmdList.EnqueueLambda([this, RiveRenderCommands](FRHICommandListImmediate& RHICmdList)
+	{
+		RiveRendererD3D11->ResetDXState();
+		FRiveRenderTarget::Render_Internal(RiveRenderCommands);
+		RiveRendererD3D11->ResetDXState();
+	});
+	// Finally we transition the texture to a UAV Graphics
+	RHICmdList.Transition(FRHITransitionInfo(TargetTexture, ERHIAccess::RTV, ERHIAccess::UAVGraphics));
+}
+
 rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetRenderTarget() const
 {
 	return CachedPLSRenderTargetD3D;
 }
-
-#if WITH_RIVE
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::EndFrame() const
-{
-	FRiveRenderTarget::EndFrame();
-	ResetBlendState();
-}
-
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::ResetBlendState() const
-{
-	check(IsInRenderingThread());
-	RiveRendererD3D11->ResetBlendState();
-}
-
-#endif // WITH_RIVE
 #endif // PLATFORM_WINDOWS
