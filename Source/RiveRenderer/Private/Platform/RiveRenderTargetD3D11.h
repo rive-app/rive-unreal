@@ -32,36 +32,26 @@ namespace UE::Rive::Renderer::Private
 
 		FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget);
 		virtual ~FRiveRenderTargetD3D11() override;
+		
 		//~ BEGIN : IRiveRenderTarget Interface
-
 	public:
 		virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override;
-
-#if WITH_RIVE
-		
 		//~ END : IRiveRenderTarget Interface
-
+		
+#if WITH_RIVE
 		//~ BEGIN : FRiveRenderTarget Interface
-
 	protected:
 		// It Might need to be on rendering thread, render QUEUE is required
+		virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands) override;
 		virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
-		virtual void EndFrame() const override;
-
 		//~ END : FRiveRenderTarget Interface
 
 		/**
 		 * Attribute(s)
 		 */
-
-	private:
-		void ResetBlendState() const;
-
 	private:
 		TSharedRef<FRiveRendererD3D11> RiveRendererD3D11;
-
 		rive::rcp<rive::pls::PLSRenderTargetD3D> CachedPLSRenderTargetD3D;
-
 #endif // WITH_RIVE
 	};
 }

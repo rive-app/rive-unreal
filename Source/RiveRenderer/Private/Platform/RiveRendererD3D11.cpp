@@ -8,6 +8,7 @@
 #include "ProfilingDebugging/RealtimeGPUProfiler.h"
 #include "RiveRenderTargetD3D11.h"
 #include "Windows/D3D11ThirdParty.h"
+#include "D3D11RHIPrivate.h"
 
 #if WITH_RIVE
 #include "RiveCore/Public/PreRiveHeaders.h"
@@ -28,84 +29,28 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::Initialize(rive:
 	D3D11DeviceContext = nullptr;
 	D3D11DevicePtr->GetImmediateContext(&D3D11DeviceContext);
 
-	if (SUCCEEDED(D3D11DevicePtr->QueryInterface(__uuidof(IDXGIDevice), (void**)&DXGIDevice)))
+	if (SUCCEEDED(D3D11DevicePtr->QueryInterface(__uuidof(IDXGIDevice), (void**)DXGIDevice.GetInitReference())))
 	{
-		IDXGIAdapter* DXGIAdapter;
-		if (SUCCEEDED(DXGIDevice->GetAdapter(&DXGIAdapter)))
+		TRefCountPtr<IDXGIAdapter> DXGIAdapter;
+		if (SUCCEEDED(DXGIDevice->GetAdapter(DXGIAdapter.GetInitReference())))
 		{
 			DXGI_ADAPTER_DESC AdapterDesc;
 			DXGIAdapter->GetDesc(&AdapterDesc);
 
 			OutContextOptions.isIntel = AdapterDesc.VendorId == 0x163C ||
 				AdapterDesc.VendorId == 0x8086 || AdapterDesc.VendorId == 0x8087;
-
-			DXGIAdapter->Release();
 		}
 	}
-
-	// Init Blend State to fix the issue with Slate UI rendering
-	InitBlendState();
 }
 #endif // WITH_RIVE
 
-void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::ResetBlendState()
+void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::ResetDXState()
 {
-	if (!D3D11DeviceContext)
+	// Clear the internal state kept by UE and reset DX
+	FD3D11DynamicRHI* DynRHI = static_cast<FD3D11DynamicRHI*>(D3D11RHI);
+	if (ensure(DynRHI))
 	{
-		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11DeviceContext is nullptr while resetting of blend state"));
-		return;
-	}
-
-	// Reference is here FSlateD3D11RenderingPolicy::DrawElements(), set the blend state back to whatever Unreal expects after Rive renderers 
-	D3D11DeviceContext->OMSetBlendState( AlphaBlendState, nullptr, 0xFFFFFFFF );
-
-	// Reset the Raster state when finished, there are places that are making assumptions about the raster state
-	// that need to be fixed.
-	D3D11DeviceContext->RSSetState(NormalRasterState);
-}
-
-void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::InitBlendState()
-{
-	check(IsInRenderingThread());
-	check(D3D11DevicePtr);
-			
-	D3D11_BLEND_DESC BlendDesc;
-	BlendDesc.AlphaToCoverageEnable = false;
-	BlendDesc.IndependentBlendEnable = false;
-	BlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	BlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-
-	// dest.a = 1-(1-dest.a)*src.a + dest.a
-	BlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_INV_DEST_ALPHA;
-	BlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-	BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-
-	BlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	BlendDesc.RenderTarget[0].BlendEnable = true;
-
-	HRESULT Hr = D3D11DevicePtr->CreateBlendState( &BlendDesc, AlphaBlendState.GetInitReference() );
-	if (FAILED(Hr))
-	{
-		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11DevicePtr->CreateBlendState( &BlendDesc, AlphaBlendState.GetInitReference() ) Failed"));
-		return;
-	}
-
-	D3D11_RASTERIZER_DESC RasterDesc;
-	RasterDesc.CullMode = D3D11_CULL_NONE;
-	RasterDesc.FillMode = D3D11_FILL_SOLID;
-	RasterDesc.FrontCounterClockwise = true;
-	RasterDesc.DepthBias = 0;
-	RasterDesc.DepthBiasClamp = 0;
-	RasterDesc.SlopeScaledDepthBias = 0;
-	RasterDesc.ScissorEnable = false;
-	RasterDesc.MultisampleEnable = false;
-	RasterDesc.AntialiasedLineEnable = false;
-
-	Hr = D3D11DevicePtr->CreateRasterizerState( &RasterDesc, NormalRasterState.GetInitReference() );
-	if (FAILED(Hr))
-	{
-		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11DevicePtr->CreateRasterizerState( &RasterDesc, NormalRasterState.GetInitReference() ) Failed"));
+		DynRHI->ClearState();
 	}
 }
 
@@ -152,14 +97,13 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderTh
 	RIVE_DEBUG_FUNCTION_INDENT;
 }
 
-void UE::Rive::Renderer::Private::FRiveRendererD3D11::ResetBlendState() const
+void UE::Rive::Renderer::Private::FRiveRendererD3D11::ResetDXState() const
 {
 	check(IsInRenderingThread());
 	check(D3D11GPUAdapter.IsValid());
 
 	FScopeLock Lock(&ThreadDataCS);
-
-	D3D11GPUAdapter->ResetBlendState();
+	D3D11GPUAdapter->ResetDXState();
 }
 
 #endif // PLATFORM_WINDOWS

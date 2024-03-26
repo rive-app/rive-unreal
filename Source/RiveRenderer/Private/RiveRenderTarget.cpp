@@ -214,7 +214,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICom
 {
 	SCOPED_GPU_STAT(RHICmdList, Render);
 	check(IsInRenderingThread());
-
+	
 	Render_Internal(RiveRenderCommands);
 }
 

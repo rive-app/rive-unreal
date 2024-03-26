@@ -34,7 +34,8 @@ class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 	GENERATED_BODY()
 
 public:
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveFile*, RiveFile, URiveArtboard*, Artboard);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChangedDynamic, URiveFile*, RiveFile, URiveArtboard*, Artboard);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveFile* /* RiveFile */, URiveArtboard* /* Artboard */);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRiveFileInitialized, URiveFile*, bool /* bSuccess */ );
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRiveFileEvent, URiveFile*);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
@@ -162,7 +163,8 @@ protected:
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = Rive)
-	FOnArtboardChanged OnArtboardChanged;
+	FOnArtboardChangedDynamic OnArtboardChanged;
+	FOnArtboardChanged OnArtboardChangedRaw;
 
 	UPROPERTY()
 	TArray<uint8> RiveFileData;
