@@ -39,8 +39,6 @@ namespace UE::Rive::Renderer::Private
         
         virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
         
-        virtual void CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList) override;
-        
         //~ END : IRiveRenderer Interface
     };
 }

@@ -65,8 +65,6 @@ namespace UE::Rive::Renderer
         
         virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) = 0;
 
-        virtual void CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList) = 0;
-
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) = 0;
 
         virtual FCriticalSection& GetThreadDataCS() = 0;

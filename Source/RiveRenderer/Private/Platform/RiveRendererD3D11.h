@@ -58,7 +58,6 @@ namespace UE::Rive::Renderer::Private
 		//~ BEGIN : IRiveRenderer Interface
 		virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override;
 		virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
-		virtual void CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList) override;
 		//~ END : IRiveRenderer Interface
 		
 		void ResetDXState() const;

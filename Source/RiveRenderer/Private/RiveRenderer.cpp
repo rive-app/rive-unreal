@@ -49,7 +49,6 @@ void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
     [this](FRHICommandListImmediate& RHICmdList)
     {
         CreatePLSContext_RenderThread(RHICmdList);
-        CreatePLSRenderer_RenderThread(RHICmdList);
         AsyncTask(ENamedThreads::GameThread, [this]()
         {
             {
