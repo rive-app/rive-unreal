@@ -5,6 +5,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "ScreenPass.h"
 #include "PostProcess/PostProcessMaterialInputs.h"
+#include "TextureResource.h"
 
 FRivePostProcessSceneViewExtension::FRivePostProcessSceneViewExtension(const FAutoRegister& AutoRegister, UTextureRenderTarget2D& WidgetRenderTarget)
 	: Super(AutoRegister)

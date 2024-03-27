@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "PixelFormat.h"
+#include "RHI.h"
+
 class UTextureRenderTarget2D;
 class FRHICommandListImmediate;
 

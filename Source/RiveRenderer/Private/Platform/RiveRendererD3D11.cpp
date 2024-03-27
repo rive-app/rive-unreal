@@ -91,12 +91,6 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 	}
 }
 
-DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread"));
-void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList)
-{
-	RIVE_DEBUG_FUNCTION_INDENT;
-}
-
 void UE::Rive::Renderer::Private::FRiveRendererD3D11::ResetDXState() const
 {
 	check(IsInRenderingThread());

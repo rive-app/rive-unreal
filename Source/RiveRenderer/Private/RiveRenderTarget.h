@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectPtr.h"
 #include "IRiveRenderTarget.h"
+#include "RiveRenderCommand.h"
 
 #if WITH_RIVE
 #include "RiveCore/Public/PreRiveHeaders.h"
@@ -10,7 +13,6 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
 
-struct FRiveRenderCommand;
 
 namespace rive::pls
 {

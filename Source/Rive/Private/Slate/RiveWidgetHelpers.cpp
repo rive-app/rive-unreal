@@ -1,9 +1,11 @@
-﻿// Copyright Rive, Inc. All rights reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #include "RiveWidgetHelpers.h"
 
 #include "RiveArtboard.h"
 #include "Rive/RiveTexture.h"
+#include "Layout/Geometry.h"
+#include "Input/Events.h"
 
 FVector2f RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(URiveTexture* InRiveTexture, URiveArtboard* InArtboard, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {

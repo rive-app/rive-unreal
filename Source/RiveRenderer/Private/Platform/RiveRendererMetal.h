@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if PLATFORM_APPLE
 
 #include "RiveRenderer.h"
@@ -36,8 +38,6 @@ namespace UE::Rive::Renderer::Private
         virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override;
         
         virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
-        
-        virtual void CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList) override;
         
         //~ END : IRiveRenderer Interface
     };

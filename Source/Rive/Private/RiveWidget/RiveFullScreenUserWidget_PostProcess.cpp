@@ -4,9 +4,11 @@
 
 #include "Components/PostProcessComponent.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "GameFramework/WorldSettings.h"
 #include "Materials/MaterialInstanceDynamic.h"
-#include "TextureResource.h"
+#include "UObject/Package.h"
+#include "Widgets/Layout/SConstraintCanvas.h"
 
 namespace UE::RiveUtilities::Private
 {

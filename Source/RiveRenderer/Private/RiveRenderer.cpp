@@ -49,7 +49,6 @@ void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
     [this](FRHICommandListImmediate& RHICmdList)
     {
         CreatePLSContext_RenderThread(RHICmdList);
-        CreatePLSRenderer_RenderThread(RHICmdList);
         AsyncTask(ENamedThreads::GameThread, [this]()
         {
             {
@@ -95,16 +94,6 @@ rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRenderer::GetPLSR
     return PLSRenderContext.get();
 }
 
-rive::pls::PLSRenderer* UE::Rive::Renderer::Private::FRiveRenderer::GetPLSRendererPtr()
-{
-    if (!PLSRenderer)
-    {
-        UE_LOG(LogRiveRenderer, Error, TEXT("Rive PLS Renderer is uninitialized."));
-        return nullptr;
-    }
-
-    return PLSRenderer.get();
-}
 
 #endif // WITH_RIVE
 

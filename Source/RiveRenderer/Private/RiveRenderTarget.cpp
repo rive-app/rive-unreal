@@ -2,10 +2,11 @@
 
 #include "RiveRenderTarget.h"
 
-#include "RiveRenderCommand.h"
 #include "RiveRenderer.h"
 #include "Engine/Texture2DDynamic.h"
 #include "Logs/RiveRendererLog.h"
+#include "RenderingThread.h"
+#include "TextureResource.h"
 
 #include "RiveCore/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
