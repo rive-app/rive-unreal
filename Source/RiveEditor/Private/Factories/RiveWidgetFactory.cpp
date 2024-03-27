@@ -2,6 +2,7 @@
 
 #include "RiveWidgetFactory.h"
 
+#include "Editor/EditorEngine.h"
 #include "AssetToolsModule.h"
 #include "ContentBrowserMenuContexts.h"
 #include "PackageTools.h"
@@ -18,6 +19,12 @@
 #include "Templates/WidgetTemplateClass.h"
 #include "UMG/RiveWidget.h"
 #include "UObject/SavePackage.h"
+#include "HAL/FileManager.h"
+#include "Misc/MessageDialog.h"
+#include "ToolMenus.h"
+#include "Components/CanvasPanel.h"
+
+extern UNREALED_API class UEditorEngine* GEditor;
 
 #define LOCTEXT_NAMESPACE "FRiveWidgetFactory"
 

@@ -10,6 +10,11 @@
 #include "RiveCore/Public/Assets/RiveAsset.h"
 #include "RiveCore/Public/Assets/URAssetImporter.h"
 #include "RiveCore/Public/Assets/URFileAssetLoader.h"
+#include "HAL/FileManager.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Misc/Paths.h"
+#include "Async/Async.h"
+#include "RenderingThread.h"
 
 #if WITH_RIVE
 #include "PreRiveHeaders.h"

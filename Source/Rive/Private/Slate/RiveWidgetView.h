@@ -8,6 +8,7 @@ class FRiveSceneViewport;
 class FRiveViewportClient;
 class URiveTexture;
 class URiveArtboard;
+class SViewport;
 
 /**
  *

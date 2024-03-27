@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if WITH_RIVE
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START

@@ -63,25 +63,4 @@ void UE::Rive::Renderer::Private::FRiveRendererMetal::CreatePLSContext_RenderThr
     }
 }
 
-DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread"));
-void UE::Rive::Renderer::Private::FRiveRendererMetal::CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList)
-{
-#if WITH_RIVE
-    
-    if (PLSRenderContext == nullptr)
-    {
-        return;
-    }
-    
-    check(IsInRenderingThread());
-    
-    FScopeLock Lock(&ThreadDataCS);
-    
-    SCOPED_GPU_STAT(RHICmdList, CreatePLSRenderer);
-    
-    PLSRenderer = std::make_unique<rive::pls::PLSRenderer>(PLSRenderContext.get());
-    
-#endif // WITH_RIVE
-}
-
 #endif // PLATFORM_APPLE

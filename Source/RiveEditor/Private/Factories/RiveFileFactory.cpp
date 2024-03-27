@@ -2,12 +2,16 @@
 
 #include "RiveFileFactory.h"
 
+#include "Editor/EditorEngine.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
 #include "RiveWidgetFactory.h"
-#include "Blueprint/UserWidget.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
+#include "Subsystems/ImportSubsystem.h"
+#include "Misc/FileHelper.h"
+
+extern UNREALED_API class UEditorEngine* GEditor;
 
 URiveFileFactory::URiveFileFactory(const FObjectInitializer& ObjectInitializer)
 {

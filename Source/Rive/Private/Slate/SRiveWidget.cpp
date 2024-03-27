@@ -1,8 +1,10 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "Slate/SRiveWidget.h"
+
 #include "RiveWidgetView.h"
 #include "Rive/RiveFile.h"
+#include "Components/VerticalBox.h"
 
 SRiveWidget::~SRiveWidget()
 {

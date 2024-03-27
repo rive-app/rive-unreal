@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectPtr.h"
+
 #if WITH_RIVE
 
 class URiveAsset;
