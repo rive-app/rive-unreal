@@ -169,4 +169,4 @@ void UE::Rive::Editor::Private::FRiveEditorModule::RegisterAssetTypeActions(IAss
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(UE::Rive::Editor::Private::FRiveEditorModule, RiveEditorModule)
+IMPLEMENT_MODULE(UE::Rive::Editor::Private::FRiveEditorModule, RiveEditor)
