@@ -7,6 +7,7 @@
 #include "RiveWidgetHelpers.h"
 #include "Rive/RiveTexture.h"
 #include "RiveArtboard.h"
+#include "Engine/Texture2D.h"
 
 
 #if WITH_EDITOR // For Checkerboard Texture

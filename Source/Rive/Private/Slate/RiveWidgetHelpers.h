@@ -1,9 +1,13 @@
-﻿// Copyright Rive, Inc. All rights reserved.
+// Copyright Rive, Inc. All rights reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 class URiveArtboard;
 class URiveTexture;
+struct FPointerEvent;
+struct FGeometry;
 
 class RiveWidgetHelpers
 {

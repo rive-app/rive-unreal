@@ -76,8 +76,6 @@ namespace UE::Rive::Renderer
 #if WITH_RIVE
 
         virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() = 0;
-    
-        virtual rive::pls::PLSRenderer* GetPLSRendererPtr() = 0;
 
 #endif // WITH_RIVE
     };

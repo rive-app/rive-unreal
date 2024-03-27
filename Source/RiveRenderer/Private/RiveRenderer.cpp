@@ -95,16 +95,6 @@ rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRenderer::GetPLSR
     return PLSRenderContext.get();
 }
 
-rive::pls::PLSRenderer* UE::Rive::Renderer::Private::FRiveRenderer::GetPLSRendererPtr()
-{
-    if (!PLSRenderer)
-    {
-        UE_LOG(LogRiveRenderer, Error, TEXT("Rive PLS Renderer is uninitialized."));
-        return nullptr;
-    }
-
-    return PLSRenderer.get();
-}
 
 #endif // WITH_RIVE
 

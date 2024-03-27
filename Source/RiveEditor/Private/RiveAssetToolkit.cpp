@@ -3,6 +3,8 @@
 #include "RiveAssetToolkit.h"
 #include "Rive/RiveFile.h"
 #include "Slate/SRiveWidget.h"
+#include "PropertyEditorModule.h"
+#include "Widgets/Docking/SDockTab.h"
 
 const FName FRiveAssetToolkit::RiveViewportTabID(TEXT("RiveViewportTabID"));
 const FName FRiveAssetToolkit::DetailsTabID(TEXT("DetailsTabID"));

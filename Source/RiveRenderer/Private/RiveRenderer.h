@@ -5,6 +5,8 @@
 #include "IRiveRenderer.h"
 #include "RiveTypes.h"
 
+#include <memory>
+
 #if WITH_RIVE
 
 namespace rive::pls
@@ -52,8 +54,6 @@ namespace UE::Rive::Renderer::Private
 #if WITH_RIVE
 
         virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() override;
-        
-        virtual rive::pls::PLSRenderer* GetPLSRendererPtr() override;
 
 #endif // WITH_RIVE
 
@@ -68,8 +68,6 @@ namespace UE::Rive::Renderer::Private
 #if WITH_RIVE
 
         std::unique_ptr<rive::pls::PLSRenderContext> PLSRenderContext;
-        
-        std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer;
 
 #endif // WITH_RIVE
 

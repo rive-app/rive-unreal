@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if PLATFORM_ANDROID
 
 #include "RiveRenderer.h"
