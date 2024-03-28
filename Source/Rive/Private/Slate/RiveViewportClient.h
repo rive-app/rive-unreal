@@ -7,10 +7,12 @@
 #include "UObject/GCObject.h"
 #include "UnrealClient.h"
 #include "ViewportClient.h"
+#include "UObject/ObjectPtr.h"
 
 class SRiveWidgetView;
 class URiveTexture;
 class URiveArtboard;
+class UTexture2D;
 
 /**
  * 

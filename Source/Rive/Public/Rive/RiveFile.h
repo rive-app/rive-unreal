@@ -24,6 +24,7 @@ namespace rive
 #endif // WITH_RIVE
 
 class URiveAsset;
+class UUserWidget;
 
 /**
  *

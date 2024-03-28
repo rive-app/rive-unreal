@@ -13,6 +13,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Widgets/Layout/SConstraintCanvas.h"
 #include "Widgets/Layout/SDPIScaler.h"
+#include "Materials/MaterialInterface.h"
 
 #if WITH_EDITOR
 #include "LevelEditor.h"

@@ -119,11 +119,6 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreatePLSContext_GameThre
 	GetOrCreatePLSRenderContextPtr_Internal();
 }
 
-DECLARE_GPU_STAT_NAMED(CreatePLSRenderer, TEXT("CreatePLSRenderer_RenderThread"));
-void UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreatePLSRenderer_RenderThread(FRHICommandListImmediate& RHICmdList)
-{
-	RIVE_DEBUG_FUNCTION_INDENT;
-}
 
 rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::GetOrCreatePLSRenderContextPtr_Internal()
 {

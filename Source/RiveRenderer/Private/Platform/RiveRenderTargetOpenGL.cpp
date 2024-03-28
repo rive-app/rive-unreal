@@ -11,6 +11,7 @@
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderCommand.h"
 #include "IOpenGLDynamicRHI.h"
+#include "TextureResource.h"
 
 
 #if WITH_RIVE

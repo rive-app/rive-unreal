@@ -7,6 +7,8 @@
 #include "RiveWidgetHelpers.h"
 #include "Rive/RiveTexture.h"
 #include "RiveArtboard.h"
+#include "Engine/Texture2D.h"
+#include "TextureResource.h"
 
 
 #if WITH_EDITOR // For Checkerboard Texture
@@ -54,12 +56,7 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		const float CheckerboardSizeY = (float)FMath::Max<int32>(1, CheckerboardTexture->GetSizeY());
 		if (Settings.Background == TextureEditorBackground_CheckeredFill)
 		{
-			Canvas->DrawTile(RiveTextureBox.Min.X, RiveTextureBox.Min.Y,
-				RiveTextureSize.X, RiveTextureSize.Y,
-				0.f, 0.f,
-				RiveTextureSize.X / CheckerboardSizeX, RiveTextureSize.Y / CheckerboardSizeY,
-				FLinearColor::White,
-				CheckerboardTexture->GetResource());
+			Canvas->DrawTile(0.0f, 0.0f, Viewport->GetSizeXY().X, Viewport->GetSizeXY().Y, 0.0f, 0.0f, (float)Viewport->GetSizeXY().X / CheckerboardSizeX, (float)Viewport->GetSizeXY().Y / CheckerboardSizeY, FLinearColor::White, CheckerboardTexture->GetResource());
 		}
 		else if (Settings.Background == TextureEditorBackground_Checkered)
 		{

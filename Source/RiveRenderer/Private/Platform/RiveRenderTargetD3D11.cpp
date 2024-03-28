@@ -12,6 +12,7 @@
 #include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderer.h"
+#include "TextureResource.h"
 
 
 UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
