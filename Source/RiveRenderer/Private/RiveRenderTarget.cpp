@@ -162,7 +162,6 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 
 	FColor Color = ClearColor.ToRGBE();
 	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
-	// FrameDescriptor.renderTarget = GetRenderTarget(); // get the platform specific render target
 	FrameDescriptor.renderTargetWidth = GetWidth();
 	FrameDescriptor.renderTargetHeight = GetHeight();
 	FrameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
