@@ -49,7 +49,7 @@ namespace UE::Rive::Renderer::Private
     protected:
 
         virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
-        
+        virtual void EndFrame() const override;
         //~ END : FRiveRenderTarget Interface
         
         /**

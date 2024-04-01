@@ -94,7 +94,6 @@ private:
         uint32_t clipID;
     };
     std::vector<ClipElement> m_clipStack;
-    uint64_t m_clipStackFlushID = -1; // Ensures we invalidate the clip stack after a logical flush.
 
     PLSRenderContext* const m_context;
 

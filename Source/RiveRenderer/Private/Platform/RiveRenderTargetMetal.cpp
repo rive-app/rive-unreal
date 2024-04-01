@@ -73,7 +73,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
         check(MetalTexture);
         NSUInteger Format = MetalTexture.pixelFormat;
         UE_LOG(LogRiveRenderer, Verbose, TEXT("MetalTexture texture %dx%d"), MetalTexture.width, MetalTexture.height);
-        UE_LOG(LogRiveRenderer, Verbose, TEXT("  format: %d (MTLPixelFormatRGBA8Unorm_sRGB: %d , MTLPixelFormatRGBA8Unorm: %d)"), Format, MTLPixelFormatRGBA8Unorm_sRGB, MTLPixelFormatRGBA8Unorm);
+        UE_LOG(LogRiveRenderer, Verbose, TEXT("  format: %d (MTLPixelFormatRGBA8Unorm_sRGB: %d, MTLPixelFormatRGBA8Unorm: %d)"), Format, MTLPixelFormatRGBA8Unorm_sRGB, MTLPixelFormatRGBA8Unorm);
+        UE_LOG(LogRiveRenderer, Verbose, TEXT("  format: %d (MTLPixelFormatBGRA8Unorm_sRGB: %d, MTLPixelFormatBGRA8Unorm: %d)"), Format, MTLPixelFormatBGRA8Unorm_sRGB, MTLPixelFormatBGRA8Unorm);
 
 #if WITH_RIVE
         if (CachedPLSRenderTargetMetal)
@@ -96,6 +97,26 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
 rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetMetal::GetRenderTarget() const
 {
     return CachedPLSRenderTargetMetal;
+}
+
+void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::EndFrame() const
+{
+    rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
+    if (PLSRenderContextPtr == nullptr)
+    {
+        return;
+    }
+
+    // End drawing a frame.
+    id<MTLCommandQueue> MetalCommandQueue = (id<MTLCommandQueue>)GDynamicRHI->RHIGetNativeGraphicsQueue();
+    id<MTLCommandBuffer> flushCommandBuffer = [MetalCommandQueue commandBuffer];
+    rive::pls::PLSRenderContext::FlushResources FlushResources
+    {
+        GetRenderTarget().get(),
+        (__bridge void*)flushCommandBuffer
+    };
+    PLSRenderContextPtr->flush(FlushResources);
+	[flushCommandBuffer commit];
 }
 #endif // WITH_RIVE
 

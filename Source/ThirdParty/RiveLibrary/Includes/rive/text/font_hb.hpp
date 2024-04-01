@@ -41,13 +41,13 @@ private:
            std::vector<rive_hb_feature_t> features);
 
 public:
-    rive_hb_font_t* m_font = nullptr;
+    rive_hb_font_t* m_font;
 
     // The features list to pass directly to Harfbuzz.
     std::vector<rive_hb_feature_t> m_features;
 
 private:
-    rive_hb_draw_funcs_t* m_drawFuncs = nullptr;;
+    rive_hb_draw_funcs_t* m_drawFuncs;
 
     // Feature value lookup based on tag.
     std::unordered_map<uint32_t, uint32_t> m_featureValues;
