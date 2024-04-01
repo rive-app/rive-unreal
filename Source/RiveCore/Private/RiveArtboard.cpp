@@ -263,6 +263,33 @@ bool URiveArtboard::TriggerNamedRiveEvent(const FString& EventName, float Report
 	return false;
 }
 
+void URiveArtboard::MouseButtonDown(const FVector2f& NewPosition)
+{
+	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
+	if (StateMachine)
+	{
+		StateMachine->OnMouseButtonDown(NewPosition);
+	}
+}
+
+void URiveArtboard::MouseButtonUp(const FVector2f& NewPosition)
+{
+	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
+	if (StateMachine)
+	{
+		StateMachine->OnMouseButtonUp(NewPosition);
+	}
+}
+
+void URiveArtboard::MouseMove(const FVector2f& NewPosition)
+{
+	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
+	if (StateMachine)
+	{
+		StateMachine->OnMouseMove(NewPosition);
+	}
+}
+
 FVector2f URiveArtboard::GetLocalCoordinate(const FVector2f& InPosition, const FIntPoint& InTextureSize, ERiveAlignment InAlignment, ERiveFitType InFit) const
 {
 	FVector2f Alignment = FRiveAlignment::GetAlignment(InAlignment);
