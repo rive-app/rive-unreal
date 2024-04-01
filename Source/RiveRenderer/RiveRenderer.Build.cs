@@ -60,8 +60,11 @@ public class RiveRenderer : ModuleRules
 
 			// Copied from D3D11RHI.build.cs, needed to include the private file D3D11RHIPrivate.h
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "IntelExtensionsFramework");
-			AddEngineThirdPartyPrivateStaticDependencies(Target, "IntelMetricsDiscovery");
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAftermath");
+			if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion < 4)
+			{
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "IntelMetricsDiscovery");
+			}
 		}
 		else if (Target.Platform.IsInGroup(UnrealPlatformGroup.Android))
 		{

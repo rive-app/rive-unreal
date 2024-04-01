@@ -5,6 +5,7 @@
 #pragma once
 
 #include "rive/pls/gl/gl_state.hpp"
+#include "rive/pls/gl/gl_utils.hpp"
 #include "rive/pls/pls_render_context_helper_impl.hpp"
 #include <map>
 
@@ -20,6 +21,7 @@ class PLSRenderContextGLImpl : public PLSRenderContextHelperImpl
 public:
     struct ContextOptions
     {
+        bool disablePixelLocalStorage = false;
         bool disableFragmentShaderInterlock = false;
     };
 
@@ -27,6 +29,18 @@ public:
     static std::unique_ptr<PLSRenderContext> MakeContext() { return MakeContext(ContextOptions()); }
 
     ~PLSRenderContextGLImpl() override;
+
+    const GLCapabilities& capabilities() const { return m_capabilities; }
+
+    rcp<RenderBuffer> makeRenderBuffer(RenderBufferType, RenderBufferFlags, size_t) override;
+
+    rcp<PLSTexture> makeImageTexture(uint32_t width,
+                                     uint32_t height,
+                                     uint32_t mipLevelCount,
+                                     const uint8_t imageDataRGBA[]) override;
+
+    // Takes ownership of textureID and responsibility for deleting it.
+    rcp<PLSTexture> adoptImageTexture(uint32_t width, uint32_t height, GLuint textureID);
 
     // Called *after* the GL context has been modified externally.
     // Re-binds Rive internal resources and invalidates the internal cache of GL state.
@@ -36,12 +50,11 @@ public:
     // Unbinds Rive internal resources before yielding control of the GL context.
     void unbindGLInternalResources();
 
-    rcp<RenderBuffer> makeRenderBuffer(RenderBufferType, RenderBufferFlags, size_t) override;
-
-    rcp<PLSTexture> makeImageTexture(uint32_t width,
-                                     uint32_t height,
-                                     uint32_t mipLevelCount,
-                                     const uint8_t imageDataRGBA[]) override;
+    // Utility for rendering a texture to an MSAA framebuffer, since glBlitFramebuffer() doesn't
+    // support copying non-MSAA to MSAA.
+    void blitTextureToFramebufferAsDraw(GLuint textureID,
+                                        const IAABB& bounds,
+                                        uint32_t renderTargetHeight);
 
     GLState* state() const { return m_state.get(); }
 
@@ -60,16 +73,15 @@ private:
         virtual void deactivatePixelLocalStorage(PLSRenderContextGLImpl*,
                                                  const FlushDescriptor&) = 0;
 
-        // Optimization for when rendering to an offscreen framebuffer in atomic mode.
-        //
-        // It renders the final PLS resolve operation to the destination framebuffer in a single
-        // pass, instead of (1) resolving the offscreen framebuffer, and (2) blitting offscreen
-        // framebuffer to the destination framebuffer.
-        virtual bool supportsCoalescedPLSResolveAndTransfer(const PLSRenderTargetGL*) const
+        // Depending on how we handle PLS atomic resolves, the PLSImpl may require certain flags.
+        virtual pls::ShaderMiscFlags atomicResolveShaderMiscFlags(const pls::FlushDescriptor&) const
         {
-            return false;
+            return pls::ShaderMiscFlags::none;
         }
-        virtual void setupCoalescedPLSResolveAndTransfer(PLSRenderTargetGL*) {}
+
+        // Called before issuing a plsAtomicResolve draw, so the PLSImpl can make any necessary GL
+        // state changes.
+        virtual void setupAtomicResolve(PLSRenderContextGLImpl*, const pls::FlushDescriptor&) {}
 
         virtual const char* shaderDefineName() const = 0;
 
@@ -77,7 +89,7 @@ private:
 
         void barrier()
         {
-            assert(m_rasterOrderState == RasterOrderingState::disabled);
+            assert(m_rasterOrderingEnabled == pls::TriState::no);
             onBarrier();
         }
 
@@ -87,14 +99,7 @@ private:
         virtual void onEnableRasterOrdering(bool enabled) {}
         virtual void onBarrier() {}
 
-        enum RasterOrderingState
-        {
-            disabled,
-            enabled,
-            unknown
-        };
-
-        RasterOrderingState m_rasterOrderState = RasterOrderingState::unknown;
+        pls::TriState m_rasterOrderingEnabled = pls::TriState::unknown;
     };
 
     class PLSImplEXTNative;
@@ -112,6 +117,30 @@ private:
                                                          std::unique_ptr<PLSImpl>);
 
     PLSRenderContextGLImpl(const char* rendererString, GLCapabilities, std::unique_ptr<PLSImpl>);
+
+    // Wraps a compiled GL shader of draw_path.glsl or draw_image_mesh.glsl, either vertex or
+    // fragment, with a specific set of features enabled via #define. The set of features to enable
+    // is dictated by ShaderFeatures.
+    class DrawShader
+    {
+    public:
+        DrawShader(const DrawShader&) = delete;
+        DrawShader& operator=(const DrawShader&) = delete;
+
+        DrawShader(PLSRenderContextGLImpl* plsContextImpl,
+                   GLenum shaderType,
+                   pls::DrawType drawType,
+                   ShaderFeatures shaderFeatures,
+                   pls::InterlockMode interlockMode,
+                   pls::ShaderMiscFlags shaderMiscFlags);
+
+        ~DrawShader() { glDeleteShader(m_id); }
+
+        GLuint id() const { return m_id; }
+
+    private:
+        GLuint m_id;
+    };
 
     // Wraps a compiled and linked GL program of draw_path.glsl or draw_image_mesh.glsl, with a
     // specific set of features enabled via #define. The set of features to enable is dictated by
@@ -132,12 +161,11 @@ private:
         GLint spirvCrossBaseInstanceLocation() const { return m_spirvCrossBaseInstanceLocation; }
 
     private:
+        DrawShader m_fragmentShader;
         GLuint m_id;
         GLint m_spirvCrossBaseInstanceLocation = -1;
         const rcp<GLState> m_state;
     };
-
-    class DrawShader;
 
     std::unique_ptr<BufferRing> makeUniformBufferRing(size_t capacityInBytes) override;
     std::unique_ptr<BufferRing> makeStorageBufferRing(size_t capacityInBytes,
@@ -155,16 +183,16 @@ private:
     std::unique_ptr<PLSImpl> m_plsImpl;
 
     // Gradient texture rendering.
-    GLuint m_colorRampProgram;
-    GLuint m_colorRampVAO;
-    GLuint m_colorRampFBO;
+    glutils::Program m_colorRampProgram;
+    glutils::VAO m_colorRampVAO;
+    glutils::FBO m_colorRampFBO;
     GLuint m_gradientTexture = 0;
 
     // Tessellation texture rendering.
-    GLuint m_tessellateProgram;
-    GLuint m_tessellateVAO;
-    GLuint m_tessSpanIndexBuffer;
-    GLuint m_tessellateFBO;
+    glutils::Program m_tessellateProgram;
+    glutils::VAO m_tessellateVAO;
+    glutils::Buffer m_tessSpanIndexBuffer;
+    glutils::FBO m_tessellateFBO;
     GLuint m_tessVertexTexture = 0;
 
     // Not all programs have a unique vertex shader, so we cache and reuse them where possible.
@@ -172,19 +200,22 @@ private:
     std::map<uint32_t, DrawProgram> m_drawPrograms;
 
     // Vertex/index buffers for drawing paths.
-    GLuint m_drawVAO = 0;
-    GLuint m_patchVerticesBuffer = 0;
-    GLuint m_patchIndicesBuffer = 0;
-    GLuint m_interiorTrianglesVAO = 0;
+    glutils::VAO m_drawVAO;
+    glutils::Buffer m_patchVerticesBuffer;
+    glutils::Buffer m_patchIndicesBuffer;
+    glutils::VAO m_trianglesVAO;
 
     // Vertex/index buffers for drawing image rects. (Atomic mode only, and only used when bindless
     // textures aren't supported.)
-    GLuint m_imageRectVAO = 0;
-    GLuint m_imageRectVertexBuffer = 0;
-    GLuint m_imageRectIndexBuffer = 0;
+    glutils::VAO m_imageRectVAO;
+    glutils::Buffer m_imageRectVertexBuffer;
+    glutils::Buffer m_imageRectIndexBuffer;
 
-    GLuint m_imageMeshVAO = 0;
-    GLuint m_plsResolveVAO = 0;
+    glutils::VAO m_imageMeshVAO;
+    glutils::VAO m_emptyVAO;
+
+    // Used for blitting non-MSAA -> MSAA, which isn't supported by glBlitFramebuffer().
+    glutils::Program m_blitAsDrawProgram{0};
 
     const rcp<GLState> m_state;
 };

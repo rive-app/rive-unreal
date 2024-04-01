@@ -48,17 +48,10 @@ void UE::Rive::Renderer::Private::FRiveRendererMetal::CreatePLSContext_RenderThr
     {
         // Get the underlying metal device.
         id<MTLDevice> MetalDevice = (id<MTLDevice>)GDynamicRHI->RHIGetNativeDevice();
-        
         check(MetalDevice);
-        
-        id<MTLCommandQueue> MetalCommandQueue = (id<MTLCommandQueue>)GDynamicRHI->RHIGetNativeGraphicsQueue();
-        
-        check(MetalCommandQueue);
 
 #if WITH_RIVE
-        
-        PLSRenderContext = rive::pls::PLSRenderContextMetalImpl::MakeContext(MetalDevice, MetalCommandQueue);
-        
+        PLSRenderContext = rive::pls::PLSRenderContextMetalImpl::MakeContext(MetalDevice);
 #endif // WITH_RIVE
     }
 }

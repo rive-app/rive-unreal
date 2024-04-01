@@ -134,7 +134,11 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
 	// End drawing a frame.
 	// Flush
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush()  %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->flush();
+	const rive::pls::PLSRenderContext::FlushResources FlushResources
+	{
+		GetRenderTarget().get()
+	};
+	PLSRenderContextPtr->flush(FlushResources);
 
 	//todo: android texture blink if we don't call glReadPixels? to investigate
 	TArray<FIntVector2> Points{ {0,0}, { 100,100 }, { 200,200 }, { 300,300 }}; 

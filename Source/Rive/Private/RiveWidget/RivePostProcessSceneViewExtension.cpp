@@ -83,11 +83,12 @@ IMPLEMENT_GLOBAL_SHADER(FRiveDrawTextureInShaderPS, "/Plugin/Rive/Private/RiveFu
 FScreenPassTexture FRivePostProcessSceneViewExtension::PostProcessPassAfterTonemap_RenderThread(FRDGBuilder& GraphBuilder, const FSceneView& InSceneView, const FPostProcessMaterialInputs& InOutInputs)
 {
 	check(IsInRenderingThread());
-	
-	const FScreenPassTexture& SceneColor = InOutInputs.GetInput(EPostProcessMaterialInput::SceneColor);
 
-	// TODO 5.5
-	//const FScreenPassTexture& SceneColor = FScreenPassTexture::CopyFromSlice(GraphBuilder, InOutInputs.GetInput(EPostProcessMaterialInput::SceneColor));
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
+	const FScreenPassTexture& SceneColor = FScreenPassTexture::CopyFromSlice(GraphBuilder, InOutInputs.GetInput(EPostProcessMaterialInput::SceneColor));
+#else
+	const FScreenPassTexture& SceneColor = InOutInputs.GetInput(EPostProcessMaterialInput::SceneColor);
+#endif
 
 	check(SceneColor.IsValid());
 

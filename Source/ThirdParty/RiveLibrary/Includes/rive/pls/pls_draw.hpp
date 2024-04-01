@@ -36,23 +36,45 @@ public:
         midpointFanPath,
         interiorTriangulationPath,
         imageRect,
-        imageMesh
+        imageMesh,
+        stencilClipReset,
     };
 
     PLSDraw(IAABB pixelBounds, const Mat2D&, BlendMode, rcp<const PLSTexture> imageTexture, Type);
 
-    const IAABB& pixelBounds() const { return m_pixelBounds; }
     const PLSTexture* imageTexture() const { return m_imageTextureRef; }
+    const IAABB& pixelBounds() const { return m_pixelBounds; }
+    const Mat2D& matrix() const { return m_matrix; }
+    BlendMode blendMode() const { return m_blendMode; }
     Type type() const { return m_type; }
+    pls::DrawContents drawContents() const { return m_drawContents; }
+    bool isStroked() const { return m_drawContents & pls::DrawContents::stroke; }
+    bool isEvenOddFill() const { return m_drawContents & pls::DrawContents::evenOddFill; }
+    bool isOpaque() const { return m_drawContents & pls::DrawContents::opaquePaint; }
+    uint32_t clipID() const { return m_clipID; }
     bool hasClipRect() const { return m_clipRectInverseMatrix != nullptr; }
+    const pls::ClipRectInverseMatrix* clipRectInverseMatrix() const
+    {
+        return m_clipRectInverseMatrix;
+    }
+    pls::SimplePaintValue simplePaintValue() const { return m_simplePaintValue; }
+    const PLSGradient* gradient() const { return m_gradientRef; }
 
     // Clipping setup.
-    void setClipID(uint32_t clipID) { m_clipID = clipID; }
+    void setClipID(uint32_t clipID);
     void setClipRect(const pls::ClipRectInverseMatrix* m) { m_clipRectInverseMatrix = m; }
 
     // Used to allocate GPU resources for a collection of draws.
     using ResourceCounters = PLSRenderContext::LogicalFlush::ResourceCounters;
     const ResourceCounters& resourceCounts() const { return m_resourceCounts; }
+
+    // Linked list of all PLSDraws within a pls::DrawBatch.
+    void setBatchInternalNeighbor(const PLSDraw* neighbor)
+    {
+        assert(m_batchInternalNeighbor == nullptr);
+        m_batchInternalNeighbor = neighbor;
+    };
+    const PLSDraw* batchInternalNeighbor() const { return m_batchInternalNeighbor; }
 
     // Adds the gradient (if any) for this draw to the render context's gradient texture.
     // Returns false if this draw needed a gradient but there wasn't room for it in the texture, at
@@ -77,6 +99,8 @@ protected:
     uint32_t m_clipID = 0;
     const pls::ClipRectInverseMatrix* m_clipRectInverseMatrix = nullptr;
 
+    pls::DrawContents m_drawContents = pls::DrawContents::none;
+
     // Filled in by the subclass constructor.
     ResourceCounters m_resourceCounts;
 
@@ -84,6 +108,9 @@ protected:
     // doesn't have to be virtual.
     const PLSGradient* m_gradientRef = nullptr;
     pls::SimplePaintValue m_simplePaintValue;
+
+    // Linked list of all PLSDraws within a pls::DrawBatch.
+    const PLSDraw* m_batchInternalNeighbor = nullptr;
 };
 
 // Implement PLSDrawReleaseRefs (defined in pls_render_context.hpp) now that PLSDraw is defined.
@@ -101,6 +128,11 @@ public:
                                  const PLSPaint*,
                                  RawPath* scratchPath);
 
+    FillRule fillRule() const { return m_fillRule; }
+    pls::PaintType paintType() const { return m_paintType; }
+    float strokeRadius() const { return m_strokeRadius; }
+    pls::ContourDirections contourDirections() const { return m_contourDirections; }
+
     void pushToRenderContext(PLSRenderContext::LogicalFlush*) final;
 
     void releaseRefs() override;
@@ -111,15 +143,16 @@ public:
                 rcp<const PLSPath>,
                 FillRule,
                 const PLSPaint*,
-                Type);
+                Type,
+                pls::InterlockMode);
 
     virtual void onPushToRenderContext(PLSRenderContext::LogicalFlush*) = 0;
 
     const PLSPath* const m_pathRef;
-    const bool m_isStroked;
     const FillRule m_fillRule; // Bc PLSPath fillRule can mutate during the artboard draw process.
     const pls::PaintType m_paintType;
     const float m_strokeRadius;
+    pls::ContourDirections m_contourDirections;
 
     // Used to guarantee m_pathRef doesn't change for the entire time we hold it.
     RIVE_DEBUG_CODE(size_t m_rawPathMutationID;)
@@ -205,6 +238,8 @@ public:
                               RawPath* scratchPath,
                               TriangulatorAxis);
 
+    GrInnerFanTriangulator* triangulator() const { return m_triangulator; }
+
 protected:
     void onPushToRenderContext(PLSRenderContext::LogicalFlush*) override;
 
@@ -259,6 +294,8 @@ public:
                   rcp<const PLSTexture>,
                   float opacity);
 
+    float opacity() const { return m_opacity; }
+
     void pushToRenderContext(PLSRenderContext::LogicalFlush*) override;
 
 protected:
@@ -279,6 +316,12 @@ public:
                   uint32_t indexCount,
                   float opacity);
 
+    const RenderBuffer* vertexBuffer() const { return m_vertexBufferRef; }
+    const RenderBuffer* uvBuffer() const { return m_uvBufferRef; }
+    const RenderBuffer* indexBuffer() const { return m_indexBufferRef; }
+    uint32_t indexCount() const { return m_indexCount; }
+    float opacity() const { return m_opacity; }
+
     void pushToRenderContext(PLSRenderContext::LogicalFlush*) override;
 
     void releaseRefs() override;
@@ -289,5 +332,26 @@ protected:
     const RenderBuffer* const m_indexBufferRef;
     const uint32_t m_indexCount;
     const float m_opacity;
+};
+
+// Resets the stencil clip by either entirely erasing the existing clip, or intersecting it with a
+// nested clip (i.e., erasing the region outside the nested clip).
+class StencilClipReset : public PLSDraw
+{
+public:
+    enum class ResetAction
+    {
+        clearPreviousClip,
+        intersectPreviousClip,
+    };
+
+    StencilClipReset(PLSRenderContext*, uint32_t previousClipID, ResetAction);
+
+    uint32_t previousClipID() const { return m_previousClipID; }
+
+    void pushToRenderContext(PLSRenderContext::LogicalFlush*) override;
+
+protected:
+    const uint32_t m_previousClipID;
 };
 } // namespace rive::pls

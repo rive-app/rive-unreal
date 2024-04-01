@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "rive/math/mat2d.hpp"
 #include "rive/math/vec2d.hpp"
 #include "rive/pls/pls.hpp"
 #include "rive/pls/pls_factory.hpp"
@@ -26,10 +25,16 @@ namespace rive::pls
 {
 class GradientLibrary;
 class IntersectionBoard;
+class ImageMeshDraw;
+class ImageRectDraw;
+class InteriorTriangulationDraw;
+class MidpointFanPathDraw;
+class StencilClipReset;
 class PLSDraw;
 class PLSGradient;
 class PLSPaint;
 class PLSPath;
+class PLSPathDraw;
 class PLSRenderContextImpl;
 
 // Used as a key for complex gradients.
@@ -65,15 +70,6 @@ using PLSDrawUniquePtr = std::unique_ptr<PLSDraw, PLSDrawReleaseRefs>;
 // buffers, context state, and other resources required for Rive's pixel local storage path
 // rendering algorithm.
 //
-// Main algorithm:
-// https://docs.google.com/document/d/19Uk9eyFxav6dNSYsI2ZyiX9zHU1YOaJsMB2sdDFVz6s/edit
-//
-// Batching multiple unique paths:
-// https://docs.google.com/document/d/1DLrQimS5pbNaJJ2sAW5oSOsH6_glwDPo73-mtG5_zns/edit
-//
-// Batching strokes as well:
-// https://docs.google.com/document/d/1CRKihkFjbd1bwT08ErMCP4fwSR7D4gnHvgdw_esY9GM/edit
-//
 // Intended usage pattern of this class:
 //
 //   context->beginFrame(...);
@@ -101,33 +97,28 @@ public:
 
     const pls::PlatformFeatures& platformFeatures() const;
 
-    // Returns the number of flushes that have been executed over the entire lifetime of this class,
-    // logical or otherwise.
-    uint64_t getFlushCount() const { return m_flushCount; }
-
     // Options for controlling how and where a frame is rendered.
     struct FrameDescriptor
     {
-        rcp<PLSRenderTarget> renderTarget;
+        uint32_t renderTargetWidth = 0;
+        uint32_t renderTargetHeight = 0;
         LoadAction loadAction = LoadAction::clear;
         ColorInt clearColor = 0;
-
-        // Force pls::InterlockMode::experimentalAtomics, even if raster ordering is supported.
-        bool forceAtomicInterlockMode = false;
+        int msaaSampleCount = 0; // If nonzero, the number of MSAA samples to use.
+                                 // Setting this to a nonzero value forces depthStencil mode.
+        bool disableRasterOrdering = false; // Use atomic mode in place of rasterOrdering, even if
+                                            // rasterOrdering is supported.
 
         // Testing flags.
         bool wireframe = false;
         bool fillsDisabled = false;
         bool strokesDisabled = false;
-
-        // Only used for metal backend.
-        void* backendSpecificData = nullptr;
     };
 
     // Called at the beginning of a frame and establishes where and how it will be rendered.
     //
     // All rendering related calls must be made between beginFrame() and flush().
-    void beginFrame(FrameDescriptor&&);
+    void beginFrame(const FrameDescriptor&);
 
     const FrameDescriptor& frameDescriptor() const
     {
@@ -135,18 +126,50 @@ public:
         return m_frameDescriptor;
     }
 
-    const pls::InterlockMode frameInterlockMode() const { return m_frameInterlockMode; }
+    // True if bounds is empty or outside [0, 0, renderTargetWidth, renderTargetHeight].
+    bool isOutsideCurrentFrame(const IAABB& pixelBounds);
+
+    // True if the current frame supports draws with clipRects (clipRectInverseMatrix != null).
+    // If false, all clipping must be done with clipPaths.
+    bool frameSupportsClipRects() const;
 
     // If the frame doesn't support image paints, the client must draw images with pushImageRect().
     // If it DOES support image paints, the client CANNOT use pushImageRect(); it should draw images
     // as rectangular paths with an image paint.
     bool frameSupportsImagePaintForPaths() const;
 
-    // Generates a unique clip ID that is guaranteed to not exist in the current clip buffer.
+    const pls::InterlockMode frameInterlockMode() const { return m_frameInterlockMode; }
+
+    // Generates a unique clip ID that is guaranteed to not exist in the current clip buffer, and
+    // assigns a contentBounds to it.
     //
     // Returns 0 if a unique ID could not be generated, at which point the caller must issue a
     // logical flush and try again.
-    uint32_t generateClipID();
+    uint32_t generateClipID(const IAABB& contentBounds);
+
+    // Screen-space bounding box of the region inside the given clip.
+    const IAABB& getClipContentBounds(uint32_t clipID)
+    {
+        assert(m_didBeginFrame);
+        assert(!m_logicalFlushes.empty());
+        return m_logicalFlushes.back()->getClipInfo(clipID).contentBounds;
+    }
+
+    // Mark the given clip as being read from within a screen-space bounding box.
+    void addClipReadBounds(uint32_t clipID, const IAABB& bounds)
+    {
+        assert(m_didBeginFrame);
+        assert(!m_logicalFlushes.empty());
+        return m_logicalFlushes.back()->addClipReadBounds(clipID, bounds);
+    }
+
+    // Union of screen-space bounding boxes from all draws that read the given clip element.
+    const IAABB& getClipReadBounds(uint32_t clipID)
+    {
+        assert(m_didBeginFrame);
+        assert(!m_logicalFlushes.empty());
+        return m_logicalFlushes.back()->getClipInfo(clipID).readBounds;
+    }
 
     // Get/set a "clip content ID" that uniquely identifies the current contents of the clip buffer.
     // This ID is reset to 0 on every logical flush.
@@ -155,6 +178,7 @@ public:
         assert(m_didBeginFrame);
         m_clipContentID = clipID;
     }
+
     uint32_t getClipContentID()
     {
         assert(m_didBeginFrame);
@@ -166,13 +190,20 @@ public:
     // the caller must issue a logical flush and try again.
     [[nodiscard]] bool pushDrawBatch(PLSDrawUniquePtr draws[], size_t drawCount);
 
-    // Renders all paths that have been pushed since the last call to flush(). Rendering is done in
-    // two steps:
-    //
-    //  1. Tessellate all cubics into positions and normals in the "tessellation texture".
-    //  2. Render the tessellated curves using Rive's pixel local storage path rendering algorithm.
-    //
-    void flush(pls::FlushType = pls::FlushType::endOfFrame);
+    // Records a "logical" flush, in that it builds up commands to break up the render pass and
+    // re-render the resource textures, but it won't submit any command buffers or
+    // rotate/synchronize the buffer rings.
+    void logicalFlush();
+
+    // GPU resources required to execute the GPU commands for a frame.
+    struct FlushResources
+    {
+        PLSRenderTarget* renderTarget = nullptr;
+        void* externalCommandBuffer = nullptr; // Required on Metal.
+    };
+
+    // Submits all GPU commands that have been built up since beginFrame().
+    void flush(const FlushResources&);
 
     // Called when the client will stop rendering. Releases all CPU and GPU resources associated
     // with this render context.
@@ -221,6 +252,7 @@ private:
     friend class InteriorTriangulationDraw;
     friend class ImageRectDraw;
     friend class ImageMeshDraw;
+    friend class StencilClipReset;
     friend class ::PushRetrofittedTrianglesGMDraw; // For testing.
     friend class ::PLSRenderContextTest;           // For testing.
 
@@ -280,18 +312,14 @@ private:
     // Per-frame state.
     FrameDescriptor m_frameDescriptor;
     pls::InterlockMode m_frameInterlockMode;
+    pls::ShaderFeatures m_frameShaderFeaturesMask;
     RIVE_DEBUG_CODE(bool m_didBeginFrame = false;)
 
-    // The number of flushes that have been executed over the entire lifetime of this class, logical
-    // or otherwise.
-    size_t m_flushCount = 0;
-
-    // Per-flush clipping state.
-    uint32_t m_lastGeneratedClipID = 0;
+    // Clipping state.
     uint32_t m_clipContentID = 0;
 
     // Used by LogicalFlushes for re-ordering high level draws.
-    std::vector<uint64_t> m_indirectDrawList;
+    std::vector<int64_t> m_indirectDrawList;
     std::unique_ptr<IntersectionBoard> m_intersectionBoard;
 
     WriteOnlyMappedMemory<pls::FlushUniforms> m_flushUniformData;
@@ -352,6 +380,34 @@ private:
             assert(m_hasDoneLayout);
             return m_flushDesc;
         }
+
+        // Generates a unique clip ID that is guaranteed to not exist in the current clip buffer.
+        //
+        // Returns 0 if a unique ID could not be generated, at which point the caller must issue a
+        // logical flush and try again.
+        uint32_t generateClipID(const IAABB& contentBounds);
+
+        struct ClipInfo
+        {
+            ClipInfo(const IAABB& contentBounds_) : contentBounds(contentBounds_) {}
+
+            // Screen-space bounding box of the region inside the clip.
+            const IAABB contentBounds;
+
+            // Union of screen-space bounding boxes from all draws that read the clip.
+            //
+            // (Initialized with a maximally negative rectangle whose union with any other rectangle
+            // will be equal to that same rectangle.)
+            IAABB readBounds = {std::numeric_limits<int32_t>::max(),
+                                std::numeric_limits<int32_t>::max(),
+                                std::numeric_limits<int32_t>::min(),
+                                std::numeric_limits<int32_t>::min()};
+        };
+
+        const ClipInfo& getClipInfo(uint32_t clipID) { return getWritableClipInfo(clipID); }
+
+        // Mark the given clip as being read from within a screen-space bounding box.
+        void addClipReadBounds(uint32_t clipID, const IAABB& bounds);
 
         // Appends a list of high-level PLSDraws to the flush.
         // Returns false if the draws don't fit within the current resource constraints, at which
@@ -416,9 +472,9 @@ private:
         // Carves out space for this specific flush within the total frame's resource buffers and
         // lays out the flush-specific resource textures. Updates the total frame running conters
         // based on layout.
-        void layoutResources(const FrameDescriptor&,
-                             size_t flushIdx,
-                             pls::FlushType,
+        void layoutResources(const FlushResources&,
+                             size_t logicalFlushIdx,
+                             bool isFinalFlushOfFrame,
                              ResourceCounters* runningFrameResourceCounts,
                              LayoutCounters* runningFrameLayoutCounts);
 
@@ -429,18 +485,7 @@ private:
 
         // Pushes a record to the GPU for the given path, which will be referenced by future calls
         // to pushContour() and pushCubic().
-        void pushPath(PatchType,
-                      const Mat2D&,
-                      float strokeRadius,
-                      FillRule,
-                      PaintType,
-                      pls::SimplePaintValue simplePaintValue,
-                      const PLSGradient*,
-                      const PLSTexture* imageTexture,
-                      uint32_t clipID,
-                      const pls::ClipRectInverseMatrix*, // Null if there is no clipRect.
-                      BlendMode,
-                      uint32_t tessVertexCount);
+        void pushPath(PLSPathDraw*, pls::PatchType, uint32_t tessVertexCount);
 
         // Pushes a contour record to the GPU for the given contour, which references the
         // most-recently pushed path and will be referenced by future calls to pushCubic().
@@ -470,41 +515,24 @@ private:
 
         // Pushes triangles to be drawn using the data records from the most recent calls to
         // pushPath() and pushPaint().
-        void pushInteriorTriangulation(GrInnerFanTriangulator*,
-                                       PaintType,
-                                       pls::SimplePaintValue,
-                                       const PLSTexture* imageTexture,
-                                       uint32_t clipID,
-                                       bool hasClipRect,
-                                       BlendMode);
+        void pushInteriorTriangulation(InteriorTriangulationDraw*);
 
         // Pushes an imageRect to the draw list.
         // This should only be used when we don't have bindless textures in atomic mode. Otherwise,
         // images should be drawn as rectangular paths with an image paint.
-        void pushImageRect(const Mat2D&,
-                           float opacity,
-                           const PLSTexture* imageTexture,
-                           uint32_t clipID,
-                           const pls::ClipRectInverseMatrix*, // Null if there is no clipRect.
-                           BlendMode);
+        void pushImageRect(ImageRectDraw*);
 
-        // Pushes an imageMesh to the draw list.
-        void pushImageMesh(const Mat2D&,
-                           float opacity,
-                           const PLSTexture* imageTexture,
-                           const RenderBuffer* vertexBuffer,
-                           const RenderBuffer* uvBuffer,
-                           const RenderBuffer* indexBuffer,
-                           uint32_t indexCount,
-                           uint32_t clipID,
-                           const pls::ClipRectInverseMatrix*, // Null if there is no clipRect.
-                           BlendMode);
+        void pushImageMesh(ImageMeshDraw*);
+
+        void pushStencilClipReset(StencilClipReset*);
 
         // Adds a barrier to the end of the draw list that prevents further combining/batching and
         // instructs the backend to issue a graphics barrier, if necessary.
         void pushBarrier();
 
     private:
+        ClipInfo& getWritableClipInfo(uint32_t clipID);
+
         // Writes padding vertices to the tessellation texture, with an invalid contour ID that is
         // guaranteed to not be the same ID as any neighbors.
         void pushPaddingVertices(uint32_t tessLocation, uint32_t count);
@@ -520,9 +548,8 @@ private:
                                                       uint32_t joinSegmentCount,
                                                       uint32_t contourIDWithFlags);
 
-        // Same as pushTessellationSpans(), but also pushes a reflection of the span, rendered right
-        // to left, that emits a mirrored version of the patch with negative coverage. (See
-        // TessVertexSpan.)
+        // Same as pushTessellationSpans(), but pushes a reflection of the span, rendered right to
+        // left, whose triangles have reverse winding directions and negated coverage.
         RIVE_ALWAYS_INLINE void pushMirroredTessellationSpans(const Vec2D pts[4],
                                                               Vec2D joinTangent,
                                                               uint32_t totalVertexCount,
@@ -531,24 +558,25 @@ private:
                                                               uint32_t joinSegmentCount,
                                                               uint32_t contourIDWithFlags);
 
+        // Functionally equivalent to "pushMirroredTessellationSpans(); pushTessellationSpans();",
+        // but packs each forward and mirrored pair into a single pls::TessVertexSpan.
+        RIVE_ALWAYS_INLINE void pushMirroredAndForwardTessellationSpans(
+            const Vec2D pts[4],
+            Vec2D joinTangent,
+            uint32_t totalVertexCount,
+            uint32_t parametricSegmentCount,
+            uint32_t polarSegmentCount,
+            uint32_t joinSegmentCount,
+            uint32_t contourIDWithFlags);
+
         // Either appends a new drawBatch to m_drawList or merges into m_drawList.tail().
         // Updates the batch's ShaderFeatures according to the passed parameters.
-        DrawBatch& pushPathDraw(DrawType,
-                                size_t baseVertex,
-                                FillRule,
-                                PaintType,
-                                pls::SimplePaintValue,
-                                const PLSTexture* imageTexture,
-                                uint32_t clipID,
-                                bool hasClipRect,
-                                BlendMode);
-        DrawBatch& pushDraw(DrawType,
-                            size_t baseVertex,
-                            PaintType,
-                            const PLSTexture* imageTexture,
-                            uint32_t clipID,
-                            bool hasClipRect,
-                            BlendMode);
+        DrawBatch& pushPathDraw(PLSPathDraw*, DrawType, uint32_t vertexCount, uint32_t baseVertex);
+        DrawBatch& pushDraw(PLSDraw*,
+                            DrawType,
+                            pls::PaintType,
+                            uint32_t elementCount,
+                            uint32_t baseElement);
 
         // Instance pointer to the outer parent class.
         PLSRenderContext* const m_ctx;
@@ -567,6 +595,8 @@ private:
         std::unordered_map<GradientContentKey, uint16_t, DeepHashGradient>
             m_complexGradients; // [colors[0..n], stops[0..n]] -> rowIdx
         std::vector<const PLSGradient*> m_pendingComplexColorRampDraws;
+
+        std::vector<ClipInfo> m_clips;
 
         // High-level draw list. These get built into a low-level list of pls::DrawBatch objects
         // during writeResources().
@@ -591,7 +621,7 @@ private:
 
         // Most recent path and contour state.
         bool m_currentPathIsStroked;
-        bool m_currentPathNeedsMirroredContours;
+        pls::ContourDirections m_currentPathContourDirections;
         uint32_t m_currentPathID;
         uint32_t m_currentContourID;
         uint32_t m_currentContourPaddingVertexCount; // Padding to add to the first curve.
@@ -600,6 +630,10 @@ private:
         RIVE_DEBUG_CODE(uint32_t m_expectedPathTessLocationAtEndOfPath;)
         RIVE_DEBUG_CODE(uint32_t m_expectedPathMirroredTessLocationAtEndOfPath;)
         RIVE_DEBUG_CODE(uint32_t m_pathCurveCount;)
+
+        // Stateful Z index of the current draw being pushed. Used by depthStencil mode to avoid
+        // double hits and to reverse-sort opaque paths front to back.
+        uint32_t m_currentZIndex;
 
         RIVE_DEBUG_CODE(bool m_hasDoneLayout = false;)
     };
