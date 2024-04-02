@@ -96,7 +96,7 @@ void URiveFile::PostLoad()
 			{
 				AssetImportData->UpdateFilenameOnly(RiveFilePath);
 			}
-			else if (!ensure(FPaths::IsSamePath(FullPath, RiveFilePath)))
+			else if (!FPaths::IsSamePath(FullPath, RiveFilePath))
 			{
 				UE_LOG(LogRive, Warning, TEXT("The path of RiveFile '%s' is not matching the AssetImportData, resetting to RiveFilePath. RiveFilePath: '%s'  AssetImportData: '%s'"),
 					*GetFullName(), *RiveFilePath, *FullPath)
