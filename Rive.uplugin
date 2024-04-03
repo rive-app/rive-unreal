@@ -23,7 +23,7 @@
 		},
 		{
 			"Name": "RiveRenderer",
-			"Type": "Runtime",
+			"Type": "RuntimeNoCommandlet",
 			"LoadingPhase": "Default",
 			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
 		},
