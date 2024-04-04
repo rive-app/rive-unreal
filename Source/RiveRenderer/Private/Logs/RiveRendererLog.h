@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Logging/LogMacros.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogRiveRenderer, Display, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogRiveRenderer, Verbose, All);
 
 class FDebugLogger
 {

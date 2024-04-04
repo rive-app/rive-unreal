@@ -33,17 +33,21 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::Initialize()
 	
 	{
 		FString glVersionStr = ANSI_TO_TCHAR((const ANSICHAR*) glGetString(GL_VERSION));
-		RIVE_DEBUG_VERBOSE("GAMETHREAD: glVersionStr %s", *glVersionStr);
+		RIVE_DEBUG_VERBOSE("GAMETHREAD: GL_VERSION %s", *glVersionStr);
             
 		ENQUEUE_RENDER_COMMAND(URiveFileInitialize_RenderThread)(
 		[](FRHICommandListImmediate& RHICmdList)
 		{
 			FString glVersionStr = ANSI_TO_TCHAR((const ANSICHAR*) glGetString(GL_VERSION));
-			RIVE_DEBUG_VERBOSE("RENDERTHREAD: glVersionStr %s", *glVersionStr);
+			RIVE_DEBUG_VERBOSE("RENDERTHREAD: GL_VERSION %s", *glVersionStr);
 			RHICmdList.EnqueueLambda([](FRHICommandListImmediate&)
 			{
 				FString glVersionStr = ANSI_TO_TCHAR((const ANSICHAR*) glGetString(GL_VERSION));
-				RIVE_DEBUG_VERBOSE("RHITHREAD: glVersionStr %s", *glVersionStr);
+				RIVE_DEBUG_VERBOSE("RHITHREAD: GL_VERSION %s", *glVersionStr);
+				FString glVendorStr = ANSI_TO_TCHAR((const ANSICHAR*) glGetString(GL_VENDOR));
+				RIVE_DEBUG_VERBOSE("RHITHREAD: GL_VENDOR %s", *glVendorStr);
+				FString glRendererStr = ANSI_TO_TCHAR((const ANSICHAR*) glGetString(GL_RENDERER));
+				RIVE_DEBUG_VERBOSE("RHITHREAD: GL_RENDERER %s", *glRendererStr);
 			});
 		});
 	}

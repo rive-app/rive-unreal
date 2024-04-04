@@ -49,7 +49,7 @@ namespace UE::Rive::Renderer
 		static bool RunInGameThread()
         {
 #if PLATFORM_ANDROID
-            return true;
+            return false;
 #endif // PLATFORM_ANDROID
             return false;
         }
