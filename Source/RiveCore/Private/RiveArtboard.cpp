@@ -263,30 +263,39 @@ bool URiveArtboard::TriggerNamedRiveEvent(const FString& EventName, float Report
 	return false;
 }
 
-void URiveArtboard::MouseButtonDown(const FVector2f& NewPosition)
+void URiveArtboard::PointerDown(const FVector2f& NewPosition)
 {
 	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
 	if (StateMachine)
 	{
-		StateMachine->OnMouseButtonDown(NewPosition);
+		StateMachine->PointerDown(NewPosition);
 	}
 }
 
-void URiveArtboard::MouseButtonUp(const FVector2f& NewPosition)
+void URiveArtboard::PointerUp(const FVector2f& NewPosition)
 {
 	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
 	if (StateMachine)
 	{
-		StateMachine->OnMouseButtonUp(NewPosition);
+		StateMachine->PointerUp(NewPosition);
 	}
 }
 
-void URiveArtboard::MouseMove(const FVector2f& NewPosition)
+void URiveArtboard::PointerMove(const FVector2f& NewPosition)
 {
 	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
 	if (StateMachine)
 	{
-		StateMachine->OnMouseMove(NewPosition);
+		StateMachine->PointerMove(NewPosition);
+	}
+}
+
+void URiveArtboard::PointerExit(const FVector2f& NewPosition)
+{
+	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
+	if (StateMachine)
+	{
+		StateMachine->PointerExit(NewPosition);
 	}
 }
 

@@ -68,11 +68,13 @@ namespace UE::Rive::Core
 
         void SetNumberValue(const FString& InPropertyName, float NewValue);
 
-        bool OnMouseButtonDown(const FVector2f& NewPosition);
+        bool PointerDown(const FVector2f& NewPosition);
 
-        bool OnMouseMove(const FVector2f& NewPosition);
+        bool PointerMove(const FVector2f& NewPosition);
 
-        bool OnMouseButtonUp(const FVector2f& NewPosition);
+        bool PointerUp(const FVector2f& NewPosition);
+    	
+    	bool PointerExit(const FVector2f& NewPosition);
 
         const rive::EventReport GetReportedEvent(int32 AtIndex) const;
 

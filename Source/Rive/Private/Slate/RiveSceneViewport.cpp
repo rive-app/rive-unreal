@@ -43,7 +43,7 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 		{
 			if (InStateMachine)
 			{
-				InStateMachine->OnMouseButtonDown(InputCoordinates);
+				InStateMachine->PointerDown(InputCoordinates);
 			}
 		});
 }
@@ -59,7 +59,7 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 		{
 			if (InStateMachine)
 			{
-				InStateMachine->OnMouseButtonUp(InputCoordinates);
+				InStateMachine->PointerUp(InputCoordinates);
 			}
 		});
 }
@@ -70,7 +70,7 @@ FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 		{
 			if (InStateMachine)
 			{
-				InStateMachine->OnMouseMove(InputCoordinates);
+				InStateMachine->PointerMove(InputCoordinates);
 			}
 		});
 
