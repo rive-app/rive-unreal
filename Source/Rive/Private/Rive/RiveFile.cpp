@@ -101,11 +101,6 @@ void URiveFile::PostLoad()
 				UE_LOG(LogRive, Warning, TEXT("The path of RiveFile '%s' is not matching the AssetImportData, resetting to RiveFilePath. RiveFilePath: '%s'  AssetImportData: '%s'"),
 					*GetFullName(), *RiveFilePath, *FullPath)
 				AssetImportData->UpdateFilenameOnly(RiveFilePath);
-				// We want to mark the UObject dirty but that is not possible on PostLoad, so we start an AsyncTask
-				AsyncTask(ENamedThreads::GameThread, [this]()
-				{
-					Modify(true);
-				});
 			}
 		}
 		AssetImportData->OnImportDataChanged.AddUObject(this, &URiveFile::OnImportDataChanged);
