@@ -53,6 +53,8 @@ namespace UE::Rive::Renderer::Private
 		
 	private:
 		void CacheTextureTarget_Internal(const FTexture2DRHIRef& InRHIResource);
+
+		void ResetOpenGLState() const;
 		
 		/**
 		 * Attribute(s)
