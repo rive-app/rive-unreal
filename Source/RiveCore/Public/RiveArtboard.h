@@ -95,7 +95,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	bool TriggerNamedRiveEvent(const FString& EventName, float ReportedDelaySeconds);
 
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void PointerDown(const FVector2f& NewPosition);
 
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void PointerUp(const FVector2f& NewPosition);
+
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void PointerMove(const FVector2f& NewPosition);
+
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void PointerExit(const FVector2f& NewPosition);
+	
 	// Used to convert from a given point (InPosition) on a texture local position
 	// to the position for this artboard, taking into account alignment, fit, and an offset (if custom translation has been used)
 	UFUNCTION(BlueprintCallable, Category = Rive)
