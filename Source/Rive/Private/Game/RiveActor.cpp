@@ -4,6 +4,7 @@
 
 #include "Rive/RiveFile.h"
 #include "RiveWidget/RiveFullScreenUserWidget.h"
+#include "Stats/RiveStats.h"
 
 #define LOCTEXT_NAMESPACE "ARiveActor"
 
@@ -128,6 +129,8 @@ void ARiveActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ARiveActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveActor (GT)"), STAT_RIVEFILE_GT, STATGROUP_Rive);
 
 #if WITH_EDITOR
 

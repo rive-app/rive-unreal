@@ -6,6 +6,7 @@
 #include "IRiveRendererModule.h"
 #include "RiveEvent.h"
 #include "Logs/RiveCoreLog.h"
+#include "Stats/RiveCoreStats.h"
 #include "URStateMachine.h"
 
 #if WITH_RIVE
@@ -367,6 +368,7 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::
 
 void URiveArtboard::Tick_Render(float InDeltaSeconds)
 {
+	//DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveArtboard Render Tick (GT)"), STAT_RIVEARTBOARD_TICKRENDER_GT, STATGROUP_RiveCore);
 	if (OnArtboardTick_Render.IsBound())
 	{
 		OnArtboardTick_Render.Execute(InDeltaSeconds, this);
@@ -379,6 +381,7 @@ void URiveArtboard::Tick_Render(float InDeltaSeconds)
 
 void URiveArtboard::Tick_StateMachine(float InDeltaSeconds)
 {
+	//DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveArtboard State Machine Tick (GT)"), STAT_RIVEARTBOARD_TICKSTATEMACHINE_GT, STATGROUP_RiveCore);
 	if (OnArtboardTick_StateMachine.IsBound())
 	{
 		OnArtboardTick_StateMachine.Execute(InDeltaSeconds, this);
@@ -391,6 +394,7 @@ void URiveArtboard::Tick_StateMachine(float InDeltaSeconds)
 
 void URiveArtboard::Tick(float InDeltaSeconds)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveArtboard Tick (GT)"), STAT_RIVEARTBOARDTICK_GT, STATGROUP_RiveCore);
 	if (!RiveRenderTarget || !bIsInitialized)
 	{
 		return;

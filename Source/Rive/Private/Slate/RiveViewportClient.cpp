@@ -7,6 +7,7 @@
 #include "RiveWidgetHelpers.h"
 #include "Rive/RiveTexture.h"
 #include "RiveArtboard.h"
+#include "Stats/RiveStats.h"
 #include "Engine/Texture2D.h"
 #include "TextureResource.h"
 
@@ -38,7 +39,9 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 	{
 		return;
 	}
-	
+
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveViewportClient (GT)"), STAT_RIVEVIEWPORTCLIENT_GT, STATGROUP_Rive);
+
 	Canvas->Clear(FLinearColor::Transparent);
 
 	//todo: to review with drawing of multiple artboards

@@ -10,6 +10,7 @@
 #include "RiveCore/Public/Assets/RiveAsset.h"
 #include "RiveCore/Public/Assets/URAssetImporter.h"
 #include "RiveCore/Public/Assets/URFileAssetLoader.h"
+#include "Stats/RiveStats.h"
 #include "HAL/FileManager.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/Paths.h"
@@ -56,6 +57,8 @@ void URiveFile::Tick(float InDeltaSeconds)
 	{
 		return;
 	}
+
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveFile Tick (GT)"), STAT_RIVEFILE_GT, STATGROUP_Rive);
 
 #if WITH_RIVE
 	if (IsInitialized() && bIsRendering)

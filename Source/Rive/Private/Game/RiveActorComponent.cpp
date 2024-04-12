@@ -9,6 +9,7 @@
 #include "RiveArtboard.h"
 #include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
+#include "Stats/RiveStats.h"
 
 namespace UE::Rive::Core
 {
@@ -36,6 +37,8 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
     {
         return;
     }
+
+    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveActorComponent (GT)"), STAT_RIVEFILE_GT, STATGROUP_Rive);
 
     if (RiveRenderTarget)
     {

@@ -4,6 +4,7 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "Stats/RiveCoreStats.h"
 #include "Logs/RiveCoreLog.h"
 
 #if WITH_RIVE
@@ -53,6 +54,7 @@ UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativ
 
 bool UE::Rive::Core::FURStateMachine::Advance(float InSeconds)
 {
+    //DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FURStateMachine Advance (GT)"), STAT_STATEMACHINE_ADVANCE, STATGROUP_RiveCore);
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)
     {

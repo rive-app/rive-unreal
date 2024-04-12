@@ -30,7 +30,7 @@ public:
 	void UnIndent()
 	{
 		--IndentLevel;
-		IndentStr.RemoveAt(IndentStr.Len() - SpacesPerIndent - 2, SpacesPerIndent + 1);
+		IndentStr.RemoveAt(IndentStr.Len() - SpacesPerIndent - 1, SpacesPerIndent + 1);
 	}
 	static FDebugLogger& Get()
 	{
