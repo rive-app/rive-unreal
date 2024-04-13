@@ -138,6 +138,13 @@ void URiveFile::PostLoad()
 
 #if WITH_EDITOR
 
+void URiveFile::PostEditUndo()
+{
+	Super::PostEditUndo();
+	// we resize the render target on undo, it will do nothing if the size has not changed
+	ResizeRenderTargets(Size);
+}
+
 void URiveFile::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
