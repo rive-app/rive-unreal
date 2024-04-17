@@ -176,9 +176,10 @@ void URiveTexture::InitializeResources() const
 		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 		
 		FTextureRHIRef RenderableTexture;
+		const FString DebugName = GetName();
 
 		FRHITextureCreateDesc RenderTargetTextureDesc =
-			FRHITextureCreateDesc::Create2D(*GetName(), Size.X, Size.Y, Format)
+			FRHITextureCreateDesc::Create2D(*DebugName, Size.X, Size.Y, Format)
 				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
 				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | ETextureCreateFlags::RenderTargetable);
 
