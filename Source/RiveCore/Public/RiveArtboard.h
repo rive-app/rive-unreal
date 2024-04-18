@@ -2,6 +2,7 @@
 #pragma once
 #include "IRiveRenderTarget.h"
 #include "MatrixTypes.h"
+#include "RiveAudioEngine.h"
 #include "RiveEvent.h"
 #include "RiveTypes.h"
 #include "URStateMachine.h"
@@ -118,6 +119,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents, const FIntPoint& TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const;
+
+	/*
+	 * This requires that the audio engine has been initialized via BeginPlay before setting
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SetAudioEngine(URiveAudioEngine* AudioEngine);
 	
 #if WITH_RIVE
 	

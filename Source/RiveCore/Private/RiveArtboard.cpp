@@ -401,6 +401,22 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::
 	Initialize_Internal(NativeArtboard);
 }
 
+void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
+{
+	if (AudioEngine == nullptr)
+	{
+		rive::rcp<rive::AudioEngine> NativeEngine = NativeArtboardPtr->audioEngine();
+		
+		if (NativeEngine != nullptr)
+		{
+			NativeEngine->unref();
+		}
+		NativeArtboardPtr->audioEngine(nullptr);
+		return;
+	}
+	NativeArtboardPtr->audioEngine(AudioEngine->GetNativeAudioEngine());
+}
+
 void URiveArtboard::Tick_Render(float InDeltaSeconds)
 {
 	if (OnArtboardTick_Render.IsBound())

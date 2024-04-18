@@ -30,6 +30,8 @@ ARiveActor::ARiveActor()
 
 #endif // WITH_EDITOR
 
+	AudioEngine = CreateDefaultSubobject<URiveAudioEngine>(TEXT("RiveAudioEngine"));
+	
 	RootComponent->SetMobility(EComponentMobility::Static);
 
 	PrimaryActorTick.bCanEverTick = true;
@@ -68,6 +70,11 @@ void ARiveActor::PostLoad()
 	bEditorDisplayRequested = true;
 
 #endif //WITH_EDITOR
+
+	if (RiveFile)
+	{
+		RiveFile->SetAudioEngine(AudioEngine);
+	}
 }
 
 void ARiveActor::PostActorCreated()
@@ -100,6 +107,7 @@ void ARiveActor::BeginPlay()
 	if (IsValid(RiveFile) && IsValid(ActorWorld) && (ActorWorld->WorldType == EWorldType::PIE))
 	{
 		RiveFile->InstantiateArtboard();
+		RiveFile->GetArtboard()->SetAudioEngine(AudioEngine);
 	}
 	
 	Super::BeginPlay();

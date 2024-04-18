@@ -5,6 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "RiveActor.generated.h"
 
+class URiveAudioEngine;
 class URiveFile;
 class URiveFullScreenUserWidget;
 
@@ -79,6 +80,9 @@ protected:
 	/** Settings for Rive Rendering */
 	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "User Interface", meta = (ShowOnlyInnerProperties))
 	TObjectPtr<URiveFullScreenUserWidget> ScreenUserWidget;
+
+	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "Audio", meta = (ShowOnlyInnerProperties))
+	TObjectPtr<URiveAudioEngine> AudioEngine;
 
 #if WITH_EDITORONLY_DATA
 	

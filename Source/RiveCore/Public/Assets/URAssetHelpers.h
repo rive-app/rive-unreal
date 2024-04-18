@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 
+enum class ERiveAssetType : uint8;
 class URiveAsset;
 struct FURAsset;
 
@@ -16,6 +17,9 @@ public:
 
     static bool FindDiskAsset(const FString& InBasePath, URiveAsset* InRiveAsset); //TArray<uint8>& OutAssetBytes)
 
+	static ERiveAssetType GetUnrealType(uint16_t RiveType);
+	
 	inline const static TArray<FString> FontExtensions = {"ttf", "otf"};
 	inline const static TArray<FString> ImageExtensions = {"png"};
+	inline const static TArray<FString> AudioExtensions = {"wav", "mp3", "flac"};
 };

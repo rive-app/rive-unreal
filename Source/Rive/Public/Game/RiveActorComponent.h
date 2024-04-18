@@ -7,11 +7,12 @@
 #include "Components/ActorComponent.h"
 #include "RiveActorComponent.generated.h"
 
+class URiveAudioEngine;
 class URiveTexture;
 class URiveArtboard;
 class URiveFile;
 
-UCLASS(ClassGroup = (Custom), Meta = (BlueprintSpawnableComponent))
+UCLASS(ClassGroup = (Rive), Meta = (BlueprintSpawnableComponent))
 class RIVE_API URiveActorComponent : public UActorComponent
 {
     DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
@@ -69,6 +70,9 @@ public:
     UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
     TObjectPtr<URiveTexture> RenderTarget;
 
+    UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
+    TObjectPtr<URiveAudioEngine> RiveAudioEngine;
+    
 private:
     UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
 };
