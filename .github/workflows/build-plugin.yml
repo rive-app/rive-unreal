@@ -1,5 +1,5 @@
 #### Secrets #####
-# Requires "TOKEN" to be defined with an access token from a github account that has access to the UnrealEngine source code
+# Requires "UNREAL_CI_PAT" to be defined with an access token from a github account that has access to the UnrealEngine source code
 
 #### Runner requirements ####
 ## macOS ##
@@ -67,7 +67,7 @@ jobs:
           repository: "EpicGames/UnrealEngine" # Adjust if using a fork
           ref: "${{inputs.ENGINE_VERSION}}-release"
           path: UE-${{inputs.ENGINE_VERSION}}
-          token: ${{ secrets.TOKEN }} # Ensure you have access to UE5 repo
+          token: ${{ secrets.UNREAL_CI_PAT }} # Ensure you have access to UE5 repo
           clean: false
           fetch-depth: 1
         continue-on-error: true
@@ -150,7 +150,7 @@ jobs:
           repository: "EpicGames/UnrealEngine" # Adjust if using a fork
           ref: "${{inputs.ENGINE_VERSION}}-release"
           path: UE-${{inputs.ENGINE_VERSION}}
-          token: ${{ secrets.TOKEN }} # Ensure you have access to UE5 repo
+          token: ${{ secrets.UNREAL_CI_PAT }} # Ensure you have access to UE5 repo
           clean: false
 
       - name: Build UE5
