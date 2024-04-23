@@ -52,7 +52,9 @@ def main(rive_renderer_path):
 
 def do_android(rive_renderer_path):
     try:
-        os.environ['NDK_PATH'] = os.environ['NDK_ROOT']
+        if 'NDK_ROOT' in os.environ and 'NDK_PATH' not in os.environ:
+            os.environ['NDK_PATH'] = os.environ['NDK_ROOT']
+
         command = f'{get_base_command(rive_renderer_path)} --os=android --out=out/android gmake2'
         execute_command(command)
 
@@ -65,8 +67,8 @@ def do_android(rive_renderer_path):
 
         print_green('Copying Android libs')
         copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Android'), ".a")
-    except:
-        print_red("Exiting due to errors...")
+    except Exception as e:
+        print_red(f"Exiting due to errors... {e}")
         return False
     
     return True
