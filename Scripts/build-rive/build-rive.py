@@ -260,7 +260,7 @@ def execute_command(cmd):
         if output == '' and process.poll() is not None:
             break
         if output:
-            if ' error' in output.lower() and 'Structured output' not in output:
+            if ' error' in output.lower() and 'Structured output' not in output and '0 Error' not in output:
                 print_red(f'{output.strip()}')
                 had_errors = True
             else:
