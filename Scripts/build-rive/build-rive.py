@@ -134,6 +134,12 @@ def do_ios(rive_renderer_path):
         for target in targets:
             execute_command(f'make {target}')
         
+        # clear old .sim.a files
+        for root, dirs, files in os.walk(build_dirs['ios_sim']):
+            for file in files:
+                if file.endswith('.sim.a'):
+                    os.unlink(os.path.join(root, file))
+
         # we need to rename all ios simulator to .sim.a
         for root, dirs, files in os.walk(build_dirs['ios_sim']):
             for file in files:
