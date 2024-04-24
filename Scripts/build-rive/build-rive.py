@@ -20,26 +20,27 @@ targets = [
     'zlib'
 ]
 
-def get_base_command(rive_renderer_path):
+def get_base_command(rive_renderer_path, release):
     return (
         f"premake5 --scripts={rive_renderer_path}/submodules/rive-cpp/build "
-        f"--release --with_rive_text --with_rive_audio=external"
+        f"--with_rive_text --with_rive_audio=external {'--release' if release else ''}"
     )
 
 @click.command()
 @click.argument('rive_renderer_path')
-def main(rive_renderer_path):
+@click.option('--release', is_flag=True, default=False)
+def main(rive_renderer_path, release):
     if sys.platform.startswith('darwin'):
-        if not do_mac(rive_renderer_path):
+        if not do_mac(rive_renderer_path, release):
             return
         
-        if not do_ios(rive_renderer_path):
+        if not do_ios(rive_renderer_path, release):
             return
     elif sys.platform.startswith('win32'):
-        if not do_windows(rive_renderer_path):
+        if not do_windows(rive_renderer_path, release):
             return
         
-        if not do_android(rive_renderer_path):
+        if not do_android(rive_renderer_path, release):
             return
     else:
         print_red("Unsupported platform")
@@ -60,14 +61,14 @@ def get_msbuild():
         raise Exception(f'Invalid MSBuild path {msbuild_path}')
     return msbuild_path
 
-def do_android(rive_renderer_path):
+def do_android(rive_renderer_path, release):
     try:
         os.chdir(rive_renderer_path)
 
         if 'NDK_ROOT' in os.environ and 'NDK_PATH' not in os.environ:
             os.environ['NDK_PATH'] = os.environ['NDK_ROOT']
 
-        command = f'{get_base_command(rive_renderer_path)} --os=android --arch=arm64 --out=out/android vs2022'
+        command = f'{get_base_command(rive_renderer_path, release)} --os=android --arch=arm64 --out=out/android vs2022'
         execute_command(command)
 
         msbuild_path = get_msbuild()
@@ -88,10 +89,10 @@ def do_android(rive_renderer_path):
     return True
 
 
-def do_windows(rive_renderer_path):
+def do_windows(rive_renderer_path, release):
     try:
         os.chdir(rive_renderer_path)
-        command = f'{get_base_command(rive_renderer_path)} --force-md --os=windows --out=out/windows vs2022'
+        command = f'{get_base_command(rive_renderer_path, release)} --force-md --os=windows --out=out/windows vs2022'
         execute_command(command)
 
         msbuild_path = get_msbuild()
@@ -113,10 +114,10 @@ def do_windows(rive_renderer_path):
     return True
 
 
-def do_ios(rive_renderer_path):
+def do_ios(rive_renderer_path, release):
     try:
         os.chdir(rive_renderer_path)
-        command = f'{get_base_command(rive_renderer_path)} gmake2 --os=ios'
+        command = f'{get_base_command(rive_renderer_path, release)} gmake2 --os=ios'
         build_dirs = {}
 
         print_green('Building iOS')
@@ -169,10 +170,10 @@ def do_ios(rive_renderer_path):
     return True
 
 
-def do_mac(rive_renderer_path):
+def do_mac(rive_renderer_path, release):
     try:
         os.chdir(rive_renderer_path)
-        command = f'{get_base_command(rive_renderer_path)} --os=macosx gmake2'
+        command = f'{get_base_command(rive_renderer_path, release)} --os=macosx gmake2'
         build_dirs = {}
 
         # we currently don't use fat libs, otherwise we could use this for macOS
@@ -273,7 +274,7 @@ def execute_command(cmd):
     if sys.platform.startswith('darwin'):
         stdout, stderr = process.communicate()
         if stderr:
-            if not "pnglibconf.h: Permission denied" in stderr:
+            if not "pnglibconf.h: Permission denied" in stderr and not "has no symbols" in stderr:
                 print_red(stderr.strip())
                 had_errors = True
 
