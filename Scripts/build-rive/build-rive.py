@@ -29,8 +29,6 @@ def get_base_command(rive_renderer_path):
 @click.command()
 @click.argument('rive_renderer_path')
 def main(rive_renderer_path):
-    os.chdir(rive_renderer_path)
-    
     if sys.platform.startswith('darwin'):
         if not do_mac(rive_renderer_path):
             return
@@ -52,6 +50,8 @@ def main(rive_renderer_path):
 
 def do_android(rive_renderer_path):
     try:
+        os.chdir(rive_renderer_path)
+
         if 'NDK_ROOT' in os.environ and 'NDK_PATH' not in os.environ:
             os.environ['NDK_PATH'] = os.environ['NDK_ROOT']
 
@@ -74,9 +74,9 @@ def do_android(rive_renderer_path):
     return True
 
 
-
 def do_windows(rive_renderer_path):
     try:
+        os.chdir(rive_renderer_path)
         command = f'{get_base_command(rive_renderer_path)} --force-md --os=windows --out=out/windows vs2022'
         execute_command(command)
 
@@ -111,11 +111,11 @@ def do_windows(rive_renderer_path):
 
 def do_ios(rive_renderer_path):
     try:
+        os.chdir(rive_renderer_path)
         command = f'{get_base_command(rive_renderer_path)} gmake2 --os=ios'
         build_dirs = {}
 
         print_green('Building iOS')
-        os.chdir(rive_renderer_path)
         execute_command(f'{command} --variant=system --out=out/ios')
         os.chdir(os.path.join(rive_renderer_path, 'out', 'ios'))
         build_dirs['ios'] = os.getcwd()
@@ -167,6 +167,7 @@ def do_ios(rive_renderer_path):
 
 def do_mac(rive_renderer_path):
     try:
+        os.chdir(rive_renderer_path)
         command = f'{get_base_command(rive_renderer_path)} --os=macosx gmake2'
         build_dirs = {}
 
@@ -181,7 +182,6 @@ def do_mac(rive_renderer_path):
 
 
         print_green('Building macOS x64')
-        os.chdir(rive_renderer_path)
         execute_command(f'{command} --arch=x64 --out=out/mac_x64')
         os.chdir(os.path.join(rive_renderer_path, 'out', 'mac_x64'))
         build_dirs['mac_x64'] = os.getcwd()
