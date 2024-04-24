@@ -47,6 +47,18 @@ def main(rive_renderer_path):
 
     copy_includes(rive_renderer_path)
 
+def get_msbuild():
+    msbuild_path = ''
+    import vswhere
+
+    msbuilds = vswhere.find('MSBuild')
+    if len(msbuilds) == 0:
+        raise Exception('Could not find msbuild')
+    
+    msbuild_path = os.path.join(msbuilds[-1:][0], 'Current', 'Bin', 'MSBuild.exe')
+    if not os.path.exists(msbuild_path):
+        raise Exception(f'Invalid MSBuild path {msbuild_path}')
+    return msbuild_path
 
 def do_android(rive_renderer_path):
     try:
@@ -58,8 +70,10 @@ def do_android(rive_renderer_path):
         command = f'{get_base_command(rive_renderer_path)} --os=android --arch=arm64 --out=out/android vs2022'
         execute_command(command)
 
+        msbuild_path = get_msbuild()
+        
         os.chdir(os.path.join(rive_renderer_path, 'out', 'android'))
-        execute_command(f'make')
+        execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
 
         print_green(f'Built in {os.getcwd()}')
 
@@ -80,18 +94,8 @@ def do_windows(rive_renderer_path):
         command = f'{get_base_command(rive_renderer_path)} --force-md --os=windows --out=out/windows vs2022'
         execute_command(command)
 
-        msbuild_path = ''
-        import vswhere
-
-        msbuilds = vswhere.find('MSBuild')
-        if len(msbuilds) == 0:
-            raise Exception('Could not find msbuild')
-        
-        msbuild_path = os.path.join(msbuilds[-1:][0], 'Current', 'Bin', 'MSBuild.exe')
-        if not os.path.exists(msbuild_path):
-            raise Exception(f'Invalid MSBuild path {msbuild_path}')
+        msbuild_path = get_msbuild()
             
-        
         os.chdir(os.path.join(rive_renderer_path, 'out', 'windows'))
         execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
         
