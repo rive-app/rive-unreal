@@ -55,7 +55,7 @@ def do_android(rive_renderer_path):
         if 'NDK_ROOT' in os.environ and 'NDK_PATH' not in os.environ:
             os.environ['NDK_PATH'] = os.environ['NDK_ROOT']
 
-        command = f'{get_base_command(rive_renderer_path)} --os=android --out=out/android gmake2'
+        command = f'{get_base_command(rive_renderer_path)} --os=android --arch=arm64 --out=out/android vs2022'
         execute_command(command)
 
         os.chdir(os.path.join(rive_renderer_path, 'out', 'android'))
@@ -77,7 +77,7 @@ def do_android(rive_renderer_path):
 
 def do_windows(rive_renderer_path):
     try:
-        command = f'{get_base_command(rive_renderer_path)} --os=windows --out=out/windows vs2022'
+        command = f'{get_base_command(rive_renderer_path)} --force-md --os=windows --out=out/windows vs2022'
         execute_command(command)
 
         msbuild_path = ''
