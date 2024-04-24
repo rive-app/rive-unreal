@@ -85,20 +85,15 @@ def do_windows(rive_renderer_path):
 
         msbuilds = vswhere.find('MSBuild')
         if len(msbuilds) == 0:
-            print_red('Could not find msbuild')
-            return
+            raise Exception('Could not find msbuild')
         
         msbuild_path = os.path.join(msbuilds[-1:][0], 'Current', 'Bin', 'MSBuild.exe')
         if not os.path.exists(msbuild_path):
-            print_red(f'Invalid MSBuild path {msbuild_path}')
-            return
+            raise Exception(f'Invalid MSBuild path {msbuild_path}')
+            
         
         os.chdir(os.path.join(rive_renderer_path, 'out', 'windows'))
-        error = execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
-
-        if error:
-            print_red("Cannot continue due to errors")
-            return
+        execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
         
         print_green(f'Built in {os.getcwd()}')
 
@@ -106,8 +101,9 @@ def do_windows(rive_renderer_path):
 
         print_green('Copying Windows')
         copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Win64'), ".lib")
-    except:
+    except Exception as e:
         print_red("Exiting due to errors...")
+        print_red(e)
         return False
     
     return True
@@ -161,8 +157,9 @@ def do_ios(rive_renderer_path):
         print_green('Copying iOS and iOS simulator')
         copy_files(build_dirs['ios'], os.path.join(rive_libraries_path, 'IOS'), ".a")
         copy_files(build_dirs['ios_sim'], os.path.join(rive_libraries_path, 'IOS'), ".a")
-    except:
+    except Exception as e:
         print_red("Exiting due to errors...")
+        print_red(e)
         return False
     
     return True
@@ -207,8 +204,9 @@ def do_mac(rive_renderer_path):
         print_green('Copying macOS x64')
         copy_files(build_dirs['mac_x64'], os.path.join(rive_libraries_path, 'Mac', 'Intel'), ".a")
         copy_files(build_dirs['mac_arm64'], os.path.join(rive_libraries_path, 'Mac', 'Mac'), ".a")
-    except:
+    except Exception as e:
         print_red("Exiting due to errors...")
+        print_red(e)
         return False
     
     return True
@@ -217,7 +215,7 @@ def do_mac(rive_renderer_path):
 def copy_files(src, dst, extension):
      # Ensure the source directory exists
     if not os.path.exists(src):
-        print(f"The source directory {src} does not exist.")
+        print_red(f"The source directory {src} does not exist.")
         return
 
     os.makedirs(dst, exist_ok=True)
