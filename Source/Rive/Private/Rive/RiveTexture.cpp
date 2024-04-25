@@ -52,20 +52,28 @@ void URiveTexture::PostLoad()
 	}
 }
 
-void URiveTexture::ResizeRenderTargets(const FIntPoint InNewSize)
+void URiveTexture::ResizeRenderTargets(FIntPoint InNewSize)
 {
-	if (InNewSize.X == SizeX && InNewSize.Y == SizeY)
+	if (InNewSize.X < RIVE_MIN_TEX_RESOLUTION || InNewSize.Y < RIVE_MIN_TEX_RESOLUTION
+		|| InNewSize.X > RIVE_MAX_TEX_RESOLUTION || InNewSize.Y > RIVE_MAX_TEX_RESOLUTION)
 	{
-		return;
+		FIntPoint OldNewSize = InNewSize;
+		InNewSize = {
+			FMath::Clamp(InNewSize.X, RIVE_MIN_TEX_RESOLUTION, RIVE_MAX_TEX_RESOLUTION),
+			FMath::Clamp(InNewSize.Y, RIVE_MIN_TEX_RESOLUTION, RIVE_MAX_TEX_RESOLUTION)};
+		UE_LOG(LogRive, Warning, TEXT("Wrong Rive Texture Size {X:%d, Y:%d} being changed to {X:%d, Y:%d}"), OldNewSize.X, OldNewSize.Y, InNewSize.X, InNewSize.Y);
 	}
 	
-	if (InNewSize.X <= RIVE_MIN_TEX_RESOLUTION || InNewSize.Y <= RIVE_MIN_TEX_RESOLUTION
-		|| InNewSize.X >= RIVE_MAX_TEX_RESOLUTION || InNewSize.Y >= RIVE_MAX_TEX_RESOLUTION)
+	if (InNewSize.X == Size.X && InNewSize.Y == Size.Y)
 	{
-		UE_LOG(LogRive, Warning, TEXT("Wrong Rive Texture Size X:%d, Y:%d"), InNewSize.X, InNewSize.Y);
-
+		// Just making sure all internal data lines up
+		SizeX = Size.X;
+		SizeY = Size.Y;
 		return;
 	}
+
+	// we need to make sure we are not drawing anything with the old size, so we ensure all the commands are sent before going further
+	FlushRenderingCommands();
 	
 	SizeX = Size.X = InNewSize.X;
 	SizeY = Size.Y = InNewSize.Y;
@@ -168,9 +176,10 @@ void URiveTexture::InitializeResources() const
 		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 		
 		FTextureRHIRef RenderableTexture;
+		const FString DebugName = GetName();
 
 		FRHITextureCreateDesc RenderTargetTextureDesc =
-			FRHITextureCreateDesc::Create2D(*GetName(), Size.X, Size.Y, Format)
+			FRHITextureCreateDesc::Create2D(*DebugName, Size.X, Size.Y, Format)
 				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
 				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | ETextureCreateFlags::RenderTargetable);
 

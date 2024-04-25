@@ -76,6 +76,7 @@ public:
 #if WITH_EDITOR
 
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	virtual void PostEditUndo() override;
 
 #endif // WITH_EDITOR
 

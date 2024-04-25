@@ -1,0 +1,3 @@
+click
+vswhere
+ply
