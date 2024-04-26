@@ -14,9 +14,9 @@ void URiveAudioEngine::BeginPlay()
 			NativeAudioEnginePtr->unref();
 			NativeAudioEnginePtr = nullptr;
 		}
-	
-		NativeAudioEnginePtr = rive::rcp(rive::AudioEngine::Make(NumChannels, AudioDevice->SampleRate));
+		NumChannels = 2;
 		
+		NativeAudioEnginePtr = rive::rcp(rive::AudioEngine::Make(NumChannels, AudioDevice->SampleRate));
 		Start();
 	}
 
@@ -48,9 +48,4 @@ int32 URiveAudioEngine::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 		return NumSamples;
 	}
 	return 0;
-}
-
-void URiveAudioEngine::Make(int InChannels, int InSampleRate)
-{
-	
 }

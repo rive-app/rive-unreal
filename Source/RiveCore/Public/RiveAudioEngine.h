@@ -29,7 +29,6 @@ public:
 
 	virtual int32 OnGenerateAudio(float* OutAudio, int32 NumSamples) override;
 	
-	void Make(int InChannels, int InSampleRate);
 	rive::rcp<rive::AudioEngine> GetNativeAudioEngine() { return NativeAudioEnginePtr; }
 
 	UPROPERTY(BlueprintReadOnly)
