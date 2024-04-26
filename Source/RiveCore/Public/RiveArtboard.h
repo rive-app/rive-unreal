@@ -191,7 +191,7 @@ private:
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
 	TArray<FString> EventNames;
 	
-	UPROPERTY(Transient, VisibleInstanceOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess)) //todo: unexpose to BP and UI
+	//UPROPERTY(Transient, VisibleInstanceOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess)) //todo: unexpose to BP and UI
 	TMap<FString, FRiveNamedEventsDelegate> NamedRiveEventsDelegates;
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
