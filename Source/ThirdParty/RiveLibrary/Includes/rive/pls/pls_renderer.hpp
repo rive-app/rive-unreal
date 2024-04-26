@@ -16,7 +16,7 @@ namespace rive
 class GrInnerFanTriangulator;
 };
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 class PLSPath;
 class PLSPaint;
@@ -105,4 +105,4 @@ private:
     // Used to build coarse path interiors for the "interior triangulation" algorithm.
     RawPath m_scratchPath;
 };
-} // namespace rive::pls
+}} // namespace rive::pls

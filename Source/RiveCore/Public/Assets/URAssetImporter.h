@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/ObjectPtr.h"
 
 #if WITH_RIVE
 class URiveAsset;
@@ -15,7 +14,7 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-namespace UE::Rive::Assets
+namespace UE { namespace Rive { namespace Assets
 {
 	/**
 	 * Unreal extension of rive::FileAssetLoader implementation (partial) for the Unreal RHI.
@@ -31,7 +30,7 @@ namespace UE::Rive::Assets
 
 	public:
 
-		FURAssetImporter(UPackage* InPackage, const FString& InRiveFilePath, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets);
+		FURAssetImporter(UPackage* InPackage, const FString& InRiveFilePath, TMap<uint32, URiveAsset*>& InAssets);
 
 #if WITH_RIVE
 
@@ -52,6 +51,6 @@ namespace UE::Rive::Assets
 
 		UPackage* RivePackage;
 		FString RiveFilePath;
-		TMap<uint32, TObjectPtr<URiveAsset>>& Assets;
+		TMap<uint32, URiveAsset*>& Assets;
 	};
-}
+}}}

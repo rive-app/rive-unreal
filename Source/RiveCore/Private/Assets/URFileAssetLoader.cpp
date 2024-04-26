@@ -15,7 +15,7 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(UObject* InOuter, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets)
+UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(UObject* InOuter, TMap<uint32, URiveAsset*>& InAssets)
 	: Outer(InOuter), Assets(InAssets)
 {
 }
@@ -40,10 +40,10 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 	// Unity version prefers disk assets, over InBand, if they exist, allowing overrides
 	
 	URiveAsset* RiveAsset = nullptr;
-	const TObjectPtr<URiveAsset>* RiveAssetPtr = Assets.Find(InAsset.assetId());
-	if (RiveAssetPtr != nullptr && RiveAssetPtr->Get() != nullptr)
+	URiveAsset** RiveAssetPtr = Assets.Find(InAsset.assetId());
+	if (RiveAssetPtr != nullptr && *RiveAssetPtr != nullptr)
 	{
-		RiveAsset = RiveAssetPtr->Get();
+		RiveAsset = *RiveAssetPtr;
 	}
 	else
 	{
@@ -69,7 +69,7 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 	rive::Span<const uint8> OutOfBandBytes;
 	if (!bUseInBand)
 	{
-		if (RiveAsset->NativeAssetBytes.IsEmpty())
+		if (RiveAsset->NativeAssetBytes.Num() == 0)
 		{
 			UE_LOG(LogRiveCore, Error, TEXT("Trying to load out of band asset, but its bytes were never filled."));
 			return false;

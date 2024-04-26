@@ -4,8 +4,6 @@
 
 #include "Components/WidgetComponent.h"
 #include "Math/Color.h"
-#include "Templates/SharedPointerFwd.h"
-#include "UObject/WeakObjectPtrFwd.h"
 #include "RiveFullScreenUserWidget_PostProcessBase.generated.h"
 
 class FSceneViewport;
@@ -19,10 +17,10 @@ class UTextureRenderTarget2D;
 class UUserWidget;
 class UWorld;
 
-namespace UE::RiveUtilities::Private
+namespace UE { namespace RiveUtilities { namespace Private
 {
 	class FRiveWidgetPostProcessHitTester;
-}
+}}}
 
 /**
  * Implements shared widget initialization logic.
@@ -98,7 +96,7 @@ public:
 	 * OpacityFromTexture [Scalar]
 	 */
 	UPROPERTY(EditAnywhere, Category = PostProcess)
-	TObjectPtr<UMaterialInterface> PostProcessMaterial;
+	UMaterialInterface* PostProcessMaterial;
 
 	/** Tint color and opacity for this component. */
 	UPROPERTY(EditAnywhere, Category = PostProcess)
@@ -138,7 +136,7 @@ public:
 
 	/** The target to which the user widget is rendered. */
 	UPROPERTY(Transient)
-	TObjectPtr<UTextureRenderTarget2D> WidgetRenderTarget;
+	UTextureRenderTarget2D* WidgetRenderTarget;
 
 #if WITH_EDITOR
 

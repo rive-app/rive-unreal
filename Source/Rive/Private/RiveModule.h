@@ -4,7 +4,7 @@
 
 #include "IRiveModule.h"
 
-namespace UE::Rive::Private
+namespace UE { namespace Rive { namespace Private
 {
     class FRiveModule final : public IRiveModule
     {
@@ -26,4 +26,4 @@ namespace UE::Rive::Private
 
         void TestRiveIntegration();
     };
-}
+}}}

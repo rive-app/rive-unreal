@@ -5,7 +5,7 @@
 #include "IAssetTools.h"
 #include "IRiveEditorModule.h"
 
-namespace UE::Rive::Editor::Private
+namespace UE { namespace Rive { namespace Editor { namespace Private
 {
     class FRiveEditorModule final : public IRiveEditorModuleModule
     {
@@ -31,4 +31,4 @@ namespace UE::Rive::Editor::Private
         TSharedPtr<SNotificationItem> RHINotification;
         FDelegateHandle OnBeginFrameHandle;
     };
-}
+}}}}

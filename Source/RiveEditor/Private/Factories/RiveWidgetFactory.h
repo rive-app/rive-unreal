@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/ObjectPtr.h"
 
 class UWidgetBlueprint;
 class URiveFile;
@@ -39,5 +38,5 @@ private:
 
 private:
 	
-	TObjectPtr<URiveFile> RiveFile;
+	URiveFile* RiveFile;
 };

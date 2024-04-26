@@ -9,7 +9,7 @@
 #include "rive/math/aabb.hpp"
 #include "rive/math/simd.hpp"
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 // Wraps a backend-specific buffer that PLSRenderContext draws into.
 class PLSRenderTarget : public RefCnt<PLSRenderTarget>
@@ -32,4 +32,4 @@ private:
     uint32_t m_width;
     uint32_t m_height;
 };
-} // namespace rive::pls
+}} // namespace rive::pls

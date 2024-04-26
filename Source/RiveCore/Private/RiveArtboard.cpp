@@ -52,7 +52,7 @@ void URiveArtboard::AdvanceStateMachine(float InDeltaSeconds)
 	}
 }
 
-void URiveArtboard::Transform(const FVector2f& One, const FVector2f& Two, const FVector2f& T)
+void URiveArtboard::Transform(const FVector2D& One, const FVector2D& Two, const FVector2D& T)
 {
 	if (!RiveRenderTarget)
 	{
@@ -62,7 +62,7 @@ void URiveArtboard::Transform(const FVector2f& One, const FVector2f& Two, const 
 	RiveRenderTarget->Transform(One.X, One.Y, Two.X, Two.Y, T.X, T.Y);
 }
 
-void URiveArtboard::Translate(const FVector2f& InVector)
+void URiveArtboard::Translate(const FVector2D& InVector)
 {
 	if (!RiveRenderTarget)
 	{
@@ -72,7 +72,7 @@ void URiveArtboard::Translate(const FVector2f& InVector)
 	RiveRenderTarget->Translate(InVector);
 }
 
-void URiveArtboard::Align(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment)
+void URiveArtboard::Align(const FBox2D InBox, ERiveFitType InFitType, ERiveAlignment InAlignment)
 {
 	if (!RiveRenderTarget)
 	{
@@ -263,7 +263,7 @@ bool URiveArtboard::TriggerNamedRiveEvent(const FString& EventName, float Report
 	return false;
 }
 
-void URiveArtboard::PointerDown(const FVector2f& NewPosition)
+void URiveArtboard::PointerDown(const FVector2D& NewPosition)
 {
 	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
 	if (StateMachine)
@@ -272,7 +272,7 @@ void URiveArtboard::PointerDown(const FVector2f& NewPosition)
 	}
 }
 
-void URiveArtboard::PointerUp(const FVector2f& NewPosition)
+void URiveArtboard::PointerUp(const FVector2D& NewPosition)
 {
 	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
 	if (StateMachine)
@@ -281,7 +281,7 @@ void URiveArtboard::PointerUp(const FVector2f& NewPosition)
 	}
 }
 
-void URiveArtboard::PointerMove(const FVector2f& NewPosition)
+void URiveArtboard::PointerMove(const FVector2D& NewPosition)
 {
 	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
 	if (StateMachine)
@@ -290,7 +290,7 @@ void URiveArtboard::PointerMove(const FVector2f& NewPosition)
 	}
 }
 
-void URiveArtboard::PointerExit(const FVector2f& NewPosition)
+void URiveArtboard::PointerExit(const FVector2D& NewPosition)
 {
 	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
 	if (StateMachine)
@@ -299,9 +299,9 @@ void URiveArtboard::PointerExit(const FVector2f& NewPosition)
 	}
 }
 
-FVector2f URiveArtboard::GetLocalCoordinate(const FVector2f& InPosition, const FIntPoint& InTextureSize, ERiveAlignment InAlignment, ERiveFitType InFit) const
+FVector2D URiveArtboard::GetLocalCoordinate(const FVector2D& InPosition, const FIntPoint& InTextureSize, ERiveAlignment InAlignment, ERiveFitType InFit) const
 {
-	FVector2f Alignment = FRiveAlignment::GetAlignment(InAlignment);
+	FVector2D Alignment = FRiveAlignment::GetAlignment(InAlignment);
 	rive::Mat2D Transform = rive::computeAlignment(
 					static_cast<rive::Fit>(InFit),
 					rive::Alignment(Alignment.X, Alignment.Y),
@@ -312,11 +312,11 @@ FVector2f URiveArtboard::GetLocalCoordinate(const FVector2f& InPosition, const F
 	return {Vector.x, Vector.y};
 }
 
-FVector2f URiveArtboard::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents, const FIntPoint& TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const
+FVector2D URiveArtboard::GetLocalCoordinatesFromExtents(const FVector2D& InPosition, const FBox2D& InExtents, const FIntPoint& TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const
 {
-	const FVector2f RelativePosition = InPosition - InExtents.Min;
-	const FVector2f Ratio { TextureSize.X / InExtents.GetSize().X, TextureSize.Y / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
-	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
+	const FVector2D RelativePosition = InPosition - InExtents.Min;
+	const FVector2D Ratio { TextureSize.X / InExtents.GetSize().X, TextureSize.Y / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
+	const FVector2D TextureRelativePosition = RelativePosition * Ratio;
 	
 	return GetLocalCoordinate(TextureRelativePosition, TextureSize, Alignment, FitType);
 }
@@ -494,7 +494,7 @@ rive::AABB URiveArtboard::GetBounds() const
 	return NativeArtboardPtr->bounds();
 }
 
-FVector2f URiveArtboard::GetSize() const
+FVector2D URiveArtboard::GetSize() const
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 	if (!RiveRenderer)
@@ -509,7 +509,7 @@ FVector2f URiveArtboard::GetSize() const
 	{
 		UE_LOG(LogRiveCore, Error, TEXT("Could not retrieve artboard size as we have detected an empty rive artboard."));
 
-		return FVector2f::ZeroVector;
+		return FVector2D::ZeroVector;
 	}
 
 	return {NativeArtboardPtr->width(), NativeArtboardPtr->height()};
@@ -560,7 +560,7 @@ void URiveArtboard::PopulateReportedEvents()
 			}
 		}
 
-		if (!TickRiveReportedEvents.IsEmpty())
+		if (!TickRiveReportedEvents.Num() == 0)
 		{
 			RiveEventDelegate.Broadcast(this, TickRiveReportedEvents);
 		}

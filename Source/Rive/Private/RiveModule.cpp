@@ -37,7 +37,7 @@ void UE::Rive::Private::FRiveModule::TestRiveIntegration()
 
 #if WITH_RIVE
 
-    rive::BinaryReader JuiceRivReader(rive::Span(Tests::JuiceRivFile, sizeof(&Tests::JuiceRivFile)));
+    rive::BinaryReader JuiceRivReader(rive::Span<const uint8_t>((const uint8_t*)Tests::JuiceRivFile, sizeof(&Tests::JuiceRivFile)));
 
     rive::RuntimeHeader JuiceRivHeader;
 

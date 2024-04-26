@@ -4,8 +4,6 @@
 
 #include "Engine/TextureRenderTarget2D.h"
 #include "MediaShaders.h"
-#include "RenderGraphBuilder.h"
-#include "ScreenPass.h"
 #include "UObject/Package.h"
 
 UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget(FIntPoint InTargetSize, EPixelFormat PixelFormat, bool bCanCreateUAV)
@@ -34,79 +32,66 @@ FIntPoint UE::Rive::Renderer::FRiveRendererUtils::GetRenderTargetSize(const UTex
 
 void UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(FRHICommandListImmediate& RHICmdList, FTextureRHIRef SourceTexture, FTextureRHIRef DestTexture)
 {
-    FRDGBuilder GraphBuilder(RHICmdList);
+    FRHITexture2D* SourceTexture2D = (FRHITexture2D*)SourceTexture.GetReference();
+    check(SourceTexture2D);
 
-    // Register an external RDG rexture from the source texture
-    FRDGTexture* InputTexture = GraphBuilder.RegisterExternalTexture(CreateRenderTarget(SourceTexture, TEXT("PixelCaptureCopySourceTexture")));
+    FRHITexture2D* DestTexture2D = (FRHITexture2D*)DestTexture.GetReference();
+    check(DestTexture2D);
 
-    // Register an external RDG texture from the output buffer
-    FRDGTexture* OutputTexture = GraphBuilder.RegisterExternalTexture(CreateRenderTarget(DestTexture, TEXT("PixelCaptureCopyDestTexture")));
-
-    if (InputTexture->Desc.Format == OutputTexture->Desc.Format
-        && InputTexture->Desc.Extent.X == OutputTexture->Desc.Extent.X
-        && InputTexture->Desc.Extent.Y == OutputTexture->Desc.Extent.Y)
+    if (SourceTexture2D->GetFormat() == DestTexture2D->GetFormat()
+        && SourceTexture2D->GetSizeX() == DestTexture2D->GetSizeX()
+        && SourceTexture2D->GetSizeY() == DestTexture2D->GetSizeY())
     {
         // The formats are the same and size are the same. simple copy
-        AddDrawTexturePass(
-            GraphBuilder,
-            GetGlobalShaderMap(GMaxRHIFeatureLevel),
-            InputTexture,
-            OutputTexture,
-            FRDGDrawTextureInfo()
-        );
+        RHICmdList.CopyTexture(SourceTexture2D, DestTexture2D, FRHICopyTextureInfo());
     }
     else
     {
-        // TODO (matthew.cotton) A lot of this was copied from AddScreenPass and altered for our use.
-        // This was altered because the FViewInfo we create here on the stack is added to the RHI
-        // queue and is accessed possibly after this stack frame was released. Originally we tried
-        // just changing it to static so we could reuse it, but the object does not allow copying.
-        // So the current implementation creates the View on the heap using a shared ptr that is then
-        // captured in a lambda for the RHI queue. This allows us to update the view on calls to this
-        // function and not worry about it's lifetime.
-        // The todo is here because there has to be a better way to achieve what we want without
-        // all of this song and dance.
-
-        // FIntRect ViewportRect(FIntPoint(150, 150), InputTexture->Desc.Extent);
-
         // The formats or size differ to pixel shader stuff
-        //Configure source/output viewport to get the right UV scaling from source texture to output texture
-        FScreenPassTextureViewport InputViewport(InputTexture);
+        // FModifyAlphaSwizzleRgbaPS is handled differently here than in UE5. We follow a similar setup to UMediaCapture::Capture_RenderThread.
 
-        FScreenPassTextureViewport OutputViewport(OutputTexture);
+        RHICmdList.Transition(FRHITransitionInfo(DestTexture2D, ERHIAccess::Unknown, ERHIAccess::CopySrc));
 
+        FRHIRenderPassInfo RPInfo(DestTexture2D, ERenderTargetActions::DontLoad_Store);
+        RHICmdList.BeginRenderPass(RPInfo, TEXT("RiveCopyTextureRDG"));
+
+        FGraphicsPipelineStateInitializer GraphicsPSOInit;
+        RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+        // Configure vertex shader
         FGlobalShaderMap* GlobalShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+        TShaderMapRef<FMediaShadersVS> VertexShader(GlobalShaderMap);
 
-        TShaderMapRef<FScreenPassVS> VertexShader(GlobalShaderMap);
-
+        // Configure pixel shader
         // In cases where texture is converted from a format that doesn't have A channel, we want to force set it to 1.
-        int32 ConversionOperation = 0; // None
-
         FModifyAlphaSwizzleRgbaPS::FPermutationDomain PermutationVector;
-
+        const int32 ConversionOperation = 0; // None
         PermutationVector.Set<FModifyAlphaSwizzleRgbaPS::FConversionOp>(ConversionOperation);
-
-        // Rectangle area to use from source
-        const FIntRect ViewRect(FIntPoint::ZeroValue, InputTexture->Desc.Extent);
 
         TShaderMapRef<FModifyAlphaSwizzleRgbaPS> PixelShader(GlobalShaderMap, PermutationVector);
 
-        FModifyAlphaSwizzleRgbaPS::FParameters* PixelShaderParameters = PixelShader->AllocateAndSetParameters(GraphBuilder, InputTexture, OutputTexture);
+        // Configure graphics pipeline
+        GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+        GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+        GraphicsPSOInit.BlendState = TStaticBlendStateWriteMask<CW_RGBA, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI();
+        GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GMediaVertexDeclaration.VertexDeclarationRHI;
+        GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VertexShader.GetVertexShader();
+        GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PixelShader.GetPixelShader();
 
-        FRHIBlendState* BlendState = FScreenPassPipelineState::FDefaultBlendState::GetRHI();
+        SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+        PixelShader->SetParameters(RHICmdList, SourceTexture2D);
 
-        FRHIDepthStencilState* DepthStencilState = FScreenPassPipelineState::FDefaultDepthStencilState::GetRHI();
+        // Draw full size quad into render target
+        FVertexBufferRHIRef VertexBuffer = CreateTempMediaVertexBuffer(0.f, 1.f, 0.f, 1.f);
+        RHICmdList.SetStreamSource(0, VertexBuffer, 0);
 
-        AddDrawScreenPass(
-            GraphBuilder,
-            RDG_EVENT_NAME("PixelCapturerSwizzle"),
-            FScreenPassViewInfo(),
-            OutputViewport,
-            InputViewport,
-            VertexShader,
-            PixelShader,
-            PixelShaderParameters);
+        // Set viewport to texture size
+        const FIntVector TextureSize = SourceTexture2D->GetSizeXYZ();
+
+        RHICmdList.SetViewport(0, 0, 0.0f, SourceTexture2D->GetSizeX(), SourceTexture2D->GetSizeY(), 1.0f);
+        RHICmdList.DrawPrimitive(0, 2, 1);
+        RHICmdList.EndRenderPass();
+
+        RHICmdList.Transition(FRHITransitionInfo(DestTexture2D, ERHIAccess::Unknown, ERHIAccess::CopyDest));
     }
-
-    GraphBuilder.Execute();
 }

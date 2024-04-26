@@ -2,12 +2,11 @@
 
 #pragma once
 
+/* TODO: Find out how to replace this functionality in UE4
+
 #include "AssetDefinitionDefault.h"
 #include "RiveFile_AssetDefinitionDefault.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class RIVEEDITOR_API URiveFile_AssetDefinitionDefault : public UAssetDefinitionDefault
 {
@@ -29,3 +28,5 @@ protected:
 
 	//~ END : UAssetDefinition Interface
 };
+
+*/

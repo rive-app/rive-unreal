@@ -94,7 +94,7 @@ void URiveFileFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& New
 {
     if (URiveFile* RiveFile = Cast<URiveFile>(Obj))
     {
-        if (IsValid(RiveFile) && !NewReimportPaths.IsEmpty() && FPaths::FileExists(NewReimportPaths[0]))
+        if (IsValid(RiveFile) && NewReimportPaths.Num() != 0 && FPaths::FileExists(NewReimportPaths[0]))
         {
             RiveFile->RiveFilePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NewReimportPaths[0]);
         }

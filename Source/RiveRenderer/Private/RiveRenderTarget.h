@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/ObjectPtr.h"
 #include "IRiveRenderTarget.h"
 #include "RiveRenderCommand.h"
 
@@ -14,16 +13,16 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 	class PLSRenderer;
-}
+}}
 
 #endif // WITH_RIVE
 
 class UTexture2DDynamic;
 
-namespace UE::Rive::Renderer::Private
+namespace UE { namespace Rive { namespace Renderer { namespace Private
 {
 	class FRiveRenderer;
 	class FRiveRenderTarget : public IRiveRenderTarget
@@ -54,10 +53,10 @@ namespace UE::Rive::Renderer::Private
 		virtual void Save() override;
 		virtual void Restore() override;
 		virtual void Transform(float X1, float Y1, float X2, float Y2, float TX, float TY) override;
-		virtual void Translate(const FVector2f& InVector) override;
+		virtual void Translate(const FVector2D& InVector) override;
 		virtual void Draw(rive::Artboard* InArtboard) override;
-		virtual void Align(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
-		virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
+		virtual void Align(const FBox2D& InBox, ERiveFitType InFit, const FVector2D& InAlignment, rive::Artboard* InArtboard) override;
+		virtual void Align(ERiveFitType InFit, const FVector2D& InAlignment, rive::Artboard* InArtboard) override;
 		virtual FMatrix GetTransformMatrix() const override;
 
 	protected:
@@ -72,10 +71,10 @@ namespace UE::Rive::Renderer::Private
 		mutable bool bIsCleared = false;
 		FLinearColor ClearColor = FLinearColor::Transparent;
 		FName RiveName;
-		TObjectPtr<UTexture2DDynamic> RenderTarget;
+		UTexture2DDynamic* RenderTarget;
 		TArray<FRiveRenderCommand> RenderCommands;
 		TSharedPtr<FRiveRenderer> RiveRenderer;
 		mutable FDateTime LastResetTime = FDateTime::Now();
 		static FTimespan ResetTimeLimit;
 	};
-}
+}}}}

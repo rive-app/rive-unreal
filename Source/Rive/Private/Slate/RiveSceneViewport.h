@@ -9,10 +9,10 @@ class FRiveViewportClient;
 class URiveTexture;
 class URiveArtboard;
 
-namespace UE::Rive::Core
+namespace UE { namespace Rive { namespace Core
 {
 	class FURStateMachine;
-}
+}}}
 
 /**
  * 
@@ -48,11 +48,11 @@ protected:
 
 private:
 	using StateMachinePtr = UE::Rive::Core::FURStateMachine*;
-	using FStateMachineInputCallback = TFunction<void(const FVector2f&, StateMachinePtr)>;
+	using FStateMachineInputCallback = TFunction<void(const FVector2D&, StateMachinePtr)>;
 
 	FReply OnInput(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, const FStateMachineInputCallback& InStateMachineInputCallback);
 
-	TObjectPtr<URiveTexture> RiveTexture;
+	URiveTexture* RiveTexture;
 	TArray<URiveArtboard*> Artboards;
-	FVector2f LastMousePosition = FVector2f::ZeroVector;
+	FVector2D LastMousePosition = FVector2D::ZeroVector;
 };

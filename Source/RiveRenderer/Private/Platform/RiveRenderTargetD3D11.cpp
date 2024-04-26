@@ -9,7 +9,7 @@
 #include "Engine/Texture2DDynamic.h"
 
 #include "RiveRendererD3D11.h"
-#include "ID3D11DynamicRHI.h"
+#include "D3D11RHIPrivate.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderer.h"
 #include "TextureResource.h"
@@ -48,10 +48,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 	}
 
 	SCOPED_GPU_STAT(RHICmdList, CacheTextureTarget);
-	if (IsRHID3D11() && InTexture.IsValid())
+	if (GD3D11RHI != nullptr && InTexture.IsValid())
 	{
-		ID3D11DynamicRHI* D3D11RHI = GetID3D11DynamicRHI();
-		ID3D11Texture2D* D3D11ResourcePtr = (ID3D11Texture2D*)D3D11RHI->RHIGetResource(InTexture);
+		ID3D11Texture2D* D3D11ResourcePtr = (ID3D11Texture2D*)GD3D11RHI->ResourceCast(InTexture.GetReference());
 		D3D11_TEXTURE2D_DESC Desc;
 		D3D11ResourcePtr->GetDesc(&Desc);
 		UE_LOG(LogRiveRenderer, Log, TEXT("D3D11ResourcePtr texture %dx%d"), Desc.Width, Desc.Height);

@@ -64,7 +64,7 @@ public:
 class FScopeLogIndent
 {
 public:
-	UE_NODISCARD_CTOR FScopeLogIndent()
+	UE_NODISCARD FScopeLogIndent()
 	{
 		FDebugLogger::Get().Indent();
 	}

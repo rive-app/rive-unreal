@@ -71,7 +71,7 @@ public:
     {
         // We don't call destructors on objects that get allocated here. We just free the blocks
         // at the end. So objects must be trivially destructible.
-        static_assert(std::is_trivially_destructible<T>::value);
+        static_assert(std::is_trivially_destructible<T>::value, "");
         return new (alloc<alignof(T)>(sizeof(T))) T(std::forward<Args>(args)...);
     }
 
@@ -91,7 +91,7 @@ private:
 template <typename T, size_t AlignmentInBytes = alignof(T)>
 class TrivialArrayAllocator : private TrivialBlockAllocator
 {
-    static_assert(std::is_pod<T>::value);
+    static_assert(std::is_pod<T>::value, "std::is_pod<T>::value was false");
 
 public:
     TrivialArrayAllocator(size_t initialCount) : TrivialBlockAllocator(initialCount * sizeof(T)) {}

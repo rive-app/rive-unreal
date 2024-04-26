@@ -4,7 +4,7 @@
 
 #include "IRiveRendererModule.h"
 
-namespace UE::Rive::Renderer::Private
+namespace UE { namespace Rive { namespace Renderer { namespace Private
 {
     class FRiveRendererModule : public IRiveRendererModule
     {
@@ -35,4 +35,4 @@ namespace UE::Rive::Renderer::Private
         FSimpleMulticastDelegate OnRendererInitializedDelegate;
         FDelegateHandle OnBeginFrameHandle;
     };
-}
+}}}}

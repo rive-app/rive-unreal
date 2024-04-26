@@ -19,7 +19,7 @@ public:
 
 	static ERiveAssetType GetUnrealType(uint16_t RiveType);
 	
-	inline const static TArray<FString> FontExtensions = {"ttf", "otf"};
-	inline const static TArray<FString> ImageExtensions = {"png"};
-	inline const static TArray<FString> AudioExtensions = {"wav", "mp3", "flac"};
+	const static TArray<FString> FontExtensions;
+	const static TArray<FString> ImageExtensions;
+	const static TArray<FString> AudioExtensions;
 };

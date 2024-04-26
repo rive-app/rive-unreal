@@ -10,10 +10,10 @@
 #include "Logs/RiveLog.h"
 #include "Rive/RiveFile.h"
 
-namespace UE::Rive::Core
+namespace UE { namespace Rive { namespace Core
 {
     class FURStateMachine;
-}
+}}}
 
 URiveActorComponent::URiveActorComponent(): Size(500, 500)
 {
@@ -32,7 +32,8 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    if (!IsValidChecked(this))
+    check(this);
+    if (!IsValid(this))
     {
         return;
     }
@@ -135,6 +136,6 @@ void URiveActorComponent::OnResourceInitialized_RenderThread(FRHICommandListImme
     // When the resource change, we need to tell the Render Target otherwise we will keep on drawing on an outdated RT
     if (const UE::Rive::Renderer::IRiveRenderTargetPtr RTarget = RiveRenderTarget) //todo: might need a lock
     {
-        RTarget->CacheTextureTarget_RenderThread(RHICmdList, NewResource);
+        RTarget->CacheTextureTarget_RenderThread(RHICmdList, (FRHITexture2D*)NewResource.GetReference());
     }
 }

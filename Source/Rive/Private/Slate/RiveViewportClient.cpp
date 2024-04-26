@@ -2,6 +2,9 @@
 
 #include "RiveViewportClient.h"
 
+// TODO: Figure out why CanvasItem.h fails to compile without this
+#define PI 3.1415926535897932f
+
 #include "CanvasItem.h"
 #include "CanvasTypes.h"
 #include "RiveWidgetHelpers.h"
@@ -43,8 +46,8 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	//todo: to review with drawing of multiple artboards
 	const FIntPoint ViewportSize = Viewport->GetSizeXY();
-	const FBox2f RiveTextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(RiveTexture->Size, ViewportSize);
-	const FVector2f RiveTextureSize = RiveTextureBox.GetSize();
+	const FBox2D RiveTextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(RiveTexture->Size, ViewportSize);
+	const FVector2D RiveTextureSize = RiveTextureBox.GetSize();
 
 #if WITH_EDITOR
 	// Draw the background checkerboard pattern in the same size/position as the render texture so it will show up anywhere
@@ -108,7 +111,6 @@ void FRiveViewportClient::DestroyCheckerboardTexture()
 	{
 		CheckerboardTexture->ReleaseResource();
 		CheckerboardTexture->RemoveFromRoot();
-		CheckerboardTexture->MarkAsGarbage();
 		CheckerboardTexture = nullptr;
 	}
 }

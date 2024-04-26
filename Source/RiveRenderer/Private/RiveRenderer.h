@@ -9,15 +9,15 @@
 
 #if WITH_RIVE
 
-namespace rive::pls
+namespace rive { namespace pls
 {
     class PLSRenderer;
     class PLSRenderContext;
-}
+}}
 
 #endif // WITH_RIVE
 
-namespace UE::Rive::Renderer::Private
+namespace UE { namespace Rive { namespace Renderer { namespace Private
 {
     class FRiveRenderTarget;
     
@@ -41,7 +41,7 @@ namespace UE::Rive::Renderer::Private
 
         virtual bool IsInitialized() const override { return InitializationState == ERiveInitState::Initialized; }
 
-        virtual void QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile) override;
+        virtual void QueueTextureRendering(URiveFile* InRiveFile) override;
 
         virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override { return nullptr; }
 
@@ -81,4 +81,4 @@ namespace UE::Rive::Renderer::Private
         ERiveInitState InitializationState = ERiveInitState::Uninitialized;
         FOnRendererInitialized OnInitializedDelegate;
     };
-}
+}}}}

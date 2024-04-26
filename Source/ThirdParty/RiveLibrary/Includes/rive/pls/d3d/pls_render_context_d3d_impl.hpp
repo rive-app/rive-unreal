@@ -9,7 +9,7 @@
 #include <map>
 #include <string>
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 class PLSRenderContextD3DImpl;
 
@@ -185,7 +185,7 @@ private:
         uint32_t pad1;
         uint32_t pad2;
     };
-    static_assert(sizeof(DrawUniforms) == 16);
+    static_assert(sizeof(DrawUniforms) == 16, "");
 
     ComPtr<ID3D11Buffer> m_flushUniforms;
     ComPtr<ID3D11Buffer> m_drawUniforms;
@@ -196,4 +196,4 @@ private:
 
     ComPtr<ID3D11BlendState> m_srcOverBlendState;
 };
-} // namespace rive::pls
+}} // namespace rive::pls

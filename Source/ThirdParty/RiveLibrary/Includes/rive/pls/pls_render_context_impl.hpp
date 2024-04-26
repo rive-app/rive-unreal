@@ -6,7 +6,7 @@
 
 #include "rive/pls/pls_render_context.hpp"
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 class PLSTexture;
 
@@ -95,4 +95,4 @@ public:
 protected:
     PlatformFeatures m_platformFeatures;
 };
-} // namespace rive::pls
+}} // namespace rive::pls

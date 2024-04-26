@@ -6,7 +6,7 @@
 
 #include "rive/pls/pls.hpp"
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 // API-agnostic implementation of an abstract buffer ring. We use rings to ensure the GPU can render
 // one frame in parallel while the CPU prepares the next frame.
@@ -86,4 +86,4 @@ protected:
     void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override { return shadowBuffer(); }
     void onUnmapAndSubmitBuffer(int bufferIdx, size_t mapSizeInBytes) override {}
 };
-} // namespace rive::pls
+}} // namespace rive::pls

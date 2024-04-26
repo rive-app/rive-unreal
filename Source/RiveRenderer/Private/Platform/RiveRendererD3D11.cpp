@@ -3,11 +3,9 @@
 #include "RiveRendererD3D11.h"
 
 #if PLATFORM_WINDOWS
-#include "ID3D11DynamicRHI.h"
 #include "Logs/RiveRendererLog.h"
 #include "ProfilingDebugging/RealtimeGPUProfiler.h"
 #include "RiveRenderTargetD3D11.h"
-#include "Windows/D3D11ThirdParty.h"
 #include "D3D11RHIPrivate.h"
 
 #if WITH_RIVE
@@ -24,8 +22,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::Initialize(rive:
 {
 	check(IsInRenderingThread());
 
-	D3D11RHI = GetID3D11DynamicRHI();
-	D3D11DevicePtr = D3D11RHI->RHIGetDevice();
+	D3D11DevicePtr = (ID3D11Device*)GD3D11RHI->RHIGetNativeDevice();
 	D3D11DeviceContext = nullptr;
 	D3D11DevicePtr->GetImmediateContext(&D3D11DeviceContext);
 
@@ -47,10 +44,9 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::Initialize(rive:
 void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::ResetDXState()
 {
 	// Clear the internal state kept by UE and reset DX
-	FD3D11DynamicRHI* DynRHI = static_cast<FD3D11DynamicRHI*>(D3D11RHI);
-	if (ensure(DynRHI))
+	if (ensure(GD3D11RHI))
 	{
-		DynRHI->ClearState();
+		GD3D11RHI->ClearState();
 	}
 }
 
@@ -78,7 +74,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 
 	SCOPED_GPU_STAT(RHICmdList, CreatePLSContext);
 
-	if (IsRHID3D11())
+	if (GD3D11RHI != nullptr)
 	{
 #if WITH_RIVE
 		rive::pls::PLSRenderContextD3DImpl::ContextOptions ContextOptions;

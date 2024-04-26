@@ -61,7 +61,7 @@ void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
 }
 
 
-void UE::Rive::Renderer::Private::FRiveRenderer::QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile)
+void UE::Rive::Renderer::Private::FRiveRenderer::QueueTextureRendering(URiveFile* InRiveFile)
 {
 }
 

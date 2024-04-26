@@ -52,7 +52,7 @@ public:
     void RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards);
 
 private:
-    TObjectPtr<URiveTexture> RiveTexture;
+    URiveTexture* RiveTexture;
 
     /** Reference to Slate Viewport */
     TSharedPtr<SViewport> ViewportWidget;

@@ -30,7 +30,7 @@ class RenderBuffer;
 //
 // Batching strokes as well:
 // https://docs.google.com/document/d/1CRKihkFjbd1bwT08ErMCP4fwSR7D4gnHvgdw_esY9GM/edit
-namespace rive::pls
+namespace rive { namespace pls
 {
 class PLSDraw;
 class PLSGradient;
@@ -76,13 +76,13 @@ constexpr static int MaxPathID(int granularity)
 // information. This value is currently 16 bit.
 constexpr static size_t kMaxContourID = 65535;
 constexpr static uint32_t kContourIDMask = 0xffff;
-static_assert((kMaxContourID & kContourIDMask) == kMaxContourID);
+static_assert((kMaxContourID & kContourIDMask) == kMaxContourID, "(kMaxContourID & kContourIDMask) != kMaxContourID");
 
 // Tessellation is performed by rendering vertices into a data texture. These values define the
 // dimensions of the tessellation data texture.
 constexpr static size_t kTessTextureWidth = 2048; // GL_MAX_TEXTURE_SIZE spec minimum on ES3/WebGL2.
 constexpr static size_t kTessTextureWidthLog2 = 11;
-static_assert(1 << kTessTextureWidthLog2 == kTessTextureWidth);
+static_assert(1 << kTessTextureWidthLog2 == kTessTextureWidth, "");
 
 // Gradients are implemented by sampling a horizontal ramp of pixels allocated in a global gradient
 // texture.
@@ -135,7 +135,7 @@ struct GradientSpan
     uint32_t color0;
     uint32_t color1;
 };
-static_assert(sizeof(GradientSpan) == sizeof(uint32_t) * 4);
+static_assert(sizeof(GradientSpan) == sizeof(uint32_t) * 4, "");
 
 // Each curve gets tessellated into vertices. This is performed by rendering a horizontal span
 // of positions and normals into the tessellation data texture, GP-GPU style. TessVertexSpan
@@ -214,7 +214,7 @@ struct TessVertexSpan
     uint32_t segmentCounts;      // [joinSegmentCount, polarSegmentCount, parametricSegmentCount]
     uint32_t contourIDWithFlags; // flags | contourID
 };
-static_assert(sizeof(TessVertexSpan) == sizeof(float) * 16);
+static_assert(sizeof(TessVertexSpan) == sizeof(float) * 16, "");
 
 // Tessellation spans are drawn as two distinct, 1px-tall rectangles: the span and its reflection.
 constexpr uint16_t kTessSpanIndices[4 * 3] = {0, 1, 2, 2, 1, 3, 4, 5, 6, 6, 5, 7};
@@ -280,7 +280,7 @@ union SimplePaintValue
     float imageOpacity;                  // PaintType::image
     uint32_t outerClipID;                // Paintype::clipUpdate
 };
-static_assert(sizeof(SimplePaintValue) == 4);
+static_assert(sizeof(SimplePaintValue) == 4, "");
 
 // This class encapsulates a matrix that maps from _fragCoord to a space where the clipRect is the
 // normalized rectangle: [-1, -1, +1, +1]
@@ -392,7 +392,7 @@ struct PatchVertex
     float mirroredFillCoverage;
     int32_t padding = 0;
 };
-static_assert(sizeof(PatchVertex) == sizeof(float) * 8);
+static_assert(sizeof(PatchVertex) == sizeof(float) * 8, "");
 
 // # of tessellation segments spanned by the midpoint fan patch.
 constexpr static uint32_t kMidpointFanPatchSegmentSpan = 8;
@@ -411,7 +411,7 @@ constexpr static uint32_t kMidpointFanPatchIndexCount =
     kMidpointFanPatchBorderIndexCount /*Stroke and/or AA outer ramp*/ +
     (kMidpointFanPatchSegmentSpan - 1) * 3 /*Curve fan*/ + 3 /*Triangle from path midpoint*/;
 constexpr static uint32_t kMidpointFanPatchBaseIndex = 0;
-static_assert((kMidpointFanPatchBaseIndex * sizeof(uint16_t)) % 4 == 0);
+static_assert((kMidpointFanPatchBaseIndex * sizeof(uint16_t)) % 4 == 0, "");
 constexpr static uint32_t kOuterCurvePatchVertexCount =
     kOuterCurvePatchSegmentSpan * 8 /*AA center ramp with bowtie*/ +
     kOuterCurvePatchSegmentSpan /*Curve fan*/;
@@ -421,7 +421,7 @@ constexpr static uint32_t kOuterCurvePatchIndexCount =
     kOuterCurvePatchBorderIndexCount /*AA center ramp with bowtie*/ +
     (kOuterCurvePatchSegmentSpan - 2) * 3 /*Curve fan*/;
 constexpr static uint32_t kOuterCurvePatchBaseIndex = kMidpointFanPatchIndexCount;
-static_assert((kOuterCurvePatchBaseIndex * sizeof(uint16_t)) % 4 == 0);
+static_assert((kOuterCurvePatchBaseIndex * sizeof(uint16_t)) % 4 == 0, "");
 constexpr static uint32_t kPatchVertexBufferCount =
     kMidpointFanPatchVertexCount + kOuterCurvePatchVertexCount;
 constexpr static uint32_t kPatchIndexBufferCount =
@@ -577,7 +577,7 @@ constexpr static ShaderFeatures ShaderFeaturesMaskFor(DrawType drawType,
             }
             // Since atomic mode has to resolve previous draws, images need to consider the same
             // shader features for path draws.
-            [[fallthrough]];
+            // [[fallthrough]];
         case DrawType::midpointFanPatches:
         case DrawType::outerCurvePatches:
         case DrawType::interiorTriangulation:
@@ -688,7 +688,7 @@ struct TwoTexelRamp
     }
     uint8_t colorData[8];
 };
-static_assert(sizeof(TwoTexelRamp) == 8 * sizeof(uint8_t));
+static_assert(sizeof(TwoTexelRamp) == 8 * sizeof(uint8_t), "");
 
 // Detailed description of exactly how a PLSRenderContextImpl should bind its buffers and draw a
 // flush. A typical flush is done in 4 steps:
@@ -830,7 +830,7 @@ private:
     WRITEONLY uint8_t m_padTo256Bytes[256 - 56]; // Uniform blocks must be multiples of 256 bytes in
                                                  // size.
 };
-static_assert(sizeof(FlushUniforms) == 256);
+static_assert(sizeof(FlushUniforms) == 256, "");
 
 // Storage buffers are logically layed out as arrays of structs on the CPU, but the GPU shaders
 // access them as arrays of basic types. We do it this way in order to be able to easily polyfill
@@ -872,8 +872,8 @@ private:
     WRITEONLY float m_strokeRadius; // "0" indicates that the path is filled, not stroked.
     WRITEONLY uint32_t m_zIndex;    // pls::InterlockMode::depthStencil only.
 };
-static_assert(sizeof(PathData) == StorageBufferElementSizeInBytes(PathData::kBufferStructure) * 2);
-static_assert(256 % sizeof(PathData) == 0);
+static_assert(sizeof(PathData) == StorageBufferElementSizeInBytes(PathData::kBufferStructure) * 2, "");
+static_assert(256 % sizeof(PathData) == 0, "");
 constexpr static size_t kPathBufferAlignmentInElements = 256 / sizeof(PathData);
 
 // High level structure of the "paint" storage buffer. Each path also has a data small record
@@ -902,8 +902,8 @@ private:
         WRITEONLY uint32_t m_shiftedClipReplacementID; // PaintType::clipUpdate
     };
 };
-static_assert(sizeof(PaintData) == StorageBufferElementSizeInBytes(PaintData::kBufferStructure));
-static_assert(256 % sizeof(PaintData) == 0);
+static_assert(sizeof(PaintData) == StorageBufferElementSizeInBytes(PaintData::kBufferStructure), "");
+static_assert(256 % sizeof(PaintData) == 0, "");
 constexpr static size_t kPaintBufferAlignmentInElements = 256 / sizeof(PaintData);
 
 // Structure of the "paintAux" storage buffer. Gradients, images, and clipRects store their details
@@ -935,8 +935,8 @@ private:
     WRITEONLY Vec2D m_inverseFwidth; // -1 / fwidth(matrix * _fragCoord) -- for antialiasing.
 };
 static_assert(sizeof(PaintAuxData) ==
-              StorageBufferElementSizeInBytes(PaintAuxData::kBufferStructure) * 4);
-static_assert(256 % sizeof(PaintAuxData) == 0);
+              StorageBufferElementSizeInBytes(PaintAuxData::kBufferStructure) * 4, "");
+static_assert(256 % sizeof(PaintAuxData) == 0, "");
 constexpr static size_t kPaintAuxBufferAlignmentInElements = 256 / sizeof(PaintAuxData);
 
 // High level structure of the "contour" storage buffer. Each contour of every path has a data
@@ -956,8 +956,8 @@ private:
     WRITEONLY uint32_t m_vertexIndex0; // Index of the first tessellation vertex of the contour.
 };
 static_assert(sizeof(ContourData) ==
-              StorageBufferElementSizeInBytes(ContourData::kBufferStructure));
-static_assert(256 % sizeof(ContourData) == 0);
+              StorageBufferElementSizeInBytes(ContourData::kBufferStructure), "");
+static_assert(256 % sizeof(ContourData) == 0, "");
 constexpr static size_t kContourBufferAlignmentInElements = 256 / sizeof(ContourData);
 
 // Per-vertex data for shaders that draw triangles.
@@ -978,7 +978,7 @@ private:
     WRITEONLY Vec2D m_point;
     WRITEONLY int32_t m_weight_pathID; // [(weight << 16 | pathID]
 };
-static_assert(sizeof(TriangleVertex) == sizeof(float) * 3);
+static_assert(sizeof(TriangleVertex) == sizeof(float) * 3, "");
 
 // Per-draw uniforms used by image meshes.
 struct ImageDrawUniforms
@@ -1006,9 +1006,9 @@ private:
 
     constexpr void staticChecks()
     {
-        static_assert(offsetof(ImageDrawUniforms, m_matrix) % 16 == 0);
-        static_assert(offsetof(ImageDrawUniforms, m_clipRectInverseMatrix) % 16 == 0);
-        static_assert(sizeof(ImageDrawUniforms) == 256);
+        static_assert(offsetof(ImageDrawUniforms, m_matrix) % 16 == 0, "");
+        static_assert(offsetof(ImageDrawUniforms, m_clipRectInverseMatrix) % 16 == 0, "");
+        static_assert(sizeof(ImageDrawUniforms) == 256, "");
     }
 };
 
@@ -1111,4 +1111,4 @@ enum class TriState
     yes,
     unknown
 };
-} // namespace rive::pls
+}} // namespace rive::pls

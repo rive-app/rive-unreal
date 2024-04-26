@@ -27,7 +27,7 @@ namespace rive
 
 #endif // WITH_RIVE
 
-namespace UE::Rive::Renderer
+namespace UE { namespace Rive { namespace Renderer
 {
 	class IRiveRenderTarget;
 
@@ -66,10 +66,10 @@ namespace UE::Rive::Renderer
 		virtual void Save() = 0;
 		virtual void Restore() = 0;
 		virtual void Transform(float X1, float Y1, float X2, float Y2, float TX, float TY) = 0;
-		virtual void Translate(const FVector2f& InVector) = 0;
+		virtual void Translate(const FVector2D& InVector) = 0;
 		virtual void Draw(rive::Artboard* InArtboard) = 0;
-		virtual void Align(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) = 0;
-		virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) = 0;
+		virtual void Align(const FBox2D& InBox, ERiveFitType InFit, const FVector2D& InAlignment, rive::Artboard* InArtboard) = 0;
+		virtual void Align(ERiveFitType InFit, const FVector2D& InAlignment, rive::Artboard* InArtboard) = 0;
 		/** Returns the transformation Matrix from the start of the Render Queue up to now */
 		virtual FMatrix GetTransformMatrix() const = 0;
 
@@ -81,4 +81,4 @@ namespace UE::Rive::Renderer
 		virtual uint32 GetWidth() const = 0;
 		virtual uint32 GetHeight() const = 0;
 	};
-}
+}}}

@@ -11,17 +11,17 @@
 #include "RenderUtils.h"
 #include "Rive/RiveTexture.h"
 
-namespace UE::Rive::Renderer
+namespace UE { namespace Rive { namespace Renderer
 {
 	class IRiveRenderer;
-}
+}}}
 
 FRiveTextureResource::FRiveTextureResource(URiveTexture* Owner)
 {
 	RiveTexture = Owner;
 }
 
-void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
+void FRiveTextureResource::InitRHI()
 {
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 	if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())

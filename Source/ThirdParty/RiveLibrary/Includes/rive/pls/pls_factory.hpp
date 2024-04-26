@@ -6,7 +6,7 @@
 
 #include "rive/factory.hpp"
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 // Partial rive::Factory implementation for the PLS objects that are backend-agnostic.
 class PLSFactory : public Factory
@@ -33,4 +33,4 @@ public:
 
     rcp<RenderPaint> makeRenderPaint() override;
 };
-} // namespace rive::pls
+}} // namespace rive::pls

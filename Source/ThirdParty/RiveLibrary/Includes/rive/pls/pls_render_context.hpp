@@ -21,7 +21,7 @@ namespace rive
 class RawPath;
 } // namespace rive
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 class GradientLibrary;
 class IntersectionBoard;
@@ -267,7 +267,7 @@ private:
 
         RIVE_ALWAYS_INLINE VecType toVec() const
         {
-            static_assert(sizeof(VecType) >= sizeof(*this));
+            static_assert(sizeof(VecType) >= sizeof(*this), "");
             VecType vec;
             RIVE_INLINE_MEMCPY(&vec, this, sizeof(*this));
             return vec;
@@ -275,7 +275,7 @@ private:
 
         RIVE_ALWAYS_INLINE ResourceAllocationCounts(const VecType& vec)
         {
-            static_assert(sizeof(VecType) >= sizeof(*this));
+            static_assert(sizeof(VecType) >= sizeof(*this), "");
             RIVE_INLINE_MEMCPY(this, &vec, sizeof(*this));
         }
 
@@ -422,7 +422,7 @@ private:
 
             VecType toVec() const
             {
-                static_assert(sizeof(VecType) == sizeof(*this));
+                static_assert(sizeof(VecType) == sizeof(*this), "");
                 VecType vec;
                 RIVE_INLINE_MEMCPY(&vec, this, sizeof(VecType));
                 return vec;
@@ -430,7 +430,7 @@ private:
 
             ResourceCounters(const VecType& vec)
             {
-                static_assert(sizeof(*this) == sizeof(VecType));
+                static_assert(sizeof(*this) == sizeof(VecType), "");
                 RIVE_INLINE_MEMCPY(this, &vec, sizeof(*this));
             }
 
@@ -640,4 +640,4 @@ private:
 
     std::vector<std::unique_ptr<LogicalFlush>> m_logicalFlushes;
 };
-} // namespace rive::pls
+}} // namespace rive::pls

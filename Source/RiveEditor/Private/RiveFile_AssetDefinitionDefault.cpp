@@ -2,6 +2,8 @@
 
 #include "RiveFile_AssetDefinitionDefault.h"
 
+/* TODO: Find out how to replace this functionality in UE4
+
 #include "ContentBrowserMenuContexts.h"
 #include "IAssetTools.h"
 #include "RiveAssetToolkit.h"
@@ -108,3 +110,5 @@ EAssetCommandResult URiveFile_AssetDefinitionDefault::OpenAssets(const FAssetOpe
 }
 
 #undef LOCTEXT_NAMESPACE
+
+*/

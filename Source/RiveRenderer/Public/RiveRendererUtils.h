@@ -9,7 +9,7 @@
 class UTextureRenderTarget2D;
 class FRHICommandListImmediate;
 
-namespace UE::Rive::Renderer
+namespace UE { namespace Rive { namespace Renderer
 {
     struct FRiveRendererUtils
     {
@@ -19,4 +19,4 @@ namespace UE::Rive::Renderer
 
         static RIVERENDERER_API void CopyTextureRDG(FRHICommandListImmediate& RHICmdList, FTextureRHIRef SourceTexture, FTextureRHIRef DestTexture);
     };
-}
+}}}

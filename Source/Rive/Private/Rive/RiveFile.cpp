@@ -11,7 +11,6 @@
 #include "RiveCore/Public/Assets/URAssetImporter.h"
 #include "RiveCore/Public/Assets/URFileAssetLoader.h"
 #include "HAL/FileManager.h"
-#include "EditorFramework/AssetImportData.h"
 #include "Misc/Paths.h"
 #include "Async/Async.h"
 #include "RenderingThread.h"
@@ -34,10 +33,7 @@ void URiveFile::BeginDestroy()
 	
 	RiveRenderTarget.Reset();
 	
-	if (IsValid(Artboard))
-	{
-		Artboard->MarkAsGarbage();
-	}
+	Artboard = nullptr;
 	
 	RiveNativeFileSpan = {};
 	RiveNativeFilePtr.reset();
@@ -52,7 +48,8 @@ TStatId URiveFile::GetStatId() const
 
 void URiveFile::Tick(float InDeltaSeconds)
 {
-	if (!IsValidChecked(this))
+	check(this);
+	if (!IsValid(this))
 	{
 		return;
 	}
@@ -228,7 +225,7 @@ FLinearColor URiveFile::GetClearColor() const
 	return ClearColor;
 }
 
-FVector2f URiveFile::GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2f& InPosition)
+FVector2D URiveFile::GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2D& InPosition)
 {
 #if WITH_RIVE
 	if (InArtboard)
@@ -236,10 +233,10 @@ FVector2f URiveFile::GetLocalCoordinate(URiveArtboard* InArtboard, const FVector
 		return InArtboard->GetLocalCoordinate(InPosition, Size, RiveAlignment, RiveFitType);
 	}
 #endif // WITH_RIVE
-	return FVector2f::ZeroVector;
+	return FVector2D::ZeroVector;
 }
 
-FVector2f URiveFile::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const
+FVector2D URiveFile::GetLocalCoordinatesFromExtents(const FVector2D& InPosition, const FBox2D& InExtents) const
 {
 #if WITH_RIVE
 	if (GetArtboard())
@@ -247,7 +244,7 @@ FVector2f URiveFile::GetLocalCoordinatesFromExtents(const FVector2f& InPosition,
 		return GetArtboard()->GetLocalCoordinatesFromExtents(InPosition, InExtents, Size, RiveAlignment, RiveFitType);
 	}
 #endif // WITH_RIVE
-	return FVector2f::ZeroVector;
+	return FVector2D::ZeroVector;
 }
 
 void URiveFile::SetBoolValue(const FString& InPropertyName, bool bNewValue)
@@ -365,7 +362,7 @@ void URiveFile::Initialize()
 	}
 	else if (RiveNativeFileSpan.empty() || bNeedsImport)
 	{
-		if (RiveFileData.IsEmpty())
+		if (RiveFileData.Num() == 0)
 		{
 			UE_LOG(LogRive, Error, TEXT("Could not load an empty Rive File Data."));
 			BroadcastInitializationResult(false);
@@ -572,7 +569,7 @@ void URiveFile::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHI
 	// When the resource change, we need to tell the Render Target otherwise we will keep on drawing on an outdated RT
 	if (const UE::Rive::Renderer::IRiveRenderTargetPtr RenderTarget = RiveRenderTarget) //todo: might need a lock
 	{
-		RenderTarget->CacheTextureTarget_RenderThread(RHICmdList, NewResource);
+		RenderTarget->CacheTextureTarget_RenderThread(RHICmdList, (FRHITexture2D*)NewResource.GetReference());
 	}
 }
 

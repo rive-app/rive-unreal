@@ -92,16 +92,16 @@ void URiveTexture::ResizeRenderTargets(FIntPoint InNewSize)
 	FlushRenderingCommands();
 }
 
-void URiveTexture::ResizeRenderTargets(const FVector2f InNewSize)
+void URiveTexture::ResizeRenderTargets(const FVector2D InNewSize)
 {
 	ResizeRenderTargets(FIntPoint(InNewSize.X, InNewSize.Y));
 }
 
-FVector2f URiveTexture::GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const
+FVector2D URiveTexture::GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2D& InPosition, const FBox2D& InExtents) const
 {
-	const FVector2f RelativePosition = InPosition - InExtents.Min;
-	const FVector2f Ratio { Size.X / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
-	const FVector2f TextureRelativePosition = RelativePosition * Ratio;
+	const FVector2D RelativePosition = InPosition - InExtents.Min;
+	const FVector2D Ratio { Size.X / InExtents.GetSize().X, SizeY / InExtents.GetSize().Y}; // Ratio should be the same for X and Y
+	const FVector2D TextureRelativePosition = RelativePosition * Ratio;
 
 	if (InArtboard->OnGetLocalCoordinate.IsBound())
 	{
@@ -111,7 +111,7 @@ FVector2f URiveTexture::GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard
 	{
 		const FMatrix Matrix = InArtboard->GetLastDrawTransformMatrix();
 		const FVector LocalCoordinate = Matrix.InverseTransformPosition(FVector(TextureRelativePosition.X, TextureRelativePosition.Y, 0));
-		return FVector2f(LocalCoordinate.X, LocalCoordinate.Y);
+		return FVector2D(LocalCoordinate.X, LocalCoordinate.Y);
 	}
 }
 
@@ -176,21 +176,20 @@ void URiveTexture::InitializeResources() const
 		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 		
 		FTextureRHIRef RenderableTexture;
-		const FString DebugName = GetName();
 
-		FRHITextureCreateDesc RenderTargetTextureDesc =
-			FRHITextureCreateDesc::Create2D(*DebugName, Size.X, Size.Y, Format)
-				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
-				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | ETextureCreateFlags::RenderTargetable);
+		ETextureCreateFlags TextureFlags = TexCreate_Dynamic | TexCreate_ShaderResource | TexCreate_RenderTargetable;
 
 #if !(PLATFORM_IOS || PLATFORM_MAC) //SRGB could hvae been manually overriden
 		if (SRGB)
 		{
-			RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::SRGB);
+			TextureFlags |= TexCreate_SRGB;
 		}
 #endif
+
+		FRHIResourceCreateInfo RenderTargetTextureCreateInfo;
+		RenderTargetTextureCreateInfo.ClearValueBinding = FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f));
 		
-		RenderableTexture = RHICreateTexture(RenderTargetTextureDesc);
+		RenderableTexture = RHICreateTexture2D(Size.X, Size.Y, Format, 1, 1, TextureFlags, RenderTargetTextureCreateInfo);
 		RenderableTexture->SetName(GetFName());
 		CurrentResource->TextureRHI = RenderableTexture;
 

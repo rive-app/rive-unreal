@@ -1,53 +1,54 @@
 // Copyright Rive, Inc. All rights reserved.
 
 using System.IO;
-using EpicGames.Core;
-using UnrealBuildTool;
 
-public class RiveCore : ModuleRules
+namespace UnrealBuildTool.Rules
 {
-	
-	public RiveCore(ReadOnlyTargetRules Target) : base(Target)
+	public class RiveCore : ModuleRules
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
-		PublicIncludePaths.AddRange(
-			new string[] {
-				Path.Combine(ModuleDirectory, "Public")
-				// ... other include paths
-			}
-		);
+		public RiveCore(ReadOnlyTargetRules Target) : base(Target)
+		{
+			PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PrivateIncludePaths.AddRange(
-			new string[] {
-				Path.Combine(ModuleDirectory, "Private")
-				// ... other include paths
-			}
-		);
+            PublicIncludePaths.AddRange(
+				new string[] {
+					Path.Combine(ModuleDirectory, "Public")
+					// ... other include paths
+				}
+			);
+
+			PrivateIncludePaths.AddRange(
+				new string[] {
+					Path.Combine(ModuleDirectory, "Private")
+					// ... other include paths
+				}
+			);
+				
 			
-		
-		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-				"RHICore",
-				"RHI",
-				"RenderCore",
-				"AudioMixer"
-			}
-		);
+			PublicDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"Core",
+					"GeometricObjects",
+					"RHI",
+					"RenderCore",
+					"AudioMixer"
+				}
+			);
+				
 			
-		
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-				"CoreUObject",
-				"Engine",
-                "Projects",
-				"RiveLibrary",
-				"RiveRenderer",
-			}
-		);
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"Core",
+					"CoreUObject",
+					"Engine",
+					"Projects",
+					"RiveLibrary",
+					"RiveRenderer",
+				}
+			);
+		}
 	}
 }

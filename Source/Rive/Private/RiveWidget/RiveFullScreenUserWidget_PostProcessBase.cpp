@@ -18,7 +18,7 @@
 #include "Widgets/SViewport.h"
 #include "Widgets/Layout/SDPIScaler.h"
 
-namespace UE::RiveUtilities::Private
+namespace UE { namespace RiveUtilities { namespace Private
 {
 	EVisibility ConvertWindowVisibilityToVisibility(EWindowVisibility visibility)
 	{
@@ -81,13 +81,13 @@ namespace UE::RiveUtilities::Private
 
 				ArrangedWidgets = SlateWindowPin->GetHittestGrid().GetBubblePath(LocalMouseCoordinate, CursorRadius, bIgnoreEnabledStatus);
 
-				const FVirtualPointerPosition VirtualMouseCoordinate(LocalMouseCoordinate, LastLocalHitLocation);
+				const TSharedPtr<FVirtualPointerPosition> VirtualMouseCoordinate = MakeShared<FVirtualPointerPosition>(LocalMouseCoordinate, LastLocalHitLocation);
 				
 				LastLocalHitLocation = LocalMouseCoordinate;
 				
 				for (FWidgetAndPointer& ArrangedWidget : ArrangedWidgets)
 				{
-					ArrangedWidget.SetPointerPosition(VirtualMouseCoordinate);
+					ArrangedWidget.PointerPosition = VirtualMouseCoordinate;
 				}
 			}
 
@@ -105,9 +105,9 @@ namespace UE::RiveUtilities::Private
 			}
 		}
 
-		virtual TOptional<FVirtualPointerPosition> TranslateMouseCoordinateForCustomHitTestChild(const SWidget& ChildWidget, const FGeometry& MyGeometry, const FVector2D ScreenSpaceMouseCoordinate, const FVector2D LastScreenSpaceMouseCoordinate) const override
+		virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateForCustomHitTestChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const override
 		{
-			return TOptional<FVirtualPointerPosition>();
+			return TSharedPtr<FVirtualPointerPosition>();
 		}
 
 		//~ END : ICustomHitTestPath Interface
@@ -139,7 +139,7 @@ namespace UE::RiveUtilities::Private
 
 		mutable FVector2D LastLocalHitLocation;
 	};
-}
+}}}
 
 FRiveFullScreenUserWidget_PostProcessBase::FRiveFullScreenUserWidget_PostProcessBase()
 	: PostProcessMaterial(nullptr)
@@ -388,10 +388,12 @@ void FRiveFullScreenUserWidget_PostProcessBase::RegisterHitTesterWithViewport(UW
 		{
 			ViewportWidget = EngineViewportWidget;
 
+			auto Delegate = TDelegate<float()>::CreateRaw(this, &FRiveFullScreenUserWidget_PostProcessBase::GetDPIScaleForPostProcessHitTester, TWeakObjectPtr<UWorld>(World));
+
 			CustomHitTestPath = MakeShared<UE::RiveUtilities::Private::FRiveWidgetPostProcessHitTester>(
 				World,
 				SlateWindow,
-				TAttribute<float>::CreateRaw(this, &FRiveFullScreenUserWidget_PostProcessBase::GetDPIScaleForPostProcessHitTester, TWeakObjectPtr<UWorld>(World))
+				TAttribute<float>::Create(Delegate)
 				);
 
 			CustomHitTestPath->SetWidgetDrawSize(CurrentWidgetDrawSize);

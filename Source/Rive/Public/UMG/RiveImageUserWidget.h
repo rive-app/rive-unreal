@@ -44,7 +44,7 @@ protected:
 private:
 	TSharedPtr<SRiveWidget> RiveWidget;
 
-	TObjectPtr<URiveTexture> RiveTexture;
+	URiveTexture* RiveTexture;
 
-	TArray<TObjectPtr<URiveArtboard>> Artboards;
+	TArray<URiveArtboard*> Artboards;
 };

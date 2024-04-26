@@ -20,7 +20,7 @@ public:
 	
 	/** An initial rive file to place in the newly created material */
 	UPROPERTY()
-	TObjectPtr<class URiveFile> InitialRiveFile;
+	class URiveFile* InitialRiveFile;
 
 	//~ Begin UFactory Interface
 	virtual UObject* FactoryCreateNew(UClass* InClass,UObject* InParent,FName InName,EObjectFlags InFlags,UObject* Context,FFeedbackContext* Warn) override;

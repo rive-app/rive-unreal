@@ -12,19 +12,19 @@
 
 #include "RiveWidgetHelpers.h"
 
-namespace UE::Private::FRiveSceneViewport
+namespace UE { namespace Private { namespace FRiveSceneViewport
 {
-	FVector2f GetInputCoordinates(URiveTexture* InRiveTexture, URiveArtboard* InRiveArtboard, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+	FVector2D GetInputCoordinates(URiveTexture* InRiveTexture, URiveArtboard* InRiveArtboard, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 	{
 		// Convert absolute input position to viewport local position
-		FDeprecateSlateVector2D LocalPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+		FVector2D LocalPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 
 		// Because our RiveTexture can be a different pixel size than our viewport, we have to scale the x,y coords 
-		const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-		const FBox2f TextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(InRiveTexture->Size, ViewportSize);
+		const FVector2D ViewportSize = MyGeometry.GetLocalSize();
+		const FBox2D TextureBox = RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(InRiveTexture->Size, ViewportSize);
 		return InRiveTexture->GetLocalCoordinatesFromExtents(InRiveArtboard, LocalPosition, TextureBox);
 	}
-}
+}}}
 
 FRiveSceneViewport::FRiveSceneViewport(FRiveViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget, URiveTexture* InRiveTexture, const TArray<URiveArtboard*> InArtboards)
 	: FSceneViewport(InViewportClient, InViewportWidget)
@@ -39,7 +39,7 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 		return FReply::Unhandled();
 	}
 	
-	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
+	return OnInput(MyGeometry, MouseEvent, [this](const FVector2D& InputCoordinates, StateMachinePtr InStateMachine)
 		{
 			if (InStateMachine)
 			{
@@ -55,7 +55,7 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 		return FReply::Unhandled();
 	}
 	
-	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
+	return OnInput(MyGeometry, MouseEvent, [this](const FVector2D& InputCoordinates, StateMachinePtr InStateMachine)
 		{
 			if (InStateMachine)
 			{
@@ -66,7 +66,7 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 
 FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
+	return OnInput(MyGeometry, MouseEvent, [this](const FVector2D& InputCoordinates, StateMachinePtr InStateMachine)
 		{
 			if (InStateMachine)
 			{
@@ -105,7 +105,7 @@ FReply FRiveSceneViewport::OnInput(const FGeometry& MyGeometry, const FPointerEv
 		Artboard->BeginInput();
 		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			FVector2f InputCoordinates = UE::Private::FRiveSceneViewport::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, InEvent);
+			FVector2D InputCoordinates = UE::Private::FRiveSceneViewport::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, InEvent);
 			InStateMachineInputCallback(InputCoordinates, StateMachine);
 		}
 		Artboard->EndInput();

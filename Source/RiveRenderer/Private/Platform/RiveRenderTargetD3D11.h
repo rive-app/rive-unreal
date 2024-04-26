@@ -12,14 +12,14 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 	class PLSRenderTargetD3D;
-}
+}}
 
 #endif // WITH_RIVE
 
-namespace UE::Rive::Renderer::Private
+namespace UE { namespace Rive { namespace Renderer { namespace Private
 {
 	class FRiveRendererD3D11;
 
@@ -54,6 +54,6 @@ namespace UE::Rive::Renderer::Private
 		rive::rcp<rive::pls::PLSRenderTargetD3D> CachedPLSRenderTargetD3D;
 #endif // WITH_RIVE
 	};
-}
+}}}}
 
 #endif // PLATFORM_WINDOWS

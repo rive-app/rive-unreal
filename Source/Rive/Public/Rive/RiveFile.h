@@ -104,14 +104,14 @@ public:
 	FLinearColor GetClearColor() const;
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2f& InPosition);
+	FVector2D GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2D& InPosition);
 
 	/**
 	 * Returns the coordinates in the current Artboard space
 	 * @param InExtents Extents of the RenderTarget, will be mapped to the RenderTarget size
 	 */
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
+	FVector2D GetLocalCoordinatesFromExtents(const FVector2D& InPosition, const FBox2D& InExtents) const;
 	
 	UFUNCTION(BlueprintCallable, Category = Rive, meta=(DeprecatedFunction, DeprecationMessage="Use RiveFile->Artboard->SetBoolValue instead"))
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
@@ -175,9 +175,9 @@ public:
 	FString RiveFilePath;
 
 	UPROPERTY(VisibleAnywhere, Category=Rive)
-	TMap<uint32, TObjectPtr<URiveAsset>> Assets;
+	TMap<uint32, URiveAsset*> Assets;
 
-	TMap<uint32, TObjectPtr<URiveAsset>>& GetAssets()
+	TMap<uint32, URiveAsset*>& GetAssets()
 	{
 		return IsValid(ParentRiveFile) ? ParentRiveFile->GetAssets() : Assets;
 	}
@@ -199,7 +199,7 @@ public:
 	void SetAudioEngine(URiveAudioEngine* InAudioEngine) { AudioEngine = InAudioEngine; }
 
 	UPROPERTY(VisibleAnywhere, Category=Rive)
-	TObjectPtr<URiveFile> ParentRiveFile;
+	URiveFile* ParentRiveFile;
 
 public:
 	// Index of the artboard this Rive file instance will default to; not exposed

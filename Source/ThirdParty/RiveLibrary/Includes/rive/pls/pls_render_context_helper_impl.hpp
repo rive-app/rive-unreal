@@ -8,7 +8,7 @@
 #include "rive/pls/buffer_ring.hpp"
 #include <chrono>
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 // PLSRenderContextImpl that uses BufferRing to manage GPU resources.
 class PLSRenderContextHelperImpl : public PLSRenderContextImpl
@@ -91,4 +91,4 @@ private:
     std::unique_ptr<BufferRing> m_triangleBuffer;
     std::chrono::steady_clock::time_point m_localEpoch = std::chrono::steady_clock::now();
 };
-} // namespace rive::pls
+}} // namespace rive::pls

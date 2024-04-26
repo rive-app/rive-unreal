@@ -63,17 +63,17 @@ struct RIVERENDERER_API FRiveAlignment
 	GENERATED_BODY()
 
 public:
-	inline static FVector2f TopLeft = FVector2f(-1.f, -1.f);
-	inline static FVector2f TopCenter = FVector2f(0.f, -1.f);
-	inline static FVector2f TopRight = FVector2f(1.f, -1.f);
-	inline static FVector2f CenterLeft = FVector2f(-1.f, 0.f);
-	inline static FVector2f Center = FVector2f(0.f, 0.f);
-	inline static FVector2f CenterRight = FVector2f(1.f, 0.f);
-	inline static FVector2f BottomLeft = FVector2f(-1.f, 1.f);
-	inline static FVector2f BottomCenter = FVector2f(0.f, 1.f);
-	inline static FVector2f BottomRight = FVector2f(1.f, 1.f);
+	const static FVector2D TopLeft;
+	const static FVector2D TopCenter;
+	const static FVector2D TopRight;
+	const static FVector2D CenterLeft;
+	const static FVector2D Center;
+	const static FVector2D CenterRight;
+	const static FVector2D BottomLeft;
+	const static FVector2D BottomCenter;
+	const static FVector2D BottomRight;
 
-	static FVector2f GetAlignment(ERiveAlignment InRiveAlignment)
+	static FVector2D GetAlignment(ERiveAlignment InRiveAlignment)
 	{
 		switch (InRiveAlignment)
 		{

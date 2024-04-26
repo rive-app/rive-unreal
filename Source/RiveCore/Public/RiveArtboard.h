@@ -1,7 +1,7 @@
 // Copyright Rive, Inc. All rights reserved.
 #pragma once
 #include "IRiveRenderTarget.h"
-#include "MatrixTypes.h"
+#include "VectorTypes.h"
 #include "RiveAudioEngine.h"
 #include "RiveEvent.h"
 #include "RiveTypes.h"
@@ -28,7 +28,7 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveEventDelegate, URiveArtboard*, Artboard, TArray<FRiveEvent>, ReportedEvents);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveNamedEventDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveNamedEventsDelegate, URiveArtboard*, Artboard, FRiveEvent, Event);
-	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FVector2f, FRiveCoordinatesDelegate, URiveArtboard*, Artboard, const FVector2f&, TexturePosition);
+	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FVector2D, FRiveCoordinatesDelegate, URiveArtboard*, Artboard, const FVector2D&, TexturePosition);
 	DECLARE_DYNAMIC_DELEGATE_TwoParams(FRiveTickDelegate, float, DeltaTime, URiveArtboard*, Artboard);
 	
 	virtual void BeginDestroy() override;
@@ -46,19 +46,19 @@ public:
 	FRiveCoordinatesDelegate OnGetLocalCoordinate;
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetSize() const;
+	FVector2D GetSize() const;
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void AdvanceStateMachine(float InDeltaSeconds);
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	void Transform(const FVector2f& One, const FVector2f& Two, const FVector2f& T);
+	void Transform(const FVector2D& One, const FVector2D& Two, const FVector2D& T);
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	void Translate(const FVector2f& InVector);
+	void Translate(const FVector2D& InVector);
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	void Align(const FBox2f InBox, ERiveFitType InFitType, ERiveAlignment InAlignment);
+	void Align(const FBox2D InBox, ERiveFitType InFitType, ERiveAlignment InAlignment);
 	
 	void Align(ERiveFitType InFitType, ERiveAlignment InAlignment);
 
@@ -97,28 +97,28 @@ public:
 	bool TriggerNamedRiveEvent(const FString& EventName, float ReportedDelaySeconds);
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	void PointerDown(const FVector2f& NewPosition);
+	void PointerDown(const FVector2D& NewPosition);
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	void PointerUp(const FVector2f& NewPosition);
+	void PointerUp(const FVector2D& NewPosition);
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	void PointerMove(const FVector2f& NewPosition);
+	void PointerMove(const FVector2D& NewPosition);
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	void PointerExit(const FVector2f& NewPosition);
+	void PointerExit(const FVector2D& NewPosition);
 	
 	// Used to convert from a given point (InPosition) on a texture local position
 	// to the position for this artboard, taking into account alignment, fit, and an offset (if custom translation has been used)
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinate(const FVector2f& InPosition, const FIntPoint& InTextureSize, ERiveAlignment InAlignment, ERiveFitType InFit) const;
+	FVector2D GetLocalCoordinate(const FVector2D& InPosition, const FIntPoint& InTextureSize, ERiveAlignment InAlignment, ERiveFitType InFit) const;
 	
 	/**
 	 * Returns the coordinates in the current Artboard space
 	 * @param InExtents Extents of the RenderTarget, will be mapped to the RenderTarget size
 	 */
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents, const FIntPoint& TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const;
+	FVector2D GetLocalCoordinatesFromExtents(const FVector2D& InPosition, const FBox2D& InExtents, const FIntPoint& TextureSize, ERiveAlignment Alignment, ERiveFitType FitType) const;
 
 	/*
 	 * This requires that the audio engine has been initialized via BeginPlay before setting

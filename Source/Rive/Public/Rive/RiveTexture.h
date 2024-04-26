@@ -46,7 +46,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	virtual void ResizeRenderTargets(FIntPoint InNewSize);
 	
-	FVector2f GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const;
+	FVector2D GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2D& InPosition, const FBox2D& InExtents) const;
 
 	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
 
@@ -61,7 +61,7 @@ protected:
 	/**
 	 * Resize render resources
 	 */
-	virtual void ResizeRenderTargets(const FVector2f InNewSize);
+	virtual void ResizeRenderTargets(const FVector2D InNewSize);
 
 protected:
 

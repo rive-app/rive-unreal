@@ -12,21 +12,51 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Game/RiveActor.h"
+#include "Kismet2/CompilerResultsLog.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
-#include "Templates/WidgetTemplateClass.h"
 #include "UMG/RiveWidget.h"
+#include "UObject/MetaData.h"
 #include "UObject/SavePackage.h"
 #include "HAL/FileManager.h"
 #include "Misc/MessageDialog.h"
 #include "ToolMenus.h"
-#include "Components/CanvasPanel.h"
+#include "Templates/WidgetTemplateClass.h"
 
 extern UNREALED_API class UEditorEngine* GEditor;
 
 #define LOCTEXT_NAMESPACE "FRiveWidgetFactory"
+
+// Functionality replacing FWidgetTemplateClass, which is private in UE4
+namespace WidgetTemplateClassShim {
+
+UWidget* Create(TWeakObjectPtr<UClass> WidgetClass, UWidgetTree* Tree)
+{
+	FName NameOverride = NAME_None;
+
+	if (NameOverride != NAME_None)
+	{
+		UObject* ExistingObject = StaticFindObject(UObject::StaticClass(), Tree, *NameOverride.ToString());
+		if (ExistingObject != nullptr)
+		{
+			NameOverride = MakeUniqueObjectName(Tree, WidgetClass.Get(), NameOverride);
+		}
+	}
+
+	if (WidgetClass.Get()->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated))
+	{
+		return nullptr;
+	}
+
+	UWidget* NewWidget = Tree->ConstructWidget<UWidget>(WidgetClass.Get(), NameOverride);
+	NewWidget->OnCreationFromPalette();
+
+	return NewWidget;
+}
+
+}
 
 FRiveWidgetFactory::FRiveWidgetFactory(URiveFile* InRiveFile)
 	: RiveFile(InRiveFile)
@@ -59,13 +89,7 @@ bool FRiveWidgetFactory::SaveAsset(UWidgetBlueprint* InWidgetBlueprint)
 
 	UMetaData *MetaData = Package->GetMetaData();
 
-	FSavePackageArgs SaveArgs;
-
-	SaveArgs.TopLevelFlags = RF_Standalone;
-
-	SaveArgs.SaveFlags = SAVE_NoError | SAVE_Async;
-
-	UPackage::SavePackage(Package, NULL, *PackageFileName, SaveArgs);
+	UPackage::SavePackage(Package, NULL, RF_Standalone, *PackageFileName, nullptr, nullptr, false, false, SAVE_Async | SAVE_NoError);
 
 	const double ElapsedTime = FPlatformTime::Seconds() - StartTime;
 
@@ -87,7 +111,7 @@ bool FRiveWidgetFactory::CreateWidgetStructure(UWidgetBlueprint* InWidgetBluepri
 
 		InWidgetBlueprint->WidgetTree->RootWidget = Root;
 
-		UWidget* Widget = FWidgetTemplateClass(URiveWidget::StaticClass()).Create(InWidgetBlueprint->WidgetTree);
+		UWidget* Widget = WidgetTemplateClassShim::Create(URiveWidget::StaticClass(), InWidgetBlueprint->WidgetTree);
 		
 		if (URiveWidget* RiveWidget = Cast<URiveWidget>(Widget))
 		{
@@ -186,21 +210,29 @@ namespace
 {
 	static void SpawnRiveWidgetActor(const FToolMenuContext& MenuContext)
 	{
-		if (const UContentBrowserAssetContextMenuContext* Context = UContentBrowserAssetContextMenuContext::FindContextWithAssets(MenuContext))
+		if (UWorld* World = GEditor->GetEditorWorldContext().World())
 		{
-			TArray<URiveFile*> RiveFiles = Context->LoadSelectedObjects<URiveFile>();
-			for (URiveFile* RiveFile : RiveFiles)
+			const UContentBrowserAssetContextMenuContext* Context = MenuContext.template FindContext<UContentBrowserAssetContextMenuContext>();
+			if (Context && Context->SelectedObjects.Num() > 0)
 			{
-				if (UWorld* World = GEditor->GetEditorWorldContext().World())
+				const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = Context->SelectedObjects;
+
+				TArray<URiveFile*> RiveFiles;
+				RiveFiles.Reserve(SelectedObjects.Num());
+
+				for (const TWeakObjectPtr<UObject>& Object : SelectedObjects)
 				{
-					ARiveActor* NewActor = Cast<ARiveActor>(
-						World->SpawnActor<ARiveActor>(FVector::ZeroVector, FRotator::ZeroRotator,
-						                              FActorSpawnParameters()));
-					
-					if (NewActor)
+					if (URiveFile* RiveFile = Cast<URiveFile>(Object.Get()))
 					{
-						NewActor->RiveFile = RiveFile;
-						NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
+						ARiveActor* NewActor = Cast<ARiveActor>(
+							World->SpawnActor<ARiveActor>(FVector::ZeroVector, FRotator::ZeroRotator,
+								FActorSpawnParameters()));
+
+						if (NewActor)
+						{
+							NewActor->RiveFile = RiveFile;
+							NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
+						}
 					}
 				}
 			}
@@ -211,7 +243,8 @@ namespace
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateLambda([]()
 		{
 			FToolMenuOwnerScoped OwnerScoped(UE_MODULE_NAME);
-			UToolMenu* Menu = UE::ContentBrowser::ExtendToolMenu_AssetContextMenu(UTexture2DDynamic::StaticClass());
+
+			UToolMenu* Menu = UToolMenus::Get()->ExtendMenu("ContentBrowser.AssetContextMenu.Texture2DDynamic");
 	        
 			FToolMenuSection& Section = Menu->FindOrAddSection("GetAssetActions");
 			Section.AddDynamicEntry(TEXT("Rive"), FNewToolMenuSectionDelegate::CreateLambda([](FToolMenuSection& InSection)
@@ -219,7 +252,7 @@ namespace
 				{
 					const TAttribute<FText> Label = LOCTEXT("RiveFile_SpawnRiveWidget", "Spawn Rive Widget Actor");
 					const TAttribute<FText> ToolTip = LOCTEXT("RiveFile_SpawnRiveWidgetTooltip", "Spawn Rive Widget Actors.");
-					const FSlateIcon Icon = FSlateIcon(FAppStyle::GetAppStyleSetName(), "ClassIcon.Texture2D");
+					const FSlateIcon Icon = FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.Texture2D");
 					const FToolMenuExecuteAction UIAction = FToolMenuExecuteAction::CreateStatic(&SpawnRiveWidgetActor);
 
 					InSection.AddMenuEntry("RiveFile_SpawnRiveWidget", Label, ToolTip, Icon, UIAction);

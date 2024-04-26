@@ -71,8 +71,9 @@ void SRiveWidget::SetRiveFile(URiveFile* InRiveFile)
             RiveWidgetView->RegisterArtboardInputs({});
         }
 
-        TWeakPtr<SRiveWidget> WeakRiveWidget = SharedThis(this).ToWeakPtr();
-        OnArtboardChangedHandle = InRiveFile->OnArtboardChangedRaw.AddSPLambda(this, [WeakRiveWidget, InRiveFile](URiveFile* File, URiveArtboard* Artboard)
+        // TODO: not sure this is safe using AddLambda
+        TWeakPtr<SRiveWidget> WeakRiveWidget = SharedThis(this);
+        OnArtboardChangedHandle = InRiveFile->OnArtboardChangedRaw.AddLambda([WeakRiveWidget, InRiveFile](URiveFile* File, URiveArtboard* Artboard)
         {
             if (const TSharedPtr<SRiveWidget> RiveWidget = WeakRiveWidget.Pin())
             {

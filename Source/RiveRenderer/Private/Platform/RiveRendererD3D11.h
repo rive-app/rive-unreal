@@ -17,15 +17,15 @@ THIRD_PARTY_INCLUDES_END
 
 struct ID3D11DynamicRHI;
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 	class PLSRenderTargetD3D;
 	class PLSRenderContextD3DImpl;
-}
+}}
 
 #endif // WITH_RIVE
 
-namespace UE::Rive::Renderer::Private
+namespace UE { namespace Rive { namespace Renderer { namespace Private
 {
 	class FRiveRendererD3D11GPUAdapter
 	{
@@ -37,13 +37,11 @@ namespace UE::Rive::Renderer::Private
 #endif // WITH_RIVE
 		void ResetDXState();
 		
-		ID3D11DynamicRHI* GetD3D11RHI() const { return D3D11RHI; }
 		ID3D11Device* GetD3D11DevicePtr() const { return D3D11DevicePtr; }
 		ID3D11DeviceContext* GetD3D11DeviceContext() const { return D3D11DeviceContext; }
 		IDXGIDevice* GetDXGIDevice() const { return DXGIDevice; }
 	
 	private:
-		ID3D11DynamicRHI* D3D11RHI = nullptr;
 		ID3D11Device* D3D11DevicePtr = nullptr;
 		ID3D11DeviceContext* D3D11DeviceContext = nullptr;
 		TRefCountPtr<IDXGIDevice> DXGIDevice = nullptr;
@@ -65,6 +63,6 @@ namespace UE::Rive::Renderer::Private
 	private:
 		TUniquePtr<UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter> D3D11GPUAdapter;
 	};
-}
+}}}}
 
 #endif // PLATFORM_WINDOWS

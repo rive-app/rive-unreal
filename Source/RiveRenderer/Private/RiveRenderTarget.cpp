@@ -90,7 +90,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Transform(float X1, float Y
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Translate(const FVector2f& InVector)
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Translate(const FVector2D& InVector)
 {
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Translate);
 	RenderCommand.TX = InVector.X;
@@ -105,7 +105,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Draw(rive::Artboard* InArtb
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(const FBox2D& InBox, ERiveFitType InFit, const FVector2D& InAlignment, rive::Artboard* InArtboard)
 {
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::AlignArtboard);
 	RenderCommand.FitType = InFit;
@@ -121,9 +121,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(const FBox2f& InBox, 
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
+void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(ERiveFitType InFit, const FVector2D& InAlignment, rive::Artboard* InArtboard)
 {
-	Align(FBox2f(FVector2f{0.f,0.f},FVector2f(GetWidth(), GetHeight())), InFit, InAlignment, InArtboard);
+	Align(FBox2D(FVector2D{0.f,0.f},FVector2D(GetWidth(), GetHeight())), InFit, InAlignment, InArtboard);
 }
 
 FMatrix UE::Rive::Renderer::Private::FRiveRenderTarget::GetTransformMatrix() const
@@ -139,7 +139,7 @@ FMatrix UE::Rive::Renderer::Private::FRiveRenderTarget::GetTransformMatrix() con
 			SavedMatrices.Add(CurrentMatrix);
 			break;
 		case ERiveRenderCommandType::Restore:
-			CurrentMatrix = SavedMatrices.IsEmpty() ? FMatrix::Identity : SavedMatrices.Pop();
+			CurrentMatrix = (SavedMatrices.Num() == 0) ? FMatrix::Identity : SavedMatrices.Pop();
 			break;
 		case ERiveRenderCommandType::AlignArtboard:
 		case ERiveRenderCommandType::Transform:
@@ -229,7 +229,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArra
 
 	// Sometimes Render commands can be empty (perhaps an issue with Lock contention)
 	// Checking for empty here will prevent rendered "blank" frames
-	if (RiveRenderCommands.IsEmpty())
+	if (RiveRenderCommands.Num() == 0)
 	{
 		return;
 	}

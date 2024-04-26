@@ -48,7 +48,7 @@ public:
 
     /** Reference to Ava Blueprint Asset */
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    TObjectPtr<URiveFile> RiveFile;
+    URiveFile* RiveFile;
 
 private:
 

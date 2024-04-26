@@ -7,22 +7,22 @@
 #include "Layout/Geometry.h"
 #include "Input/Events.h"
 
-FVector2f RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(URiveTexture* InRiveTexture, URiveArtboard* InArtboard, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FVector2D RiveWidgetHelpers::CalculateLocalPointerCoordinatesFromViewport(URiveTexture* InRiveTexture, URiveArtboard* InArtboard, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	const FVector2f MouseLocal = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-	const FBox2f TextureBox = CalculateRenderTextureExtentsInViewport(InRiveTexture->Size, ViewportSize);
+	const FVector2D MouseLocal = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	const FVector2D ViewportSize = MyGeometry.GetLocalSize();
+	const FBox2D TextureBox = CalculateRenderTextureExtentsInViewport(InRiveTexture->Size, ViewportSize);
 	return InRiveTexture->GetLocalCoordinatesFromExtents(InArtboard, MouseLocal, TextureBox);
 }
 
-FBox2f RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(const FVector2f& InTextureSize, const FVector2f& InViewportSize)
+FBox2D RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(const FVector2D& InTextureSize, const FVector2D& InViewportSize)
 {
 	const float TextureAspectRatio = InTextureSize.X / InTextureSize.Y;
 	const float ViewportAspectRatio = InViewportSize.X / InViewportSize.Y;
 
 	if (ViewportAspectRatio > TextureAspectRatio) // Viewport wider than the Texture => height should be the same
 	{
-		FVector2f Size {
+		FVector2D Size {
 			InViewportSize.Y * TextureAspectRatio,
 			InViewportSize.Y
 		};
@@ -31,7 +31,7 @@ FBox2f RiveWidgetHelpers::CalculateRenderTextureExtentsInViewport(const FVector2
 	}
 	else // Viewport taller than the Texture => width should be the same
 	{
-		FVector2f Size {
+		FVector2D Size {
 			(float)InViewportSize.X,
 			InViewportSize.X / TextureAspectRatio
 		};

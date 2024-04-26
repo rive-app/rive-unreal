@@ -4,6 +4,10 @@
 #include "Assets/RiveAsset.h"
 #include "Misc/Paths.h"
 
+const TArray<FString> URAssetHelpers::FontExtensions = { "ttf", "otf" };
+const TArray<FString> URAssetHelpers::ImageExtensions = { "png" };
+const TArray<FString> URAssetHelpers::AudioExtensions = { "wav", "mp3", "flac" };
+
 TArray<FString> URAssetHelpers::AssetPaths(const FString& InBasePath, URiveAsset* InRiveAsset, const TArray<FString>& InExtensions)
 {
 	TArray<FString> Paths;

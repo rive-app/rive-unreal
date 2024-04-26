@@ -5,7 +5,7 @@
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
 
-namespace UE::Rive
+namespace UE { namespace Rive
 {
     class IRiveModule : public IModuleInterface
     {
@@ -44,4 +44,4 @@ namespace UE::Rive
 
         static constexpr const TCHAR* ModuleName = TEXT("Rive");
     };
-}
+}}

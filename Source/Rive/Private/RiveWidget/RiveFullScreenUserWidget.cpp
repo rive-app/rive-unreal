@@ -218,7 +218,7 @@ void URiveFullScreenUserWidget::BeginDestroy()
 void URiveFullScreenUserWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	const FProperty* Property = PropertyChangedEvent.MemberProperty;
-	const FName MemberPropertyName = PropertyChangedEvent.GetMemberPropertyName();
+	const FName MemberPropertyName = (Property != nullptr) ? Property->GetFName() : NAME_None;
 
 	if (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
@@ -304,7 +304,7 @@ bool URiveFullScreenUserWidget::Display(UWorld* InWorld)
 		
 		CurrentDisplayType = GetDisplayType(InWorld);
 
-		TAttribute<float> GetDpiScaleAttribute = TAttribute<float>::CreateLambda([WeakThis = TWeakObjectPtr<URiveFullScreenUserWidget>(this)]()
+		TAttribute<float> GetDpiScaleAttribute = TAttribute<float>::Create([WeakThis = TWeakObjectPtr<URiveFullScreenUserWidget>(this)]()
 		{
 			return WeakThis.IsValid() ? WeakThis->GetViewportDPIScale() : 1.f;
 		});
@@ -588,7 +588,7 @@ FVector2D URiveFullScreenUserWidget::FindSceneViewportSize()
 		)
 	);
 
-	return FVector2d::ZeroVector;
+	return FVector2D::ZeroVector;
 }
 
 float URiveFullScreenUserWidget::GetViewportDPIScale()

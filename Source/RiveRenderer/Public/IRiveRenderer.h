@@ -24,7 +24,7 @@ namespace rive
 
 #endif // WITH_RIVE
 
-namespace UE::Rive::Renderer
+namespace UE { namespace Rive { namespace Renderer
 {
     class IRiveRenderer;
 
@@ -59,7 +59,7 @@ namespace UE::Rive::Renderer
 
         virtual bool IsInitialized() const = 0;
         
-        virtual void QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile) = 0;
+        virtual void QueueTextureRendering(URiveFile* InRiveFile) = 0;
 
         virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) = 0;
         
@@ -77,4 +77,4 @@ namespace UE::Rive::Renderer
 
 #endif // WITH_RIVE
     };
-}
+}}}

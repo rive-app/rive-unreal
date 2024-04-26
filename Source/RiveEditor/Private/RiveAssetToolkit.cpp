@@ -95,12 +95,12 @@ void FRiveAssetToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTab
     InTabManager->RegisterTabSpawner(RiveViewportTabID, FOnSpawnTab::CreateSP(this, &FRiveAssetToolkit::SpawnTab_RiveViewportTab))
         .SetDisplayName(LOCTEXT("Viewport", "Viewport"))
         .SetGroup(AssetEditorTabsCategory.ToSharedRef())
-        .SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Viewports"));
+        .SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
     
     InTabManager->RegisterTabSpawner(DetailsTabID, FOnSpawnTab::CreateSP(this, &FRiveAssetToolkit::SpawnTab_DetailsTabID))
         .SetDisplayName(LOCTEXT("Details", "Details"))
         .SetGroup(AssetEditorTabsCategory.ToSharedRef())
-        .SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"));
+        .SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
 }
 
 TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_RiveViewportTab(const FSpawnTabArgs& Args)

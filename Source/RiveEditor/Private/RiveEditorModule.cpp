@@ -70,31 +70,31 @@ bool UE::Rive::Editor::Private::FRiveEditorModule::CheckCurrentRHIAndNotify()
 	}
 
 #if PLATFORM_WINDOWS
-	ERHIInterfaceType ExpectedRHI = ERHIInterfaceType::D3D11;
+	FString ExpectedRHI = TEXT("D3D11");
 	EDefaultGraphicsRHI WindowsExpectedRHI = EDefaultGraphicsRHI::DefaultGraphicsRHI_DX11;
 	FString ExpectedRHIStr = TEXT("DirectX 11");
 #elif PLATFORM_APPLE
-	ERHIInterfaceType ExpectedRHI = ERHIInterfaceType::Metal;
+	FString ExpectedRHI = TEXT("Metal");
 	FString ExpectedRHIStr = TEXT("Metal");
 #elif PLATFORM_ANDROID
-	ERHIInterfaceType ExpectedRHI = ERHIInterfaceType::OpenGL;
+	FString ExpectedRHI = TEXT("OpenGL");
 	FString ExpectedRHIStr = TEXT("OpenGL");
 #else
-	ERHIInterfaceType ExpectedRHI = ERHIInterfaceType::Null;
+	FString ExpectedRHI = "";
 	FString ExpectedRHIStr = "";
 #endif
 
-	const FText NotificationText = ExpectedRHI == ERHIInterfaceType::Null ?
+	const FText NotificationText = ExpectedRHI.IsEmpty() ?
 		LOCTEXT("RiveNotAvailable", "Rive is not currently available on this platform") :
 		FText::Format(LOCTEXT("RiveWrongRHI_Text", "Rive is not supported for this RHI.\nDo you want to change the RHI of this project to '{0}'"), FText::FromString(ExpectedRHIStr));
 
 	FNotificationInfo Notification(NotificationText);
 	Notification.bUseSuccessFailIcons = true;
-	Notification.Image = FAppStyle::GetBrush(TEXT("MessageLog.Warning"));
+	Notification.Image = FEditorStyle::GetBrush(TEXT("MessageLog.Warning"));
 	Notification.bFireAndForget = false;
 	Notification.FadeOutDuration = 1.f;
 
-	if (ExpectedRHI != ERHIInterfaceType::Null)
+	if (GDynamicRHI->GetName() == ExpectedRHI)
 	{
 		auto AdjustRHI = [this, 
 #if PLATFORM_WINDOWS
@@ -110,7 +110,7 @@ bool UE::Rive::Editor::Private::FRiveEditorModule::CheckCurrentRHIAndNotify()
 				WindowsSettings->DefaultGraphicsRHI = WindowsExpectedRHI;
 				// Then Save the Config
 				WindowsSettings->UpdateSinglePropertyInConfigFile(DefaultGraphicsRHIProperty, WindowsSettings->GetDefaultConfigFilename());
-				WindowsSettings->TryUpdateDefaultConfigFile();
+				WindowsSettings->UpdateDefaultConfigFile();
 				ISettingsEditorModule* SettingsEditorModule = FModuleManager::GetModulePtr<ISettingsEditorModule>("SettingsEditor");
 				if (SettingsEditorModule)
 				{

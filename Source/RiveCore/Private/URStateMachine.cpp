@@ -227,7 +227,7 @@ void UE::Rive::Core::FURStateMachine::SetNumberValue(const FString& InPropertyNa
     UE_LOG(LogRiveCore, Error, TEXT("Could not get the number property with given name '%s' as we could not find it."), *InPropertyName);
 }
 
-bool UE::Rive::Core::FURStateMachine::PointerDown(const FVector2f& NewPosition)
+bool UE::Rive::Core::FURStateMachine::PointerDown(const FVector2D& NewPosition)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)
@@ -247,7 +247,7 @@ bool UE::Rive::Core::FURStateMachine::PointerDown(const FVector2f& NewPosition)
     return true;
 }
 
-bool UE::Rive::Core::FURStateMachine::PointerMove(const FVector2f& NewPosition)
+bool UE::Rive::Core::FURStateMachine::PointerMove(const FVector2D& NewPosition)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)
@@ -267,7 +267,7 @@ bool UE::Rive::Core::FURStateMachine::PointerMove(const FVector2f& NewPosition)
     return true;
 }
 
-bool UE::Rive::Core::FURStateMachine::PointerUp(const FVector2f& NewPosition)
+bool UE::Rive::Core::FURStateMachine::PointerUp(const FVector2D& NewPosition)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)
@@ -287,7 +287,7 @@ bool UE::Rive::Core::FURStateMachine::PointerUp(const FVector2f& NewPosition)
     return true;
 }
 
-bool UE::Rive::Core::FURStateMachine::PointerExit(const FVector2f& NewPosition)
+bool UE::Rive::Core::FURStateMachine::PointerExit(const FVector2D& NewPosition)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)

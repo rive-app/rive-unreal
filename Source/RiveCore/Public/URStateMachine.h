@@ -12,7 +12,7 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-namespace UE::Rive::Core
+namespace UE { namespace Rive { namespace Core
 {
     class FURStateMachine;
 
@@ -68,13 +68,13 @@ namespace UE::Rive::Core
 
         void SetNumberValue(const FString& InPropertyName, float NewValue);
 
-        bool PointerDown(const FVector2f& NewPosition);
+        bool PointerDown(const FVector2D& NewPosition);
 
-        bool PointerMove(const FVector2f& NewPosition);
+        bool PointerMove(const FVector2D& NewPosition);
 
-        bool PointerUp(const FVector2f& NewPosition);
+        bool PointerUp(const FVector2D& NewPosition);
     	
-    	bool PointerExit(const FVector2f& NewPosition);
+    	bool PointerExit(const FVector2D& NewPosition);
 
         const rive::EventReport GetReportedEvent(int32 AtIndex) const;
 
@@ -95,4 +95,4 @@ namespace UE::Rive::Core
 
 #endif // WITH_RIVE
     };
-}
+}}}

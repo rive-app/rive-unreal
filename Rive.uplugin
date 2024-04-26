@@ -39,5 +39,11 @@
 			"LoadingPhase": "None",
 			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "GeometryProcessing",
+			"Enabled": true
+		}
 	]
 }

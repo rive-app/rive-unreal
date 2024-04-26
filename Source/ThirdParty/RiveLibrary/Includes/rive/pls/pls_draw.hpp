@@ -13,8 +13,20 @@
 #include "rive/shapes/paint/stroke_join.hpp"
 #include "rive/refcnt.hpp"
 
-namespace rive::pls
+namespace std {
+
+// Shim for function added to STL in C++17
+template<class T>
+constexpr const T& clamp(const T& v, const T& lo, const T& hi)
 {
+    return std::max(std::min(v, hi), lo);
+}
+
+}
+
+namespace rive { namespace pls
+{
+
 class PLSDraw;
 class PLSPath;
 class PLSPaint;
@@ -354,4 +366,4 @@ public:
 protected:
     const uint32_t m_previousClipID;
 };
-} // namespace rive::pls
+}} // namespace rive::pls

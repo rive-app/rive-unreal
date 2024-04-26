@@ -16,7 +16,7 @@ void URiveAudioEngine::BeginPlay()
 		}
 		NumChannels = 2;
 		
-		NativeAudioEnginePtr = rive::rcp(rive::AudioEngine::Make(NumChannels, AudioDevice->SampleRate));
+		NativeAudioEnginePtr = rive::rcp<rive::AudioEngine>(rive::AudioEngine::Make(NumChannels, AudioDevice->SampleRate));
 		Start();
 	}
 

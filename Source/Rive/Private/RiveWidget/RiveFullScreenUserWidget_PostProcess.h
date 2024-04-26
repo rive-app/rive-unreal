@@ -66,11 +66,11 @@ private:
 	
 	/** Post process component used to add the material to the post process chain. */
 	UPROPERTY(Transient)
-	TObjectPtr<UPostProcessComponent> PostProcessComponent;
+	UPostProcessComponent* PostProcessComponent;
 	
 	/** The dynamic instance of the material that the render target is attached to. */
 	UPROPERTY(Transient)
-	TObjectPtr<UMaterialInstanceDynamic> PostProcessMaterialInstance;
+	UMaterialInstanceDynamic* PostProcessMaterialInstance;
 
 	/** Only render to the UTextureRenderTarget2D - do not output to the final viewport. */
 	bool bRenderToTextureOnly;

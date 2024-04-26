@@ -1,5 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
+using System.IO;
 using UnrealBuildTool;
 
 public class RiveEditor : ModuleRules
@@ -19,11 +20,12 @@ public class RiveEditor : ModuleRules
             new string[]
             {
                 "AssetTools",
-                "AssetDefinition",
                 "CoreUObject",
                 "ContentBrowser",
+                "EditorStyle",
                 "Engine",
                 "PropertyEditor",
+                "RHI",
                 "Rive",
                 "RiveCore",
                 "Slate",
@@ -40,5 +42,10 @@ public class RiveEditor : ModuleRules
         {
             PrivateDependencyModuleNames.Add("WindowsTargetPlatform");
         }
+
+        // Adding the path needed to include the private file WidgetTemplateClass.h
+        string EnginePath = Path.GetFullPath(Target.RelativeEnginePath);
+        string SourcePath = Path.Combine(EnginePath, "Source");
+        PrivateIncludePaths.Add(Path.Combine(SourcePath, "Editor", "UMGEditor", "Private"));
     }
 }

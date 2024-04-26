@@ -6,7 +6,7 @@
 
 #include "rive/pls/trivial_block_allocator.hpp"
 
-namespace rive::pls
+namespace rive { namespace pls
 {
 // Fast, simple queue that operates on a block-allocated array. push_back() may only be called up to
 // m_capacity times before the queue must be rewound.
@@ -69,4 +69,4 @@ private:
     T* m_end = nullptr;
     RIVE_DEBUG_CODE(size_t m_capacity = 0;)
 };
-} // namespace rive::pls
+}} // namespace rive::pls

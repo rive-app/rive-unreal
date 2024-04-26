@@ -10,14 +10,14 @@
 #include "UObject/Package.h"
 #include "Widgets/Layout/SConstraintCanvas.h"
 
-namespace UE::RiveUtilities::Private
+namespace UE { namespace RiveUtilities { namespace Private
 {
 	const FName NAME_SlateUI = "SlateUI";
 
 	const FName NAME_TintColorAndOpacity = "TintColorAndOpacity";
 
 	const FName NAME_OpacityFromTexture = "OpacityFromTexture";
-}
+}}}
 
 FRiveFullScreenUserWidget_PostProcess::FRiveFullScreenUserWidget_PostProcess()
 	: PostProcessComponent(nullptr)
@@ -99,8 +99,8 @@ bool FRiveFullScreenUserWidget_PostProcess::UpdateTargetPostProcessSettingsWithM
 {
 	UMaterialInstanceDynamic* MaterialInstance = PostProcessMaterialInstance;
 
-	if (FPostProcessSettings* const PostProcessSettings = GetPostProcessSettings()
-		; PostProcessSettings && ensure(MaterialInstance))
+	FPostProcessSettings* const PostProcessSettings = GetPostProcessSettings();
+	if (PostProcessSettings && ensure(MaterialInstance))
 	{
 		// User added blend material should not affect the widget so insert the material at the beginning
 		const FWeightedBlendable Blendable{ 1.f, MaterialInstance };
@@ -137,8 +137,8 @@ void FRiveFullScreenUserWidget_PostProcess::ReleasePostProcessComponent()
 	
 	const bool bNeedsToResetExternalSettings = CustomPostProcessSettingsSource.IsValid();
 
-	if (FPostProcessSettings* Settings = GetPostProcessSettings()
-		; bNeedsToResetExternalSettings && Settings)
+	FPostProcessSettings* Settings = GetPostProcessSettings();
+	if (bNeedsToResetExternalSettings && Settings)
 	{
 		const int32 Index = Settings->WeightedBlendables.Array.IndexOfByPredicate([this](const FWeightedBlendable& Blendable){ return Blendable.Object == PostProcessMaterialInstance; });
 		

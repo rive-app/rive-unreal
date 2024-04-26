@@ -6,8 +6,6 @@
 #include "InputCoreTypes.h"
 #include "UObject/GCObject.h"
 #include "UnrealClient.h"
-#include "ViewportClient.h"
-#include "UObject/ObjectPtr.h"
 
 class SRiveWidgetView;
 class URiveTexture;
@@ -41,7 +39,7 @@ public:
 	void RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards);
 
 private:
-	TObjectPtr<URiveTexture> RiveTexture;
+	URiveTexture* RiveTexture;
 	/** Weak Ptr to view widget */
 	TWeakPtr<SRiveWidgetView> WidgetViewWeakPtr;
 
@@ -54,6 +52,6 @@ private:
 	/** Destroy the checkerboard texture if one exists */
 	void DestroyCheckerboardTexture();
 	/** Checkerboard texture */
-	TObjectPtr<UTexture2D> CheckerboardTexture;
+	UTexture2D* CheckerboardTexture;
 #endif
 };

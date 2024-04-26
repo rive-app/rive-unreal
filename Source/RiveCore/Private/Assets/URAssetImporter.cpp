@@ -20,7 +20,7 @@ THIRD_PARTY_INCLUDES_END
 
 #if WITH_RIVE
 
-UE::Rive::Assets::FURAssetImporter::FURAssetImporter(UPackage* InPackage, const FString& InRiveFilePath, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets)
+UE::Rive::Assets::FURAssetImporter::FURAssetImporter(UPackage* InPackage, const FString& InRiveFilePath, TMap<uint32, URiveAsset*>& InAssets)
 	: RivePackage(InPackage), RiveFilePath(InRiveFilePath), Assets(InAssets)
 {
 }
@@ -47,7 +47,7 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 	// TODO: We should just go ahead and search Registry for this asset, and load it here
 	{
 		// There shouldn't be anything in RiveFile->Assets, as this AssetImporter is meant to only be called on the Riv first load.
-		TObjectPtr<URiveAsset>* RiveAssetPtr = Assets.Find(InAsset.assetId());
+		URiveAsset** RiveAssetPtr = Assets.Find(InAsset.assetId());
 
 		if (RiveAssetPtr)
 		{
@@ -68,7 +68,7 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 		
 		// Determine if this asset already exists at this path
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(RiveAssetPath);
+		FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FName(*RiveAssetPath));
 		if (AssetData.IsValid())
 		{
 			RiveAsset = Cast<URiveAsset>(AssetData.GetAsset());

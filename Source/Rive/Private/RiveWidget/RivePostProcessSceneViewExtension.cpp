@@ -3,7 +3,7 @@
 #include "RivePostProcessSceneViewExtension.h"
 
 #include "Engine/TextureRenderTarget2D.h"
-#include "PostProcess/PostProcessMaterialInputs.h"
+#include "PostProcess/PostProcessMaterial.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "ScreenPass.h"
 #include "TextureResource.h"
@@ -26,15 +26,15 @@ void FRivePostProcessSceneViewExtension::BeginRenderViewFamily(FSceneViewFamily&
 {
 }
 
-void FRivePostProcessSceneViewExtension::PreRenderView_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& InView)
+void FRivePostProcessSceneViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
 {
 }
 
-void FRivePostProcessSceneViewExtension::PreRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& InViewFamily)
+void FRivePostProcessSceneViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily)
 {
 }
 
-void FRivePostProcessSceneViewExtension::PostRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder,FSceneViewFamily& InViewFamily)
+void FRivePostProcessSceneViewExtension::PostRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList,FSceneViewFamily& InViewFamily)
 {
 }
 
@@ -84,6 +84,9 @@ IMPLEMENT_GLOBAL_SHADER(FRiveDrawTextureInShaderPS, "/Plugin/Rive/Private/RiveFu
 FScreenPassTexture FRivePostProcessSceneViewExtension::PostProcessPassAfterTonemap_RenderThread(FRDGBuilder& GraphBuilder, const FSceneView& InSceneView, const FPostProcessMaterialInputs& InOutInputs)
 {
 	check(IsInRenderingThread());
+	check(InSceneView.bIsViewInfo);
+
+	const FViewInfo& ViewInfo = *((FViewInfo*)&InSceneView);
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
 	const FScreenPassTexture& SceneColor = FScreenPassTexture::CopyFromSlice(GraphBuilder, InOutInputs.GetInput(EPostProcessMaterialInput::SceneColor));
@@ -98,7 +101,8 @@ FScreenPassTexture FRivePostProcessSceneViewExtension::PostProcessPassAfterTonem
 	// If the override output is provided, it means that this is the last pass in post processing.
 	if (!Output.IsValid())
 	{
-		Output = FScreenPassRenderTarget::CreateFromInput(GraphBuilder, SceneColor, InSceneView.GetOverwriteLoadAction(), TEXT("RiveRenderTarget"));
+		const ERenderTargetLoadAction LoadAction = ViewInfo.bHMDHiddenAreaMaskActive ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ENoAction;
+		Output = FScreenPassRenderTarget::CreateFromInput(GraphBuilder, SceneColor, LoadAction, TEXT("RiveRenderTarget"));
 	}
 
 	// Can be invalidated after exiting PIE
@@ -134,10 +138,10 @@ FScreenPassTexture FRivePostProcessSceneViewExtension::PostProcessPassAfterTonem
 
 	Parameters->RenderTargets[0] = Output.GetRenderTargetBinding();
 
-	AddDrawScreenPass(
+	AddDrawScreenPass<FRiveDrawTextureInShaderPS>(
 		GraphBuilder,
 		RDG_EVENT_NAME("RivePostProcessPassAfterTonemap_RenderThread"),
-		InSceneView,
+		ViewInfo,
 		OutputViewport,
 		InputViewport,
 		VertexShader,

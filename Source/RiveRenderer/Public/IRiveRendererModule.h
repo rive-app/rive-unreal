@@ -5,7 +5,7 @@
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
 
-namespace UE::Rive::Renderer
+namespace UE { namespace Rive { namespace Renderer
 {
 	class IRiveRenderer;
 
@@ -57,4 +57,4 @@ namespace UE::Rive::Renderer
 
 		static constexpr const TCHAR* ModuleName = TEXT("RiveRenderer");
 	};
-}
+}}}

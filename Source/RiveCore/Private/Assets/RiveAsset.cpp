@@ -86,9 +86,9 @@ bool URiveAsset::DecodeFontAsset(rive::FileAsset& InAsset, rive::Factory* InRive
 
 bool URiveAsset::LoadAudioAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes)
 {
-	rive::SimpleArray<uint8_t> Data = rive::SimpleArray(AssetBytes.data(), AssetBytes.count());
+	rive::SimpleArray<uint8_t> Data = rive::SimpleArray<uint8_t>(AssetBytes.data(), AssetBytes.count());
 	rive::AudioSource* AudioSource = new rive::AudioSource(Data);
-	rive::rcp<rive::AudioSource> RcpAudioSource = rive::rcp(AudioSource);
+	rive::rcp<rive::AudioSource> RcpAudioSource = rive::rcp<rive::AudioSource>(AudioSource);
 	
 	rive::AudioAsset* AudioAsset = InAsset.as<rive::AudioAsset>();
 	AudioAsset->audioSource(RcpAudioSource);

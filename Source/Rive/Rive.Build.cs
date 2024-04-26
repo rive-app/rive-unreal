@@ -1,5 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
+using System.IO;
 using UnrealBuildTool;
 
 public class Rive : ModuleRules
@@ -7,8 +8,10 @@ public class Rive : ModuleRules
 	public Rive(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-		PublicIncludePaths.AddRange(
+
+        var EngineDir = Path.GetFullPath(Target.RelativeEnginePath);
+
+        PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
 			}
@@ -17,8 +20,9 @@ public class Rive : ModuleRules
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				// ... add other private include paths required here ...
-			}
+				// required for FPostProcessMaterialInputs
+				Path.Combine(EngineDir, "Source/Runtime/Renderer/Private"),
+            }
 		);
 			
 		
@@ -29,7 +33,6 @@ public class Rive : ModuleRules
 				"CoreUObject",
 				"InputCore",
 				"Projects",
-				"RHICore",
 				"RHI",
 				"RenderCore",
 				"RiveCore",
@@ -73,7 +76,6 @@ public class Rive : ModuleRules
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
-					"EditorFramework",
 					"LevelEditor",
 					"UnrealEd",
 					"ViewportInteraction",
