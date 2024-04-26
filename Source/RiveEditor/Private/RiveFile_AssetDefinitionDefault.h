@@ -2,7 +2,7 @@
 
 #pragma once
 
-/* TODO: Find out how to replace this functionality in UE4
+/* UE4-TODO: Find out how to replace this functionality in UE4
 
 #include "AssetDefinitionDefault.h"
 #include "RiveFile_AssetDefinitionDefault.generated.h"

@@ -198,12 +198,14 @@ URiveFullScreenUserWidget::URiveFullScreenUserWidget()
 	: CurrentDisplayType(ERiveWidgetDisplayType::Inactive)
 	, bDisplayRequested(false)
 {
+	/* UE4-TODO: Update this material
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> M_PostProcessMaterial(TEXT("/Rive/Materials/WidgetPostProcessMaterial"));
 
 	if (M_PostProcessMaterial.Succeeded())
 	{
 		PostProcessDisplayTypeWithBlendMaterial.PostProcessMaterial = M_PostProcessMaterial.Object;
 	}
+	*/
 }
 
 void URiveFullScreenUserWidget::BeginDestroy()
