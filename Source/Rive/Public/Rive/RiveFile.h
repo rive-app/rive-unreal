@@ -196,6 +196,8 @@ public:
 		return nullptr;
 	}
 
+	void SetAudioEngine(URiveAudioEngine* InAudioEngine) { AudioEngine = InAudioEngine; }
+
 	UPROPERTY(VisibleAnywhere, Category=Rive)
 	TObjectPtr<URiveFile> ParentRiveFile;
 
@@ -259,7 +261,11 @@ private:
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
 	URiveArtboard* Artboard = nullptr;
-
+	
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(AllowPrivateAccess))
+	URiveAudioEngine* AudioEngine = nullptr;
+	FDelegateHandle AudioEngineLambdaHandle;
+	
 	rive::Span<const uint8> RiveNativeFileSpan;
 
 	rive::Span<const uint8>& GetNativeFileSpan()

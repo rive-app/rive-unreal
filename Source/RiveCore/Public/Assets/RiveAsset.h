@@ -18,9 +18,10 @@ UENUM(BlueprintType)
 enum class ERiveAssetType : uint8
 {
 	None = 0,
-	FileBase = 103,
-	Image = 105,
-	Font = 141
+	FileBase,
+	Image,
+	Font,
+	Audio
 };
 
 /**
@@ -62,8 +63,9 @@ public:
 #endif
 
 	void LoadFromDisk();
-	bool DecodeNativeAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes);
+	bool LoadNativeAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes);
 private:
 	bool DecodeImageAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes);
 	bool DecodeFontAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes);
+	bool LoadAudioAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes);
 };

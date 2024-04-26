@@ -526,6 +526,32 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 		Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardName, StateMachineName);
 	}
 
+	if (AudioEngine != nullptr)
+	{
+		if (AudioEngine->GetNativeAudioEngine() == nullptr)
+		{
+			if (AudioEngineLambdaHandle.IsValid())
+			{
+				AudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
+				AudioEngineLambdaHandle.Reset();
+			}
+		
+			TFunction<void()> AudioLambda = [this]()
+			{
+				Artboard->SetAudioEngine(AudioEngine);
+				AudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
+			};
+			AudioEngineLambdaHandle = AudioEngine->OnRiveAudioReady.AddLambda(AudioLambda);
+		} else
+		{
+			Artboard->SetAudioEngine(AudioEngine);
+		}
+	} else
+	{
+		UE_LOG(LogRive, Warning, TEXT("RiveFile::InstantiateArtboard - AudioEngine is null"));
+	}
+	
+
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveFile::OnArtboardTickRender);
 	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveFile::GetLocalCoordinate);
 
