@@ -106,6 +106,7 @@ void ARiveActor::BeginPlay()
 
 	if (IsValid(RiveFile) && IsValid(ActorWorld) && (ActorWorld->WorldType == EWorldType::PIE))
 	{
+		RiveFile = RiveFile->CreateInstance(RiveFile->ArtboardName, RiveFile->StateMachineName);
 		RiveFile->InstantiateArtboard();
 		RiveFile->GetArtboard()->SetAudioEngine(AudioEngine);
 	}
@@ -129,6 +130,10 @@ void ARiveActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	if (EndPlayReason == EEndPlayReason::EndPlayInEditor && IsValid(RiveFile))
 	{
+		if (RiveFile->ParentRiveFile != nullptr)
+		{
+			RiveFile = RiveFile->ParentRiveFile;
+		}
 		RiveFile->InstantiateArtboard();
 	}
 }
