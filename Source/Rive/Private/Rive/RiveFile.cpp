@@ -188,6 +188,7 @@ URiveFile* URiveFile::CreateInstance(const FString& InArtboardName, const FStrin
 	NewRiveFileInstance->StateMachineName = InStateMachineName.IsEmpty() ? StateMachineName : InStateMachineName;
 	NewRiveFileInstance->ArtboardIndex = ArtboardIndex;
 	NewRiveFileInstance->PostLoad();
+	NewRiveFileInstance->InstantiateArtboard();
 	return NewRiveFileInstance;
 }
 
