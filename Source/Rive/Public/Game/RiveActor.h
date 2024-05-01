@@ -27,45 +27,15 @@ public:
 public:
 
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
-
-	virtual void PostInitializeComponents() override;
-
 	virtual void PostLoad() override;
-
-	virtual void PostActorCreated() override;
-
-	virtual void Destroyed() override;
 
 	virtual void BeginPlay() override;
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	virtual void Tick(float DeltaSeconds) override;
-
-#if WITH_EDITOR
-
-	virtual bool ShouldTickIfViewportsOnly() const override { return true; }
-
-#endif //WITH_EDITOR
 
 	//~ END : AActor Interface
 
-	/**
-	 * Implementation(s)
-	 */
-
-public:
-
-	/* Get a pointer to the inner user widget  */
-	UFUNCTION(BlueprintCallable, Category = "User Interface")
-	UUserWidget* GetUserWidget() const;
-
-private:
-	
-	void RequestEditorDisplay();
-	
-	void RequestGameDisplay();
-	
 	/**
 	 * Attribute(s)
 	 */
@@ -75,11 +45,15 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive")
 	TObjectPtr<URiveFile> RiveFile;
 
+	/** Settings for Rive Rendering */
+	UPROPERTY(VisibleAnywhere, Category = "User Interface", meta = (ShowOnlyInnerProperties))
+	TSubclassOf<UUserWidget> UserWidgetClass;
+	
 protected:
 
 	/** Settings for Rive Rendering */
 	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "User Interface", meta = (ShowOnlyInnerProperties))
-	TObjectPtr<URiveFullScreenUserWidget> ScreenUserWidget;
+	TObjectPtr<UUserWidget> ScreenUserWidget;
 
 	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "Audio", meta = (ShowOnlyInnerProperties))
 	TObjectPtr<URiveAudioEngine> AudioEngine;
