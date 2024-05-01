@@ -32,6 +32,15 @@ def get_base_command(rive_renderer_path, release):
 def main(rive_renderer_path, release):
     if sys.platform.startswith('darwin'):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
+        # determine a sane build environment
+        output = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], universal_newlines=True)
+        sdk_path = output.strip()
+        if "MacOSX12" not in sdk_path:
+            print_red(f"SDK Path {sdk_path} didn't point to an SDK matching version 12, exiting..")
+            return
+        else:
+            print_green(f"Using SDK at: {output}")
+    
         if not do_mac(rive_renderer_path, release):
             return
         
