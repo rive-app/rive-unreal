@@ -22,7 +22,7 @@ targets = [
 
 def get_base_command(rive_renderer_path, release):
     return (
-        f"premake5 --scripts={rive_renderer_path}/submodules/rive-cpp/build "
+        f"premake5 --scripts=\"{rive_renderer_path}/submodules/rive-cpp/build\" "
         f"--with_rive_text --with_rive_audio=external {'--release' if release else ''}"
     )
 
@@ -31,6 +31,7 @@ def get_base_command(rive_renderer_path, release):
 @click.option('--release', is_flag=True, default=False)
 def main(rive_renderer_path, release):
     if sys.platform.startswith('darwin'):
+        os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
         if not do_mac(rive_renderer_path, release):
             return
         
