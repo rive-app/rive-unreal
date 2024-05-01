@@ -262,7 +262,7 @@ private:
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
 	URiveArtboard* Artboard = nullptr;
 	
-	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(AllowPrivateAccess))
+	UPROPERTY(Transient, VisibleInstanceOnly, Category=Rive, meta=(AllowPrivateAccess))
 	URiveAudioEngine* AudioEngine = nullptr;
 	FDelegateHandle AudioEngineLambdaHandle;
 	

@@ -21,7 +21,6 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FOnRiveAudioEngineReadyEvent)
 	
 	virtual void BeginPlay() override;
-	virtual void BeginDestroy() override;
 
 	// Event called after BeginPlay, and after NativeAudioEnginePtr has been made
 	// This can be used if you expect initialization of a user of this system to initialize before this is ready
