@@ -30,7 +30,13 @@ public:
 	void UnIndent()
 	{
 		--IndentLevel;
-		IndentStr.RemoveAt(IndentStr.Len() - SpacesPerIndent - 2, SpacesPerIndent + 1);
+//++CK
+		//IndentStr.RemoveAt(IndentStr.Len() - SpacesPerIndent - 2, SpacesPerIndent + 1);
+        const auto Index = IndentStr.Len() - SpacesPerIndent - 2;
+		if (!IndentStr.IsValidIndex(Index))
+		{ return; }
+		IndentStr.RemoveAt(Index, SpacesPerIndent + 1);
+//--CK
 	}
 	static FDebugLogger& Get()
 	{
