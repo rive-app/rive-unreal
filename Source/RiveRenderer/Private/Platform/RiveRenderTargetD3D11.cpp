@@ -50,7 +50,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 	SCOPED_GPU_STAT(RHICmdList, CacheTextureTarget);
 	if (GD3D11RHI != nullptr && InTexture.IsValid())
 	{
-		ID3D11Texture2D* D3D11ResourcePtr = (ID3D11Texture2D*)GD3D11RHI->ResourceCast(InTexture.GetReference());
+		FD3D11Texture2D* D3D11Texture = GD3D11RHI->ResourceCast(InTexture.GetReference());
+		ID3D11Texture2D* D3D11ResourcePtr =	D3D11Texture->GetResource();
 		D3D11_TEXTURE2D_DESC Desc;
 		D3D11ResourcePtr->GetDesc(&Desc);
 		UE_LOG(LogRiveRenderer, Log, TEXT("D3D11ResourcePtr texture %dx%d"), Desc.Width, Desc.Height);
