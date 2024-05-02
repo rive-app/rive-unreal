@@ -102,7 +102,7 @@ def do_android(rive_renderer_path, release):
 def do_windows(rive_renderer_path, release):
     try:
         os.chdir(rive_renderer_path)
-        command = f'{get_base_command(rive_renderer_path, release)} --force-md --os=windows --out=out/windows vs2022'
+        command = f'{get_base_command(rive_renderer_path, release)} --windows_runtime=dynamic --os=windows --out=out/windows vs2022'
         execute_command(command)
 
         msbuild_path = get_msbuild()
