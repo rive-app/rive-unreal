@@ -33,11 +33,10 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 
 void URiveWidget::SetRiveFile(URiveFile* InRiveFile)
 {
-    RiveFile = InRiveFile->CreateInstance(InRiveFile->ArtboardName, InRiveFile->StateMachineName);
-
     if (RiveWidget.IsValid())
     {
-        RiveWidget->SetRiveFile(RiveFile);
+        InRiveFile->InstantiateArtboard();
+        RiveWidget->SetRiveFile(InRiveFile);
     }
 }
 
