@@ -88,10 +88,8 @@ bool URiveAsset::LoadAudioAsset(rive::FileAsset& InAsset, rive::Factory* InRiveF
 {
 	rive::SimpleArray<uint8_t> Data = rive::SimpleArray(AssetBytes.data(), AssetBytes.count());
 	rive::AudioSource* AudioSource = new rive::AudioSource(Data);
-	rive::rcp<rive::AudioSource> RcpAudioSource = rive::rcp(AudioSource);
-	
 	rive::AudioAsset* AudioAsset = InAsset.as<rive::AudioAsset>();
-	AudioAsset->audioSource(RcpAudioSource);
+	AudioAsset->audioSource(ref_rcp(AudioSource));
 	NativeAsset = AudioAsset;
 	return true;
 }

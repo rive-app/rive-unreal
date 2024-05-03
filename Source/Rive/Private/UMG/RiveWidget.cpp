@@ -31,6 +31,18 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
     return RiveWidget.ToSharedRef();
 }
 
+void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
+{
+    if (RiveFile)
+    {
+        RiveFile->SetAudioEngine(InAudioEngine);
+        if (RiveFile->GetArtboard() != nullptr)
+        {
+            RiveFile->GetArtboard()->SetAudioEngine(InAudioEngine);
+        }
+    }
+}
+
 void URiveWidget::SetRiveFile(URiveFile* InRiveFile)
 {
     if (RiveWidget.IsValid())
