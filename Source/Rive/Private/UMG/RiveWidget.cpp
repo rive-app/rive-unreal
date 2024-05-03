@@ -45,11 +45,10 @@ void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
 
 void URiveWidget::SetRiveFile(URiveFile* InRiveFile)
 {
-    RiveFile = InRiveFile->CreateInstance(InRiveFile->ArtboardName, InRiveFile->StateMachineName);
-
+    InRiveFile->InstantiateArtboard();
     if (RiveWidget.IsValid())
     {
-        RiveWidget->SetRiveFile(RiveFile);
+        RiveWidget->SetRiveFile(InRiveFile);
     }
 }
 
