@@ -39,5 +39,5 @@ private:
     TSharedPtr<SRiveWidget> RiveWidget;
 
     /** The rive file asset being edited. */
-    URiveFile* RiveFile;
+    URiveFile* RiveFile = nullptr;
 };

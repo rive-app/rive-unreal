@@ -52,7 +52,7 @@ private:
 
 	FReply OnInput(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, const FStateMachineInputCallback& InStateMachineInputCallback);
 
-	URiveTexture* RiveTexture;
+	URiveTexture* RiveTexture = nullptr;
 	TArray<URiveArtboard*> Artboards;
 	FVector2D LastMousePosition = FVector2D::ZeroVector;
 };

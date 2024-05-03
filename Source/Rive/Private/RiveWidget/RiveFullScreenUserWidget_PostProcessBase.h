@@ -96,7 +96,7 @@ public:
 	 * OpacityFromTexture [Scalar]
 	 */
 	UPROPERTY(EditAnywhere, Category = PostProcess)
-	UMaterialInterface* PostProcessMaterial;
+	UMaterialInterface* PostProcessMaterial = nullptr;
 
 	/** Tint color and opacity for this component. */
 	UPROPERTY(EditAnywhere, Category = PostProcess)
@@ -136,7 +136,7 @@ public:
 
 	/** The target to which the user widget is rendered. */
 	UPROPERTY(Transient)
-	UTextureRenderTarget2D* WidgetRenderTarget;
+	UTextureRenderTarget2D* WidgetRenderTarget = nullptr;
 
 #if WITH_EDITOR
 

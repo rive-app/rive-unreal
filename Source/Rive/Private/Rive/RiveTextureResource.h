@@ -22,5 +22,5 @@ public:
 	SIZE_T GetResourceSize();
 
 private:
-	URiveTexture* RiveTexture;
+	URiveTexture* RiveTexture = nullptr;
 };

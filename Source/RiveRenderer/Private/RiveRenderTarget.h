@@ -71,7 +71,7 @@ namespace UE { namespace Rive { namespace Renderer { namespace Private
 		mutable bool bIsCleared = false;
 		FLinearColor ClearColor = FLinearColor::Transparent;
 		FName RiveName;
-		UTexture2DDynamic* RenderTarget;
+		UTexture2DDynamic* RenderTarget = nullptr;
 		TArray<FRiveRenderCommand> RenderCommands;
 		TSharedPtr<FRiveRenderer> RiveRenderer;
 		mutable FDateTime LastResetTime = FDateTime::Now();

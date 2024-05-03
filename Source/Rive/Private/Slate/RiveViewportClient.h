@@ -39,7 +39,7 @@ public:
 	void RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards);
 
 private:
-	URiveTexture* RiveTexture;
+	URiveTexture* RiveTexture = nullptr;
 	/** Weak Ptr to view widget */
 	TWeakPtr<SRiveWidgetView> WidgetViewWeakPtr;
 
@@ -52,6 +52,6 @@ private:
 	/** Destroy the checkerboard texture if one exists */
 	void DestroyCheckerboardTexture();
 	/** Checkerboard texture */
-	UTexture2D* CheckerboardTexture;
+	UTexture2D* CheckerboardTexture = nullptr;
 #endif
 };

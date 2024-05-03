@@ -229,11 +229,11 @@ private:
 	
 	/** The User Widget object displayed and managed by this component */
 	UPROPERTY(Transient, DuplicateTransient)
-	UUserWidget* Widget;
+	UUserWidget* Widget = nullptr;
 
 	/** Reference to Parent Rive Actor */
 	UPROPERTY()
-	ARiveActor* RiveActor;
+	ARiveActor* RiveActor = nullptr;
 
 	/** The world the widget is attached to. */
 	UPROPERTY(Transient, DuplicateTransient)

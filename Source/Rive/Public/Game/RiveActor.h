@@ -73,16 +73,16 @@ private:
 public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive")
-	URiveFile* RiveFile;
+	URiveFile* RiveFile = nullptr;
 
 protected:
 
 	/** Settings for Rive Rendering */
 	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "User Interface", meta = (ShowOnlyInnerProperties))
-	URiveFullScreenUserWidget* ScreenUserWidget;
+	URiveFullScreenUserWidget* ScreenUserWidget = nullptr;
 
 	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "Audio", meta = (ShowOnlyInnerProperties))
-	URiveAudioEngine* AudioEngine;
+	URiveAudioEngine* AudioEngine = nullptr;
 
 #if WITH_EDITORONLY_DATA
 	

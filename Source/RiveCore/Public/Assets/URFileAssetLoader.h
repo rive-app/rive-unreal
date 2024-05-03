@@ -57,7 +57,7 @@ namespace UE { namespace Rive { namespace Assets
          */
     
     private:
-        UObject* Outer;
+        UObject* Outer = nullptr;
         TMap<uint32, URiveAsset*>& Assets;
     };
 }}}

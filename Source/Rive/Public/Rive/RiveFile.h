@@ -199,7 +199,7 @@ public:
 	void SetAudioEngine(URiveAudioEngine* InAudioEngine) { AudioEngine = InAudioEngine; }
 
 	UPROPERTY(VisibleAnywhere, Category=Rive)
-	URiveFile* ParentRiveFile;
+	URiveFile* ParentRiveFile = nullptr;
 
 public:
 	// Index of the artboard this Rive file instance will default to; not exposed

@@ -38,5 +38,5 @@ private:
 
 private:
 	
-	URiveFile* RiveFile;
+	URiveFile* RiveFile = nullptr;
 };

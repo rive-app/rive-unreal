@@ -68,10 +68,10 @@ public:
     TArray<URiveArtboard*> RenderObjects;
 
     UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
-    URiveTexture* RenderTarget;
+    URiveTexture* RenderTarget = nullptr;
 
     UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
-    URiveAudioEngine* RiveAudioEngine;
+    URiveAudioEngine* RiveAudioEngine = nullptr;
     
 private:
     UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
