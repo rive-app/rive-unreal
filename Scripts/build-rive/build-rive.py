@@ -249,12 +249,14 @@ def copy_includes(rive_renderer_path):
     print_green('Copying rive includes...')
     rive_includes_path = os.path.join(rive_renderer_path, 'submodules', 'rive-cpp', 'include')
     rive_pls_includes_path = os.path.join(rive_renderer_path, 'include')
+    rive_decoders_includes_path = os.path.join(rive_renderer_path, 'submodules', 'rive-cpp', 'decoders', 'include')
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')
     if os.path.exists(target_path):
         shutil.rmtree(target_path)
 
     shutil.copytree(rive_includes_path, target_path, dirs_exist_ok=True)
     shutil.copytree(rive_pls_includes_path, target_path, dirs_exist_ok=True)
+    shutil.copytree(rive_decoders_includes_path, target_path, dirs_exist_ok=True)
 
 
 def execute_command(cmd):
