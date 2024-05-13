@@ -140,8 +140,8 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
 	};
 	PLSRenderContextPtr->flush(FlushResources);
 
-	//todo: android texture blink if we don't call glReadPixels? to investigate
-	TArray<FIntVector2> Points{ {0,0}, { 100,100 }, { 200,200 }, { 300,300 }}; 
+	//todo: to remove once OpenGL fully fixed
+	TArray<FIntVector2> Points{ {0,0}, { 100,100 }, { 200,200 }, { 300,300 }, { 400,400 }, { 500,500 }, { 600,600 }, { 700,700 } };
 	for (FIntVector2 Point : Points) 
 	{
 		if (Point.X < GetWidth() && Point.Y < GetHeight())
@@ -154,45 +154,9 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
 	
 	// Reset
 	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->unbindGLInternalResources() %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->unbindGLInternalResources();
+	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->unbindGLInternalResources(); //careful, need UE's internal state to match
 
-	if (IsInRHIThread()) //todo: still not working, to be looked at
-	{
-		FOpenGLDynamicRHI* OpenGLDynamicRHI = static_cast<FOpenGLDynamicRHI*>(GetIOpenGLDynamicRHI());
-		FOpenGLContextState& ContextState = OpenGLDynamicRHI->GetContextStateForCurrentContext(true);
-			
-		// UE_LOG(LogRiveRenderer, Display, TEXT("%s OpenGLDynamicRHI->RHIInvalidateCachedState()"), FDebugLogger::Ind(), PLSRenderContextPtr);
-		// OpenGLDynamicRHI->RHIInvalidateCachedState();
-
-		RIVE_DEBUG_VERBOSE("Pre RHIPostExternalCommandsReset");
-		// Manual reset of GL commands to match the GL State before Rive Commands. Supposed to be handled by RHIPostExternalCommandsReset, TBC
-		FOpenGL::BindProgramPipeline(ContextState.Program);
-		glViewport(ContextState.Viewport.Min.X, ContextState.Viewport.Min.Y, ContextState.Viewport.Max.X - ContextState.Viewport.Min.X, ContextState.Viewport.Max.Y - ContextState.Viewport.Min.Y);
-		FOpenGL::DepthRange(ContextState.DepthMinZ, ContextState.DepthMaxZ);
-		ContextState.bScissorEnabled ? glEnable(GL_SCISSOR_TEST) : glDisable(GL_SCISSOR_TEST);
-		glScissor(ContextState.Scissor.Min.X, ContextState.Scissor.Min.Y, ContextState.Scissor.Max.X - ContextState.Scissor.Min.X, ContextState.Scissor.Max.Y - ContextState.Scissor.Min.Y);
-		glBindFramebuffer(GL_FRAMEBUFFER, ContextState.Framebuffer);
-			
-		FOpenGL::PolygonMode(GL_FRONT_AND_BACK, ContextState.RasterizerState.FillMode);
-		glCullFace(ContextState.RasterizerState.CullMode);
-		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, ContextState.PixelUnpackBufferBound);
-		glBindBuffer( GL_UNIFORM_BUFFER, ContextState.UniformBufferBound);
-		glBindBuffer( GL_SHADER_STORAGE_BUFFER, ContextState.StorageBufferBound);
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ContextState.ElementArrayBufferBound);
-		glBindBuffer( GL_ARRAY_BUFFER, ContextState.ArrayBufferBound);
-			
-		for (int i = 0; i < ContextState.Textures.Num(); i++)
-		{
-			glActiveTexture(GL_TEXTURE0 + i);
-			glBindTexture(GL_TEXTURE_2D, ContextState.Textures[i].Resource);
-		}
-		glActiveTexture(ContextState.ActiveTexture);
-		glFrontFace(GL_CCW);
-		
-		OpenGLDynamicRHI->RHIPostExternalCommandsReset();
-		
-		RIVE_DEBUG_VERBOSE("Post RHIPostExternalCommandsReset");
-	}
+	ResetOpenGLState();
 }
 
 void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
@@ -280,7 +244,95 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_In
 	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->setTargetTexture( %d )", OpenGLResourcePtr);
 	CachedPLSRenderTargetOpenGL->setTargetTexture(OpenGLResourcePtr);
 	RIVE_DEBUG_VERBOSE("CachedPLSRenderTargetOpenGL set to  %p", CachedPLSRenderTargetOpenGL.get());
+
+	ResetOpenGLState();
 #endif // WITH_RIVE
+}
+
+void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::ResetOpenGLState() const
+{
+	if (!IsInRHIThread())
+	{
+		return;
+	}
+	//todo: still not fully working, to be looked at
+	FOpenGLDynamicRHI* OpenGLDynamicRHI = static_cast<FOpenGLDynamicRHI*>(GetIOpenGLDynamicRHI());
+	FOpenGLContextState& ContextState = OpenGLDynamicRHI->GetContextStateForCurrentContext(true);
+	
+	RIVE_DEBUG_VERBOSE("Pre RHIPostExternalCommandsReset");
+	
+	// Here, we manually set the context values as per the changes that have been made by Rive.
+	// We call the GL function to be sure
+	ContextState.DepthMinZ = 0;
+	ContextState.DepthMaxZ = 1;
+	glDepthRangef(ContextState.DepthMinZ, ContextState.DepthMaxZ);
+	ContextState.DepthStencilState.bZEnable = true;
+	glEnable(GL_DEPTH_TEST);
+	ContextState.DepthStencilState.bZWriteEnable = true;
+	glDepthMask(ContextState.DepthStencilState.bZWriteEnable);
+	ContextState.DepthStencilState.ZFunc = GL_LESS;
+	glDepthFunc(ContextState.DepthStencilState.ZFunc);
+	ContextState.DepthStencilState.bStencilEnable = true;
+	glEnable(GL_STENCIL_TEST);
+	ContextState.DepthStencilState.StencilWriteMask = true;
+	glStencilMask(ContextState.DepthStencilState.StencilWriteMask);
+	glClearDepthf(1);
+	glClearStencil(0);
+	
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable(GL_DITHER);
+
+	ContextState.DepthStencilState.bZEnable = false;
+	glDisable(GL_DEPTH_TEST);
+	ContextState.RasterizerState.DepthBias = 0;
+	ContextState.RasterizerState.SlopeScaleDepthBias = 0;
+	glDisable(GL_POLYGON_OFFSET_FILL);
+	glDisable(GL_POLYGON_OFFSET_LINE);
+	glDisable(GL_POLYGON_OFFSET_POINT);
+	
+	glDisable(GL_RASTERIZER_DISCARD);
+	ContextState.bAlphaToCoverageEnabled = false;
+	glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+	glDisable(GL_SAMPLE_COVERAGE);
+	ContextState.bScissorEnabled = false;
+	glDisable(GL_SCISSOR_TEST);
+	ContextState.DepthStencilState.bStencilEnable = false;
+	glDisable(GL_STENCIL_TEST);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+	glPixelStorei(GL_PACK_SKIP_ROWS, 0);
+	glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
+	glPixelStorei(GL_PACK_ALIGNMENT, 4);
+
+	glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+	
+	glBindVertexArray(AndroidEGL::GetInstance()->GetRenderingContext()->DefaultVertexArrayObject);
+	ContextState.Framebuffer = 0;
+	glBindFramebuffer(GL_FRAMEBUFFER, ContextState.Framebuffer);
+	ContextState.ElementArrayBufferBound = 0;
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ContextState.ElementArrayBufferBound);
+	ContextState.ArrayBufferBound = 0;
+	glBindBuffer(GL_ARRAY_BUFFER, ContextState.ArrayBufferBound);
+	ContextState.UniformBufferBound = 0;
+	glBindBuffer(GL_UNIFORM_BUFFER, ContextState.UniformBufferBound);
+	ContextState.PixelUnpackBufferBound = 0;
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, ContextState.PixelUnpackBufferBound);
+	
+	for (int i = 0; i <= 7; i++)
+	{
+		glActiveTexture(GL_TEXTURE0 + i);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		ContextState.Textures[i].Resource = 0;
+	}
+	glActiveTexture(GL_TEXTURE0);
+	ContextState.ActiveTexture = 0;
+	glFrontFace(GL_CCW);
+	
+	OpenGLDynamicRHI->RHIPostExternalCommandsReset();
+	RIVE_DEBUG_VERBOSE("Post RHIPostExternalCommandsReset");
 }
 
 #endif // WITH_RIVE

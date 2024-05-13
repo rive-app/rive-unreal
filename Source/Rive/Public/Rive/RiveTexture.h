@@ -44,7 +44,7 @@ public:
 	 * Resize render resources
 	 */
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	virtual void ResizeRenderTargets(const FIntPoint InNewSize);
+	virtual void ResizeRenderTargets(FIntPoint InNewSize);
 	
 	FVector2f GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const;
 

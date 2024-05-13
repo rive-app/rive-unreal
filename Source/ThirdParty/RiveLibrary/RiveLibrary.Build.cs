@@ -149,6 +149,11 @@ public class RiveLibrary : ModuleRules
             bIsPlatformAdded = true;
         }
 
-        PublicDefinitions.Add("WITH_RIVE=" + (bIsPlatformAdded ? "1" : "0"));
+        if (bIsPlatformAdded)
+        {
+            PublicDefinitions.Add("WITH_RIVE=1");
+            PublicDefinitions.Add("WITH_RIVE_AUDIO=1");
+            PublicDefinitions.Add("EXTERNAL_RIVE_AUDIO_ENGINE=1");
+        }
     }
 }

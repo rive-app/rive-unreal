@@ -2,6 +2,7 @@
 
 #include "Assets/URFileAssetLoader.h"
 #include "Assets/RiveAsset.h"
+#include "Assets/URAssetHelpers.h"
 #include "Logs/RiveCoreLog.h"
 #include "rive/factory.hpp"
 
@@ -40,7 +41,11 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 	
 	URiveAsset* RiveAsset = nullptr;
 	const TObjectPtr<URiveAsset>* RiveAssetPtr = Assets.Find(InAsset.assetId());
-	if (RiveAssetPtr == nullptr)
+	if (RiveAssetPtr != nullptr && RiveAssetPtr->Get() != nullptr)
+	{
+		RiveAsset = RiveAssetPtr->Get();
+	}
+	else
 	{
 		if (!bUseInBand)
 		{
@@ -54,12 +59,11 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 
 		RiveAsset->Id = InAsset.assetId();
 		RiveAsset->Name = FString(UTF8_TO_TCHAR(InAsset.name().c_str()));
-		RiveAsset->Type = static_cast<ERiveAssetType>(InAsset.coreType());
+		RiveAsset->Type = URAssetHelpers::GetUnrealType(InAsset.coreType()); 
 		RiveAsset->bIsInBand = true;
-	}
-	else
-	{
-		RiveAsset = RiveAssetPtr->Get();
+
+		// We only add it to our assets here so that it shows up in the inspector, otherwise this doesn't have any functional effect on anything due to it being a transient, in-band asset
+		Assets.Add(InAsset.assetId(), RiveAsset);
 	}
 
 	rive::Span<const uint8> OutOfBandBytes;
@@ -74,7 +78,7 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 		AssetBytes = &OutOfBandBytes;
 	}
 
-	return RiveAsset->DecodeNativeAsset(InAsset, InFactory, *AssetBytes);
+	return RiveAsset->LoadNativeAsset(InAsset, InFactory, *AssetBytes);
 }
 
 #endif // WITH_RIVE

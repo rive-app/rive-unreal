@@ -229,12 +229,12 @@ void UE::Rive::Core::FURStateMachine::SetNumberValue(const FString& InPropertyNa
     UE_LOG(LogRiveCore, Error, TEXT("Could not get the number property with given name '%s' as we could not find it."), *InPropertyName);
 }
 
-bool UE::Rive::Core::FURStateMachine::OnMouseButtonDown(const FVector2f& NewPosition)
+bool UE::Rive::Core::FURStateMachine::PointerDown(const FVector2f& NewPosition)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)
     {
-        UE_LOG(LogRiveCore, Error, TEXT("Failed to call OnMouseButtonDown on the StateMachine as we do not have a valid renderer."));
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to call PointerDown on the StateMachine as we do not have a valid renderer."));
         return false;
     }
     
@@ -249,12 +249,12 @@ bool UE::Rive::Core::FURStateMachine::OnMouseButtonDown(const FVector2f& NewPosi
     return true;
 }
 
-bool UE::Rive::Core::FURStateMachine::OnMouseMove(const FVector2f& NewPosition)
+bool UE::Rive::Core::FURStateMachine::PointerMove(const FVector2f& NewPosition)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)
     {
-        UE_LOG(LogRiveCore, Error, TEXT("Failed to call OnMouseMove on the StateMachine as we do not have a valid renderer."));
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to call PointerMove on the StateMachine as we do not have a valid renderer."));
         return false;
     }
     
@@ -269,12 +269,12 @@ bool UE::Rive::Core::FURStateMachine::OnMouseMove(const FVector2f& NewPosition)
     return true;
 }
 
-bool UE::Rive::Core::FURStateMachine::OnMouseButtonUp(const FVector2f& NewPosition)
+bool UE::Rive::Core::FURStateMachine::PointerUp(const FVector2f& NewPosition)
 {
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)
     {
-        UE_LOG(LogRiveCore, Error, TEXT("Failed to call OnMouseButtonUp on the StateMachine as we do not have a valid renderer."));
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to call PointerUp on the StateMachine as we do not have a valid renderer."));
         return false;
     }
     
@@ -286,6 +286,26 @@ bool UE::Rive::Core::FURStateMachine::OnMouseButtonUp(const FVector2f& NewPositi
     }
    
     NativeStateMachinePtr->pointerUp({ NewPosition.X, NewPosition.Y });
+    return true;
+}
+
+bool UE::Rive::Core::FURStateMachine::PointerExit(const FVector2f& NewPosition)
+{
+    Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRiveCore, Error, TEXT("Failed to call PointerExit on the StateMachine as we do not have a valid renderer."));
+        return false;
+    }
+    
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+    
+    if (!NativeStateMachinePtr)
+    {
+        return false;
+    }
+   
+    NativeStateMachinePtr->pointerExit({ NewPosition.X, NewPosition.Y });
     return true;
 }
 

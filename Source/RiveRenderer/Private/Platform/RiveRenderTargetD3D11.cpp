@@ -54,7 +54,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 		ID3D11Texture2D* D3D11ResourcePtr = (ID3D11Texture2D*)D3D11RHI->RHIGetResource(InTexture);
 		D3D11_TEXTURE2D_DESC Desc;
 		D3D11ResourcePtr->GetDesc(&Desc);
-		UE_LOG(LogRiveRenderer, Warning, TEXT("D3D11ResourcePtr texture %dx%d"), Desc.Width, Desc.Height);
+		UE_LOG(LogRiveRenderer, Log, TEXT("D3D11ResourcePtr texture %dx%d"), Desc.Width, Desc.Height);
 
 #if WITH_RIVE
 		if (CachedPLSRenderTargetD3D)

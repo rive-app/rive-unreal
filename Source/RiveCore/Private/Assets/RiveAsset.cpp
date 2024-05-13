@@ -4,12 +4,28 @@
 #include "Logs/RiveCoreLog.h"
 #include "Misc/FileHelper.h"
 #include "rive/factory.hpp"
+#include "rive/assets/audio_asset.hpp"
+#include "rive/audio/audio_source.hpp"
 
 void URiveAsset::PostLoad()
 {
 	UObject::PostLoad();
 
-	// NativeAsset.Bytes = &NativeAssetBytes;
+	// Older version of UE Rive used these values as enum values
+	// Newer version of UE Rive doesn't use these values as enum values because the type values are beyond uint8 space
+	// This ensures older rive assets will still work, by converting old values to new values
+	switch((int)Type)
+	{
+	case 103:
+		Type = ERiveAssetType::FileBase;
+		break;
+	case 105:
+		Type = ERiveAssetType::Image;
+		break;
+	case 141:
+		Type = ERiveAssetType::Font;
+		break;
+	}
 }
 
 void URiveAsset::LoadFromDisk()
@@ -20,7 +36,7 @@ void URiveAsset::LoadFromDisk()
 	}
 }
 
-bool URiveAsset::DecodeNativeAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes)
+bool URiveAsset::LoadNativeAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes)
 {
 	switch(Type)
 	{
@@ -28,6 +44,8 @@ bool URiveAsset::DecodeNativeAsset(rive::FileAsset& InAsset, rive::Factory* InRi
 		return DecodeFontAsset(InAsset, InRiveFactory, AssetBytes);
 	case ERiveAssetType::Image:
 		return DecodeImageAsset(InAsset, InRiveFactory, AssetBytes);
+	case ERiveAssetType::Audio:
+		return LoadAudioAsset(InAsset, InRiveFactory, AssetBytes);
 	}
 
 	return false;
@@ -63,5 +81,15 @@ bool URiveAsset::DecodeFontAsset(rive::FileAsset& InAsset, rive::Factory* InRive
 	rive::FontAsset* FontAsset = InAsset.as<rive::FontAsset>();
 	FontAsset->font(DecodedFont);
 	NativeAsset = FontAsset;
+	return true;
+}
+
+bool URiveAsset::LoadAudioAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes)
+{
+	rive::SimpleArray<uint8_t> Data = rive::SimpleArray(AssetBytes.data(), AssetBytes.count());
+	rive::AudioSource* AudioSource = new rive::AudioSource(Data);
+	rive::AudioAsset* AudioAsset = InAsset.as<rive::AudioAsset>();
+	AudioAsset->audioSource(ref_rcp(AudioSource));
+	NativeAsset = AudioAsset;
 	return true;
 }
