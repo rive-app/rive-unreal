@@ -38,7 +38,8 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
         return;
     }
 
-    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveActorComponent (GT)"), STAT_RIVEFILE_GT, STATGROUP_Rive);
+    SCOPED_NAMED_EVENT_TEXT(TEXT("URiveActorComponent::TickComponent"), FColor::White);
+    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("URiveActorComponent::TickComponent"), STAT_RIVEACTORCOMPONENT_TICK, STATGROUP_Rive);
 
     if (RiveRenderTarget)
     {

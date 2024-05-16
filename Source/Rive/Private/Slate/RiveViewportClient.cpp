@@ -40,7 +40,8 @@ void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		return;
 	}
 
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveViewportClient (GT)"), STAT_RIVEVIEWPORTCLIENT_GT, STATGROUP_Rive);
+	SCOPED_NAMED_EVENT_TEXT(TEXT("RiveViewportClient::Draw"), FColor::White);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveViewportClient::Draw"), STAT_RIVEVIEWPORTCLIENT_DRAW, STATGROUP_Rive);
 
 	Canvas->Clear(FLinearColor::Transparent);
 

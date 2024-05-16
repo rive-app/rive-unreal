@@ -54,7 +54,8 @@ UE::Rive::Core::FURStateMachine::FURStateMachine(rive::ArtboardInstance* InNativ
 
 bool UE::Rive::Core::FURStateMachine::Advance(float InSeconds)
 {
-    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FURStateMachine Advance (GT)"), STAT_STATEMACHINE_ADVANCE, STATGROUP_RiveCore);
+    SCOPED_NAMED_EVENT_TEXT(TEXT("FURStateMachine::Advance"), FColor::White);
+    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FURStateMachine::Advance"), STAT_STATEMACHINE_ADVANCE, STATGROUP_RiveCore);
     Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)
     {

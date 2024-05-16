@@ -57,8 +57,9 @@ void URiveFile::Tick(float InDeltaSeconds)
 	{
 		return;
 	}
-
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveFile Tick (GT)"), STAT_RIVEFILE_GT, STATGROUP_Rive);
+	
+	SCOPED_NAMED_EVENT_TEXT(TEXT("URiveFile::Tick"), FColor::White);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("URiveFile::Tick"), STAT_RIVEFILE_TICK, STATGROUP_Rive);
 
 #if WITH_RIVE
 	if (IsInitialized() && bIsRendering)
