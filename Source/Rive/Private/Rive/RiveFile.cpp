@@ -101,11 +101,6 @@ void URiveFile::PostLoad()
 				UE_LOG(LogRive, Warning, TEXT("The path of RiveFile '%s' is not matching the AssetImportData, resetting to RiveFilePath. RiveFilePath: '%s'  AssetImportData: '%s'"),
 					*GetFullName(), *RiveFilePath, *FullPath)
 				AssetImportData->UpdateFilenameOnly(RiveFilePath);
-				// We want to mark the UObject dirty but that is not possible on PostLoad, so we start an AsyncTask
-				AsyncTask(ENamedThreads::GameThread, [this]()
-				{
-					Modify(true);
-				});
 			}
 		}
 		AssetImportData->OnImportDataChanged.AddUObject(this, &URiveFile::OnImportDataChanged);
@@ -142,6 +137,13 @@ void URiveFile::PostLoad()
 }
 
 #if WITH_EDITOR
+
+void URiveFile::PostEditUndo()
+{
+	Super::PostEditUndo();
+	// we resize the render target on undo, it will do nothing if the size has not changed
+	ResizeRenderTargets(Size);
+}
 
 void URiveFile::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
 {
@@ -185,7 +187,9 @@ URiveFile* URiveFile::CreateInstance(const FString& InArtboardName, const FStrin
 	NewRiveFileInstance->ArtboardName = InArtboardName.IsEmpty() ? ArtboardName : InArtboardName;
 	NewRiveFileInstance->StateMachineName = InStateMachineName.IsEmpty() ? StateMachineName : InStateMachineName;
 	NewRiveFileInstance->ArtboardIndex = ArtboardIndex;
+	NewRiveFileInstance->AudioEngine = AudioEngine;
 	NewRiveFileInstance->PostLoad();
+	NewRiveFileInstance->InstantiateArtboard();
 	return NewRiveFileInstance;
 }
 
@@ -523,6 +527,32 @@ void URiveFile::InstantiateArtboard(bool bRaiseArtboardChangedEvent)
 	{
 		Artboard->Initialize(GetNativeFile(), RiveRenderTarget, ArtboardName, StateMachineName);
 	}
+
+	if (AudioEngine != nullptr)
+	{
+		if (AudioEngine->GetNativeAudioEngine() == nullptr)
+		{
+			if (AudioEngineLambdaHandle.IsValid())
+			{
+				AudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
+				AudioEngineLambdaHandle.Reset();
+			}
+		
+			TFunction<void()> AudioLambda = [this]()
+			{
+				Artboard->SetAudioEngine(AudioEngine);
+				AudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
+			};
+			AudioEngineLambdaHandle = AudioEngine->OnRiveAudioReady.AddLambda(AudioLambda);
+		} else
+		{
+			Artboard->SetAudioEngine(AudioEngine);
+		}
+	} else
+	{
+		UE_LOG(LogRive, Warning, TEXT("RiveFile::InstantiateArtboard - AudioEngine is null"));
+	}
+	
 
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveFile::OnArtboardTickRender);
 	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveFile::GetLocalCoordinate);

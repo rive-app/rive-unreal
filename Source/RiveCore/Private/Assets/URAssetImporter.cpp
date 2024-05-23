@@ -93,7 +93,7 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 	
 	RiveAsset->Id = InAsset.assetId();
 	RiveAsset->Name = FString(UTF8_TO_TCHAR(InAsset.name().c_str()));
-	RiveAsset->Type = static_cast<ERiveAssetType>(InAsset.coreType());
+	RiveAsset->Type = URAssetHelpers::GetUnrealType(InAsset.coreType()); 
 	RiveAsset->bIsInBand = bIsInBand;
 	RiveAsset->MarkPackageDirty();
 	

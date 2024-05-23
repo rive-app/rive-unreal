@@ -1,6 +1,8 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "UMG/RiveWidget.h"
+
+#include "Rive/RiveFile.h"
 #include "Slate/SRiveWidget.h"
 
 #define LOCTEXT_NAMESPACE "RiveWidget"
@@ -24,18 +26,29 @@ void URiveWidget::ReleaseSlateResources(bool bReleaseChildren)
 TSharedRef<SWidget> URiveWidget::RebuildWidget()
 {
     RiveWidget = SNew(SRiveWidget);
-    RiveWidget->SetRiveFile(RiveFile);
+    SetRiveFile(RiveFile);
 
     return RiveWidget.ToSharedRef();
 }
 
+void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
+{
+    if (RiveFile)
+    {
+        RiveFile->SetAudioEngine(InAudioEngine);
+        if (RiveFile->GetArtboard() != nullptr)
+        {
+            RiveFile->GetArtboard()->SetAudioEngine(InAudioEngine);
+        }
+    }
+}
+
 void URiveWidget::SetRiveFile(URiveFile* InRiveFile)
 {
-    RiveFile = InRiveFile;
-
     if (RiveWidget.IsValid())
     {
-        RiveWidget->SetRiveFile(RiveFile);
+        InRiveFile->InstantiateArtboard();
+        RiveWidget->SetRiveFile(InRiveFile);
     }
 }
 

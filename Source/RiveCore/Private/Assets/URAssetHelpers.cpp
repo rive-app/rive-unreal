@@ -44,6 +44,9 @@ bool URAssetHelpers::FindDiskAsset(const FString& InBasePath, URiveAsset* InRive
 	case ERiveAssetType::Image:
 		Extensions = &ImageExtensions;
 		break;
+	case ERiveAssetType::Audio:
+		Extensions = &AudioExtensions;
+		break;
 	default:
 		assert(true);
 		return false;  // this means we don't support this asset type
@@ -77,4 +80,21 @@ bool URAssetHelpers::FindDiskAsset(const FString& InBasePath, URiveAsset* InRive
 
 	InRiveAsset->AssetPath = FilePath;
 	return true;
+}
+
+ERiveAssetType URAssetHelpers::GetUnrealType(uint16_t RiveType)
+{
+	switch(RiveType)
+	{
+	case 103:
+		return ERiveAssetType::FileBase;
+	case 105:
+		return ERiveAssetType::Image;
+	case 141:
+		return ERiveAssetType::Font;
+	case 406:
+		return ERiveAssetType::Audio;
+	default:
+		return ERiveAssetType::None;
+	}
 }

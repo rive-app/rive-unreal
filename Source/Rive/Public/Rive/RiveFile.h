@@ -29,7 +29,7 @@ class UUserWidget;
 /**
  *
  */
-UCLASS(BlueprintType, Blueprintable, HideCategories="ImportSettings")
+UCLASS(BlueprintType, Blueprintable, HideCategories=("ImportSettings", "Compression", "Adjustments", "LevelOfDetail", "Compositing"))
 class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
@@ -76,6 +76,7 @@ public:
 #if WITH_EDITOR
 
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	virtual void PostEditUndo() override;
 
 #endif // WITH_EDITOR
 
@@ -173,7 +174,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rive, meta=(NoResetToDefault))
 	FString RiveFilePath;
 
-	UPROPERTY(VisibleAnywhere, Category=Rive)
+	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
 	TMap<uint32, TObjectPtr<URiveAsset>> Assets;
 
 	TMap<uint32, TObjectPtr<URiveAsset>>& GetAssets()
@@ -194,6 +195,8 @@ public:
 
 		return nullptr;
 	}
+
+	void SetAudioEngine(URiveAudioEngine* InAudioEngine) { AudioEngine = InAudioEngine; }
 
 	UPROPERTY(VisibleAnywhere, Category=Rive)
 	TObjectPtr<URiveFile> ParentRiveFile;
@@ -258,7 +261,11 @@ private:
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
 	URiveArtboard* Artboard = nullptr;
-
+	
+	UPROPERTY(Transient, VisibleInstanceOnly, Category=Rive, meta=(AllowPrivateAccess))
+	URiveAudioEngine* AudioEngine = nullptr;
+	FDelegateHandle AudioEngineLambdaHandle;
+	
 	rive::Span<const uint8> RiveNativeFileSpan;
 
 	rive::Span<const uint8>& GetNativeFileSpan()

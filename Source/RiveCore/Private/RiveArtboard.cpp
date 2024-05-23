@@ -263,6 +263,42 @@ bool URiveArtboard::TriggerNamedRiveEvent(const FString& EventName, float Report
 	return false;
 }
 
+void URiveArtboard::PointerDown(const FVector2f& NewPosition)
+{
+	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
+	if (StateMachine)
+	{
+		StateMachine->PointerDown(NewPosition);
+	}
+}
+
+void URiveArtboard::PointerUp(const FVector2f& NewPosition)
+{
+	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
+	if (StateMachine)
+	{
+		StateMachine->PointerUp(NewPosition);
+	}
+}
+
+void URiveArtboard::PointerMove(const FVector2f& NewPosition)
+{
+	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
+	if (StateMachine)
+	{
+		StateMachine->PointerMove(NewPosition);
+	}
+}
+
+void URiveArtboard::PointerExit(const FVector2f& NewPosition)
+{
+	UE::Rive::Core::FURStateMachine* StateMachine = GetStateMachine();
+	if (StateMachine)
+	{
+		StateMachine->PointerExit(NewPosition);
+	}
+}
+
 FVector2f URiveArtboard::GetLocalCoordinate(const FVector2f& InPosition, const FIntPoint& InTextureSize, ERiveAlignment InAlignment, ERiveFitType InFit) const
 {
 	FVector2f Alignment = FRiveAlignment::GetAlignment(InAlignment);
@@ -363,6 +399,22 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::
 		}
 	}
 	Initialize_Internal(NativeArtboard);
+}
+
+void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
+{
+	if (AudioEngine == nullptr)
+	{
+		rive::rcp<rive::AudioEngine> NativeEngine = NativeArtboardPtr->audioEngine();
+		
+		if (NativeEngine != nullptr)
+		{
+			NativeEngine->unref();
+		}
+		NativeArtboardPtr->audioEngine(nullptr);
+		return;
+	}
+	NativeArtboardPtr->audioEngine(AudioEngine->GetNativeAudioEngine());
 }
 
 void URiveArtboard::Tick_Render(float InDeltaSeconds)

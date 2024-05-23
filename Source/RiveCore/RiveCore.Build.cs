@@ -32,7 +32,8 @@ public class RiveCore : ModuleRules
 				"Core",
 				"RHICore",
 				"RHI",
-				"RenderCore"
+				"RenderCore",
+				"AudioMixer"
 			}
 		);
 			
