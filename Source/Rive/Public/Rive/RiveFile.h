@@ -210,7 +210,10 @@ public:
 	// StateMachine name to pass into our default artboard instance
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetStateMachineNamesForDropdown"))
 	FString StateMachineName;
-
+	//++CK
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetIsRendering(bool bInIsRendering) { bIsRendering = bInIsRendering; }
+	//--CK
 private:
 	UFUNCTION()
 	void OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);
