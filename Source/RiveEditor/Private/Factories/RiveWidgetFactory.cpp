@@ -11,11 +11,11 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Game/RiveActor.h"
+#include "Game/RiveWidgetActor.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Logs/RiveEditorLog.h"
-#include "Rive/RiveFile.h"
+#include "Rive/RiveObject.h"
 #include "Templates/WidgetTemplateClass.h"
 #include "UMG/RiveWidget.h"
 #include "UObject/SavePackage.h"
@@ -23,6 +23,7 @@
 #include "Misc/MessageDialog.h"
 #include "ToolMenus.h"
 #include "Components/CanvasPanel.h"
+#include "Rive/RiveFile.h"
 
 extern UNREALED_API class UEditorEngine* GEditor;
 
@@ -91,7 +92,14 @@ bool FRiveWidgetFactory::CreateWidgetStructure(UWidgetBlueprint* InWidgetBluepri
 		
 		if (URiveWidget* RiveWidget = Cast<URiveWidget>(Widget))
 		{
-			RiveWidget->RiveFile = RiveFile;
+			RiveWidget->RiveDescriptor = FRiveDescriptor{
+				RiveFile,
+				"",
+				0,
+				"",
+				ERiveFitType::Contain,
+				ERiveAlignment::Center
+			};
 		}
 		
 		if (UCanvasPanel* RootWidget = Cast<UCanvasPanel>(Root))
@@ -193,13 +201,12 @@ namespace
 			{
 				if (UWorld* World = GEditor->GetEditorWorldContext().World())
 				{
-					ARiveActor* NewActor = Cast<ARiveActor>(
-						World->SpawnActor<ARiveActor>(FVector::ZeroVector, FRotator::ZeroRotator,
+					ARiveWidgetActor* NewActor = Cast<ARiveWidgetActor>(
+						World->SpawnActor<ARiveWidgetActor>(FVector::ZeroVector, FRotator::ZeroRotator,
 						                              FActorSpawnParameters()));
 					
 					if (NewActor)
 					{
-						NewActor->RiveFile = RiveFile;
 						NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
 					}
 				}

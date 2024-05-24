@@ -4,6 +4,7 @@
 
 #include "Toolkits/AssetEditorToolkit.h"
 
+class URiveObject;
 class URiveFile;
 class IDetailsView;
 class SRiveWidget;
@@ -11,6 +12,7 @@ class SRiveWidget;
 class RIVEEDITOR_API FRiveAssetToolkit : public FAssetEditorToolkit
 {
 public:
+    virtual ~FRiveAssetToolkit() override;
     void Initialize(URiveFile* InRiveFile, const EToolkitMode::Type InMode, const TSharedPtr<IToolkitHost>& InToolkitHost);
 	
     //~ BEGIN IToolkit interface
@@ -40,4 +42,5 @@ private:
 
     /** The rive file asset being edited. */
     TObjectPtr<URiveFile> RiveFile;
+    TObjectPtr<URiveObject> RiveObject; // The Object used to render the preview
 };

@@ -400,7 +400,7 @@ void URiveFullScreenUserWidget::SetDisplayTypes(ERiveWidgetDisplayType InEditorD
 	PIEDisplayType = InPIEDisplayType;
 }
 
-void URiveFullScreenUserWidget::SetRiveActor(ARiveActor* InActor)
+void URiveFullScreenUserWidget::SetRiveActor(ARiveWidgetActor* InActor)
 {
 	RiveActor = InActor;
 }

@@ -4,7 +4,6 @@
 
 #include "IRiveRenderTarget.h"
 
-class URiveFile;
 class UTexture2DDynamic;
 class UTextureRenderTarget2D;
 
@@ -58,8 +57,6 @@ namespace UE::Rive::Renderer
         virtual void Initialize() = 0;
 
         virtual bool IsInitialized() const = 0;
-        
-        virtual void QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile) = 0;
 
         virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) = 0;
         

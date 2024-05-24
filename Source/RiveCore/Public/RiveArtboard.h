@@ -8,7 +8,7 @@
 #include "URStateMachine.h"
 
 #if WITH_RIVE
-class URiveFile;
+class URiveObject;
 
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
@@ -127,7 +127,7 @@ public:
 	void SetAudioEngine(URiveAudioEngine* AudioEngine);
 	
 #if WITH_RIVE
-	
+	void Reinitialize(rive::File* InNativeFilePtr);
 	void Initialize(rive::File* InNativeFilePtr, const UE::Rive::Renderer::IRiveRenderTargetPtr& InRiveRenderTarget);
 	void Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget, int32 InIndex, const FString& InStateMachineName);
 	void Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget, const FString& InName, const FString& InStateMachineName);
@@ -161,6 +161,8 @@ public:
 	 * Attribute(s)
 	 */
 
+	mutable bool bIsInitialized = false;
+	
 private:
 	void PopulateReportedEvents();
 	
@@ -169,7 +171,6 @@ private:
 	void Tick_StateMachine(float InDeltaSeconds);
 	
 	UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
-	mutable bool bIsInitialized = false;
 
 	std::unique_ptr<rive::ArtboardInstance> NativeArtboardPtr = nullptr;
 	UE::Rive::Core::FURStateMachinePtr DefaultStateMachinePtr = nullptr;
@@ -181,6 +182,9 @@ private:
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
 	FString ArtboardName;
 
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
+	int32 ArtboardIndex = -1;
+	
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
 	TArray<FString> BoolInputNames;
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
@@ -208,6 +212,9 @@ public:
 		Names.Append(StateMachineNames);
 		return Names;
 	}
+
+	void Deinitialize();
+	
 protected:
 	UPROPERTY(BlueprintAssignable)
 	FRiveEventDelegate RiveEventDelegate;

@@ -40,6 +40,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive, meta = (ClampMin = 1, UIMin = 1, ClampMax = 3840, UIMax = 3840, NoResetToDefault))
 	FIntPoint Size;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaComposite;
+	
 	/**
 	 * Resize render resources
 	 */
@@ -69,7 +72,4 @@ protected:
 	 * Rendering resource for Rive File
 	 */
 	FRiveTextureResource* CurrentResource = nullptr;
-
-	UPROPERTY(EditAnywhere, Category = Rive)
-	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaComposite;
 };

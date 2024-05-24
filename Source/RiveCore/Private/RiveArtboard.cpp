@@ -23,16 +23,7 @@ THIRD_PARTY_INCLUDES_END
 
 void URiveArtboard::BeginDestroy()
 {
-	bIsInitialized = false;
-
-	DefaultStateMachinePtr.Reset();
-	if (NativeArtboardPtr != nullptr)
-	{
-		NativeArtboardPtr.release();
-	}
-	NativeArtboardPtr.reset();
-	OnArtboardTick_Render.Clear();
-	OnArtboardTick_StateMachine.Clear();
+	Deinitialize();
 	UObject::BeginDestroy();
 }
 
@@ -331,6 +322,7 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::
 {
 	RiveRenderTarget = InRiveRenderTarget;
 	StateMachineName = InStateMachineName;
+	ArtboardIndex = InIndex;
 	
 	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
 	if (!RiveRenderer)
@@ -417,6 +409,17 @@ void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
 	NativeArtboardPtr->audioEngine(AudioEngine->GetNativeAudioEngine());
 }
 
+void URiveArtboard::Reinitialize(rive::File* InNativeFilePtr)
+{
+	if (ArtboardName.IsEmpty())
+	{
+		Initialize(InNativeFilePtr, RiveRenderTarget, ArtboardIndex, StateMachineName);
+	} else
+	{
+		Initialize(InNativeFilePtr, RiveRenderTarget, ArtboardName, StateMachineName);
+	}
+}
+
 void URiveArtboard::Tick_Render(float InDeltaSeconds)
 {
 	if (OnArtboardTick_Render.IsBound())
@@ -439,6 +442,20 @@ void URiveArtboard::Tick_StateMachine(float InDeltaSeconds)
 	{
 		AdvanceStateMachine(InDeltaSeconds);
 	}
+}
+
+void URiveArtboard::Deinitialize()
+{
+	bIsInitialized = false;
+
+	DefaultStateMachinePtr.Reset();
+	if (NativeArtboardPtr != nullptr)
+	{
+		NativeArtboardPtr.release();
+	}
+	NativeArtboardPtr.reset();
+	OnArtboardTick_Render.Clear();
+	OnArtboardTick_StateMachine.Clear();
 }
 
 void URiveArtboard::Tick(float InDeltaSeconds)

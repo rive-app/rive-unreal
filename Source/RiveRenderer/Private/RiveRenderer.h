@@ -41,8 +41,6 @@ namespace UE::Rive::Renderer::Private
 
         virtual bool IsInitialized() const override { return InitializationState == ERiveInitState::Initialized; }
 
-        virtual void QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile) override;
-
         virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override { return nullptr; }
 
         virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) override;
