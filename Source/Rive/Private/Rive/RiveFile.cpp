@@ -28,12 +28,7 @@ namespace UE::Rive::Assets
 void URiveFile::BeginDestroy()
 {
 	InitState = ERiveInitState::Deinitializing;
-	for (auto i = Artboards.Num() - 1; i >= 0; i--)
-	{
-		URiveArtboard* Artboard = Artboards[i];
-		Artboard->Deinitialize();
-		Artboards.RemoveAt(i);
-	}
+	Artboards.Reset();
 	
 	RiveNativeFileSpan = {};
 	RiveNativeFilePtr.reset();

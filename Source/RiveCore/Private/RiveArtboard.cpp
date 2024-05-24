@@ -448,6 +448,7 @@ void URiveArtboard::Tick_StateMachine(float InDeltaSeconds)
 
 void URiveArtboard::Deinitialize()
 {
+	if (this == nullptr) return;
 	bIsInitialized = false;
 
 	DefaultStateMachinePtr.Reset();
