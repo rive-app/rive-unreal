@@ -411,6 +411,8 @@ void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
 
 void URiveArtboard::Reinitialize(rive::File* InNativeFilePtr)
 {
+	if (this == nullptr) return;
+	
 	if (ArtboardName.IsEmpty())
 	{
 		Initialize(InNativeFilePtr, RiveRenderTarget, ArtboardIndex, StateMachineName);

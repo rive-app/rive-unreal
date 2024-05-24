@@ -55,8 +55,6 @@ void URiveFile::PostLoad()
 		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
 	}
 
-	AssetImportData->OnImportDataChanged.AddUObject(this, &URiveFile::OnImportDataChanged);
-
 	if (!RiveFilePath_DEPRECATED.IsEmpty())
 	{
 		FAssetImportInfo Info;
@@ -271,9 +269,5 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 		*InRiveFilePath);
 	
 	return WasLastInitializationSuccessful.Get(true);
-}
-
-void URiveFile::OnImportDataChanged(const FAssetImportInfo& OldData, const UAssetImportData* NewData)
-{
 }
 #endif WITH_EDITOR

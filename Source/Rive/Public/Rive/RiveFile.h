@@ -83,22 +83,25 @@ public:
 	
 	UPROPERTY(meta=(NoResetToDefault))
 	FString RiveFilePath_DEPRECATED;
-	
+
+#if WITH_EDITORONLY_DATA
 	// This property holds the import data
 	UPROPERTY(VisibleAnywhere, Instanced, Category = "Import Settings")
 	UAssetImportData* AssetImportData;
+#endif
+	
 private:
 	void BroadcastInitializationResult(bool bSuccess);
 	TOptional<bool> WasLastInitializationSuccessful{};
 	FOnRiveFileInitialized OnInitializedOnceDelegate;
 	
-	UPROPERTY(VisibleInstanceOnly, Transient, Category=Rive, meta=(NoResetToDefault))
+	UPROPERTY(Transient, meta=(NoResetToDefault))
 	ERiveInitState InitState = ERiveInitState::Uninitialized;
 
 	UPROPERTY()
 	TArray<uint8> RiveFileData;
 
-	UPROPERTY(VisibleAnywhere, Category=Rive)
+	UPROPERTY(meta=(NoResetToDefault))
 	TSubclassOf<UUserWidget> WidgetClass;
 
 public:
