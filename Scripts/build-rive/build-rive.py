@@ -210,7 +210,7 @@ def do_mac(rive_renderer_path, release):
         print_green('Building macOS arm64')
         out_dir = os.path.join('out', 'mac', 'arm64', 'release' if release else 'debug')
         os.chdir(rive_renderer_path)
-        execute_command(f'{command} --arch=arm64 --out="{out_dir}')
+        execute_command(f'{command} --arch=arm64 --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['mac_arm64'] = os.getcwd()
         for target in targets:
