@@ -245,8 +245,8 @@ def copy_files(src, dst, extension, is_release):
         for file_name in files_to_copy:
             src_path = os.path.join(root, file_name)
 
-            # ensure all libs are prefixed with "rive_"
-            if not file_name.startswith("rive"):
+            # ensure all libs are prefixed with "rive_" on non-darwin platforms
+            if not sys.platform.startswith("darwin") and not file_name.startswith("rive"):
                 file_name = f'rive_{file_name}'
 
             relative_path = os.path.relpath(root, src)
