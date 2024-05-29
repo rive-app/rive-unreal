@@ -5,6 +5,7 @@
 #include "Components/Widget.h"
 #include "RiveWidget.generated.h"
 
+class URiveAudioEngine;
 class SRiveWidget;
 class URiveFile;
 
@@ -38,6 +39,9 @@ protected:
 
 public:
 
+    UFUNCTION(BlueprintCallable)
+    void SetAudioEngine(URiveAudioEngine* InAudioEngine);
+    
     void SetRiveFile(URiveFile* InRiveFile);
 
     /**

@@ -24,17 +24,6 @@ void URiveAudioEngine::BeginPlay()
 	Super::BeginPlay();
 }
 
-void URiveAudioEngine::BeginDestroy()
-{
-	if (NativeAudioEnginePtr != nullptr) {
-		NativeAudioEnginePtr->unref();
-		NativeAudioEnginePtr = nullptr;
-	}
-		
-	Super::BeginDestroy();
-	
-}
-
 int32 URiveAudioEngine::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 {
 	if (NativeAudioEnginePtr == nullptr) return 0;

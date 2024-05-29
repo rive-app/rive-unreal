@@ -29,7 +29,7 @@ class UUserWidget;
 /**
  *
  */
-UCLASS(BlueprintType, Blueprintable, HideCategories="ImportSettings")
+UCLASS(BlueprintType, Blueprintable, HideCategories=("ImportSettings", "Compression", "Adjustments", "LevelOfDetail", "Compositing"))
 class RIVE_API URiveFile : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
@@ -174,7 +174,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rive, meta=(NoResetToDefault))
 	FString RiveFilePath;
 
-	UPROPERTY(VisibleAnywhere, Category=Rive)
+	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
 	TMap<uint32, URiveAsset*> Assets;
 
 	TMap<uint32, URiveAsset*>& GetAssets()
@@ -262,7 +262,7 @@ private:
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
 	URiveArtboard* Artboard = nullptr;
 	
-	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(AllowPrivateAccess))
+	UPROPERTY(Transient, VisibleInstanceOnly, Category=Rive, meta=(AllowPrivateAccess))
 	URiveAudioEngine* AudioEngine = nullptr;
 	FDelegateHandle AudioEngineLambdaHandle;
 	

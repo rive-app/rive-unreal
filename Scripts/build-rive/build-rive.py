@@ -22,7 +22,7 @@ targets = [
 
 def get_base_command(rive_renderer_path, release):
     return (
-        f"premake5 --scripts={rive_renderer_path}/submodules/rive-cpp/build "
+        f"premake5 --scripts=\"{rive_renderer_path}/submodules/rive-cpp/build\" "
         f"--with_rive_text --with_rive_audio=external {'--release' if release else ''}"
     )
 
@@ -31,6 +31,16 @@ def get_base_command(rive_renderer_path, release):
 @click.option('--release', is_flag=True, default=False)
 def main(rive_renderer_path, release):
     if sys.platform.startswith('darwin'):
+        os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
+        # determine a sane build environment
+        output = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], universal_newlines=True)
+        sdk_path = output.strip()
+        if "MacOSX12" not in sdk_path:
+            print_red(f"SDK Path {sdk_path} didn't point to an SDK matching version 12, exiting..")
+            return
+        else:
+            print_green(f"Using SDK at: {output}")
+    
         if not do_mac(rive_renderer_path, release):
             return
         
@@ -92,7 +102,7 @@ def do_android(rive_renderer_path, release):
 def do_windows(rive_renderer_path, release):
     try:
         os.chdir(rive_renderer_path)
-        command = f'{get_base_command(rive_renderer_path, release)} --force-md --os=windows --out=out/windows vs2022'
+        command = f'{get_base_command(rive_renderer_path, release)} --windows_runtime=dynamic --os=windows --out=out/windows vs2022'
         execute_command(command)
 
         msbuild_path = get_msbuild()
@@ -239,12 +249,14 @@ def copy_includes(rive_renderer_path):
     print_green('Copying rive includes...')
     rive_includes_path = os.path.join(rive_renderer_path, 'submodules', 'rive-cpp', 'include')
     rive_pls_includes_path = os.path.join(rive_renderer_path, 'include')
+    rive_decoders_includes_path = os.path.join(rive_renderer_path, 'submodules', 'rive-cpp', 'decoders', 'include')
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')
     if os.path.exists(target_path):
         shutil.rmtree(target_path)
 
     shutil.copytree(rive_includes_path, target_path, dirs_exist_ok=True)
     shutil.copytree(rive_pls_includes_path, target_path, dirs_exist_ok=True)
+    shutil.copytree(rive_decoders_includes_path, target_path, dirs_exist_ok=True)
 
 
 def execute_command(cmd):
