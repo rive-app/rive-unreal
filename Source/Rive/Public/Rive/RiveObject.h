@@ -69,18 +69,6 @@ public:
 
 	//~ END : FTickableGameObject Interface
 
-	//~ BEGIN : UObject Interface
-	// virtual void PostLoad() override;
-
-#if WITH_EDITOR
-	//
-	// virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
-	// virtual void PostEditUndo() override;
-
-#endif // WITH_EDITOR
-
-	//~ END : UObject Interface
-
 	/**
 	 * Implementation(s)
 	 */

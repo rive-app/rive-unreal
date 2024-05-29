@@ -74,12 +74,7 @@ public:
 		return Names;
 	}
 	
-	UFUNCTION()
-	TArray<FString> GetStateMachineNamesForDropdown() const
-	{
-		// return GetNativeFile() ? Artboard->GetStateMachineNamesForDropdown() : TArray<FString>{};
-		return {};
-	}
+	
 	
 	UPROPERTY(meta=(NoResetToDefault))
 	FString RiveFilePath_DEPRECATED;

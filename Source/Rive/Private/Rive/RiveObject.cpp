@@ -65,49 +65,6 @@ bool URiveObject::IsTickable() const
 	return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
 }
 
-#if WITH_EDITOR
-
-// void URiveObject::PostEditUndo()
-// {
-// 	Super::PostEditUndo();
-// 	// we resize the render target on undo, it will do nothing if the size has not changed
-// 	ResizeRenderTargets(Size);
-// }
-
-// void URiveObject::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
-// {
-// 	Super::PostEditChangeProperty(PropertyChangedEvent);
-// 	
-// 	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
-// 	const FName ActiveMemberNodeName = *PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue()->GetName();
-// 	if (PropertyName == GET_MEMBER_NAME_CHECKED(URiveObject, ArtboardIndex) ||
-// 		PropertyName == GET_MEMBER_NAME_CHECKED(URiveObject, ArtboardName))
-// 	{
-// 		InstantiateArtboard();
-// 	}
-// 	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveObject, Size))
-// 	{
-// 		ResizeRenderTargets(Size);
-// 	}
-// 	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveObject, ClearColor))
-// 	{
-// 		if (RiveRenderTarget)
-// 		{
-// 			RiveRenderTarget->SetClearColor(ClearColor);
-// 		}
-// 	}
-//
-// 	// Update the Rive CachedPLSRenderTarget
-// 	if (RiveRenderTarget)
-// 	{
-// 		RiveRenderTarget->Initialize();
-// 	}
-//
-// 	FlushRenderingCommands();
-// }
-
-#endif // WITH_EDITOR
-
 FLinearColor URiveObject::GetClearColor() const
 {
 	return ClearColor;
