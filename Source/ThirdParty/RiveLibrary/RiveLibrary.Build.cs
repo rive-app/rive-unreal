@@ -25,6 +25,8 @@ public class RiveLibrary : ModuleRules
         PublicSystemIncludePaths.Add(IncludePath);
 
         // NOTE: Incase if needed, otherwise feel free to remove it.
+        // Unreal "Debug" configs don't set bDebugBuildsActuallyUseDebugCRT, so we never actually use the debug libs
+        // https://dev.epicgames.com/documentation/en-us/unreal-engine/build-configuration-for-unreal-engine?application_version=5.1
         bool bDebug = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT);
 
         string LibPostfix = bDebug ? "_d" : "";
