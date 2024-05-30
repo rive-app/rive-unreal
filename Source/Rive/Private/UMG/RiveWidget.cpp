@@ -75,7 +75,6 @@ void URiveWidget::Setup()
         RiveObject->Initialize(RiveDescriptor);
     }
     
-    RiveObject->RiveBlendMode = RiveBlendMode;
     RiveWidget->SetRiveTexture(RiveObject);
     RiveWidget->RegisterArtboardInputs({RiveObject->GetArtboard()});
     OnRiveReady.Broadcast();

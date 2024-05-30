@@ -65,9 +65,6 @@ public:
 
     UPROPERTY(BlueprintAssignable, Category = Rive)
     FRiveReadyDelegate OnRiveReady;
-
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaComposite;
     
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
     FRiveDescriptor RiveDescriptor;
