@@ -25,6 +25,7 @@ public class Rive : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"AudioMixer",
 				"Core",
 				"CoreUObject",
 				"InputCore",
@@ -32,7 +33,6 @@ public class Rive : ModuleRules
 				"RHICore",
 				"RHI",
 				"RenderCore",
-				"RiveCore",
 				"RiveLibrary",
 				"RiveRenderer", 
 				"Engine",
@@ -45,17 +45,18 @@ public class Rive : ModuleRules
 			new string[]
 			{
 				"ApplicationCore",
+				"Core",
 				"CoreUObject",
-				"Slate",
-				"SlateCore",
+				"Engine",
 				"Projects",
-				"RiveCore",
-				"RiveRenderer",
 				"RHI",
 				"RenderCore",
 				"Renderer",
 				"RiveLibrary",
+				"RiveRenderer",
 				"Slate",
+				"Slate",
+				"SlateCore",
 				"SlateCore",
 				"UMG"
             }

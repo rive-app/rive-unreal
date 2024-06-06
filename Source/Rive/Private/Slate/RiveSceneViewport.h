@@ -8,11 +8,7 @@
 class FRiveViewportClient;
 class URiveTexture;
 class URiveArtboard;
-
-namespace UE::Rive::Core
-{
-	class FURStateMachine;
-}
+class FRiveStateMachine;
 
 /**
  * 
@@ -47,8 +43,7 @@ protected:
 	FRiveViewportClient* RiveViewportClient;
 
 private:
-	using StateMachinePtr = UE::Rive::Core::FURStateMachine*;
-	using FStateMachineInputCallback = TFunction<void(const FVector2f&, StateMachinePtr)>;
+	using FStateMachineInputCallback = TFunction<void(const FVector2f&, FRiveStateMachine*)>;
 
 	FReply OnInput(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, const FStateMachineInputCallback& InStateMachineInputCallback);
 

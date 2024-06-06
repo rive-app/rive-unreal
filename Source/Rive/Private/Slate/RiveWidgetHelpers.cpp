@@ -2,7 +2,7 @@
 
 #include "RiveWidgetHelpers.h"
 
-#include "RiveArtboard.h"
+#include "Rive/RiveArtboard.h"
 #include "Rive/RiveTexture.h"
 #include "Layout/Geometry.h"
 #include "Input/Events.h"

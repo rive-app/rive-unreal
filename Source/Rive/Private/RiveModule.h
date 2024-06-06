@@ -4,26 +4,21 @@
 
 #include "IRiveModule.h"
 
-namespace UE::Rive::Private
+class FRiveModule final : public IRiveModule
 {
-    class FRiveModule final : public IRiveModule
-    {
-        //~ BEGIN : IModuleInterface Interface
+	//~ BEGIN : IModuleInterface Interface
 
-    public:
+public:
+	virtual void StartupModule() override;
 
-        virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
-        virtual void ShutdownModule() override;
+	//~ END : IModuleInterface Interface
 
-        //~ END : IModuleInterface Interface
+	/**
+	 * Implementation(s)
+	 */
 
-        /**
-         * Implementation(s)
-         */
-
-    private:
-
-        void TestRiveIntegration();
-    };
-}
+private:
+	void TestRiveIntegration();
+};

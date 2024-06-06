@@ -6,9 +6,8 @@
 #include "RiveWidgetHelpers.h"
 #include "Logs/RiveLog.h"
 #include "Rive/RiveTexture.h"
-#include "RiveArtboard.h"
-#include "RiveCore/Public/RiveArtboard.h"
-#include "RiveCore/Public/URStateMachine.h"
+#include "Rive/RiveArtboard.h"
+#include "Rive/RiveStateMachine.h"
 
 #include "RiveWidgetHelpers.h"
 
@@ -39,7 +38,7 @@ FReply FRiveSceneViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 		return FReply::Unhandled();
 	}
 	
-	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
+	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, FRiveStateMachine* InStateMachine)
 		{
 			if (InStateMachine)
 			{
@@ -55,7 +54,7 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 		return FReply::Unhandled();
 	}
 	
-	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
+	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, FRiveStateMachine* InStateMachine)
 		{
 			if (InStateMachine)
 			{
@@ -66,7 +65,7 @@ FReply FRiveSceneViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 
 FReply FRiveSceneViewport::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, StateMachinePtr InStateMachine)
+	return OnInput(MyGeometry, MouseEvent, [this](const FVector2f& InputCoordinates, FRiveStateMachine* InStateMachine)
 		{
 			if (InStateMachine)
 			{
@@ -103,7 +102,7 @@ FReply FRiveSceneViewport::OnInput(const FGeometry& MyGeometry, const FPointerEv
 		}
 
 		Artboard->BeginInput();
-		if (UE::Rive::Core::FURStateMachine* StateMachine = Artboard->GetStateMachine())
+		if (FRiveStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
 			FVector2f InputCoordinates = UE::Private::FRiveSceneViewport::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, InEvent);
 			InStateMachineInputCallback(InputCoordinates, StateMachine);

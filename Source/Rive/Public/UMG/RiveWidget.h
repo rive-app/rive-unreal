@@ -16,10 +16,6 @@ class SRiveWidget;
 class URiveAudioEngine;
 class URiveFile;
 
-namespace UE::Rive::Renderer
-{
-    class IRiveRenderTarget;
-}
 /**
  *
  */

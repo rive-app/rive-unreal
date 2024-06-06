@@ -10,7 +10,6 @@
 
 class FSceneViewport;
 class FWidgetRenderer;
-class FRiveWidgetPostProcessHitTester;
 class SVirtualWindow;
 class SViewport;
 class UMaterialInstanceDynamic;
@@ -19,7 +18,7 @@ class UTextureRenderTarget2D;
 class UUserWidget;
 class UWorld;
 
-namespace UE::RiveUtilities::Private
+namespace UE::Rive::Private
 {
 	class FRiveWidgetPostProcessHitTester;
 }
@@ -165,5 +164,5 @@ private:
 	TSharedPtr<SVirtualWindow> SlateWindow;
 	
 	/** Hit tester when we want the hardware input. */
-	TSharedPtr<UE::RiveUtilities::Private::FRiveWidgetPostProcessHitTester> CustomHitTestPath;
+	TSharedPtr<UE::Rive::Private::FRiveWidgetPostProcessHitTester> CustomHitTestPath;
 };

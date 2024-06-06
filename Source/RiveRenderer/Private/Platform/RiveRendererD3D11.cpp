@@ -11,7 +11,7 @@
 #include "D3D11RHIPrivate.h"
 
 #if WITH_RIVE
-#include "RiveCore/Public/PreRiveHeaders.h"
+#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/pls/d3d/pls_render_context_d3d_impl.hpp"
 #include "rive/pls/pls_renderer.hpp"
@@ -20,7 +20,7 @@ THIRD_PARTY_INCLUDES_END
 
 // ------------- FRiveRendererD3D11GPUAdapter -------------
 #if WITH_RIVE
-void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::Initialize(rive::pls::PLSRenderContextD3DImpl::ContextOptions& OutContextOptions)
+void FRiveRendererD3D11GPUAdapter::Initialize(rive::pls::PLSRenderContextD3DImpl::ContextOptions& OutContextOptions)
 {
 	check(IsInRenderingThread());
 
@@ -44,7 +44,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::Initialize(rive:
 }
 #endif // WITH_RIVE
 
-void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::ResetDXState()
+void FRiveRendererD3D11GPUAdapter::ResetDXState()
 {
 	// Clear the internal state kept by UE and reset DX
 	FD3D11DynamicRHI* DynRHI = static_cast<FD3D11DynamicRHI*>(D3D11RHI);
@@ -56,7 +56,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter::ResetDXState()
 
 // ------------- FRiveRendererD3D11 -------------
 
-TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererD3D11::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
+TSharedPtr<IRiveRenderTarget> FRiveRendererD3D11::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 {
 	check(IsInGameThread());
 
@@ -70,7 +70,7 @@ TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::F
 }
 
 DECLARE_GPU_STAT_NAMED(CreatePLSContext, TEXT("CreatePLSContext_RenderThread"));
-void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
+void FRiveRendererD3D11::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
 	check(IsInRenderingThread());
 
@@ -83,7 +83,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 #if WITH_RIVE
 		rive::pls::PLSRenderContextD3DImpl::ContextOptions ContextOptions;
 
-		D3D11GPUAdapter = MakeUnique<UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter>();
+		D3D11GPUAdapter = MakeUnique<FRiveRendererD3D11GPUAdapter>();
 		D3D11GPUAdapter->Initialize(ContextOptions);
 		
 		PLSRenderContext = rive::pls::PLSRenderContextD3DImpl::MakeContext(D3D11GPUAdapter->GetD3D11DevicePtr(), D3D11GPUAdapter->GetD3D11DeviceContext(), ContextOptions);
@@ -91,7 +91,7 @@ void UE::Rive::Renderer::Private::FRiveRendererD3D11::CreatePLSContext_RenderThr
 	}
 }
 
-void UE::Rive::Renderer::Private::FRiveRendererD3D11::ResetDXState() const
+void FRiveRendererD3D11::ResetDXState() const
 {
 	check(IsInRenderingThread());
 	check(D3D11GPUAdapter.IsValid());

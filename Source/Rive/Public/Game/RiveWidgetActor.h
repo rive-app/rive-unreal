@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "RiveAudioEngine.h"
+#include "Rive/RiveAudioEngine.h"
 #include "GameFramework/Actor.h"
 #include "RiveWidgetActor.generated.h"
 

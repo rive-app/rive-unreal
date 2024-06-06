@@ -35,7 +35,7 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
     const TCHAR* Type = *FileExtension;
     GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPreImport(this, InClass, InParent, InName, Type);
     
-    if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+    if (!IRiveRendererModule::Get().GetRenderer())
     {
         UE_LOG(LogRiveEditor, Error, TEXT("Unable to import the Rive file '%s': the Renderer is null"), *InFilename);
         GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, nullptr);
@@ -115,7 +115,7 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
     
     const FString SourceFilename = RiveFile->AssetImportData->GetFirstFilename();
     
-    if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+    if (!IRiveRendererModule::Get().GetRenderer())
     {
         UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the Rive file '%s' with file '%s': the RiveRenderer is null"), *GetFullNameSafe(RiveFile), *SourceFilename);
         return EReimportResult::Failed;;

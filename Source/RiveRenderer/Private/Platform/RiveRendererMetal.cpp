@@ -12,7 +12,7 @@
 #include <Metal/Metal.h>
 
 #if WITH_RIVE
-#include "RiveCore/Public/PreRiveHeaders.h"
+#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/pls/metal/pls_render_context_metal_impl.h"
@@ -21,7 +21,7 @@ THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 #include "Mac/AutoreleasePool.h"
 
-TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererMetal::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
+TSharedPtr<IRiveRenderTarget> FRiveRendererMetal::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 {
     check(IsInGameThread());
 
@@ -35,7 +35,7 @@ TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::F
 }
 
 DECLARE_GPU_STAT_NAMED(CreatePLSContext, TEXT("CreatePLSContext_RenderThread"));
-void UE::Rive::Renderer::Private::FRiveRendererMetal::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
+void FRiveRendererMetal::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
     AutoreleasePool pool;
     check(IsInRenderingThread());

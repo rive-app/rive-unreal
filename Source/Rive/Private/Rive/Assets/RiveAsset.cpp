@@ -1,7 +1,8 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "Assets/RiveAsset.h"
-#include "Logs/RiveCoreLog.h"
+#include "Rive/Assets/RiveAsset.h"
+
+#include "Logs/RiveLog.h"
 #include "Misc/FileHelper.h"
 #include "rive/factory.hpp"
 #include "rive/assets/audio_asset.hpp"
@@ -32,7 +33,7 @@ void URiveAsset::LoadFromDisk()
 {
 	if (!FFileHelper::LoadFileToArray(NativeAssetBytes, *AssetPath))
 	{
-		UE_LOG(LogRiveCore, Error, TEXT("Could not load Asset: %s at path %s"), *Name, *AssetPath);
+		UE_LOG(LogRive, Error, TEXT("Could not load Asset: %s at path %s"), *Name, *AssetPath);
 	}
 }
 
@@ -57,7 +58,7 @@ bool URiveAsset::DecodeImageAsset(rive::FileAsset& InAsset, rive::Factory* InRiv
 
 	if (DecodedImage == nullptr)
 	{
-		UE_LOG(LogRiveCore, Error, TEXT("Could not decode image asset: %s"), *Name);
+		UE_LOG(LogRive, Error, TEXT("Could not decode image asset: %s"), *Name);
 		return false;
 	}
 
@@ -74,7 +75,7 @@ bool URiveAsset::DecodeFontAsset(rive::FileAsset& InAsset, rive::Factory* InRive
 
 	if (DecodedFont == nullptr)
 	{
-		UE_LOG(LogRiveCore, Error, TEXT("Could not decode font asset: %s"), *Name);
+		UE_LOG(LogRive, Error, TEXT("Could not decode font asset: %s"), *Name);
 		return false;
 	}
 

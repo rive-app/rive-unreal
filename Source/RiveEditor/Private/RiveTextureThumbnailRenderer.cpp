@@ -5,7 +5,7 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "RiveArtboard.h"
+#include "Rive/RiveArtboard.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveTexture.h"
 
@@ -24,7 +24,7 @@ void URiveTextureThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint
 {
 	if (URiveFile* RiveFile = Cast<URiveFile>(Object))
 	{
-		UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+		IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 
 		if (!Initialized)
 		{

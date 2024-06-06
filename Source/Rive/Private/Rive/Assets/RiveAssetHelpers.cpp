@@ -1,10 +1,10 @@
 ﻿// Copyright Rive, Inc. All rights reserved.
 
-#include "Assets/URAssetHelpers.h"
-#include "Assets/RiveAsset.h"
+#include "Rive/Assets/RiveAssetHelpers.h"
+#include "Rive/Assets/RiveAsset.h"
 #include "Misc/Paths.h"
 
-TArray<FString> URAssetHelpers::AssetPaths(const FString& InBasePath, URiveAsset* InRiveAsset, const TArray<FString>& InExtensions)
+TArray<FString> RiveAssetHelpers::AssetPaths(const FString& InBasePath, URiveAsset* InRiveAsset, const TArray<FString>& InExtensions)
 {
 	TArray<FString> Paths;
 	FString CombinedPath = FPaths::Combine(InBasePath, InRiveAsset->Name);
@@ -18,13 +18,13 @@ TArray<FString> URAssetHelpers::AssetPaths(const FString& InBasePath, URiveAsset
 	return Paths;
 }
 
-bool URAssetHelpers::FindRegistryAsset(const FString& InRiveAssetPath,
+bool RiveAssetHelpers::FindRegistryAsset(const FString& InRiveAssetPath,
 	const FURAsset& InEmbeddedAsset, TArray<uint8>& OutAssetBytes)
 {
 	return false;
 }
 
-bool URAssetHelpers::FindDiskAsset(const FString& InBasePath, URiveAsset* InRiveAsset)
+bool RiveAssetHelpers::FindDiskAsset(const FString& InBasePath, URiveAsset* InRiveAsset)
 {
 	// Passed in BasePath will be the Rive file, so we'll parse it out
 	FString Directory;
@@ -82,7 +82,7 @@ bool URAssetHelpers::FindDiskAsset(const FString& InBasePath, URiveAsset* InRive
 	return true;
 }
 
-ERiveAssetType URAssetHelpers::GetUnrealType(uint16_t RiveType)
+ERiveAssetType RiveAssetHelpers::GetUnrealType(uint16_t RiveType)
 {
 	switch(RiveType)
 	{

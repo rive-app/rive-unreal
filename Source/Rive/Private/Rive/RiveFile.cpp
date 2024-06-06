@@ -3,9 +3,9 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "RiveArtboard.h"
-#include "Assets/URAssetImporter.h"
-#include "Assets/URFileAssetLoader.h"
+#include "Rive/RiveArtboard.h"
+#include "Rive/Assets/RiveFileAssetImporter.h"
+#include "Rive/Assets/RiveFileAssetLoader.h"
 #include "Logs/RiveLog.h"
 
 #if WITH_EDITOR
@@ -19,11 +19,9 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-namespace UE::Rive::Assets
-{
-	class FURAssetImporter;
-	class FURFileAssetLoader;
-}
+class FRiveFileAssetImporter;
+class FRiveFileAssetLoader;
+
 
 void URiveFile::BeginDestroy()
 {
@@ -41,7 +39,7 @@ void URiveFile::PostLoad()
 	
 	if (!IsRunningCommandlet())
 	{
-		UE::Rive::Renderer::IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &URiveFile::Initialize));
+		IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &URiveFile::Initialize));
 	}
 
 #if WITH_EDITORONLY_DATA
@@ -71,14 +69,14 @@ void URiveFile::Initialize()
 	InitState = ERiveInitState::Initializing;
 	OnStartInitializingDelegate.Broadcast(this);
 	
-	if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
+	if (!IRiveRendererModule::IsAvailable())
 	{
 		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
 		BroadcastInitializationResult(false);
 		return;
 	}
 
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 	if (!ensure(RiveRenderer))
 	{
 		UE_LOG(LogRive, Error, TEXT("Failed to import rive file as we do not have a valid renderer."));
@@ -100,8 +98,8 @@ void URiveFile::Initialize()
 
 	InitState = ERiveInitState::Initializing;
 	
-	RiveRenderer->CallOrRegister_OnInitialized(UE::Rive::Renderer::IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
-	[this](UE::Rive::Renderer::IRiveRenderer* RiveRenderer)
+	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
+	[this](IRiveRenderer* RiveRenderer)
 	{
 		rive::pls::PLSRenderContext* PLSRenderContext;
 		{
@@ -118,7 +116,7 @@ void URiveFile::Initialize()
 			if (bNeedsImport)
 			{
 				bNeedsImport = false;
-				const TUniquePtr<UE::Rive::Assets::FURAssetImporter> AssetImporter = MakeUnique<UE::Rive::Assets::FURAssetImporter>(GetOutermost(), AssetImportData->GetFirstFilename(), GetAssets());
+				const TUniquePtr<FRiveFileAssetImporter> AssetImporter = MakeUnique<FRiveFileAssetImporter>(GetOutermost(), AssetImportData->GetFirstFilename(), GetAssets());
 				RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult, AssetImporter.Get());
 				if (ImportResult != rive::ImportResult::success)
 				{
@@ -129,7 +127,7 @@ void URiveFile::Initialize()
 				}
 			}
 			
-			const TUniquePtr<UE::Rive::Assets::FURFileAssetLoader> FileAssetLoader = MakeUnique<UE::Rive::Assets::FURFileAssetLoader>(this, Assets);
+			const TUniquePtr<FRiveFileAssetLoader> FileAssetLoader = MakeUnique<FRiveFileAssetLoader>(this, Assets);
 			RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult, FileAssetLoader.Get());
 
 			if (ImportResult != rive::ImportResult::success)
@@ -223,7 +221,7 @@ void URiveFile::PrintStats() const
 
 bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiveFileBuffer, bool bIsReimport)
 {
-	if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+	if (!IRiveRendererModule::Get().GetRenderer())
 	{
 		UE_LOG(LogRive, Error, TEXT("Unable to Import the RiveFile '%s' as the RiveRenderer is null"), *InRiveFilePath);
 		return false;

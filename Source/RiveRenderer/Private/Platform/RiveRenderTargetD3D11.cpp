@@ -15,19 +15,19 @@
 #include "TextureResource.h"
 
 
-UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
+FRiveRenderTargetD3D11::FRiveRenderTargetD3D11(const TSharedRef<FRiveRendererD3D11>& InRiveRendererD3D11, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 	: FRiveRenderTarget(InRiveRendererD3D11, InRiveName, InRenderTarget), RiveRendererD3D11(InRiveRendererD3D11)
 {
 }
 
-UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::~FRiveRenderTargetD3D11()
+FRiveRenderTargetD3D11::~FRiveRenderTargetD3D11()
 {
 	RIVE_DEBUG_FUNCTION_INDENT
 	CachedPLSRenderTargetD3D.reset();
 }
 
 DECLARE_GPU_STAT_NAMED(CacheTextureTarget, TEXT("FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
+void FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
 {
 	check(IsInRenderingThread());
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
@@ -69,7 +69,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::CacheTextureTarget_Ren
 	}
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
+void FRiveRenderTargetD3D11::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
 {
 	// First, we transition the texture to a RenderTextureView
 	FTextureRHIRef TargetTexture = RenderTarget->GetResource()->TextureRHI;
@@ -85,7 +85,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::Render_RenderThread(FR
 	RHICmdList.Transition(FRHITransitionInfo(TargetTexture, ERHIAccess::RTV, ERHIAccess::UAVGraphics));
 }
 
-rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetD3D11::GetRenderTarget() const
+rive::rcp<rive::pls::PLSRenderTarget> FRiveRenderTargetD3D11::GetRenderTarget() const
 {
 	return CachedPLSRenderTargetD3D;
 }

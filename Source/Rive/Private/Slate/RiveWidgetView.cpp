@@ -6,7 +6,7 @@
 #include "RiveSceneViewport.h"
 #include "RiveViewportClient.h"
 #include "Rive/RiveTexture.h"
-#include "RiveArtboard.h"
+#include "Rive/RiveArtboard.h"
 
 void SRiveWidgetView::Construct(const FArguments& InArgs, URiveTexture* InRiveTexture, const TArray<URiveArtboard*>& InArtboards)
 {

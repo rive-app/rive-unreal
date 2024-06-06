@@ -7,7 +7,7 @@
 #if PLATFORM_WINDOWS
 
 #if WITH_RIVE
-#include "RiveCore/Public/PreRiveHeaders.h"
+#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "Windows/MinWindows.h"
@@ -25,46 +25,45 @@ namespace rive::pls
 
 #endif // WITH_RIVE
 
-namespace UE::Rive::Renderer::Private
+class FRiveRendererD3D11GPUAdapter
 {
-	class FRiveRendererD3D11GPUAdapter
+public:
+	FRiveRendererD3D11GPUAdapter()
 	{
-	public:
-		FRiveRendererD3D11GPUAdapter() {}
+	}
 
 #if WITH_RIVE
-		void Initialize(rive::pls::PLSRenderContextD3DImpl::ContextOptions& OutContextOptions);
+	void Initialize(rive::pls::PLSRenderContextD3DImpl::ContextOptions& OutContextOptions);
 #endif // WITH_RIVE
-		void ResetDXState();
-		
-		ID3D11DynamicRHI* GetD3D11RHI() const { return D3D11RHI; }
-		ID3D11Device* GetD3D11DevicePtr() const { return D3D11DevicePtr; }
-		ID3D11DeviceContext* GetD3D11DeviceContext() const { return D3D11DeviceContext; }
-		IDXGIDevice* GetDXGIDevice() const { return DXGIDevice; }
-	
-	private:
-		ID3D11DynamicRHI* D3D11RHI = nullptr;
-		ID3D11Device* D3D11DevicePtr = nullptr;
-		ID3D11DeviceContext* D3D11DeviceContext = nullptr;
-		TRefCountPtr<IDXGIDevice> DXGIDevice = nullptr;
-	};
+	void ResetDXState();
 
-	class RIVERENDERER_API FRiveRendererD3D11 : public FRiveRenderer
-	{
-		/**
-		 * Structor(s)
-		 */
-	public:
-		//~ BEGIN : IRiveRenderer Interface
-		virtual IRiveRenderTargetPtr CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override;
-		virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
-		//~ END : IRiveRenderer Interface
-		
-		void ResetDXState() const;
+	ID3D11DynamicRHI* GetD3D11RHI() const { return D3D11RHI; }
+	ID3D11Device* GetD3D11DevicePtr() const { return D3D11DevicePtr; }
+	ID3D11DeviceContext* GetD3D11DeviceContext() const { return D3D11DeviceContext; }
+	IDXGIDevice* GetDXGIDevice() const { return DXGIDevice; }
 
-	private:
-		TUniquePtr<UE::Rive::Renderer::Private::FRiveRendererD3D11GPUAdapter> D3D11GPUAdapter;
-	};
-}
+private:
+	ID3D11DynamicRHI* D3D11RHI = nullptr;
+	ID3D11Device* D3D11DevicePtr = nullptr;
+	ID3D11DeviceContext* D3D11DeviceContext = nullptr;
+	TRefCountPtr<IDXGIDevice> DXGIDevice = nullptr;
+};
+
+class RIVERENDERER_API FRiveRendererD3D11 : public FRiveRenderer
+{
+	/**
+	 * Structor(s)
+	 */
+public:
+	//~ BEGIN : IRiveRenderer Interface
+	virtual TSharedPtr<IRiveRenderTarget> CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override;
+	virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
+	//~ END : IRiveRenderer Interface
+
+	void ResetDXState() const;
+
+private:
+	TUniquePtr<FRiveRendererD3D11GPUAdapter> D3D11GPUAdapter;
+};
 
 #endif // PLATFORM_WINDOWS

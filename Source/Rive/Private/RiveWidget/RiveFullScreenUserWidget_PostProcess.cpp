@@ -10,7 +10,7 @@
 #include "UObject/Package.h"
 #include "Widgets/Layout/SConstraintCanvas.h"
 
-namespace UE::RiveUtilities::Private
+namespace UE::Rive::Private
 {
 	const FName NAME_SlateUI = "SlateUI";
 
@@ -165,13 +165,12 @@ bool FRiveFullScreenUserWidget_PostProcess::OnRenderTargetInited()
 	
 	if (ensure(PostProcessMaterialInstance))
 	{
-		using namespace UE::RiveUtilities::Private;
-	
-		PostProcessMaterialInstance->SetTextureParameterValue(NAME_SlateUI, WidgetRenderTarget);
+
+		PostProcessMaterialInstance->SetTextureParameterValue(UE::Rive::Private::NAME_SlateUI, WidgetRenderTarget);
 		
-		PostProcessMaterialInstance->SetVectorParameterValue(NAME_TintColorAndOpacity, PostProcessTintColorAndOpacity);
+		PostProcessMaterialInstance->SetVectorParameterValue(UE::Rive::Private::NAME_TintColorAndOpacity, PostProcessTintColorAndOpacity);
 		
-		PostProcessMaterialInstance->SetScalarParameterValue(NAME_OpacityFromTexture, PostProcessOpacityFromTexture);
+		PostProcessMaterialInstance->SetScalarParameterValue(UE::Rive::Private::NAME_OpacityFromTexture, PostProcessOpacityFromTexture);
 		
 		return true;
 	}

@@ -1,10 +1,10 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "RiveEvent.h"
+#include "Rive/RiveEvent.h"
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "Logs/RiveCoreLog.h"
+#include "Logs/RiveLog.h"
 
 #if WITH_RIVE
 #include "PreRiveHeaders.h"
@@ -20,10 +20,10 @@ THIRD_PARTY_INCLUDES_END
 
 void FRiveEvent::Initialize(const rive::EventReport& InEventReport)
 {
-    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 	if (!RiveRenderer)
 	{
-		UE_LOG(LogRiveCore, Error, TEXT("Failed to Initialize the RiveEvent as we do not have a valid renderer."));
+		UE_LOG(LogRive, Error, TEXT("Failed to Initialize the RiveEvent as we do not have a valid renderer."));
 		return;
 	}
 	

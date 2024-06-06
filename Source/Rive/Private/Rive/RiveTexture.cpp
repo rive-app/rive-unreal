@@ -7,7 +7,7 @@
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
 #include "RenderingThread.h"
-#include "RiveArtboard.h"
+#include "Rive/RiveArtboard.h"
 #include "RiveTextureResource.h"
 
 URiveTexture::URiveTexture()
@@ -25,7 +25,7 @@ URiveTexture::URiveTexture()
 
 FTextureResource* URiveTexture::CreateResource()
 {
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 	if (!RiveRenderer)
 	{
 		UE_LOG(LogRive, Error, TEXT("RiveRenderer is null, unable to create the RiveTextureResource"));
@@ -164,7 +164,7 @@ ESimpleElementBlendMode URiveTexture::GetSimpleElementBlendMode() const
 
 void URiveTexture::InitializeResources() const
 {
-	if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+	if (!IRiveRendererModule::Get().GetRenderer())
 	{
 		UE_LOG(LogRive, Error, TEXT("Failed to InitializeResources for the RiveTexture as we do not have a valid renderer."));
 		return;
@@ -172,7 +172,7 @@ void URiveTexture::InitializeResources() const
 	
 	ENQUEUE_RENDER_COMMAND(FRiveTextureResourceeUpdateTextureReference)
 	([this](FRHICommandListImmediate& RHICmdList) {
-		UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+		IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 		
 		FTextureRHIRef RenderableTexture;

@@ -6,15 +6,12 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "RiveArtboard.h"
+#include "Rive/RiveArtboard.h"
 #include "Logs/RiveLog.h"
 #include "Rive/RiveDescriptor.h"
 #include "Rive/RiveFile.h"
 
-namespace UE::Rive::Core
-{
-    class FURStateMachine;
-}
+class FRiveStateMachine;
 
 URiveActorComponent::URiveActorComponent(): Size(500, 500)
 {
@@ -54,15 +51,15 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 void URiveActorComponent::InitializeRenderTarget(int32 SizeX, int32 SizeY)
 {
-    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)
     {
         UE_LOG(LogRive, Error, TEXT("RiveRenderer is null, unable to initialize the RenderTarget for Rive file '%s'"), *GetFullNameSafe(this));
         return;
     }
     
-    RiveRenderer->CallOrRegister_OnInitialized(UE::Rive::Renderer::IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
-    [this, SizeX, SizeY](UE::Rive::Renderer::IRiveRenderer* InRiveRenderer)
+    RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
+    [this, SizeX, SizeY](IRiveRenderer* InRiveRenderer)
     {
         RiveTexture = NewObject<URiveTexture>();
         // Initialize Rive Render Target Only after we resize the texture
@@ -99,13 +96,13 @@ URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, c
         return nullptr;
     }
 	
-    if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
+    if (!IRiveRendererModule::IsAvailable())
     {
         UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
         return nullptr;
     }
 
-    UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 
     if (!RiveRenderer)
     {
@@ -134,7 +131,7 @@ URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, c
 void URiveActorComponent::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const
 {
     // When the resource change, we need to tell the Render Target otherwise we will keep on drawing on an outdated RT
-    if (const UE::Rive::Renderer::IRiveRenderTargetPtr RTarget = RiveRenderTarget) //todo: might need a lock
+    if (const TSharedPtr<IRiveRenderTarget> RTarget = RiveRenderTarget) //todo: might need a lock
     {
         RTarget->CacheTextureTarget_RenderThread(RHICmdList, NewResource);
     }
