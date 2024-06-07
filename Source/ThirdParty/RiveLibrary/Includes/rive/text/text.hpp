@@ -88,9 +88,9 @@ public:
     std::tuple<const GlyphRun*, uint32_t> operator*() const { return {*m_run, m_glyphIndex}; }
 
 private:
-    const OrderedLine* m_line = nullptr;
-    const rive::GlyphRun* const* m_run = nullptr;
-    uint32_t m_glyphIndex = {};
+    const OrderedLine* m_line;
+    const rive::GlyphRun* const* m_run;
+    uint32_t m_glyphIndex;
 };
 
 // Represents a line of text with runs ordered visually. Also tracks logical
@@ -132,8 +132,8 @@ public:
 private:
     const GlyphRun* m_startLogical = nullptr;
     const GlyphRun* m_endLogical = nullptr;
-    uint32_t m_startGlyphIndex = {};
-    uint32_t m_endGlyphIndex = {};
+    uint32_t m_startGlyphIndex;
+    uint32_t m_endGlyphIndex;
     std::vector<const GlyphRun*> m_runs;
 
 public:

@@ -12,6 +12,7 @@
 #include "rive/text/text_value_run.hpp"
 #include "rive/event.hpp"
 #include "rive/audio/audio_engine.hpp"
+#include "rive/math/raw_path.hpp"
 
 #include <queue>
 #include <vector>
@@ -32,6 +33,10 @@ class StateMachineInstance;
 class Joystick;
 class TextValueRun;
 class Event;
+class SMIBool;
+class SMIInput;
+class SMINumber;
+class SMITrigger;
 
 class Artboard : public ArtboardBase, public CoreContext, public ShapePaintContainer
 {
@@ -52,6 +57,7 @@ private:
     bool m_HasChangedDrawOrderInLastUpdate = false;
 
     unsigned int m_DirtDepth = 0;
+    RawPath m_backgroundRawPath;
     rcp<RenderPath> m_BackgroundPath;
     rcp<RenderPath> m_ClipPath;
     Factory* m_Factory = nullptr;
@@ -101,8 +107,8 @@ public:
     void onDirty(ComponentDirt dirt) override;
 
     bool advance(double elapsedSeconds);
-    bool hasChangedDrawOrderInLastUpdate() { return m_HasChangedDrawOrderInLastUpdate; };
-    Drawable* firstDrawable() { return m_FirstDrawable; };
+    bool hasChangedDrawOrderInLastUpdate() { return m_HasChangedDrawOrderInLastUpdate; }
+    Drawable* firstDrawable() { return m_FirstDrawable; }
 
     enum class DrawOption
     {
@@ -120,6 +126,8 @@ public:
 
     const std::vector<Core*>& objects() const { return m_Objects; }
     const std::vector<NestedArtboard*> nestedArtboards() const { return m_NestedArtboards; }
+    NestedArtboard* nestedArtboard(const std::string& name) const;
+    NestedArtboard* nestedArtboardAtPath(const std::string& path) const;
 
     AABB bounds() const;
 
@@ -127,6 +135,7 @@ public:
     bool isTranslucent() const;
     bool isTranslucent(const LinearAnimation*) const;
     bool isTranslucent(const LinearAnimationInstance*) const;
+    bool hasAudio() const;
 
     template <typename T = Component> T* find(const std::string& name)
     {
@@ -260,10 +269,15 @@ public:
 
     StatusCode import(ImportStack& importStack) override;
 
+    float volume() const;
+    void volume(float value);
+
 #ifdef EXTERNAL_RIVE_AUDIO_ENGINE
     rcp<AudioEngine> audioEngine() const;
     void audioEngine(rcp<AudioEngine> audioEngine);
 #endif
+private:
+    float m_volume = 1.0f;
 };
 
 class ArtboardInstance : public Artboard
@@ -289,6 +303,13 @@ public:
     // 3. first animation instance
     // 4. nullptr
     std::unique_ptr<Scene> defaultScene();
+
+    SMIInput* input(const std::string& name, const std::string& path);
+    template <typename InstType>
+    InstType* getNamedInput(const std::string& name, const std::string& path);
+    SMIBool* getBool(const std::string& name, const std::string& path);
+    SMINumber* getNumber(const std::string& name, const std::string& path);
+    SMITrigger* getTrigger(const std::string& name, const std::string& path);
 };
 } // namespace rive
 

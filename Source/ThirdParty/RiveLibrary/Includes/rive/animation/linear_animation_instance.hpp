@@ -69,6 +69,13 @@ public:
                (directedSpeed() < 0 && m_time > m_animation->startSeconds());
     }
 
+    bool keepGoing(float speedMultiplier) const
+    {
+        return this->loopValue() != static_cast<int>(rive::Loop::oneShot) ||
+               (directedSpeed() * speedMultiplier > 0 && m_time < m_animation->endSeconds()) ||
+               (directedSpeed() * speedMultiplier < 0 && m_time > m_animation->startSeconds());
+    }
+
     float totalTime() const { return m_totalTime; }
     float lastTotalTime() const { return m_lastTotalTime; }
     float spilledTime() const { return m_spilledTime; }
@@ -94,6 +101,7 @@ public:
 private:
     const LinearAnimation* m_animation = nullptr;
     float m_time;
+    float m_speedDirection;
     float m_totalTime;
     float m_lastTotalTime;
     float m_spilledTime;

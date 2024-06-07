@@ -75,6 +75,12 @@ public:
     Vec2D size() const { return {width(), height()}; }
     Vec2D center() const { return {(minX + maxX) * 0.5f, (minY + maxY) * 0.5f}; }
 
+    bool isEmptyOrNaN() const
+    {
+        // Use "inverse" logic so we return true if either of the comparisons fail due to a NaN.
+        return !(width() > 0 && height() > 0);
+    }
+
     AABB inset(float dx, float dy) const
     {
         AABB r = {minX + dx, minY + dy, maxX - dx, maxY - dy};
@@ -115,6 +121,8 @@ public:
         return Vec2D(width() == 0.0f ? 0.0f : (point.x - left()) * 2.0f / width() - 1.0f,
                      (height() == 0.0f ? 0.0f : point.y - top()) * 2.0f / height() - 1.0f);
     }
+
+    bool contains(Vec2D position) const;
 };
 
 } // namespace rive
