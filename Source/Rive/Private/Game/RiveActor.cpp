@@ -4,6 +4,7 @@
 
 #include "Rive/RiveFile.h"
 #include "RiveWidget/RiveFullScreenUserWidget.h"
+#include "Stats/RiveStats.h"
 
 #define LOCTEXT_NAMESPACE "ARiveActor"
 
