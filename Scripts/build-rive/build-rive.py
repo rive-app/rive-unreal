@@ -49,8 +49,8 @@ def main(rive_renderer_path):
         if not do_windows(rive_renderer_path, True) or not do_windows(rive_renderer_path, False):
             return
         
-        #if not do_android(rive_renderer_path, True) or not do_android(rive_renderer_path, False):
-        #    return
+        if not do_android(rive_renderer_path, True) or not do_android(rive_renderer_path, False):
+           return
     else:
         print_red("Unsupported platform")
         return
