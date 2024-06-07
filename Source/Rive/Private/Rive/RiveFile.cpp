@@ -113,6 +113,8 @@ void URiveFile::Initialize()
 			
 			FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 			rive::ImportResult ImportResult;
+
+#if WITH_EDITORONLY_DATA
 			if (bNeedsImport)
 			{
 				bNeedsImport = false;
@@ -126,6 +128,7 @@ void URiveFile::Initialize()
 					return;
 				}
 			}
+#endif
 			
 			const TUniquePtr<FRiveFileAssetLoader> FileAssetLoader = MakeUnique<FRiveFileAssetLoader>(this, Assets);
 			RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult, FileAssetLoader.Get());
