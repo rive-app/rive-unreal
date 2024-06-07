@@ -7,7 +7,7 @@
 
 #if WITH_RIVE
 class URiveAsset;
-class URiveFile;
+class URiveObject;
 
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START

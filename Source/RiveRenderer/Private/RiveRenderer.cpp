@@ -60,11 +60,6 @@ void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
     });
 }
 
-
-void UE::Rive::Renderer::Private::FRiveRenderer::QueueTextureRendering(TObjectPtr<URiveFile> InRiveFile)
-{
-}
-
 #if WITH_RIVE
 
 void UE::Rive::Renderer::Private::FRiveRenderer::CallOrRegister_OnInitialized(FOnRendererInitialized::FDelegate&& Delegate)

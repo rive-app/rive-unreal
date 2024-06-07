@@ -10,6 +10,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
+#include "Rive/RiveObject.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 

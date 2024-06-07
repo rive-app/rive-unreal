@@ -1,11 +1,26 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "UMG/RiveWidget.h"
-
-#include "Rive/RiveFile.h"
+#include "Rive/RiveObject.h"
 #include "Slate/SRiveWidget.h"
 
 #define LOCTEXT_NAMESPACE "RiveWidget"
+
+URiveWidget::~URiveWidget()
+{
+    if (RiveWidget != nullptr)
+    {
+        RiveWidget->SetRiveTexture(nullptr);
+    }
+    
+    RiveWidget.Reset();
+
+    if (RiveObject != nullptr)
+    {
+        RiveObject->MarkAsGarbage();
+        RiveObject = nullptr;
+    }
+}
 
 #if WITH_EDITOR
 
@@ -20,36 +35,49 @@ void URiveWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
     Super::ReleaseSlateResources(bReleaseChildren);
 
+    if (RiveWidget != nullptr)
+    {
+        RiveWidget->SetRiveTexture(nullptr);
+    }
+    
     RiveWidget.Reset();
+
+    if (RiveObject != nullptr)
+    {
+        RiveObject->MarkAsGarbage();
+        RiveObject = nullptr;
+    }
 }
 
 TSharedRef<SWidget> URiveWidget::RebuildWidget()
 {
     RiveWidget = SNew(SRiveWidget);
-    SetRiveFile(RiveFile);
-
+    Setup();
     return RiveWidget.ToSharedRef();
+}
+
+void URiveWidget::NativeConstruct()
+{
+    Super::NativeConstruct();
+    Setup();
 }
 
 void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
 {
-    if (RiveFile)
-    {
-        RiveFile->SetAudioEngine(InAudioEngine);
-        if (RiveFile->GetArtboard() != nullptr)
-        {
-            RiveFile->GetArtboard()->SetAudioEngine(InAudioEngine);
-        }
-    }
+    RiveObject->GetArtboard()->SetAudioEngine(InAudioEngine);
 }
 
-void URiveWidget::SetRiveFile(URiveFile* InRiveFile)
+void URiveWidget::Setup()
 {
-    if (RiveWidget.IsValid())
+    if (!RiveObject)
     {
-        InRiveFile->InstantiateArtboard();
-        RiveWidget->SetRiveFile(InRiveFile);
+        RiveObject = NewObject<URiveObject>();
+        RiveObject->Initialize(RiveDescriptor);
     }
+    
+    RiveWidget->SetRiveTexture(RiveObject);
+    RiveWidget->RegisterArtboardInputs({RiveObject->GetArtboard()});
+    OnRiveReady.Broadcast();
 }
 
 #undef LOCTEXT_NAMESPACE

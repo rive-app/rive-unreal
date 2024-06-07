@@ -2,21 +2,36 @@
 
 #pragma once
 
+#include "Blueprint/UserWidget.h"
 #include "Components/Widget.h"
+#include "rive/file.hpp"
+#include "Rive/RiveDescriptor.h"
+#include "Rive/RiveFile.h"
 #include "RiveWidget.generated.h"
 
-class URiveAudioEngine;
+class URiveObject;
+class URiveArtboard;
+class URiveTexture;
 class SRiveWidget;
+class URiveAudioEngine;
 class URiveFile;
 
+namespace UE::Rive::Renderer
+{
+    class IRiveRenderTarget;
+}
 /**
  *
  */
 UCLASS()
-class RIVE_API URiveWidget : public UWidget
+class RIVE_API URiveWidget : public UUserWidget
 {
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
+    
     GENERATED_BODY()
 
+    virtual ~URiveWidget() override;
+    
 protected:
 
     //~ BEGIN : UWidget Interface
@@ -30,7 +45,9 @@ protected:
     virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
     virtual TSharedRef<SWidget> RebuildWidget() override;
-
+    
+    virtual void NativeConstruct() override;
+    
     //~ END : UWidget Interface
 
     /**
@@ -42,20 +59,24 @@ public:
     UFUNCTION(BlueprintCallable)
     void SetAudioEngine(URiveAudioEngine* InAudioEngine);
     
-    void SetRiveFile(URiveFile* InRiveFile);
-
     /**
      * Attribute(s)
      */
 
-public:
+    UPROPERTY(BlueprintAssignable, Category = Rive)
+    FRiveReadyDelegate OnRiveReady;
+    
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
+    FRiveDescriptor RiveDescriptor;
+    
+    // Runtime objects
+    UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
+    TObjectPtr<URiveObject> RiveObject;
 
-    /** Reference to Ava Blueprint Asset */
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    TObjectPtr<URiveFile> RiveFile;
-
+    UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
+    TObjectPtr<URiveAudioEngine> RiveAudioEngine;
 private:
-
-    /** Rive Widget */
+    void Setup();
     TSharedPtr<SRiveWidget> RiveWidget;
+
 };

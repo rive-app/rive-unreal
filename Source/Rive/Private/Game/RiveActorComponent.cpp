@@ -8,6 +8,7 @@
 #include "IRiveRendererModule.h"
 #include "RiveArtboard.h"
 #include "Logs/RiveLog.h"
+#include "Rive/RiveDescriptor.h"
 #include "Rive/RiveFile.h"
 #include "Stats/RiveStats.h"
 
@@ -67,26 +68,26 @@ void URiveActorComponent::InitializeRenderTarget(int32 SizeX, int32 SizeY)
     RiveRenderer->CallOrRegister_OnInitialized(UE::Rive::Renderer::IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
     [this, SizeX, SizeY](UE::Rive::Renderer::IRiveRenderer* InRiveRenderer)
     {
-        RenderTarget = NewObject<URiveTexture>();
+        RiveTexture = NewObject<URiveTexture>();
         // Initialize Rive Render Target Only after we resize the texture
-        RiveRenderTarget = InRiveRenderer->CreateTextureTarget_GameThread(GetFName(), RenderTarget);
+        RiveRenderTarget = InRiveRenderer->CreateTextureTarget_GameThread(GetFName(), RiveTexture);
         RiveRenderTarget->SetClearColor(FLinearColor::Transparent);
-        RenderTarget->ResizeRenderTargets(FIntPoint(SizeX, SizeY));
+        RiveTexture->ResizeRenderTargets(FIntPoint(SizeX, SizeY));
         RiveRenderTarget->Initialize();
 
-        RenderTarget->OnResourceInitializedOnRenderThread.AddUObject(this, &URiveActorComponent::OnResourceInitialized_RenderThread);
+        RiveTexture->OnResourceInitializedOnRenderThread.AddUObject(this, &URiveActorComponent::OnResourceInitialized_RenderThread);
         OnRiveReady.Broadcast();
     }));
 }
 
 void URiveActorComponent::ResizeRenderTarget(int32 InSizeX, int32 InSizeY)
 {
-    if (!RenderTarget)
+    if (!RiveTexture)
     {
         return;
     }
 	
-    RenderTarget->ResizeRenderTargets(FIntPoint(InSizeX, InSizeY));
+    RiveTexture->ResizeRenderTargets(FIntPoint(InSizeX, InSizeY));
 }
 
 URiveArtboard* URiveActorComponent::InstantiateArtboard(URiveFile* InRiveFile, const FString& InArtboardName, const FString& InStateMachineName)

@@ -5,30 +5,16 @@
 #include "ContentBrowserMenuContexts.h"
 #include "IAssetTools.h"
 #include "RiveAssetToolkit.h"
-#include "Factories/RiveFileInstanceFactory.h"
 #include "Factories/RiveWidgetFactory.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
+
+#include "EditorFramework/AssetImportData.h"
 
 #define LOCTEXT_NAMESPACE "URiveFile_AssetDefinitionDefault"
 
 namespace MenuExtension_RiveFile
 {
-	void ExecuteCreateInstance(const FToolMenuContext& InContext)
-	{
-		const UContentBrowserAssetContextMenuContext* CBContext = UContentBrowserAssetContextMenuContext::FindContextWithAssets(InContext);
-
-		TArray<URiveFile*> x = CBContext->LoadSelectedObjects<URiveFile>();
-
-		IAssetTools::Get().CreateAssetsFrom<URiveFile>(CBContext->LoadSelectedObjects<URiveFile>(), URiveFile::StaticClass(), TEXT("_Inst"), [](URiveFile* SourceObject)
-		{
-			UE_LOG(LogRiveEditor, Log, TEXT("Instancing Rive File: %s"), *SourceObject->GetName());
-			URiveFileInstanceFactory* Factory = NewObject<URiveFileInstanceFactory>();
-			Factory->InitialRiveFile = SourceObject;
-			return Factory;
-			
-		});
-	}
 	void ExecuteCreateWidget(const FToolMenuContext& InContext)
 	{
 		const UContentBrowserAssetContextMenuContext* CBContext = UContentBrowserAssetContextMenuContext::FindContextWithAssets(InContext);
@@ -54,13 +40,6 @@ namespace MenuExtension_RiveFile
 				{
 					if (const UContentBrowserAssetContextMenuContext* Context = UContentBrowserAssetContextMenuContext::FindContextWithAssets(InSection))
 					{
-						{
-							const TAttribute<FText> Label = LOCTEXT("RiveFile_CreateInstance", "Create Rive Instance");
-							const TAttribute<FText> ToolTip = LOCTEXT("RiveFile_CreateInstanceTooltip", "Creates a new Rive instance using this file.");
-							const FSlateIcon Icon = FSlateIcon(FAppStyle::GetAppStyleSetName(), "ClassIcon.Material");
-							const FToolMenuExecuteAction UIAction = FToolMenuExecuteAction::CreateStatic(&ExecuteCreateInstance);
-							InSection.AddMenuEntry("RiveFile_CreateInstance", Label, ToolTip, Icon, UIAction);
-						}
 						{
 							const TAttribute<FText> Label = LOCTEXT("RiveFile_CreateWidget", "Create Rive Widget");
 							const TAttribute<FText> ToolTip = LOCTEXT("RiveFile_CreateWidgetTooltip", "Creates a new Rive Widget asset using this file.");
@@ -105,6 +84,20 @@ EAssetCommandResult URiveFile_AssetDefinitionDefault::OpenAssets(const FAssetOpe
 	}
 
 	return EAssetCommandResult::Handled;
+}
+
+EAssetCommandResult URiveFile_AssetDefinitionDefault::GetSourceFiles(const FAssetSourceFilesArgs& InArgs, TFunctionRef<bool(const FAssetSourceFilesResult& InSourceFile)> SourceFileFunc) const
+{
+	for (URiveFile* RiveFile : InArgs.LoadObjects<URiveFile>())
+	{
+		FAssetSourceFilesResult ImportInfoResult;
+		ImportInfoResult.FilePath = RiveFile->AssetImportData->GetFirstFilename();
+		if (SourceFileFunc(ImportInfoResult))
+		{
+			return EAssetCommandResult::Handled;
+		}
+	}
+	return EAssetCommandResult::Unhandled;
 }
 
 #undef LOCTEXT_NAMESPACE

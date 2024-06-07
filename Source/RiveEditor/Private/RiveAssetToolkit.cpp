@@ -4,6 +4,7 @@
 #include "Rive/RiveFile.h"
 #include "Slate/SRiveWidget.h"
 #include "PropertyEditorModule.h"
+#include "Rive/RiveObject.h"
 #include "Widgets/Docking/SDockTab.h"
 
 const FName FRiveAssetToolkit::RiveViewportTabID(TEXT("RiveViewportTabID"));
@@ -11,6 +12,22 @@ const FName FRiveAssetToolkit::DetailsTabID(TEXT("DetailsTabID"));
 const FName FRiveAssetToolkit::AppIdentifier(TEXT("RiveFileApp"));
 
 #define LOCTEXT_NAMESPACE "FRiveAssetToolkit"
+
+FRiveAssetToolkit::~FRiveAssetToolkit()
+{
+    if (RiveWidget)
+    {
+        RiveWidget->SetRiveTexture(nullptr);
+        RiveWidget.Reset();
+    }
+    
+    if (RiveObject)
+    {
+        RiveObject->MarkAsGarbage();
+        RiveObject->ConditionalBeginDestroy();
+        RiveObject = nullptr;
+    }
+}
 
 void FRiveAssetToolkit::Initialize(URiveFile* InRiveFile, const EToolkitMode::Type InMode, const TSharedPtr<IToolkitHost>& InToolkitHost)
 {
@@ -111,11 +128,23 @@ TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_RiveViewportTab(const FSpawnTab
 
     if (RiveFile)
     {
+        if (!RiveObject)
+        {
+            RiveObject = NewObject<URiveObject>();
+            RiveObject->Initialize(FRiveDescriptor{
+                RiveFile,
+                "",
+                0,
+                "",
+                ERiveFitType::Contain,
+                ERiveAlignment::Center
+            });
+        }
         RiveWidget = SNew(SRiveWidget)
 #if WITH_EDITOR
             .bDrawCheckerboardInEditor(true);
 #endif
-        RiveWidget->SetRiveFile(RiveFile);
+        RiveWidget->SetRiveTexture(RiveObject);
         ViewportWidget = RiveWidget;
     }
     else
