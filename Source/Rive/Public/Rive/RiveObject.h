@@ -35,11 +35,6 @@ class RIVE_API URiveObject : public URiveTexture, public FTickableGameObject
 	GENERATED_BODY()
 
 public:
-	// DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChangedDynamic, URiveObject*, RiveFile, URiveArtboard*, Artboard);
-	// DECLARE_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveObject* /* RiveFile */, URiveArtboard* /* Artboard */);
-	//
-	
-	
 	/**
 	 * Structor(s)
 	 */
@@ -105,11 +100,6 @@ public:
 protected:
 
 	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
-
-public:
-	// UPROPERTY(BlueprintAssignable, Category = Rive)
-	// FOnArtboardChangedDynamic OnArtboardChanged;
-	// FOnArtboardChanged OnArtboardChangedRaw;
 
 public:
 	UPROPERTY(BlueprintReadWrite, Category=Rive)

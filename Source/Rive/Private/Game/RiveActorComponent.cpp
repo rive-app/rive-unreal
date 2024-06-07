@@ -10,6 +10,7 @@
 #include "Logs/RiveLog.h"
 #include "Rive/RiveDescriptor.h"
 #include "Rive/RiveFile.h"
+#include "Stats/RiveStats.h"
 
 class FRiveStateMachine;
 
@@ -34,6 +35,9 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
     {
         return;
     }
+
+    SCOPED_NAMED_EVENT_TEXT(TEXT("URiveActorComponent::TickComponent"), FColor::White);
+    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("URiveActorComponent::TickComponent"), STAT_RIVEACTORCOMPONENT_TICK, STATGROUP_Rive);
 
     if (RiveRenderTarget)
     {

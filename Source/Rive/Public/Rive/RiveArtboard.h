@@ -127,9 +127,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable)
 	void SetAudioEngine(URiveAudioEngine* AudioEngine);
-
-	UFUNCTION(BlueprintCallable)
-	void OverrideImageAsset(const FString& InAssetId, UTexture2D* Texture);
 	
 #if WITH_RIVE
 	void Reinitialize(rive::File* InNativeFilePtr);
