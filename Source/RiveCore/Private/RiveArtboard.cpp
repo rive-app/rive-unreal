@@ -6,6 +6,7 @@
 #include "IRiveRendererModule.h"
 #include "RiveEvent.h"
 #include "Logs/RiveCoreLog.h"
+#include "Stats/RiveCoreStats.h"
 #include "URStateMachine.h"
 
 #if WITH_RIVE
@@ -424,6 +425,8 @@ void URiveArtboard::Reinitialize(rive::File* InNativeFilePtr)
 
 void URiveArtboard::Tick_Render(float InDeltaSeconds)
 {
+	SCOPED_NAMED_EVENT_TEXT("URiveArtboard::Tick_Render", FColor::White);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveArtboard::Tick_Render"), STAT_RIVEARTBOARD_TICKRENDER, STATGROUP_RiveCore);
 	if (OnArtboardTick_Render.IsBound())
 	{
 		OnArtboardTick_Render.Execute(InDeltaSeconds, this);
@@ -436,6 +439,8 @@ void URiveArtboard::Tick_Render(float InDeltaSeconds)
 
 void URiveArtboard::Tick_StateMachine(float InDeltaSeconds)
 {
+	SCOPED_NAMED_EVENT_TEXT("URiveArtboard::Tick_StateMachine", FColor::White);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RiveArtboard::Tick_StateMachine"), STAT_RIVEARTBOARD_TICKSTATEMACHINE, STATGROUP_RiveCore);
 	if (OnArtboardTick_StateMachine.IsBound())
 	{
 		OnArtboardTick_StateMachine.Execute(InDeltaSeconds, this);
