@@ -263,4 +263,4 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 	
 	return WasLastInitializationSuccessful.Get(true);
 }
-#endif WITH_EDITOR
+#endif // WITH_EDITOR
