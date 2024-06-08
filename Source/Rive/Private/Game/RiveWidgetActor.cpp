@@ -25,10 +25,17 @@ void ARiveWidgetActor::BeginPlay()
 	
 	UWorld* ActorWorld = GetWorld();
 	ScreenUserWidget = CreateWidget(ActorWorld, RiveWidgetClass);
+	if (!ScreenUserWidget)
+	{
+		return;
+	}
+
+	
 	if (URiveWidget* RiveWidget = Cast<URiveWidget>(ScreenUserWidget))
 	{
 		RiveWidget->SetAudioEngine(AudioEngine);
 	}
+	
 	ScreenUserWidget->AddToViewport();
 }
 
