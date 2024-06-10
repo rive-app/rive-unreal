@@ -1,11 +1,11 @@
 ﻿// Copyright Rive, Inc. All rights reserved.
 
-#include "Assets/URAssetImporter.h"
-#include "Logs/RiveCoreLog.h"
+#include "Rive/Assets/RiveFileAssetImporter.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "Assets/RiveAsset.h"
-#include "Assets/URAssetHelpers.h"
-#include "Assets/URFileAssetLoader.h"
+#include "Logs/RiveLog.h"
+#include "Rive/Assets/RiveAsset.h"
+#include "Rive/Assets/RiveAssetHelpers.h"
+#include "Rive/Assets/RiveFileAssetLoader.h"
 
 #if WITH_EDITOR
 #include "AssetToolsModule.h"
@@ -20,12 +20,12 @@ THIRD_PARTY_INCLUDES_END
 
 #if WITH_RIVE
 
-UE::Rive::Assets::FURAssetImporter::FURAssetImporter(UPackage* InPackage, const FString& InRiveFilePath, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets)
+FRiveFileAssetImporter::FRiveFileAssetImporter(UPackage* InPackage, const FString& InRiveFilePath, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets)
 	: RivePackage(InPackage), RiveFilePath(InRiveFilePath), Assets(InAssets)
 {
 }
 
-bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes, rive::Factory* InFactory)
+bool FRiveFileAssetImporter::loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes, rive::Factory* InFactory)
 {
 	// Just proceed to load the base type without processing it
 	if (InAsset.coreType() == rive::FileAssetBase::typeKey)
@@ -87,13 +87,13 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 
 	if (!RiveAsset)
 	{
-		UE_LOG(LogRiveCore, Error, TEXT("Could not load the RiveAsset."));
+		UE_LOG(LogRive, Error, TEXT("Could not load the RiveAsset."));
 		return false;
 	}
 	
 	RiveAsset->Id = InAsset.assetId();
 	RiveAsset->Name = FString(UTF8_TO_TCHAR(InAsset.name().c_str()));
-	RiveAsset->Type = URAssetHelpers::GetUnrealType(InAsset.coreType()); 
+	RiveAsset->Type = RiveAssetHelpers::GetUnrealType(InAsset.coreType()); 
 	RiveAsset->bIsInBand = bIsInBand;
 	RiveAsset->MarkPackageDirty();
 	
@@ -104,7 +104,7 @@ bool UE::Rive::Assets::FURAssetImporter::loadContents(rive::FileAsset& InAsset, 
 	}
 	
 	FString AssetPath;
-	if (URAssetHelpers::FindDiskAsset(RiveFilePath, RiveAsset))
+	if (RiveAssetHelpers::FindDiskAsset(RiveFilePath, RiveAsset))
 	{
 		RiveAsset->LoadFromDisk();
 	}

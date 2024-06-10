@@ -11,12 +11,12 @@
 
 #include "rive/pls/pls_render_context.hpp"
 
-UE::Rive::Renderer::Private::FRiveRenderer::FRiveRenderer()
+FRiveRenderer::FRiveRenderer()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
 }
 
-UE::Rive::Renderer::Private::FRiveRenderer::~FRiveRenderer()
+FRiveRenderer::~FRiveRenderer()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
     InitializationState = ERiveInitState::Deinitializing;
@@ -34,7 +34,7 @@ UE::Rive::Renderer::Private::FRiveRenderer::~FRiveRenderer()
     FlushRenderingCommands();
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
+void FRiveRenderer::Initialize()
 {
     check(IsInGameThread());
     
@@ -62,7 +62,7 @@ void UE::Rive::Renderer::Private::FRiveRenderer::Initialize()
 
 #if WITH_RIVE
 
-void UE::Rive::Renderer::Private::FRiveRenderer::CallOrRegister_OnInitialized(FOnRendererInitialized::FDelegate&& Delegate)
+void FRiveRenderer::CallOrRegister_OnInitialized(FOnRendererInitialized::FDelegate&& Delegate)
 {
     ThreadDataCS.Lock();
     const bool bIsInitialized = IsInitialized();
@@ -78,7 +78,7 @@ void UE::Rive::Renderer::Private::FRiveRenderer::CallOrRegister_OnInitialized(FO
     }
 }
 
-rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRenderer::GetPLSRenderContextPtr()
+rive::pls::PLSRenderContext* FRiveRenderer::GetPLSRenderContextPtr()
 {
     if (!PLSRenderContext)
     {
@@ -92,7 +92,7 @@ rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRenderer::GetPLSR
 
 #endif // WITH_RIVE
 
-UTextureRenderTarget2D* UE::Rive::Renderer::Private::FRiveRenderer::CreateDefaultRenderTarget(FIntPoint InTargetSize)
+UTextureRenderTarget2D* FRiveRenderer::CreateDefaultRenderTarget(FIntPoint InTargetSize)
 {
     UTextureRenderTarget2D* const RenderTarget = NewObject<UTextureRenderTarget2D>(GetTransientPackage());
 

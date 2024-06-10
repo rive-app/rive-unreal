@@ -14,7 +14,7 @@ namespace rive
 }
 
 UCLASS(ClassGroup = (Rive), Meta = (BlueprintSpawnableComponent))
-class RIVECORE_API URiveAudioEngine : public USynthComponent
+class RIVE_API URiveAudioEngine : public USynthComponent
 {
 	GENERATED_BODY()
 public:

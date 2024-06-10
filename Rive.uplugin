@@ -32,12 +32,6 @@
 			"Type": "Editor",
 			"LoadingPhase": "Default",
 			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
-		},
-		{
-			"Name": "RiveCore",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
 		}
 	]
 }

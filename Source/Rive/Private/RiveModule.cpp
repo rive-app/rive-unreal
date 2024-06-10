@@ -17,7 +17,7 @@ THIRD_PARTY_INCLUDES_END
 
 #define LOCTEXT_NAMESPACE "FRiveModule"
 
-void UE::Rive::Private::FRiveModule::StartupModule()
+void FRiveModule::StartupModule()
 {
     TestRiveIntegration();
 
@@ -25,11 +25,11 @@ void UE::Rive::Private::FRiveModule::StartupModule()
     AddShaderSourceDirectoryMapping(TEXT("/Plugin/Rive"), PluginShaderDir);
 }
 
-void UE::Rive::Private::FRiveModule::ShutdownModule()
+void FRiveModule::ShutdownModule()
 {
 }
 
-void UE::Rive::Private::FRiveModule::TestRiveIntegration()
+void FRiveModule::TestRiveIntegration()
 {
     bool bIsRiveRuntimeLoaded = false;
 
@@ -37,7 +37,7 @@ void UE::Rive::Private::FRiveModule::TestRiveIntegration()
 
 #if WITH_RIVE
 
-    rive::BinaryReader JuiceRivReader(rive::Span(Tests::JuiceRivFile, sizeof(&Tests::JuiceRivFile)));
+    rive::BinaryReader JuiceRivReader(rive::Span(UE::Rive::Tests::JuiceRivFile, sizeof(&UE::Rive::Tests::JuiceRivFile)));
 
     rive::RuntimeHeader JuiceRivHeader;
 
@@ -70,5 +70,5 @@ void UE::Rive::Private::FRiveModule::TestRiveIntegration()
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(UE::Rive::Private::FRiveModule, Rive)
+IMPLEMENT_MODULE(FRiveModule, Rive)
 

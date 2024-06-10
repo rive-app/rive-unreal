@@ -85,7 +85,7 @@ struct FRiveEventStringProperty : public FRiveEventProperty
 
 
 USTRUCT(Blueprintable, Meta = (DisplayName = "Rive Event"))
-struct RIVECORE_API FRiveEvent
+struct RIVE_API FRiveEvent
 {
     GENERATED_BODY()
 

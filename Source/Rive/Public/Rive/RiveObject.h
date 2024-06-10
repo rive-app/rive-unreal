@@ -127,7 +127,7 @@ private:
 	bool bManualSize = false;
 
 
-	UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
+	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
 	URiveArtboard* Artboard = nullptr;

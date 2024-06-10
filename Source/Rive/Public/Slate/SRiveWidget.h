@@ -43,8 +43,5 @@ public:
      */
 
 private:
-
-    /** Reference to Avalanche View */
     TSharedPtr<SRiveWidgetView> RiveWidgetView;
-	FDelegateHandle OnArtboardChangedHandle;
 };

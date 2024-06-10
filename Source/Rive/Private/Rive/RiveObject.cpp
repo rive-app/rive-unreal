@@ -4,9 +4,9 @@
 #include "IRiveRenderTarget.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "RiveCore/Public/RiveArtboard.h"
+#include "Rive/RiveArtboard.h"
 #include "Logs/RiveLog.h"
-#include "RiveCore/Public/Assets/RiveAsset.h"
+#include "Rive/Assets/RiveAsset.h"
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
 #include "Async/Async.h"
@@ -96,13 +96,13 @@ void URiveObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 {
 	Artboard = nullptr;
 	
-	if (!UE::Rive::Renderer::IRiveRendererModule::IsAvailable())
+	if (!IRiveRendererModule::IsAvailable())
 	{
 		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
 		return;
 	}
 
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 
 	if (!RiveRenderer)
 	{
@@ -188,7 +188,7 @@ void URiveObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 void URiveObject::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const
 {
 	// When the resource change, we need to tell the Render Target otherwise we will keep on drawing on an outdated RT
-	if (const UE::Rive::Renderer::IRiveRenderTargetPtr RenderTarget = RiveRenderTarget) //todo: might need a lock
+	if (const TSharedPtr<IRiveRenderTarget> RenderTarget = RiveRenderTarget) //todo: might need a lock
 	{
 		RenderTarget->CacheTextureTarget_RenderThread(RHICmdList, NewResource);
 	}

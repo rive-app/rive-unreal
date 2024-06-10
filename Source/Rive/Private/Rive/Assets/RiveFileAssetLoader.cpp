@@ -1,9 +1,10 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "Assets/URFileAssetLoader.h"
-#include "Assets/RiveAsset.h"
-#include "Assets/URAssetHelpers.h"
-#include "Logs/RiveCoreLog.h"
+#include "Rive/Assets/RiveFileAssetLoader.h"
+
+#include "Logs/RiveLog.h"
+#include "Rive/Assets/RiveAsset.h"
+#include "Rive/Assets/RiveAssetHelpers.h"
 #include "rive/factory.hpp"
 
 #if WITH_RIVE
@@ -15,14 +16,14 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE::Rive::Assets::FURFileAssetLoader::FURFileAssetLoader(UObject* InOuter, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets)
+FRiveFileAssetLoader::FRiveFileAssetLoader(UObject* InOuter, TMap<uint32, TObjectPtr<URiveAsset>>& InAssets)
 	: Outer(InOuter), Assets(InAssets)
 {
 }
 
 #if WITH_RIVE
 
-bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes,
+bool FRiveFileAssetLoader::loadContents(rive::FileAsset& InAsset, rive::Span<const uint8> InBandBytes,
                                                         rive::Factory* InFactory)
 {
 	// Just proceed to load the base type without processing it
@@ -49,7 +50,7 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 	{
 		if (!bUseInBand)
 		{
-			UE_LOG(LogRiveCore, Error, TEXT("Could not find pre-loaded asset. This means the initial import probably failed."));
+			UE_LOG(LogRive, Error, TEXT("Could not find pre-loaded asset. This means the initial import probably failed."));
 			return false;
 		}
 		
@@ -59,7 +60,7 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 
 		RiveAsset->Id = InAsset.assetId();
 		RiveAsset->Name = FString(UTF8_TO_TCHAR(InAsset.name().c_str()));
-		RiveAsset->Type = URAssetHelpers::GetUnrealType(InAsset.coreType()); 
+		RiveAsset->Type = RiveAssetHelpers::GetUnrealType(InAsset.coreType()); 
 		RiveAsset->bIsInBand = true;
 
 		// We only add it to our assets here so that it shows up in the inspector, otherwise this doesn't have any functional effect on anything due to it being a transient, in-band asset
@@ -71,7 +72,7 @@ bool UE::Rive::Assets::FURFileAssetLoader::loadContents(rive::FileAsset& InAsset
 	{
 		if (RiveAsset->NativeAssetBytes.IsEmpty())
 		{
-			UE_LOG(LogRiveCore, Error, TEXT("Trying to load out of band asset, but its bytes were never filled."));
+			UE_LOG(LogRive, Error, TEXT("Trying to load out of band asset, but its bytes were never filled."));
 			return false;
 		}
 		OutOfBandBytes = rive::make_span(RiveAsset->NativeAssetBytes.GetData(), RiveAsset->NativeAssetBytes.Num());

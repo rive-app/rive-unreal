@@ -5,9 +5,10 @@
 #include "RiveAudioEngine.h"
 #include "RiveEvent.h"
 #include "RiveTypes.h"
-#include "URStateMachine.h"
+#include "RiveStateMachine.h"
 
 #if WITH_RIVE
+class URiveFile;
 class URiveObject;
 
 #include "PreRiveHeaders.h"
@@ -20,8 +21,9 @@ THIRD_PARTY_INCLUDES_END
 
 
 UCLASS(BlueprintType)
-class RIVECORE_API URiveArtboard : public UObject
+class RIVE_API URiveArtboard : public UObject
 {
+	friend URiveFile;
 	GENERATED_BODY()
 
 public:
@@ -128,10 +130,10 @@ public:
 	
 #if WITH_RIVE
 	void Reinitialize(rive::File* InNativeFilePtr);
-	void Initialize(rive::File* InNativeFilePtr, const UE::Rive::Renderer::IRiveRenderTargetPtr& InRiveRenderTarget);
-	void Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget, int32 InIndex, const FString& InStateMachineName);
-	void Initialize(rive::File* InNativeFilePtr, UE::Rive::Renderer::IRiveRenderTargetPtr InRiveRenderTarget, const FString& InName, const FString& InStateMachineName);
-	void SetRenderTarget(const UE::Rive::Renderer::IRiveRenderTargetPtr& InRiveRenderTarget) { RiveRenderTarget = InRiveRenderTarget; }
+	void Initialize(rive::File* InNativeFilePtr, const TSharedPtr<IRiveRenderTarget>& InRiveRenderTarget);
+	void Initialize(rive::File* InNativeFilePtr, TSharedPtr<IRiveRenderTarget> InRiveRenderTarget, int32 InIndex, const FString& InStateMachineName);
+	void Initialize(rive::File* InNativeFilePtr, TSharedPtr<IRiveRenderTarget> InRiveRenderTarget, const FString& InName, const FString& InStateMachineName);
+	void SetRenderTarget(const TSharedPtr<IRiveRenderTarget>& InRiveRenderTarget) { RiveRenderTarget = InRiveRenderTarget; }
 	
 	bool IsInitialized() const { return bIsInitialized; }
 
@@ -146,7 +148,7 @@ public:
 
 	rive::AABB GetBounds() const;
 
-	UE::Rive::Core::FURStateMachine* GetStateMachine() const;
+	FRiveStateMachine* GetStateMachine() const;
 
 	void BeginInput()
 	{
@@ -170,15 +172,17 @@ private:
 	void Tick_Render(float InDeltaSeconds);
 	void Tick_StateMachine(float InDeltaSeconds);
 	
-	UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
+	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 
 	std::unique_ptr<rive::ArtboardInstance> NativeArtboardPtr = nullptr;
-	UE::Rive::Core::FURStateMachinePtr DefaultStateMachinePtr = nullptr;
+	TUniquePtr<FRiveStateMachine> DefaultStateMachinePtr = nullptr;
 #endif // WITH_RIVE
 public:
 	const FString& GetArtboardName() const { return ArtboardName; }
 	const TArray<FString>& GetEventNames() const { return EventNames; }
 private:
+	TWeakObjectPtr<URiveFile> RiveFile;
+	
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
 	FString ArtboardName;
 

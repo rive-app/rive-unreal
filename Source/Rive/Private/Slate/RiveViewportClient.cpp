@@ -6,7 +6,7 @@
 #include "CanvasTypes.h"
 #include "RiveWidgetHelpers.h"
 #include "Rive/RiveTexture.h"
-#include "RiveArtboard.h"
+#include "Rive/RiveArtboard.h"
 #include "Stats/RiveStats.h"
 #include "Engine/Texture2D.h"
 #include "TextureResource.h"

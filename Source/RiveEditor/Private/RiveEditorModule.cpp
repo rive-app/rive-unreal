@@ -20,7 +20,7 @@
 
 #define LOCTEXT_NAMESPACE "RiveEditorModule"
 
-void UE::Rive::Editor::Private::FRiveEditorModule::StartupModule()
+void FRiveEditorModule::StartupModule()
 {
 	UThumbnailManager::Get().RegisterCustomRenderer(URiveFile::StaticClass(), URiveTextureThumbnailRenderer::StaticClass());
 
@@ -36,7 +36,7 @@ void UE::Rive::Editor::Private::FRiveEditorModule::StartupModule()
 	});
 }
 
-void UE::Rive::Editor::Private::FRiveEditorModule::ShutdownModule()
+void FRiveEditorModule::ShutdownModule()
 {
 	if (RHINotification)
 	{
@@ -62,9 +62,9 @@ void UE::Rive::Editor::Private::FRiveEditorModule::ShutdownModule()
 	CreatedAssetTypeActions.Empty();
 }
 
-bool UE::Rive::Editor::Private::FRiveEditorModule::CheckCurrentRHIAndNotify()
+bool FRiveEditorModule::CheckCurrentRHIAndNotify()
 {
-	Renderer::IRiveRendererModule& Renderer = Renderer::IRiveRendererModule::Get();
+	IRiveRendererModule& Renderer = IRiveRendererModule::Get();
 	if (Renderer.GetRenderer()) // If we were able to create a Renderer, the RHI is supported
 	{
 		return true;
@@ -162,7 +162,7 @@ bool UE::Rive::Editor::Private::FRiveEditorModule::CheckCurrentRHIAndNotify()
 	return false;
 }
 
-void UE::Rive::Editor::Private::FRiveEditorModule::RegisterAssetTypeActions(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
+void FRiveEditorModule::RegisterAssetTypeActions(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
 {
 	AssetTools.RegisterAssetTypeActions(Action);
 	CreatedAssetTypeActions.Add(Action);
@@ -170,4 +170,4 @@ void UE::Rive::Editor::Private::FRiveEditorModule::RegisterAssetTypeActions(IAss
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(UE::Rive::Editor::Private::FRiveEditorModule, RiveEditor)
+IMPLEMENT_MODULE(FRiveEditorModule, RiveEditor)

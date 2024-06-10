@@ -1,6 +1,6 @@
 ﻿// Copyright Rive, Inc. All rights reserved.
 
-#include "RiveAudioEngine.h"
+#include "Rive/RiveAudioEngine.h"
 #include "AudioDevice.h"
 #include "rive/artboard.hpp"
 

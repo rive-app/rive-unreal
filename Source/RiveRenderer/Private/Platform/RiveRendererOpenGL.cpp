@@ -15,7 +15,7 @@
 #include "UObject/UObjectGlobals.h"
 
 #if WITH_RIVE
-#include "RiveCore/Public/PreRiveHeaders.h"
+#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/pls/gl/pls_render_context_gl_impl.hpp"
 #include "rive/pls/pls_renderer.hpp"
@@ -26,7 +26,7 @@ THIRD_PARTY_INCLUDES_END
 // --------------- FRiveRendererOpenGL ---------------
 // ---------------------------------------------------
 
-void UE::Rive::Renderer::Private::FRiveRendererOpenGL::Initialize()
+void FRiveRendererOpenGL::Initialize()
 {
 	check(IsInGameThread());
 	RIVE_DEBUG_FUNCTION_INDENT
@@ -74,7 +74,7 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::Initialize()
 	}
 }
 
-rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::GetPLSRenderContextPtr()
+rive::pls::PLSRenderContext* FRiveRendererOpenGL::GetPLSRenderContextPtr()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	if (ensure(IsRHIOpenGL()))
@@ -90,7 +90,7 @@ rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::G
 	return nullptr;
 }
 
-TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
+TSharedPtr<IRiveRenderTarget> FRiveRendererOpenGL::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread());
@@ -102,7 +102,7 @@ TSharedPtr<UE::Rive::Renderer::IRiveRenderTarget> UE::Rive::Renderer::Private::F
 }
 
 DECLARE_GPU_STAT_NAMED(CreatePLSContext, TEXT("CreatePLSContext_RenderThread"));
-void UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
+void FRiveRendererOpenGL::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInRenderingThread());
@@ -115,7 +115,7 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreatePLSContext_RenderTh
 		});
 }
 
-void UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreatePLSContext_GameThread()
+void FRiveRendererOpenGL::CreatePLSContext_GameThread()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread());
@@ -124,7 +124,7 @@ void UE::Rive::Renderer::Private::FRiveRendererOpenGL::CreatePLSContext_GameThre
 }
 
 
-rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::GetOrCreatePLSRenderContextPtr_Internal()
+rive::pls::PLSRenderContext* FRiveRendererOpenGL::GetOrCreatePLSRenderContextPtr_Internal()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread() || IsInRHIThread());
@@ -180,13 +180,13 @@ rive::pls::PLSRenderContext* UE::Rive::Renderer::Private::FRiveRendererOpenGL::G
 	return nullptr;
 }
 
-bool UE::Rive::Renderer::Private::FRiveRendererOpenGL::IsRHIOpenGL()
+bool FRiveRendererOpenGL::IsRHIOpenGL()
 {
 	return GDynamicRHI != nullptr && GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::OpenGL;
 }
 
 
-void UE::Rive::Renderer::Private::FRiveRendererOpenGL::DebugLogOpenGLStatus()
+void FRiveRendererOpenGL::DebugLogOpenGLStatus()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	

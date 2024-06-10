@@ -3,7 +3,7 @@
 #pragma once
 
 #include "RiveTypes.h"
-#include "RiveCore/Public/PreRiveHeaders.h"
+#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/math/mat2d.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -42,11 +42,12 @@ public:
 	                                                             TX(0), TY(0)
 	{
 	};
+
 	explicit FRiveRenderCommand(const rive::Mat2D& Matrix) : Type(ERiveRenderCommandType::Transform), FitType(),
-		X(Matrix.xx()), Y(Matrix.xy()), X2(Matrix.yx()), Y2(Matrix.yy()), TX(Matrix.tx()), TY(Matrix.ty())
+	                                                         X(Matrix.xx()), Y(Matrix.xy()), X2(Matrix.yx()), Y2(Matrix.yy()), TX(Matrix.tx()), TY(Matrix.ty())
 	{
 	};
-	
+
 	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	ERiveRenderCommandType Type;
 
@@ -75,7 +76,7 @@ public:
 	float TY;
 
 	rive::Mat2D GetSaved2DTransform() const;
-	
+
 	FMatrix GetSavedTransform() const
 	{
 		const rive::Mat2D Mat2d = GetSaved2DTransform();

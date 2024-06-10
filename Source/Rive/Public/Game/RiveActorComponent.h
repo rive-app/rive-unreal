@@ -74,5 +74,5 @@ public:
     TObjectPtr<URiveAudioEngine> RiveAudioEngine;
     
 private:
-    UE::Rive::Renderer::IRiveRenderTargetPtr RiveRenderTarget;
+    TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 };
