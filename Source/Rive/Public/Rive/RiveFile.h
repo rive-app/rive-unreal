@@ -74,8 +74,6 @@ public:
 		return Names;
 	}
 	
-	
-	
 	UPROPERTY(meta=(NoResetToDefault))
 	FString RiveFilePath_DEPRECATED;
 
@@ -95,8 +93,8 @@ private:
 
 	UPROPERTY()
 	TArray<uint8> RiveFileData;
-
-	UPROPERTY(meta=(NoResetToDefault))
+	
+	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
 	TSubclassOf<UUserWidget> WidgetClass;
 
 public:
