@@ -5,9 +5,16 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Rive/RiveArtboard.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveTexture.h"
+
+URiveTextureThumbnailRenderer::URiveTextureThumbnailRenderer() : RiveTexture(nullptr)
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	AssetRegistryModule.Get().OnAssetRemoved().AddUObject(this, &URiveTextureThumbnailRenderer::OnAssetRemoved);
+}
 
 bool URiveTextureThumbnailRenderer::CanVisualizeAsset(UObject* Object)
 {
@@ -60,6 +67,18 @@ void URiveTextureThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint
 			RiveRenderTarget->Restore();
 			RiveRenderTarget->SubmitAndClear();
 			UTextureThumbnailRenderer::Draw(RiveTexture, X, Y, Width, Height, Viewport, Canvas, bAdditionalViewFamily);
+		}
+	}
+}
+
+void URiveTextureThumbnailRenderer::OnAssetRemoved(const FAssetData& AssetData)
+{
+	for (TTuple<FName, URiveArtboard*>& ThumbnailRenderer : ThumbnailRenderers)
+	{
+		if (ThumbnailRenderer.Key == AssetData.AssetName)
+		{
+			ThumbnailRenderers.Remove(AssetData.AssetName);
+			return;
 		}
 	}
 }
