@@ -72,12 +72,16 @@ void URiveWidget::Setup()
     if (!RiveObject)
     {
         RiveObject = NewObject<URiveObject>();
+        
+        RiveObject->OnRiveReady.AddLambda([this]()
+        {
+            RiveWidget->SetRiveTexture(RiveObject);
+            RiveWidget->RegisterArtboardInputs({RiveObject->GetArtboard()});
+            OnRiveReady.Broadcast();
+        });
+        
         RiveObject->Initialize(RiveDescriptor);
     }
-    
-    RiveWidget->SetRiveTexture(RiveObject);
-    RiveWidget->RegisterArtboardInputs({RiveObject->GetArtboard()});
-    OnRiveReady.Broadcast();
 }
 
 #undef LOCTEXT_NAMESPACE

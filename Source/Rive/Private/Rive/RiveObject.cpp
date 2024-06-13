@@ -27,12 +27,12 @@ URiveObject::URiveObject()
 void URiveObject::BeginDestroy()
 {
 	RiveRenderTarget.Reset();
-	
+
 	if (IsValid(Artboard))
 	{
 		Artboard->MarkAsGarbage();
 	}
-	
+
 	Super::BeginDestroy();
 }
 
@@ -95,7 +95,8 @@ FVector2f URiveObject::GetLocalCoordinatesFromExtents(const FVector2f& InPositio
 void URiveObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 {
 	Artboard = nullptr;
-	
+	RiveDescriptor = InRiveDescriptor;
+
 	if (!IRiveRendererModule::IsAvailable())
 	{
 		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer Module is either missing or not loaded properly."));
@@ -110,32 +111,29 @@ void URiveObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 		return;
 	}
 
-	if (!RiveRenderer->IsInitialized())
-	{
-		UE_LOG(LogRive, Error, TEXT("Could not load rive file as the required Rive Renderer is not initialized."));
-		return;
-	}
-	
-	RiveDescriptor = InRiveDescriptor;
-	
 	if (!RiveDescriptor.RiveFile)
 	{
 		UE_LOG(LogRive, Error, TEXT("Could not instance artboard as our native rive file is invalid."));
 		return;
 	}
-	
+
+	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateUObject(this, &URiveObject::RiveReady));
+}
+
+void URiveObject::RiveReady(IRiveRenderer* InRiveRenderer)
+{
 	Artboard = NewObject<URiveArtboard>(this);
 	RiveDescriptor.RiveFile->Artboards.Add(Artboard);
 	RiveRenderTarget.Reset();
-	RiveRenderTarget = RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
-	
-	if(!OnResourceInitializedOnRenderThread.IsBoundToObject(this))
+	RiveRenderTarget = InRiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
+			
+	if (!OnResourceInitializedOnRenderThread.IsBoundToObject(this))
 	{
 		OnResourceInitializedOnRenderThread.AddUObject(this, &URiveObject::OnResourceInitialized_RenderThread);
 	}
-	
+			
 	RiveRenderTarget->SetClearColor(ClearColor);
-	
+
 	if (RiveDescriptor.ArtboardName.IsEmpty())
 	{
 		Artboard->Initialize(RiveDescriptor.RiveFile->GetNativeFile(), RiveRenderTarget, RiveDescriptor.ArtboardIndex, RiveDescriptor.StateMachineName);
@@ -156,33 +154,27 @@ void URiveObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 				AudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
 				AudioEngineLambdaHandle.Reset();
 			}
-		
+
 			TFunction<void()> AudioLambda = [this]()
 			{
 				Artboard->SetAudioEngine(AudioEngine);
 				AudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
 			};
 			AudioEngineLambdaHandle = AudioEngine->OnRiveAudioReady.AddLambda(AudioLambda);
-		} else
+		}
+		else
 		{
 			Artboard->SetAudioEngine(AudioEngine);
 		}
 	}
-	
+
 
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveObject::OnArtboardTickRender);
 	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveObject::GetLocalCoordinate);
 
 	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
 	RiveRenderTarget->Initialize();
-
-	// PrintStats();
-	
-	// if (bRaiseArtboardChangedEvent)
-	// {
-	// 	OnArtboardChangedRaw.Broadcast(this, Artboard);
-	// 	OnArtboardChanged.Broadcast(this, Artboard);
-	// }
+	OnRiveReady.Broadcast();
 }
 
 void URiveObject::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const

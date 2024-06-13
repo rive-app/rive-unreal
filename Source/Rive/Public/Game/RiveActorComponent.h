@@ -5,8 +5,10 @@
 #include "IRiveRenderTarget.h"
 #include "RiveTypes.h"
 #include "Components/ActorComponent.h"
+#include "Rive/RiveDescriptor.h"
 #include "RiveActorComponent.generated.h"
 
+class IRiveRenderer;
 class URiveAudioEngine;
 class URiveTexture;
 class URiveArtboard;
@@ -42,7 +44,7 @@ public:
 
     //~ END : UActorComponent Interface
     
-    void InitializeRenderTarget(int32 SizeX, int32 SizeY);
+    void Initialize();
 
     UPROPERTY(BlueprintAssignable, Category = Rive)
     FRiveReadyDelegate OnRiveReady;
@@ -51,16 +53,23 @@ public:
     void ResizeRenderTarget(int32 InSizeX, int32 InSizeY);
 
     UFUNCTION(BlueprintCallable, Category = Rive)
-    URiveArtboard* InstantiateArtboard(URiveFile* InRiveFile, const FString& InArtboardName, const FString& InStateMachineName);
+    URiveArtboard* AddArtboard(URiveFile* InRiveFile, const FString& InArtboardName, const FString& InStateMachineName);
+
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    void RemoveArtboard(URiveArtboard* InArtboard);
     
 protected:
-    void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
+    void RiveReady(IRiveRenderer* InRiveRenderer);
+    void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource);
+    
     /**
      * Attribute(s)
      */
 
 public:
-
+    UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = Rive)
+    FRiveDescriptor DefaultRiveDescriptor;
+    
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive, meta = (ClampMin = 1, UIMin = 1, ClampMax = 3840, UIMax = 3840))
     FIntPoint Size;
     

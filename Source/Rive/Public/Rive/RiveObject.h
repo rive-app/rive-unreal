@@ -11,6 +11,7 @@
 
 #if WITH_RIVE
 
+class IRiveRenderer;
 struct FAssetImportInfo;
 class URiveArtboard;
 class FRiveTextureResource;
@@ -33,6 +34,8 @@ UCLASS(BlueprintType, Blueprintable, HideCategories=("ImportSettings", "Compress
 class RIVE_API URiveObject : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
+	DECLARE_MULTICAST_DELEGATE(FRiveReadyDelegate)
+
 
 public:
 	/**
@@ -97,8 +100,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	URiveArtboard* GetArtboard() const;
 	
+	FRiveReadyDelegate OnRiveReady;
+	
 protected:
 
+	void RiveReady(IRiveRenderer* InRiveRenderer);
 	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
 
 public:
