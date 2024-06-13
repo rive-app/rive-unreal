@@ -177,8 +177,11 @@ bool FRiveWidgetFactory::Create()
 	{
 		return false;
 	}
-	
-	RiveFile->SetWidgetClass(TSubclassOf<UUserWidget>(NewBP->GeneratedClass));
+
+	if (!RiveFile->GetWidgetClass()->IsValidLowLevel())
+	{
+		RiveFile->SetWidgetClass(TSubclassOf<UUserWidget>(NewBP->GeneratedClass));
+	}
 
 	// Compile BP
 	FCompilerResultsLog LogResults;
