@@ -143,7 +143,7 @@ void URiveObject::RiveReady(IRiveRenderer* InRiveRenderer)
 		Artboard->Initialize(RiveDescriptor.RiveFile->GetNativeFile(), RiveRenderTarget, RiveDescriptor.ArtboardName, RiveDescriptor.StateMachineName);
 	}
 
-	ResizeRenderTargets(Artboard->GetSize());
+	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
 
 	if (AudioEngine != nullptr)
 	{
@@ -167,12 +167,10 @@ void URiveObject::RiveReady(IRiveRenderer* InRiveRenderer)
 			Artboard->SetAudioEngine(AudioEngine);
 		}
 	}
-
-
+	
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveObject::OnArtboardTickRender);
 	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveObject::GetLocalCoordinate);
-
-	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
+	
 	RiveRenderTarget->Initialize();
 	OnRiveReady.Broadcast();
 }

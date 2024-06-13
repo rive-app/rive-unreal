@@ -108,6 +108,9 @@ protected:
 	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
 
 public:
+	/** Control Size of Render Texture Manually */
+	bool bManualSize = false;
+	
 	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	FRiveDescriptor RiveDescriptor;
 
@@ -127,12 +130,7 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;
-
-	/** Control Size of Render Texture Manually */
-	UPROPERTY(EditAnywhere, Category = Rive)
-	bool bManualSize = false;
-
-
+	
 	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))

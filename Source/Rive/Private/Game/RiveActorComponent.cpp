@@ -41,7 +41,7 @@ void URiveActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
     if (RiveRenderTarget)
     {
-        for (URiveArtboard* Artboard : RenderObjects)
+        for (URiveArtboard* Artboard : Artboards)
         {
             RiveRenderTarget->Save();
             Artboard->Tick(DeltaTime);
@@ -110,7 +110,7 @@ URiveArtboard* URiveActorComponent::AddArtboard(URiveFile* InRiveFile, const FSt
     
     URiveArtboard* Artboard = NewObject<URiveArtboard>();
     Artboard->Initialize(InRiveFile->GetNativeFile(), RiveRenderTarget, InArtboardName, InStateMachineName);    
-    RenderObjects.Add(Artboard);
+    Artboards.Add(Artboard);
 
     if (RiveAudioEngine != nullptr)
     {
@@ -122,7 +122,7 @@ URiveArtboard* URiveActorComponent::AddArtboard(URiveFile* InRiveFile, const FSt
 
 void URiveActorComponent::RemoveArtboard(URiveArtboard* InArtboard)
 {
-    RenderObjects.RemoveSingle(InArtboard);
+    Artboards.RemoveSingle(InArtboard);
 }
 
 void URiveActorComponent::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource)

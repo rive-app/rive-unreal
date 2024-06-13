@@ -46,6 +46,12 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = Rive)
 	FRiveCoordinatesDelegate OnGetLocalCoordinate;
+
+	UFUNCTION(BlueprintCallable, Category=Rive)
+	bool HasCustomRender()
+	{
+		return OnArtboardTick_Render.IsBound();
+	}
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetSize() const;
