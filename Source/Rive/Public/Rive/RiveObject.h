@@ -122,13 +122,6 @@ private:
 	FLinearColor ClearColor = FLinearColor::Transparent;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
-	ERiveFitType RiveFitType = ERiveFitType::Contain;
-
-	/* This property is not editable via Editor in Unity, so we'll hide it also */
-	UPROPERTY(EditAnywhere, Category=Rive)
-	ERiveAlignment RiveAlignment = ERiveAlignment::Center;
-
-	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;
 	
 	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;

@@ -30,8 +30,8 @@ public:
 	FString StateMachineName;
     
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
-	ERiveFitType FitType;
+	ERiveFitType FitType = ERiveFitType::Contain;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
-	ERiveAlignment Alignment;
+	ERiveAlignment Alignment = ERiveAlignment::Center;
 };

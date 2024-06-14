@@ -75,7 +75,7 @@ FVector2f URiveObject::GetLocalCoordinate(URiveArtboard* InArtboard, const FVect
 #if WITH_RIVE
 	if (InArtboard)
 	{
-		return InArtboard->GetLocalCoordinate(InPosition, Size, RiveAlignment, RiveFitType);
+		return InArtboard->GetLocalCoordinate(InPosition, Size, RiveDescriptor.Alignment, RiveDescriptor.FitType);
 	}
 #endif // WITH_RIVE
 	return FVector2f::ZeroVector;
@@ -86,7 +86,7 @@ FVector2f URiveObject::GetLocalCoordinatesFromExtents(const FVector2f& InPositio
 #if WITH_RIVE
 	if (GetArtboard())
 	{
-		return GetArtboard()->GetLocalCoordinatesFromExtents(InPosition, InExtents, Size, RiveAlignment, RiveFitType);
+		return GetArtboard()->GetLocalCoordinatesFromExtents(InPosition, InExtents, Size, RiveDescriptor.Alignment, RiveDescriptor.FitType);
 	}
 #endif // WITH_RIVE
 	return FVector2f::ZeroVector;
@@ -186,7 +186,7 @@ void URiveObject::OnResourceInitialized_RenderThread(FRHICommandListImmediate& R
 
 void URiveObject::OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard)
 {
-	InArtboard->Align(RiveFitType, RiveAlignment);
+	InArtboard->Align(RiveDescriptor.FitType, RiveDescriptor.Alignment);
 	InArtboard->Draw();
 }
 
