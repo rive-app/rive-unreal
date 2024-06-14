@@ -143,7 +143,7 @@ void URiveObject::RiveReady(IRiveRenderer* InRiveRenderer)
 		Artboard->Initialize(RiveDescriptor.RiveFile->GetNativeFile(), RiveRenderTarget, RiveDescriptor.ArtboardName, RiveDescriptor.StateMachineName);
 	}
 
-	ResizeRenderTargets(bManualSize ? Size : Artboard->GetSize());
+	ResizeRenderTargets(Artboard->GetSize());
 
 	if (AudioEngine != nullptr)
 	{

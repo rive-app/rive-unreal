@@ -83,5 +83,8 @@ public:
     TObjectPtr<URiveAudioEngine> RiveAudioEngine;
     
 private:
+    UFUNCTION()
+    void OnDefaultArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);
+    
     TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 };

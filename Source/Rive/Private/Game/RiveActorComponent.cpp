@@ -134,6 +134,12 @@ void URiveActorComponent::OnResourceInitialized_RenderThread(FRHICommandListImme
     }
 }
 
+void URiveActorComponent::OnDefaultArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard)
+{
+    InArtboard->Align(DefaultRiveDescriptor.FitType, DefaultRiveDescriptor.Alignment);
+    InArtboard->Draw();
+}
+
 void URiveActorComponent::RiveReady(IRiveRenderer* InRiveRenderer)
 {
     RiveTexture = NewObject<URiveTexture>();
@@ -147,8 +153,9 @@ void URiveActorComponent::RiveReady(IRiveRenderer* InRiveRenderer)
     
     if (DefaultRiveDescriptor.RiveFile)
     {
-        AddArtboard(DefaultRiveDescriptor.RiveFile, DefaultRiveDescriptor.ArtboardName, DefaultRiveDescriptor.StateMachineName);
-    }
+        URiveArtboard* Artboard = AddArtboard(DefaultRiveDescriptor.RiveFile, DefaultRiveDescriptor.ArtboardName, DefaultRiveDescriptor.StateMachineName);
+        Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveActorComponent::OnDefaultArtboardTickRender);
+    } 
     
     OnRiveReady.Broadcast();
 }

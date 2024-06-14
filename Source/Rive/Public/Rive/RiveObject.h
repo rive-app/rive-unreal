@@ -108,9 +108,6 @@ protected:
 	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
 
 public:
-	/** Control Size of Render Texture Manually */
-	bool bManualSize = false;
-	
 	UPROPERTY(BlueprintReadWrite, Category=Rive)
 	FRiveDescriptor RiveDescriptor;
 
