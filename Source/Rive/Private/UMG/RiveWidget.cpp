@@ -69,7 +69,7 @@ void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
 
 void URiveWidget::Setup()
 {
-	if (!RiveObject)
+	if (!RiveObject && RiveWidget.IsValid())
 	{
 		TimerHandle.Invalidate();
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
@@ -77,6 +77,8 @@ void URiveWidget::Setup()
 			RiveObject = NewObject<URiveObject>();
 			RiveObject->OnRiveReady.AddLambda([this]()
 			{
+				if (!RiveWidget.IsValid()) return;
+				
 				UE::Slate::FDeprecateVector2DResult AbsoluteSize = GetCachedGeometry().GetAbsoluteSize();
 
 				RiveObject->ResizeRenderTargets(FIntPoint(AbsoluteSize.X, AbsoluteSize.Y));
