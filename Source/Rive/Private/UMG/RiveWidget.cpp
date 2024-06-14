@@ -8,90 +8,85 @@
 
 URiveWidget::~URiveWidget()
 {
-    if (RiveWidget != nullptr)
-    {
-        RiveWidget->SetRiveTexture(nullptr);
-    }
-    
-    RiveWidget.Reset();
+	if (RiveWidget != nullptr)
+	{
+		RiveWidget->SetRiveTexture(nullptr);
+	}
 
-    if (RiveObject != nullptr)
-    {
-        RiveObject->MarkAsGarbage();
-        RiveObject = nullptr;
-    }
+	RiveWidget.Reset();
+
+	if (RiveObject != nullptr)
+	{
+		RiveObject->MarkAsGarbage();
+		RiveObject = nullptr;
+	}
 }
 
 #if WITH_EDITOR
 
 const FText URiveWidget::GetPaletteCategory()
 {
-    return LOCTEXT("Rive", "RiveUI");
+	return LOCTEXT("Rive", "RiveUI");
 }
 
 #endif // WITH_EDITOR
 
 void URiveWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
-    Super::ReleaseSlateResources(bReleaseChildren);
+	Super::ReleaseSlateResources(bReleaseChildren);
 
-    if (RiveWidget != nullptr)
-    {
-        RiveWidget->SetRiveTexture(nullptr);
-    }
-    
-    RiveWidget.Reset();
+	if (RiveWidget != nullptr)
+	{
+		RiveWidget->SetRiveTexture(nullptr);
+	}
 
-    if (RiveObject != nullptr)
-    {
-        RiveObject->MarkAsGarbage();
-        RiveObject = nullptr;
-    }
+	RiveWidget.Reset();
+
+	if (RiveObject != nullptr)
+	{
+		RiveObject->MarkAsGarbage();
+		RiveObject = nullptr;
+	}
 }
 
 TSharedRef<SWidget> URiveWidget::RebuildWidget()
 {
-    RiveWidget = SNew(SRiveWidget);
-    Setup();
-    return RiveWidget.ToSharedRef();
+	RiveWidget = SNew(SRiveWidget);
+	Setup();
+	return RiveWidget.ToSharedRef();
 }
 
 void URiveWidget::NativeConstruct()
 {
-    Super::NativeConstruct();
-    Setup();
+	Super::NativeConstruct();
+	Setup();
 }
 
 void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
 {
-    RiveObject->GetArtboard()->SetAudioEngine(InAudioEngine);
+	RiveObject->GetArtboard()->SetAudioEngine(InAudioEngine);
 }
 
 void URiveWidget::Setup()
 {
-    if (!RiveObject)
-    {
-        RiveObject = NewObject<URiveObject>();
-        
-        RiveObject->OnRiveReady.AddLambda([this]()
-        {
-            RiveWidget->SetRiveTexture(RiveObject);
-            RiveWidget->RegisterArtboardInputs({RiveObject->GetArtboard()});
-            OnRiveReady.Broadcast();
+	if (!RiveObject)
+	{
+		TimerHandle.Invalidate();
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
+		{
+			RiveObject = NewObject<URiveObject>();
+			RiveObject->OnRiveReady.AddLambda([this]()
+			{
+				UE::Slate::FDeprecateVector2DResult AbsoluteSize = GetCachedGeometry().GetAbsoluteSize();
 
-            TimerHandle.Invalidate();
-            GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
-            {
-                UE::Slate::FDeprecateVector2DResult AbsoluteSize = GetCachedGeometry().GetAbsoluteSize();
-                if (RiveObject)
-                {
-                    RiveObject->ResizeRenderTargets(FIntPoint(AbsoluteSize.X, AbsoluteSize.Y));
-                }
-            }, 0.05f, false);
-        });
-        
-        RiveObject->Initialize(RiveDescriptor);
-    }
+				RiveObject->ResizeRenderTargets(FIntPoint(AbsoluteSize.X, AbsoluteSize.Y));
+				RiveWidget->SetRiveTexture(RiveObject);
+				RiveWidget->RegisterArtboardInputs({RiveObject->GetArtboard()});
+				OnRiveReady.Broadcast();
+			});
+			RiveObject->Initialize(RiveDescriptor);
+		}, 0.05f, false);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
