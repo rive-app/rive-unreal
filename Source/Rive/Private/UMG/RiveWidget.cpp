@@ -78,6 +78,16 @@ void URiveWidget::Setup()
             RiveWidget->SetRiveTexture(RiveObject);
             RiveWidget->RegisterArtboardInputs({RiveObject->GetArtboard()});
             OnRiveReady.Broadcast();
+
+            TimerHandle.Invalidate();
+            GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
+            {
+                UE::Slate::FDeprecateVector2DResult AbsoluteSize = GetCachedGeometry().GetAbsoluteSize();
+                if (RiveObject)
+                {
+                    RiveObject->ResizeRenderTargets(FIntPoint(AbsoluteSize.X, AbsoluteSize.Y));
+                }
+            }, 0.05f, false);
         });
         
         RiveObject->Initialize(RiveDescriptor);
