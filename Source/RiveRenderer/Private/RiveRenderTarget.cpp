@@ -218,6 +218,7 @@ DECLARE_GPU_STAT_NAMED(Render, TEXT("RiveRenderTarget::Render"));
 void FRiveRenderTarget::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
 {
 	SCOPED_GPU_STAT(RHICmdList, Render);
+	SCOPED_DRAW_EVENT(RHICmdList, RiveRender);
 	check(IsInRenderingThread());
 	
 	Render_Internal(RiveRenderCommands);

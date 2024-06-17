@@ -11,6 +11,7 @@
 
 #if WITH_RIVE
 
+class IRiveRenderer;
 struct FAssetImportInfo;
 class URiveArtboard;
 class FRiveTextureResource;
@@ -33,13 +34,10 @@ UCLASS(BlueprintType, Blueprintable, HideCategories=("ImportSettings", "Compress
 class RIVE_API URiveObject : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
+	DECLARE_MULTICAST_DELEGATE(FRiveReadyDelegate)
+
 
 public:
-	// DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnArtboardChangedDynamic, URiveObject*, RiveFile, URiveArtboard*, Artboard);
-	// DECLARE_MULTICAST_DELEGATE_TwoParams(FOnArtboardChanged, URiveObject* /* RiveFile */, URiveArtboard* /* Artboard */);
-	//
-	
-	
 	/**
 	 * Structor(s)
 	 */
@@ -102,14 +100,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	URiveArtboard* GetArtboard() const;
 	
+	FRiveReadyDelegate OnRiveReady;
+	
 protected:
 
+	void RiveReady(IRiveRenderer* InRiveRenderer);
 	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
-
-public:
-	// UPROPERTY(BlueprintAssignable, Category = Rive)
-	// FOnArtboardChangedDynamic OnArtboardChanged;
-	// FOnArtboardChanged OnArtboardChangedRaw;
 
 public:
 	UPROPERTY(BlueprintReadWrite, Category=Rive)
@@ -123,20 +119,8 @@ private:
 	FLinearColor ClearColor = FLinearColor::Transparent;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
-	ERiveFitType RiveFitType = ERiveFitType::Contain;
-
-	/* This property is not editable via Editor in Unity, so we'll hide it also */
-	UPROPERTY(EditAnywhere, Category=Rive)
-	ERiveAlignment RiveAlignment = ERiveAlignment::Center;
-
-	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;
-
-	/** Control Size of Render Texture Manually */
-	UPROPERTY(EditAnywhere, Category = Rive)
-	bool bManualSize = false;
-
-
+	
 	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))

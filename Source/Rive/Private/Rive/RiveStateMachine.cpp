@@ -5,6 +5,7 @@
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
+#include "Stats/RiveStats.h"
 
 #if WITH_RIVE
 #include "PreRiveHeaders.h"
@@ -53,6 +54,8 @@ FRiveStateMachine::FRiveStateMachine(rive::ArtboardInstance* InNativeArtboardIns
 
 bool FRiveStateMachine::Advance(float InSeconds)
 {
+    SCOPED_NAMED_EVENT_TEXT(TEXT("FRiveStateMachine::Advance"), FColor::White);
+    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FRiveStateMachine::Advance"), STAT_STATEMACHINE_ADVANCE, STATGROUP_Rive);
     IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     if (!RiveRenderer)
     {

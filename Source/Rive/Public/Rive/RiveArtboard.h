@@ -46,6 +46,12 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = Rive)
 	FRiveCoordinatesDelegate OnGetLocalCoordinate;
+
+	UFUNCTION(BlueprintCallable, Category=Rive)
+	bool HasCustomRender()
+	{
+		return OnArtboardTick_Render.IsBound();
+	}
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetSize() const;
@@ -127,9 +133,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable)
 	void SetAudioEngine(URiveAudioEngine* AudioEngine);
-
-	UFUNCTION(BlueprintCallable)
-	void OverrideImageAsset(const FString& InAssetId, UTexture2D* Texture);
 	
 #if WITH_RIVE
 	void Reinitialize(rive::File* InNativeFilePtr);

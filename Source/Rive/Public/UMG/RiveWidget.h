@@ -74,5 +74,6 @@ public:
 private:
     void Setup();
     TSharedPtr<SRiveWidget> RiveWidget;
+    FTimerHandle TimerHandle;
 
 };
