@@ -55,7 +55,6 @@ def main(rive_renderer_path):
         os.chdir(os.path.join(rive_renderer_path, 'submodules', 'rive-cpp'))
         patch_output = subprocess.check_output(['git', 'apply', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
         print(patch_output)
-        input("wait")
         android_succeeded = True
         if not do_android(rive_renderer_path, True) or not do_android(rive_renderer_path, False):
            android_succeeded = False
@@ -63,6 +62,7 @@ def main(rive_renderer_path):
         # unapply android patch after
         os.chdir(os.path.join(rive_renderer_path, 'submodules', 'rive-cpp'))
         patch_output = subprocess.check_output(['git', 'apply', '-R', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
+        print(patch_output)
 
         if not android_succeeded:
             return
