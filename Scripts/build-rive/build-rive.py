@@ -16,6 +16,7 @@ targets = [
     'rive_pls_renderer',
     'rive_pls_shaders',
     'rive_sheenbidi',
+#     'rive_yoga',
     'libpng',
     'libjpeg',
     'zlib'
