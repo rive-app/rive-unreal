@@ -49,7 +49,7 @@ public class RiveLibrary : ModuleRules
                 Path.Combine(libDirectory, $"rive_libjpeg{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_decoders{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_pls_renderer{libSuffix}.{extension}"),
-                Path.Combine(libDirectory, $"rive_yoga{libSuffix}.{extension}"),
+                // Path.Combine(libDirectory, $"rive_yoga{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive{libSuffix}.{extension}"),
             });
 
@@ -78,7 +78,7 @@ public class RiveLibrary : ModuleRules
                 Path.Combine(libDirectory, $"liblibjpeg{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_decoders{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_pls_renderer{libSuffix}.{extension}"),
-                Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
+                // Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive{libSuffix}.{extension}"),
             });
             
@@ -97,7 +97,7 @@ public class RiveLibrary : ModuleRules
                 Path.Combine(libDirectory, $"liblibjpeg{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_decoders{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_pls_renderer{libSuffix}.{extension}"),
-                Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
+                // Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive{libSuffix}.{extension}"),
             });
 
@@ -120,7 +120,7 @@ public class RiveLibrary : ModuleRules
                 Path.Combine(libDirectory, $"liblibjpeg{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_decoders{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_pls_renderer{libSuffix}.{extension}"),
-                Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
+                // Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive{libSuffix}.{extension}"),
             });
             
