@@ -4,6 +4,7 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "Logs/RiveLog.h"
 #include "Rive/RiveEvent.h"
 #include "Rive/RiveStateMachine.h"
 #include "Stats/RiveStats.h"
@@ -113,6 +114,36 @@ void URiveArtboard::FireTrigger(const FString& InPropertyName) const
 	}
 }
 
+void URiveArtboard::FireTriggerAtPath(const FString& InInputName, const FString& InPath) const
+{
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
+	{
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		
+		if (!NativeArtboardPtr)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid Artboard Pointer."));
+			return;
+		}
+		
+		rive::SMITrigger* SmiTrigger = NativeArtboardPtr->getTrigger(TCHAR_TO_UTF8(*InInputName), TCHAR_TO_UTF8(*InPath));
+		if (!SmiTrigger)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid input for %s at path %s"), *InInputName, *InPath);
+			return;
+		}
+
+		if (!SmiTrigger->input()->is<rive::StateMachineTriggerBase>())
+		{
+			UE_LOG(LogRive, Warning, TEXT("Input for %s at path %s is not a trigger"), *InInputName, *InPath);
+			return;
+		}
+
+		SmiTrigger->fire();
+	}
+}
+
 bool URiveArtboard::GetBoolValue(const FString& InPropertyName) const
 {
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
@@ -127,6 +158,42 @@ bool URiveArtboard::GetBoolValue(const FString& InPropertyName) const
 	return false;
 }
 
+bool URiveArtboard::GetBoolValueAtPath(const FString& InInputName, const FString& InPath, bool& OutSuccess) const
+{
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
+	{
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		
+		if (!NativeArtboardPtr)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid Artboard Pointer."));
+			OutSuccess = false;
+			return false;
+		}
+		rive::SMIBool* SmiBool = NativeArtboardPtr->getBool(TCHAR_TO_UTF8(*InInputName), TCHAR_TO_UTF8(*InPath));
+		if (!SmiBool)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid input for %s at path %s"), *InInputName, *InPath);
+			OutSuccess = false;
+			return false;
+		}
+
+		if (!SmiBool->input()->is<rive::StateMachineBoolBase>())
+		{
+			UE_LOG(LogRive, Warning, TEXT("Input for %s at path %s is not a bool"), *InInputName, *InPath);
+			OutSuccess = false;
+			return false;
+		}
+
+		OutSuccess = true;
+		return SmiBool->value();
+	}
+
+	OutSuccess = false;
+	return false;
+}
+
 float URiveArtboard::GetNumberValue(const FString& InPropertyName) const
 {
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
@@ -138,6 +205,43 @@ float URiveArtboard::GetNumberValue(const FString& InPropertyName) const
 			return StateMachine->GetNumberValue(InPropertyName);
 		}
 	}
+	return 0.f;
+}
+
+float URiveArtboard::GetNumberValueAtPath(const FString& InInputName, const FString& InPath, bool& OutSuccess) const
+{
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
+	{
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		
+		if (!NativeArtboardPtr)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid Artboard Pointer."));
+			OutSuccess = false;
+			return 0.f;
+		}
+
+		rive::SMINumber* SmiNumber = NativeArtboardPtr->getNumber(TCHAR_TO_UTF8(*InInputName), TCHAR_TO_UTF8(*InPath));
+		if (!SmiNumber)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid input for %s at path %s"), *InInputName, *InPath);
+			OutSuccess = false;
+			return 0.f;
+		}
+
+		if (!SmiNumber->input()->is<rive::StateMachineNumberBase>())
+		{
+			UE_LOG(LogRive, Warning, TEXT("Input for %s at path %s is not a number"), *InInputName, *InPath);
+			OutSuccess = false;
+			return 0.f;
+		}
+
+		OutSuccess = true;
+		return SmiNumber->value();
+	}
+
+	OutSuccess = false;
 	return 0.f;
 }
 
@@ -171,6 +275,42 @@ void URiveArtboard::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 	}
 }
 
+void URiveArtboard::SetBoolValueAtPath(const FString& InInputName, bool InValue, const FString& InPath, bool& OutSuccess)
+{
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
+	{
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		
+		if (!NativeArtboardPtr)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid Artboard Pointer."));
+			OutSuccess = false;
+			return;
+		}
+
+		rive::SMIBool* SmiBool = NativeArtboardPtr->getBool(TCHAR_TO_UTF8(*InInputName), TCHAR_TO_UTF8(*InPath));
+		if (!SmiBool)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid input for %s at path %s"), *InInputName, *InPath);
+			OutSuccess = false;
+			return;
+		}
+
+		if (!SmiBool->input()->is<rive::StateMachineBoolBase>())
+		{
+			UE_LOG(LogRive, Warning, TEXT("Input for %s at path %s is not a bool"), *InInputName, *InPath);
+			OutSuccess = false;
+			return;
+		}
+
+		SmiBool->value(InValue);
+		OutSuccess = true;
+	}
+	
+	OutSuccess = false;
+}
+
 void URiveArtboard::SetNumberValue(const FString& InPropertyName, float NewValue)
 {
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
@@ -182,6 +322,41 @@ void URiveArtboard::SetNumberValue(const FString& InPropertyName, float NewValue
 			StateMachine->SetNumberValue(InPropertyName, NewValue);
 		}
 	}
+}
+
+void URiveArtboard::SetNumberValueAtPath(const FString& InInputName, float InValue, const FString& InPath, bool& OutSuccess)
+{
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
+	{
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+		
+		if (!NativeArtboardPtr)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid Artboard Pointer."));
+			return;
+		}
+
+		rive::SMINumber* SmiNumber = NativeArtboardPtr->getNumber(TCHAR_TO_UTF8(*InInputName), TCHAR_TO_UTF8(*InPath));
+		if (!SmiNumber)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid input for %s at path %s"), *InInputName, *InPath);
+			OutSuccess = false;
+			return;
+		}
+
+		if (!SmiNumber->input()->is<rive::StateMachineNumberBase>())
+		{
+			UE_LOG(LogRive, Warning, TEXT("Input for %s at path %s is not a number"), *InInputName, *InPath);
+			OutSuccess = false;
+			return;
+		}
+
+		SmiNumber->value(InValue);
+		OutSuccess = true;
+	}
+	
+	OutSuccess = false;
 }
 
 void URiveArtboard::SetTextValue(const FString& InPropertyName, const FString& NewValue)
@@ -476,7 +651,7 @@ void URiveArtboard::Tick(float InDeltaSeconds)
 	Tick_Render(InDeltaSeconds);
 }
 
-rive::Artboard* URiveArtboard::GetNativeArtboard() const
+rive::ArtboardInstance* URiveArtboard::GetNativeArtboard() const
 {
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 	if (!RiveRenderer)

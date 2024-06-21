@@ -84,16 +84,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void FireTrigger(const FString& InPropertyName) const;
 	UFUNCTION(BlueprintCallable, Category = Rive)
+	void FireTriggerAtPath(const FString& InInputName, const FString& InPath) const;
+	
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	bool GetBoolValue(const FString& InPropertyName) const;
 	UFUNCTION(BlueprintCallable, Category = Rive)
+	bool GetBoolValueAtPath(const FString& InInputName, const FString& InPath, bool& OutSuccess) const;
+	
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	float GetNumberValue(const FString& InPropertyName) const;
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	float GetNumberValueAtPath(const FString& InInputName, const FString& InPath, bool& OutSuccess) const;
+	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FString GetTextValue(const FString& InPropertyName) const;
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetBoolValueAtPath(const FString& InInputName, bool InValue, const FString& InPath, bool& OutSuccess);
+	
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetNumberValue(const FString& InPropertyName, float NewValue);
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetNumberValueAtPath(const FString& InInputName, float InValue, const FString& InPath, bool& OutSuccess);
+
+
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetTextValue(const FString& InPropertyName, const FString& NewValue);
 	
@@ -150,7 +166,7 @@ public:
 
 public:
 	
-	rive::Artboard* GetNativeArtboard() const;
+	rive::ArtboardInstance* GetNativeArtboard() const;
 
 	rive::AABB GetBounds() const;
 
