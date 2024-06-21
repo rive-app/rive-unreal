@@ -267,7 +267,6 @@ def copy_files(src, dst, extension, is_release):
 
             relative_path = os.path.relpath(root, src)
             dest_path = os.path.join(dst, file_name if is_release else file_name.replace(extension, f'_d{extension}'))
-            print(f'Destination: {dest_path}')
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             shutil.copy2(src_path, dest_path)
 
