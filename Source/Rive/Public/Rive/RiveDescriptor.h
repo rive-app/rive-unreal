@@ -23,7 +23,7 @@ public:
 	FString ArtboardName;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive) // TODO: meta=(GetOptions="GetArtboardNamesForDropdown"))
-	int32 ArtboardIndex;
+	int32 ArtboardIndex = 0;
 	
 	// StateMachine name to pass into our default artboard instance
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive) // TODO: meta=(GetOptions="GetStateMachineNamesForDropdown"))

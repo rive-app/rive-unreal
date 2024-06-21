@@ -1,6 +1,7 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "UMG/RiveWidget.h"
+#include "Logs/RiveLog.h"
 #include "Rive/RiveObject.h"
 #include "Slate/SRiveWidget.h"
 
@@ -64,7 +65,23 @@ void URiveWidget::NativeConstruct()
 
 void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
 {
-	RiveObject->GetArtboard()->SetAudioEngine(InAudioEngine);
+	if (RiveObject && RiveObject->GetArtboard())
+	{
+		RiveObject->GetArtboard()->SetAudioEngine(InAudioEngine);
+		return;
+	}
+	
+	UE_LOG(LogRive, Warning, TEXT("RiveObject was null while trying to SetAudioEngine"));
+}
+
+URiveArtboard* URiveWidget::GetArtboard() const
+{
+	if (RiveObject && RiveObject->GetArtboard())
+	{
+		return RiveObject->GetArtboard();
+	}
+	
+	return nullptr;
 }
 
 void URiveWidget::Setup()

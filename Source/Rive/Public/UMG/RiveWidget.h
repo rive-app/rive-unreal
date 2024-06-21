@@ -54,6 +54,9 @@ public:
 
     UFUNCTION(BlueprintCallable)
     void SetAudioEngine(URiveAudioEngine* InAudioEngine);
+
+    UFUNCTION(BlueprintCallable)
+    URiveArtboard* GetArtboard() const;
     
     /**
      * Attribute(s)
@@ -65,13 +68,13 @@ public:
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
     FRiveDescriptor RiveDescriptor;
     
-    // Runtime objects
-    UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
-    TObjectPtr<URiveObject> RiveObject;
-
-    UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
+    UPROPERTY(BlueprintReadOnly, Transient, Category = Rive)
     TObjectPtr<URiveAudioEngine> RiveAudioEngine;
 private:
+    // Runtime objects
+    UPROPERTY(Transient)
+    TObjectPtr<URiveObject> RiveObject;
+    
     void Setup();
     TSharedPtr<SRiveWidget> RiveWidget;
     FTimerHandle TimerHandle;
