@@ -1,7 +1,9 @@
 #ifndef _RIVE_TRANSFORM_COMPONENT_HPP_
 #define _RIVE_TRANSFORM_COMPONENT_HPP_
 #include "rive/generated/transform_component_base.hpp"
+#include "rive/math/aabb.hpp"
 #include "rive/math/mat2d.hpp"
+#include "rive/layout/layout_measure_mode.hpp"
 
 namespace rive
 {
@@ -47,6 +49,16 @@ public:
     void addConstraint(Constraint* constraint);
     virtual AABB localBounds() const;
     void markDirtyIfConstrained();
+
+    virtual Vec2D measureLayout(float width,
+                                LayoutMeasureMode widthMode,
+                                float height,
+                                LayoutMeasureMode heightMode)
+    {
+        return Vec2D();
+    }
+
+    virtual void controlSize(Vec2D size) {}
 };
 } // namespace rive
 

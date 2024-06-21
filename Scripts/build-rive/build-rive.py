@@ -16,7 +16,9 @@ targets = [
     'rive_pls_renderer',
     'rive_pls_shaders',
     'rive_sheenbidi',
+#     'rive_yoga',
     'libpng',
+    'libjpeg',
     'zlib'
 ]
 
@@ -49,8 +51,21 @@ def main(rive_renderer_path):
         if not do_windows(rive_renderer_path, True) or not do_windows(rive_renderer_path, False):
             return
         
+        # apply android patch before android
+        os.chdir(os.path.join(rive_renderer_path, 'submodules', 'rive-cpp'))
+        patch_output = subprocess.check_output(['git', 'apply', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
+        print(patch_output)
+        android_succeeded = True
         if not do_android(rive_renderer_path, True) or not do_android(rive_renderer_path, False):
-           return
+           android_succeeded = False
+
+        # unapply android patch after
+        os.chdir(os.path.join(rive_renderer_path, 'submodules', 'rive-cpp'))
+        patch_output = subprocess.check_output(['git', 'apply', '-R', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
+        print(patch_output)
+
+        if not android_succeeded:
+            return
     else:
         print_red("Unsupported platform")
         return
@@ -88,6 +103,7 @@ def do_android(rive_renderer_path, release):
 
         print_green(f'Built in {os.getcwd()}')
 
+        os.chdir(os.path.join('ARM64', 'default'))
         rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
         print_green('Copying Android libs')
@@ -245,12 +261,12 @@ def copy_files(src, dst, extension, is_release):
         for file_name in files_to_copy:
             src_path = os.path.join(root, file_name)
 
-            # ensure all libs are prefixed with "rive_" on non-darwin platforms
-            if not sys.platform.startswith("darwin") and not file_name.startswith("rive"):
+            # ensure all libs are prefixed with "rive_" on non-darwin / apple platforms
+            if not sys.platform.startswith("darwin") and not file_name.startswith("rive") and not 'Android' in dst:
                 file_name = f'rive_{file_name}'
 
             relative_path = os.path.relpath(root, src)
-            dest_path = os.path.join(dst, relative_path, file_name if is_release else file_name.replace(extension, f'_d{extension}'))
+            dest_path = os.path.join(dst, file_name if is_release else file_name.replace(extension, f'_d{extension}'))
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             shutil.copy2(src_path, dest_path)
 

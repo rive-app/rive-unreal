@@ -26,7 +26,7 @@ public:
 	FRiveViewportClient* GetRiveViewportClient() const { return RiveViewportClient; }
 	
 	//~ BEGIN : FSceneViewport Interface 
-public:
+public: 
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
