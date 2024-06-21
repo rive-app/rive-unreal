@@ -103,6 +103,7 @@ def do_android(rive_renderer_path, release):
 
         print_green(f'Built in {os.getcwd()}')
 
+        os.chdir(os.path.join('ARM64', 'default'))
         rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
         print_green('Copying Android libs')
