@@ -5,9 +5,12 @@
 #include <stddef.h>
 #include <vector>
 #include "rive/animation/linear_animation_instance.hpp"
+#include "rive/animation/state_instance.hpp"
+#include "rive/animation/state_transition.hpp"
 #include "rive/core/field_types/core_callback_type.hpp"
 #include "rive/hit_result.hpp"
 #include "rive/listener_type.hpp"
+#include "rive/nested_animation.hpp"
 #include "rive/scene.hpp"
 
 namespace rive
@@ -23,26 +26,18 @@ class Shape;
 class StateMachineLayerInstance;
 class HitComponent;
 class NestedArtboard;
+class NestedEventListener;
+class NestedEventNotifier;
 class Event;
 class KeyedProperty;
+class EventReport;
 
-class EventReport
-{
-public:
-    EventReport(Event* event, float secondsDelay) : m_event(event), m_secondsDelay(secondsDelay) {}
-    Event* event() const { return m_event; }
-    float secondsDelay() const { return m_secondsDelay; }
-
-private:
-    Event* m_event;
-    float m_secondsDelay;
-};
-
-class StateMachineInstance : public Scene
+class StateMachineInstance : public Scene, public NestedEventNotifier, public NestedEventListener
 {
     friend class SMIInput;
     friend class KeyedProperty;
     friend class HitComponent;
+    friend class StateMachineLayerInstance;
 
 private:
     /// Provide a hitListener if you want to process a down or an up for the pointer position
@@ -51,8 +46,11 @@ private:
 
     template <typename SMType, typename InstType>
     InstType* getNamedInput(const std::string& name) const;
-    void notifyEventListeners(std::vector<EventReport> events, NestedArtboard* source);
+    void notifyEventListeners(const std::vector<EventReport>& events, NestedArtboard* source);
     void sortHitComponents();
+    double randomValue();
+    StateTransition* findRandomTransition(StateInstance* stateFromInstance, bool ignoreTriggers);
+    StateTransition* findAllowedTransition(StateInstance* stateFromInstance, bool ignoreTriggers);
 
 public:
     StateMachineInstance(const StateMachine* machine, ArtboardInstance* instance);
@@ -111,6 +109,7 @@ public:
 
     void setParentNestedArtboard(NestedArtboard* artboard) { m_parentNestedArtboard = artboard; }
     NestedArtboard* parentNestedArtboard() { return m_parentNestedArtboard; }
+    void notify(const std::vector<EventReport>& events, NestedArtboard* context) override;
 
     /// Tracks an event that reported, will be cleared at the end of the next advance.
     void reportEvent(Event* event, float secondsDelay = 0.0f) override;
@@ -120,6 +119,7 @@ public:
 
     /// Gets a reported event at an index < reportedEventCount().
     const EventReport reportedEventAt(std::size_t index) const;
+    bool playsAudio() override { return true; }
 
 private:
     std::vector<EventReport> m_reportedEvents;

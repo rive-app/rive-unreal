@@ -6,7 +6,6 @@
 
 class URiveArtboard;
 class URiveTexture;
-class URiveFile;
 class SRiveWidgetView;
 
 /**
@@ -26,8 +25,7 @@ public:
 	SLATE_ARGUMENT(bool, bDrawCheckerboardInEditor)
 #endif
     SLATE_END_ARGS()
-
-	~SRiveWidget() override;
+	
     /**
      * Implementation(s)
      */
@@ -39,16 +37,11 @@ public:
 
 	void SetRiveTexture(URiveTexture* InRiveTexture);
 	void RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards);
-	void SetRiveFile(URiveFile* InRiveFile);
 
     /**
      * Attribute(s)
      */
 
 private:
-
-    /** Reference to Avalanche View */
     TSharedPtr<SRiveWidgetView> RiveWidgetView;
-	URiveFile* RiveFile = nullptr;
-	FDelegateHandle OnArtboardChangedHandle;
 };

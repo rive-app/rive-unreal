@@ -15,7 +15,7 @@
 
 
 #if WITH_RIVE
-#include "RiveCore/Public/PreRiveHeaders.h"
+#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/pls/pls_renderer.hpp"
@@ -24,19 +24,19 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::FRiveRenderTargetOpenGL(const TSharedRef<FRiveRendererOpenGL>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
+FRiveRenderTargetOpenGL::FRiveRenderTargetOpenGL(const TSharedRef<FRiveRendererOpenGL>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 	: FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget), RiveRendererGL(InRiveRenderer)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 }
 
-UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::~FRiveRenderTargetOpenGL()
+FRiveRenderTargetOpenGL::~FRiveRenderTargetOpenGL()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	CachedPLSRenderTargetOpenGL.reset();
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Initialize()
+void FRiveRenderTargetOpenGL::Initialize()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread());
@@ -59,7 +59,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Initialize()
 }
 
 DECLARE_GPU_STAT_NAMED(CacheTextureTarget, TEXT("FRiveRenderTargetOpenGL::CacheTextureTarget_RenderThread"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
+void FRiveRenderTargetOpenGL::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInRenderingThread());
@@ -81,7 +81,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_Re
 	}
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Submit()
+void FRiveRenderTargetOpenGL::Submit()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread());
@@ -96,12 +96,12 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Submit()
 	}
 }
 
-rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::GetRenderTarget() const
+rive::rcp<rive::pls::PLSRenderTarget> FRiveRenderTargetOpenGL::GetRenderTarget() const
 {
 	return CachedPLSRenderTargetOpenGL;
 }
 
-std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::BeginFrame()
+std::unique_ptr<rive::pls::PLSRenderer> FRiveRenderTargetOpenGL::BeginFrame()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread() || IsInRHIThread());
@@ -119,7 +119,7 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	return FRiveRenderTarget::BeginFrame();
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
+void FRiveRenderTargetOpenGL::EndFrame() const
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread() || IsInRHIThread());
@@ -159,7 +159,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::EndFrame() const
 	ResetOpenGLState();
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
+void FRiveRenderTargetOpenGL::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInRenderingThread());
@@ -172,7 +172,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::Render_RenderThread(F
 
 #if WITH_RIVE
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_Internal(const FTexture2DRHIRef& InRHIResource)
+void FRiveRenderTargetOpenGL::CacheTextureTarget_Internal(const FTexture2DRHIRef& InRHIResource)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread() || IsInRHIThread());
@@ -249,7 +249,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::CacheTextureTarget_In
 #endif // WITH_RIVE
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetOpenGL::ResetOpenGLState() const
+void FRiveRenderTargetOpenGL::ResetOpenGLState() const
 {
 	if (!IsInRHIThread())
 	{

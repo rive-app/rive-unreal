@@ -6,6 +6,10 @@
 #include "ThumbnailRendering/TextureThumbnailRenderer.h"
 #include "RiveTextureThumbnailRenderer.generated.h"
 
+class IRiveRenderTarget;
+class URiveArtboard;
+class URiveTexture;
+
 /**
  * 
  */
@@ -14,6 +18,21 @@ class RIVEEDITOR_API URiveTextureThumbnailRenderer : public UTextureThumbnailRen
 {
 	GENERATED_BODY()
 
+	URiveTextureThumbnailRenderer();
+
 	virtual bool CanVisualizeAsset(UObject* Object) override;
+	virtual EThumbnailRenderFrequency GetThumbnailRenderFrequency(UObject* Object) const override;
 	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* Viewport, FCanvas* Canvas, bool bAdditionalViewFamily) override;
+
+private:
+	void OnAssetRemoved(const FAssetData& AssetData);
+	
+	UPROPERTY()
+	TMap<FName, URiveArtboard*> ThumbnailRenderers;
+
+	UPROPERTY()
+	URiveTexture* RiveTexture;
+
+	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
+	bool Initialized = false;
 };

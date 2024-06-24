@@ -6,10 +6,11 @@
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
 #include "RiveWidgetFactory.h"
+#include "EditorFramework/AssetImportData.h"
 #include "Logs/RiveEditorLog.h"
-#include "Rive/RiveFile.h"
 #include "Subsystems/ImportSubsystem.h"
 #include "Misc/FileHelper.h"
+#include "Rive/RiveFile.h"
 
 extern UNREALED_API class UEditorEngine* GEditor;
 
@@ -34,7 +35,7 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
     const TCHAR* Type = *FileExtension;
     GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPreImport(this, InClass, InParent, InName, Type);
     
-    if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+    if (!IRiveRendererModule::Get().GetRenderer())
     {
         UE_LOG(LogRiveEditor, Error, TEXT("Unable to import the Rive file '%s': the Renderer is null"), *InFilename);
         GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, nullptr);
@@ -83,7 +84,7 @@ bool URiveFileFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
     {
         if (IsValid(RiveFile))
         {
-            OutFilenames.Add(RiveFile->RiveFilePath);
+            OutFilenames.Add(RiveFile->AssetImportData->GetFirstFilename());
             return true;
         }
     }
@@ -96,7 +97,7 @@ void URiveFileFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& New
     {
         if (IsValid(RiveFile) && !NewReimportPaths.IsEmpty() && FPaths::FileExists(NewReimportPaths[0]))
         {
-            RiveFile->RiveFilePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NewReimportPaths[0]);
+            RiveFile->AssetImportData->GetFirstFilename() = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NewReimportPaths[0]);
         }
     }
 }
@@ -110,16 +111,11 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
         UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the RiveFile: it is invalid"));
         return EReimportResult::Failed;
     }
-
-    if (RiveFile->ParentRiveFile)
-    {
-        UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the Rive file '%s': it is an instance, reimport the Parent directly."), *GetFullNameSafe(RiveFile));
-        return EReimportResult::Failed;
-    }
     
-    const FString SourceFilename = RiveFile->RiveFilePath;
     
-    if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+    const FString SourceFilename = RiveFile->AssetImportData->GetFirstFilename();
+    
+    if (!IRiveRendererModule::Get().GetRenderer())
     {
         UE_LOG(LogRiveEditor, Error, TEXT("Unable to Reimport the Rive file '%s' with file '%s': the RiveRenderer is null"), *GetFullNameSafe(RiveFile), *SourceFilename);
         return EReimportResult::Failed;;

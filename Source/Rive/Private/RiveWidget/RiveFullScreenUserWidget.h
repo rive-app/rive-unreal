@@ -10,7 +10,7 @@
 class FSceneViewport;
 class SLevelViewport;
 class SConstraintCanvas;
-class ARiveActor;
+class ARiveWidgetActor;
 
 UENUM(BlueprintType)
 enum class ERiveWidgetDisplayType : uint8
@@ -115,7 +115,7 @@ public:
 	/** Sets the way the widget is supposed to be displayed */
 	void SetDisplayTypes(ERiveWidgetDisplayType InEditorDisplayType, ERiveWidgetDisplayType InGameDisplayType, ERiveWidgetDisplayType InPIEDisplayType);
 
-	void SetRiveActor(ARiveActor* InActor);
+	void SetRiveActor(ARiveWidgetActor* InActor);
 	
 	/**
 	 * If using ERiveWidgetDisplayType::PostProcessWithBlendMaterial, you can specify a custom post process settings that should be modified.
@@ -233,7 +233,7 @@ private:
 
 	/** Reference to Parent Rive Actor */
 	UPROPERTY()
-	TObjectPtr<ARiveActor> RiveActor;
+	TObjectPtr<ARiveWidgetActor> RiveActor;
 
 	/** The world the widget is attached to. */
 	UPROPERTY(Transient, DuplicateTransient)

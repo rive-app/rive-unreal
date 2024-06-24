@@ -2,7 +2,7 @@
 
 #include "RiveRenderCommand.h"
 
-#include "RiveCore/Public/PreRiveHeaders.h"
+#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/renderer.hpp"

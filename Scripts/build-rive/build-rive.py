@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 # install requirements via pip install -r requirements.txt
-# runnning: python3 build-rive.py <path-to-rive-renderer-root>
+# running: python3 build-rive.py <path-to-rive-renderer-root>
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 
@@ -16,20 +16,21 @@ targets = [
     'rive_pls_renderer',
     'rive_pls_shaders',
     'rive_sheenbidi',
+#     'rive_yoga',
     'libpng',
+    'libjpeg',
     'zlib'
 ]
 
 def get_base_command(rive_renderer_path, release):
     return (
         f"premake5 --scripts=\"{rive_renderer_path}/submodules/rive-cpp/build\" "
-        f"--with_rive_text --with_rive_audio=external {'--release' if release else ''}"
+        f"--with_rive_text --with_rive_audio=external {'--config=release' if release else '--config=debug'}"
     )
 
 @click.command()
 @click.argument('rive_renderer_path')
-@click.option('--release', is_flag=True, default=False)
-def main(rive_renderer_path, release):
+def main(rive_renderer_path):
     if sys.platform.startswith('darwin'):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
         # determine a sane build environment
@@ -41,16 +42,29 @@ def main(rive_renderer_path, release):
         else:
             print_green(f"Using SDK at: {output}")
     
-        if not do_mac(rive_renderer_path, release):
+        if not do_mac(rive_renderer_path, True) or not do_mac(rive_renderer_path, False):
             return
         
-        if not do_ios(rive_renderer_path, release):
+        if not do_ios(rive_renderer_path, True) or not do_ios(rive_renderer_path, False):
             return
     elif sys.platform.startswith('win32'):
-        if not do_windows(rive_renderer_path, release):
+        if not do_windows(rive_renderer_path, True) or not do_windows(rive_renderer_path, False):
             return
         
-        if not do_android(rive_renderer_path, release):
+        # apply android patch before android
+        os.chdir(os.path.join(rive_renderer_path, 'submodules', 'rive-cpp'))
+        patch_output = subprocess.check_output(['git', 'apply', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
+        print(patch_output)
+        android_succeeded = True
+        if not do_android(rive_renderer_path, True) or not do_android(rive_renderer_path, False):
+           android_succeeded = False
+
+        # unapply android patch after
+        os.chdir(os.path.join(rive_renderer_path, 'submodules', 'rive-cpp'))
+        patch_output = subprocess.check_output(['git', 'apply', '-R', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
+        print(patch_output)
+
+        if not android_succeeded:
             return
     else:
         print_red("Unsupported platform")
@@ -73,25 +87,27 @@ def get_msbuild():
 
 def do_android(rive_renderer_path, release):
     try:
+        out_dir = os.path.join('out', 'android', 'release' if release else 'debug')
         os.chdir(rive_renderer_path)
 
         if 'NDK_ROOT' in os.environ and 'NDK_PATH' not in os.environ:
             os.environ['NDK_PATH'] = os.environ['NDK_ROOT']
 
-        command = f'{get_base_command(rive_renderer_path, release)} --os=android --arch=arm64 --out=out/android vs2022'
+        command = f'{get_base_command(rive_renderer_path, release)} --os=android --arch=arm64 --out="{out_dir}" vs2022'
         execute_command(command)
 
         msbuild_path = get_msbuild()
         
-        os.chdir(os.path.join(rive_renderer_path, 'out', 'android'))
+        os.chdir(out_dir)
         execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
 
         print_green(f'Built in {os.getcwd()}')
 
+        os.chdir(os.path.join('ARM64', 'default'))
         rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
         print_green('Copying Android libs')
-        copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Android'), ".a")
+        copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Android'), ".a", release)
     except Exception as e:
         print_red(f"Exiting due to errors... {e}")
         return False
@@ -101,13 +117,14 @@ def do_android(rive_renderer_path, release):
 
 def do_windows(rive_renderer_path, release):
     try:
+        out_dir = os.path.join('out', 'windows', 'release' if release else 'debug')
         os.chdir(rive_renderer_path)
-        command = f'{get_base_command(rive_renderer_path, release)} --windows_runtime=dynamic --os=windows --out=out/windows vs2022'
+        command = f'{get_base_command(rive_renderer_path, release)} --windows_runtime=dynamic --os=windows --out="{out_dir}" vs2022'
         execute_command(command)
 
         msbuild_path = get_msbuild()
             
-        os.chdir(os.path.join(rive_renderer_path, 'out', 'windows'))
+        os.chdir(out_dir)
         execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
         
         print_green(f'Built in {os.getcwd()}')
@@ -115,7 +132,7 @@ def do_windows(rive_renderer_path, release):
         rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
         print_green('Copying Windows')
-        copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Win64'), ".lib")
+        copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Win64'), ".lib", release)
     except Exception as e:
         print_red("Exiting due to errors...")
         print_red(e)
@@ -131,16 +148,18 @@ def do_ios(rive_renderer_path, release):
         build_dirs = {}
 
         print_green('Building iOS')
-        execute_command(f'{command} --variant=system --out=out/ios')
-        os.chdir(os.path.join(rive_renderer_path, 'out', 'ios'))
+        out_dir = os.path.join('out', 'ios', 'release' if release else 'debug')
+        execute_command(f'{command} --variant=system --out="{out_dir}"')
+        os.chdir(out_dir)
         build_dirs['ios'] = os.getcwd()
         for target in targets:
             execute_command(f'make {target}')
 
         print_green('Building iOS Simulator')
+        out_dir = os.path.join('out', 'ios_sim', 'release' if release else 'debug')
         os.chdir(rive_renderer_path)
-        execute_command(f'{command} --variant=emulator --out=out/ios_sim')
-        os.chdir(os.path.join(rive_renderer_path, 'out', 'ios_sim'))
+        execute_command(f'{command} --variant=emulator --out="{out_dir}"')
+        os.chdir(out_dir)
         build_dirs['ios_sim'] = os.getcwd()
         for target in targets:
             execute_command(f'make {target}')
@@ -170,8 +189,8 @@ def do_ios(rive_renderer_path, release):
         rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
         print_green('Copying iOS and iOS simulator')
-        copy_files(build_dirs['ios'], os.path.join(rive_libraries_path, 'IOS'), ".a")
-        copy_files(build_dirs['ios_sim'], os.path.join(rive_libraries_path, 'IOS'), ".a")
+        copy_files(build_dirs['ios'], os.path.join(rive_libraries_path, 'IOS'), ".a", release)
+        copy_files(build_dirs['ios_sim'], os.path.join(rive_libraries_path, 'IOS'), ".sim.a", release)
     except Exception as e:
         print_red("Exiting due to errors...")
         print_red(e)
@@ -182,7 +201,6 @@ def do_ios(rive_renderer_path, release):
 
 def do_mac(rive_renderer_path, release):
     try:
-        os.chdir(rive_renderer_path)
         command = f'{get_base_command(rive_renderer_path, release)} --os=macosx gmake2'
         build_dirs = {}
 
@@ -197,16 +215,19 @@ def do_mac(rive_renderer_path, release):
 
 
         print_green('Building macOS x64')
-        execute_command(f'{command} --arch=x64 --out=out/mac_x64')
-        os.chdir(os.path.join(rive_renderer_path, 'out', 'mac_x64'))
+        out_dir = os.path.join('out', 'mac', 'x64', 'release' if release else 'debug')
+        os.chdir(rive_renderer_path)
+        execute_command(f'{command} --arch=x64 --out="{out_dir}"')
+        os.chdir(out_dir)
         build_dirs['mac_x64'] = os.getcwd()
         for target in targets:
             execute_command(f'make {target}')
 
-        print_green('Building macOS x64')
+        print_green('Building macOS arm64')
+        out_dir = os.path.join('out', 'mac', 'arm64', 'release' if release else 'debug')
         os.chdir(rive_renderer_path)
-        execute_command(f'{command} --arch=arm64 --out=out/mac_arm64')
-        os.chdir(os.path.join(rive_renderer_path, 'out', 'mac_arm64'))
+        execute_command(f'{command} --arch=arm64 --out="{out_dir}"')
+        os.chdir(out_dir)
         build_dirs['mac_arm64'] = os.getcwd()
         for target in targets:
             execute_command(f'make {target}')
@@ -217,8 +238,8 @@ def do_mac(rive_renderer_path, release):
         rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
         print_green('Copying macOS x64')
-        copy_files(build_dirs['mac_x64'], os.path.join(rive_libraries_path, 'Mac', 'Intel'), ".a")
-        copy_files(build_dirs['mac_arm64'], os.path.join(rive_libraries_path, 'Mac', 'Mac'), ".a")
+        copy_files(build_dirs['mac_x64'], os.path.join(rive_libraries_path, 'Mac', 'Intel'), ".a", release)
+        copy_files(build_dirs['mac_arm64'], os.path.join(rive_libraries_path, 'Mac', 'Mac'), ".a", release)
     except Exception as e:
         print_red("Exiting due to errors...")
         print_red(e)
@@ -227,7 +248,7 @@ def do_mac(rive_renderer_path, release):
     return True
 
 
-def copy_files(src, dst, extension):
+def copy_files(src, dst, extension, is_release):
      # Ensure the source directory exists
     if not os.path.exists(src):
         print_red(f"The source directory {src} does not exist.")
@@ -237,10 +258,15 @@ def copy_files(src, dst, extension):
 
     for root, dirs, files in os.walk(src):
         files_to_copy = [f for f in files if f.endswith(extension)]
-        for file in files_to_copy:
-            src_path = os.path.join(root, file)
+        for file_name in files_to_copy:
+            src_path = os.path.join(root, file_name)
+
+            # ensure all libs are prefixed with "rive_" on non-darwin / apple platforms
+            if not sys.platform.startswith("darwin") and not file_name.startswith("rive") and not 'Android' in dst:
+                file_name = f'rive_{file_name}'
+
             relative_path = os.path.relpath(root, src)
-            dest_path = os.path.join(dst, relative_path, file)
+            dest_path = os.path.join(dst, file_name if is_release else file_name.replace(extension, f'_d{extension}'))
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             shutil.copy2(src_path, dest_path)
 

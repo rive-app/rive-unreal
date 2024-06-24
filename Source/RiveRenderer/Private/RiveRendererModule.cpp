@@ -14,7 +14,7 @@
 
 #define LOCTEXT_NAMESPACE "RiveRendererModule"
 
-void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
+void FRiveRendererModule::StartupModule()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
     
@@ -82,7 +82,7 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::StartupModule()
     });
 }
 
-void UE::Rive::Renderer::Private::FRiveRendererModule::ShutdownModule()
+void FRiveRendererModule::ShutdownModule()
 {
     if (RiveRenderer)
     {
@@ -90,12 +90,12 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::ShutdownModule()
     }
 }
 
-UE::Rive::Renderer::IRiveRenderer* UE::Rive::Renderer::Private::FRiveRendererModule::GetRenderer()
+IRiveRenderer* FRiveRendererModule::GetRenderer()
 {
     return RiveRenderer.Get();
 }
 
-void UE::Rive::Renderer::Private::FRiveRendererModule::CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate&& Delegate)
+void FRiveRendererModule::CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate&& Delegate)
 {
     if (RiveRenderer.IsValid() && RiveRenderer->IsInitialized())
     {
@@ -109,4 +109,4 @@ void UE::Rive::Renderer::Private::FRiveRendererModule::CallOrRegister_OnRenderer
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(UE::Rive::Renderer::Private::FRiveRendererModule, RiveRenderer)
+IMPLEMENT_MODULE(FRiveRendererModule, RiveRenderer)

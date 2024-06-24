@@ -1,26 +1,26 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "RiveActorFactory.h"
-#include "Game/RiveActor.h"
+
+#include "Blueprint/UserWidget.h"
+#include "Game/RiveWidgetActor.h"
 #include "Rive/RiveFile.h"
+#include "UMG/RiveWidget.h"
 
 URiveActorFactory::URiveActorFactory()
 {
 	DisplayName = NSLOCTEXT("RiveActorFactory", "RiveActorDisplayName", "RiveActor");
-
-	NewActorClass = ARiveActor::StaticClass();
+	NewActorClass = ARiveWidgetActor::StaticClass();
 }
 
 AActor* URiveActorFactory::SpawnActor(UObject* InAsset, ULevel* InLevel, const FTransform& InTransform, const FActorSpawnParameters& InSpawnParams)
 {
-	ARiveActor* NewActor = Cast<ARiveActor>(Super::SpawnActor(InAsset, InLevel, InTransform, InSpawnParams));
+	ARiveWidgetActor* NewActor = Cast<ARiveWidgetActor>(Super::SpawnActor(InAsset, InLevel, InTransform, InSpawnParams));
 
 	if (NewActor)
 	{
 		if (URiveFile* RiveFile = Cast<URiveFile>(InAsset))
 		{
-			NewActor->RiveFile = RiveFile;
-
 			NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
 		}
 	}
@@ -42,9 +42,12 @@ bool URiveActorFactory::CanCreateActorFrom(const FAssetData& AssetData, FText& O
 
 UObject* URiveActorFactory::GetAssetFromActorInstance(AActor* ActorInstance)
 {
-	if (ARiveActor* RiveActor = Cast<ARiveActor>(ActorInstance))
+	if (ARiveWidgetActor* RiveActor = Cast<ARiveWidgetActor>(ActorInstance))
 	{
-		return RiveActor->RiveFile;
+		if (URiveWidget* RiveWidget = RiveActor->GetWidgetClass()->GetDefaultObject<URiveWidget>())
+		{
+			return RiveWidget->RiveDescriptor.RiveFile;
+		}
 	}
 
 	return nullptr;

@@ -20,7 +20,7 @@ private:
 public:
     NestedStateMachine();
     ~NestedStateMachine() override;
-    void advance(float elapsedSeconds) override;
+    bool advance(float elapsedSeconds) override;
     void initializeAnimation(ArtboardInstance*) override;
     StateMachineInstance* stateMachineInstance();
 
@@ -30,6 +30,9 @@ public:
     HitResult pointerExit(Vec2D position);
 
     void addNestedInput(NestedInput* input);
+    size_t inputCount() { return m_nestedInputs.size(); }
+    NestedInput* input(size_t index);
+    NestedInput* input(std::string name);
 };
 } // namespace rive
 

@@ -8,7 +8,7 @@
 #include "ScreenPass.h"
 #include "UObject/Package.h"
 
-UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRenderTarget(FIntPoint InTargetSize, EPixelFormat PixelFormat, bool bCanCreateUAV)
+UTextureRenderTarget2D* FRiveRendererUtils::CreateDefaultRenderTarget(FIntPoint InTargetSize, EPixelFormat PixelFormat, bool bCanCreateUAV)
 {
     UTextureRenderTarget2D* const RenderTarget = NewObject<UTextureRenderTarget2D>(GetTransientPackage());
 
@@ -25,14 +25,14 @@ UTextureRenderTarget2D* UE::Rive::Renderer::FRiveRendererUtils::CreateDefaultRen
     return RenderTarget;
 }
 
-FIntPoint UE::Rive::Renderer::FRiveRendererUtils::GetRenderTargetSize(const UTextureRenderTarget2D* InRenderTarget)
+FIntPoint FRiveRendererUtils::GetRenderTargetSize(const UTextureRenderTarget2D* InRenderTarget)
 {
     check(IsValid(InRenderTarget));
 
     return FIntPoint(InRenderTarget->SizeX, InRenderTarget->SizeY);
 }
 
-void UE::Rive::Renderer::FRiveRendererUtils::CopyTextureRDG(FRHICommandListImmediate& RHICmdList, FTextureRHIRef SourceTexture, FTextureRHIRef DestTexture)
+void FRiveRendererUtils::CopyTextureRDG(FRHICommandListImmediate& RHICmdList, FTextureRHIRef SourceTexture, FTextureRHIRef DestTexture)
 {
     FRDGBuilder GraphBuilder(RHICmdList);
 

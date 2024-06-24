@@ -18,7 +18,7 @@
 #include "Widgets/SViewport.h"
 #include "Widgets/Layout/SDPIScaler.h"
 
-namespace UE::RiveUtilities::Private
+namespace UE::Rive::Private
 {
 	EVisibility ConvertWindowVisibilityToVisibility(EWindowVisibility visibility)
 	{
@@ -188,7 +188,7 @@ bool FRiveFullScreenUserWidget_PostProcessBase::CreateRenderer(UWorld* World, UU
 		
 		SlateWindow->SetIsFocusable(bWindowFocusable);
 		
-		SlateWindow->SetVisibility(UE::RiveUtilities::Private::ConvertWindowVisibilityToVisibility(WindowVisibility));
+		SlateWindow->SetVisibility(UE::Rive::Private::ConvertWindowVisibilityToVisibility(WindowVisibility));
 		
 		SlateWindow->SetContent(
 			SNew(SDPIScaler)
@@ -388,7 +388,7 @@ void FRiveFullScreenUserWidget_PostProcessBase::RegisterHitTesterWithViewport(UW
 		{
 			ViewportWidget = EngineViewportWidget;
 
-			CustomHitTestPath = MakeShared<UE::RiveUtilities::Private::FRiveWidgetPostProcessHitTester>(
+			CustomHitTestPath = MakeShared<UE::Rive::Private::FRiveWidgetPostProcessHitTester>(
 				World,
 				SlateWindow,
 				TAttribute<float>::CreateRaw(this, &FRiveFullScreenUserWidget_PostProcessBase::GetDPIScaleForPostProcessHitTester, TWeakObjectPtr<UWorld>(World))

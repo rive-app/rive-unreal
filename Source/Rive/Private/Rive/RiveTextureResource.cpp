@@ -11,11 +11,6 @@
 #include "RenderUtils.h"
 #include "Rive/RiveTexture.h"
 
-namespace UE::Rive::Renderer
-{
-	class IRiveRenderer;
-}
-
 FRiveTextureResource::FRiveTextureResource(URiveTexture* Owner)
 {
 	RiveTexture = Owner;
@@ -23,8 +18,8 @@ FRiveTextureResource::FRiveTextureResource(URiveTexture* Owner)
 
 void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
 {
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
-	if (!UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer())
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+	if (!IRiveRendererModule::Get().GetRenderer())
 	{
 		UE_LOG(LogRive, Error, TEXT("Failed to InitRHI for the RiveTextureResource as we do not have a valid renderer."));
 		return;
@@ -43,7 +38,7 @@ void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
 
 void FRiveTextureResource::ReleaseRHI()
 {
-	UE::Rive::Renderer::IRiveRenderer* RiveRenderer = UE::Rive::Renderer::IRiveRendererModule::Get().GetRenderer();
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 	if (ensure(RiveRenderer))
 	{
 		RiveRenderer->GetThreadDataCS().Lock();

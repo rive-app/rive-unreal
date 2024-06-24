@@ -43,6 +43,7 @@ private:
 
     ComPtr<ID3D11Texture2D> m_targetTexture;
     bool m_targetTextureSupportsUAV = false;
+    DXGI_FORMAT m_targetFormat = DXGI_FORMAT_UNKNOWN;
 
     ComPtr<ID3D11Texture2D> m_offscreenTexture;
     ComPtr<ID3D11Texture2D> m_coverageTexture;
@@ -80,6 +81,7 @@ public:
     {
         bool supportsRasterizerOrderedViews = false;
         bool supportsTypedUAVLoadStore = false; // Can we load/store all UAV formats used by Rive?
+        bool supportsMin16Precision = false;    // Can we use minimum 16-bit types (e.g. min16int)?
         bool isIntel = false;
     };
 

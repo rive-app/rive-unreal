@@ -11,7 +11,7 @@
 #include <Metal/Metal.h>
 
 #if WITH_RIVE
-#include "RiveCore/Public/PreRiveHeaders.h"
+#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/pls/pls_renderer.hpp"
@@ -20,19 +20,19 @@ THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 #include "Mac/AutoreleasePool.h"
 
-UE::Rive::Renderer::Private::FRiveRenderTargetMetal::FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
+FRiveRenderTargetMetal::FRiveRenderTargetMetal(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
     : FRiveRenderTarget(InRiveRenderer, InRiveName, InRenderTarget)
 {
 }
 
-UE::Rive::Renderer::Private::FRiveRenderTargetMetal::~FRiveRenderTargetMetal()
+FRiveRenderTargetMetal::~FRiveRenderTargetMetal()
 {
     RIVE_DEBUG_FUNCTION_INDENT
     CachedPLSRenderTargetMetal.reset();
 }
 
 DECLARE_GPU_STAT_NAMED(CacheTextureTarget, TEXT("FRiveRenderTargetMetal::CacheTextureTarget_RenderThread"));
-void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
+void FRiveRenderTargetMetal::CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTexture)
 {
     AutoreleasePool pool;
     check(IsInRenderingThread());
@@ -94,12 +94,12 @@ void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::CacheTextureTarget_Ren
 }
 
 #if WITH_RIVE
-rive::rcp<rive::pls::PLSRenderTarget> UE::Rive::Renderer::Private::FRiveRenderTargetMetal::GetRenderTarget() const
+rive::rcp<rive::pls::PLSRenderTarget> FRiveRenderTargetMetal::GetRenderTarget() const
 {
     return CachedPLSRenderTargetMetal;
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTargetMetal::EndFrame() const
+void FRiveRenderTargetMetal::EndFrame() const
 {
     rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
     if (PLSRenderContextPtr == nullptr)

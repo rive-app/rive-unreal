@@ -8,7 +8,7 @@
 #include "RenderingThread.h"
 #include "TextureResource.h"
 
-#include "RiveCore/Public/PreRiveHeaders.h"
+#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/pls/pls_renderer.hpp"
@@ -18,9 +18,9 @@ THIRD_PARTY_INCLUDES_END
 #include "Mac/AutoreleasePool.h"
 #endif
 
-FTimespan UE::Rive::Renderer::Private::FRiveRenderTarget::ResetTimeLimit = FTimespan(0, 0, 20);
+FTimespan FRiveRenderTarget::ResetTimeLimit = FTimespan(0, 0, 20);
 
-UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
+FRiveRenderTarget::FRiveRenderTarget(const TSharedRef<FRiveRenderer>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
 	: RiveName(InRiveName)
 	, RenderTarget(InRenderTarget)
 	, RiveRenderer(InRiveRenderer)
@@ -28,12 +28,12 @@ UE::Rive::Renderer::Private::FRiveRenderTarget::FRiveRenderTarget(const TSharedR
 	RIVE_DEBUG_FUNCTION_INDENT;
 }
 
-UE::Rive::Renderer::Private::FRiveRenderTarget::~FRiveRenderTarget()
+FRiveRenderTarget::~FRiveRenderTarget()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Initialize()
+void FRiveRenderTarget::Initialize()
 {
 	check(IsInGameThread());
 
@@ -46,7 +46,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Initialize()
 		});
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Submit()
+void FRiveRenderTarget::Submit()
 {
 	check(IsInGameThread());
 
@@ -60,25 +60,25 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Submit()
 		});
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::SubmitAndClear()
+void FRiveRenderTarget::SubmitAndClear()
 {
 	Submit();
 	RenderCommands.Empty();
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Save()
+void FRiveRenderTarget::Save()
 {
 	const FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Save);
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Restore()
+void FRiveRenderTarget::Restore()
 {
 	const FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Restore);
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Transform(float X1, float Y1, float X2, float Y2, float TX, float TY)
+void FRiveRenderTarget::Transform(float X1, float Y1, float X2, float Y2, float TX, float TY)
 {
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Transform);
 	RenderCommand.X = X1;
@@ -90,7 +90,7 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Transform(float X1, float Y
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Translate(const FVector2f& InVector)
+void FRiveRenderTarget::Translate(const FVector2f& InVector)
 {
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::Translate);
 	RenderCommand.TX = InVector.X;
@@ -98,14 +98,14 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Translate(const FVector2f& 
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Draw(rive::Artboard* InArtboard)
+void FRiveRenderTarget::Draw(rive::Artboard* InArtboard)
 {
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::DrawArtboard);
 	RenderCommand.NativeArtboard = InArtboard;
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
+void FRiveRenderTarget::Align(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
 {
 	FRiveRenderCommand RenderCommand(ERiveRenderCommandType::AlignArtboard);
 	RenderCommand.FitType = InFit;
@@ -121,12 +121,12 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(const FBox2f& InBox, 
 	RenderCommands.Push(RenderCommand);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
+void FRiveRenderTarget::Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard)
 {
 	Align(FBox2f(FVector2f{0.f,0.f},FVector2f(GetWidth(), GetHeight())), InFit, InAlignment, InArtboard);
 }
 
-FMatrix UE::Rive::Renderer::Private::FRiveRenderTarget::GetTransformMatrix() const
+FMatrix FRiveRenderTarget::GetTransformMatrix() const
 {
 	TArray<FMatrix> SavedMatrices;
 	FMatrix CurrentMatrix = FMatrix::Identity;
@@ -153,7 +153,7 @@ FMatrix UE::Rive::Renderer::Private::FRiveRenderTarget::GetTransformMatrix() con
 	return CurrentMatrix;
 }
 
-std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRenderTarget::BeginFrame()
+std::unique_ptr<rive::pls::PLSRenderer> FRiveRenderTarget::BeginFrame()
 {
 	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
 	if (PLSRenderContextPtr == nullptr)
@@ -184,7 +184,7 @@ std::unique_ptr<rive::pls::PLSRenderer> UE::Rive::Renderer::Private::FRiveRender
 	return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
+void FRiveRenderTarget::EndFrame() const
 {
 	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
 	if (PLSRenderContextPtr == nullptr)
@@ -204,26 +204,27 @@ void UE::Rive::Renderer::Private::FRiveRenderTarget::EndFrame() const
 	PLSRenderContextPtr->flush(FlushResources);
 }
 
-uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetWidth() const
+uint32 FRiveRenderTarget::GetWidth() const
 {
 	return RenderTarget->SizeX;
 }
 
-uint32 UE::Rive::Renderer::Private::FRiveRenderTarget::GetHeight() const
+uint32 FRiveRenderTarget::GetHeight() const
 {
 	return RenderTarget->SizeY;
 }
 
 DECLARE_GPU_STAT_NAMED(Render, TEXT("RiveRenderTarget::Render"));
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
+void FRiveRenderTarget::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands)
 {
 	SCOPED_GPU_STAT(RHICmdList, Render);
+	SCOPED_DRAW_EVENT(RHICmdList, RiveRender);
 	check(IsInRenderingThread());
 	
 	Render_Internal(RiveRenderCommands);
 }
 
-void UE::Rive::Renderer::Private::FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRenderCommands)
+void FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRenderCommands)
 {
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
