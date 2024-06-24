@@ -30,9 +30,6 @@ public:
 	
 	rive::rcp<rive::AudioEngine> GetNativeAudioEngine() { return NativeAudioEnginePtr; }
 
-	UPROPERTY(BlueprintReadOnly)
-	USoundWaveProcedural* SoundWaveProcedural;
-
 private:
 	rive::rcp<rive::AudioEngine> NativeAudioEnginePtr = nullptr;
 };
