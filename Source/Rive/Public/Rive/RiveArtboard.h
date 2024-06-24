@@ -147,7 +147,7 @@ public:
 	/*
 	 * This requires that the audio engine has been initialized via BeginPlay before setting
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetAudioEngine(URiveAudioEngine* AudioEngine);
 	
 #if WITH_RIVE

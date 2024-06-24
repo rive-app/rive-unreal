@@ -16,6 +16,7 @@ THIRD_PARTY_INCLUDES_END
 
 #include "RiveFile.generated.h"
 
+class UUserWidget;
 class URiveAsset;
 class URiveArtboard;
 

@@ -52,10 +52,10 @@ protected:
 
 public:
 
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = Rive)
     void SetAudioEngine(URiveAudioEngine* InAudioEngine);
 
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = Rive)
     URiveArtboard* GetArtboard() const;
     
     /**

@@ -4,6 +4,7 @@
 #include "Logs/RiveLog.h"
 #include "Rive/RiveObject.h"
 #include "Slate/SRiveWidget.h"
+#include "TimerManager.h"
 
 #define LOCTEXT_NAMESPACE "RiveWidget"
 
