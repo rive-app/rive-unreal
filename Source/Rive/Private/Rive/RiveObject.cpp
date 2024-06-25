@@ -26,6 +26,7 @@ URiveObject::URiveObject()
 
 void URiveObject::BeginDestroy()
 {
+	OnRiveReady.Clear();
 	RiveRenderTarget.Reset();
 
 	if (IsValid(Artboard))
