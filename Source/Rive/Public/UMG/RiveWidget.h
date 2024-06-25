@@ -42,8 +42,6 @@ protected:
 
     virtual TSharedRef<SWidget> RebuildWidget() override;
     
-    virtual void NativeConstruct() override;
-    
     //~ END : UWidget Interface
 
     /**
@@ -70,7 +68,10 @@ public:
     
     UPROPERTY(BlueprintReadOnly, Transient, Category = Rive)
     TObjectPtr<URiveAudioEngine> RiveAudioEngine;
+
 private:
+    void OnRiveObjectReady();
+    
     // Runtime objects
     UPROPERTY(Transient)
     TObjectPtr<URiveObject> RiveObject;
@@ -78,5 +79,6 @@ private:
     void Setup();
     TSharedPtr<SRiveWidget> RiveWidget;
     FTimerHandle TimerHandle;
+    FDelegateHandle FrameHandle;
 
 };

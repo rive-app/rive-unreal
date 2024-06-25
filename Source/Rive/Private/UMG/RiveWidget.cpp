@@ -54,14 +54,23 @@ void URiveWidget::ReleaseSlateResources(bool bReleaseChildren)
 TSharedRef<SWidget> URiveWidget::RebuildWidget()
 {
 	RiveWidget = SNew(SRiveWidget);
-	Setup();
-	return RiveWidget.ToSharedRef();
-}
+	
+	if (!RiveObject && RiveWidget.IsValid())
+	{
+		RiveObject = NewObject<URiveObject>();
 
-void URiveWidget::NativeConstruct()
-{
-	Super::NativeConstruct();
-	Setup();
+#if WITH_EDITOR
+		TimerHandle.Invalidate();
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
+		{
+			Setup();
+		}, 0.05f, false);
+#else
+		Setup();
+#endif
+	}
+	
+	return RiveWidget.ToSharedRef();
 }
 
 void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
@@ -85,28 +94,28 @@ URiveArtboard* URiveWidget::GetArtboard() const
 	return nullptr;
 }
 
+void URiveWidget::OnRiveObjectReady()
+{
+	if (!RiveWidget.IsValid() || !GetCachedWidget()) return;
+	RiveObject->OnRiveReady.Remove(FrameHandle);
+		
+	UE::Slate::FDeprecateVector2DResult AbsoluteSize = GetCachedGeometry().GetAbsoluteSize();
+
+	RiveObject->ResizeRenderTargets(FIntPoint(AbsoluteSize.X, AbsoluteSize.Y));
+	RiveWidget->SetRiveTexture(RiveObject);
+	RiveWidget->RegisterArtboardInputs({RiveObject->GetArtboard()});
+	OnRiveReady.Broadcast();
+}
+
 void URiveWidget::Setup()
 {
-	if (!RiveObject && RiveWidget.IsValid())
+	if (!RiveObject || !RiveWidget.IsValid())
 	{
-		TimerHandle.Invalidate();
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
-		{
-			RiveObject = NewObject<URiveObject>();
-			RiveObject->OnRiveReady.AddLambda([this]()
-			{
-				if (!RiveWidget.IsValid()) return;
-				
-				UE::Slate::FDeprecateVector2DResult AbsoluteSize = GetCachedGeometry().GetAbsoluteSize();
-
-				RiveObject->ResizeRenderTargets(FIntPoint(AbsoluteSize.X, AbsoluteSize.Y));
-				RiveWidget->SetRiveTexture(RiveObject);
-				RiveWidget->RegisterArtboardInputs({RiveObject->GetArtboard()});
-				OnRiveReady.Broadcast();
-			});
-			RiveObject->Initialize(RiveDescriptor);
-		}, 0.05f, false);
+		return;
 	}
+	
+	FrameHandle = RiveObject->OnRiveReady.AddUObject(this, &URiveWidget::OnRiveObjectReady);
+	RiveObject->Initialize(RiveDescriptor);
 }
 
 #undef LOCTEXT_NAMESPACE
