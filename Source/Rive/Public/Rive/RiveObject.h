@@ -45,7 +45,7 @@ public:
 	URiveObject();
 	
 	virtual void BeginDestroy() override;
-	
+	void PostLoad() override;
 	//~ BEGIN : FTickableGameObject Interface
 
 public:
@@ -57,7 +57,7 @@ public:
 
 	virtual bool IsTickableInEditor() const override
 	{
-		return true;
+		return bIsRendering;
 	}
 
 	virtual ETickableTickType GetTickableTickType() const override
@@ -93,9 +93,6 @@ public:
 	// void Initialize();
 	UFUNCTION(BlueprintCallable, Category=Rive)
 	void Initialize(const FRiveDescriptor& InRiveDescriptor);
-	// void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
-
-	// TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	URiveArtboard* GetArtboard() const;
@@ -108,7 +105,7 @@ protected:
 	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
 
 public:
-	UPROPERTY(BlueprintReadWrite, Category=Rive)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rive)
 	FRiveDescriptor RiveDescriptor;
 
 private:
@@ -123,13 +120,10 @@ private:
 	
 	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 
-	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
+	UPROPERTY(Transient, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
 	URiveArtboard* Artboard = nullptr;
 	
 	UPROPERTY(Transient, BlueprintReadOnly, Category=Rive, meta=(AllowPrivateAccess))
 	URiveAudioEngine* AudioEngine = nullptr;
-	FDelegateHandle AudioEngineLambdaHandle;
-
-public:
-
+	FDelegateHandle AudioEngineLambdaHandle; 
 };

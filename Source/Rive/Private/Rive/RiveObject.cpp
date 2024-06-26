@@ -26,15 +26,26 @@ URiveObject::URiveObject()
 
 void URiveObject::BeginDestroy()
 {
+	bIsRendering = false;
 	OnRiveReady.Clear();
 	RiveRenderTarget.Reset();
 
 	if (IsValid(Artboard))
 	{
 		Artboard->MarkAsGarbage();
+		Artboard = nullptr;
 	}
 
 	Super::BeginDestroy();
+}
+
+void URiveObject::PostLoad()
+{
+	Super::PostLoad();
+	if (RiveDescriptor.RiveFile)
+	{
+		Initialize(RiveDescriptor);
+	}
 }
 
 TStatId URiveObject::GetStatId() const

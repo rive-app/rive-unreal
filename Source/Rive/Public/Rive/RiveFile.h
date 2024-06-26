@@ -99,7 +99,7 @@ private:
 	TSubclassOf<UUserWidget> WidgetClass;
 
 public:
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, Transient, NonTransactional, Category=Rive)
 	TArray<URiveArtboard*> Artboards;
 	
 	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
