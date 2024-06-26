@@ -15,7 +15,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Logs/RiveEditorLog.h"
-#include "Rive/RiveObject.h"
+#include "Rive/RiveTextureObject.h"
 #include "Templates/WidgetTemplateClass.h"
 #include "UMG/RiveWidget.h"
 #include "UObject/SavePackage.h"

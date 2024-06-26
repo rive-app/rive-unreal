@@ -1,6 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "Rive/RiveObject.h"
+#include "Rive/RiveTextureObject.h"
 #include "IRiveRenderTarget.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
@@ -20,11 +20,11 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
-URiveObject::URiveObject()
+URiveTextureObject::URiveTextureObject()
 {
 }
 
-void URiveObject::BeginDestroy()
+void URiveTextureObject::BeginDestroy()
 {
 	bIsRendering = false;
 	OnRiveReady.Clear();
@@ -39,21 +39,27 @@ void URiveObject::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-void URiveObject::PostLoad()
+void URiveTextureObject::PostLoad()
 {
 	Super::PostLoad();
+	
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		return;
+	}
+	
 	if (RiveDescriptor.RiveFile)
 	{
 		Initialize(RiveDescriptor);
 	}
 }
 
-TStatId URiveObject::GetStatId() const
+TStatId URiveTextureObject::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(URiveFile, STATGROUP_Tickables);
 }
 
-void URiveObject::Tick(float InDeltaSeconds)
+void URiveTextureObject::Tick(float InDeltaSeconds)
 {
 	if (!IsValidChecked(this))
 	{
@@ -72,17 +78,17 @@ void URiveObject::Tick(float InDeltaSeconds)
 #endif // WITH_RIVE
 }
 
-bool URiveObject::IsTickable() const
+bool URiveTextureObject::IsTickable() const
 {
 	return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
 }
 
-FLinearColor URiveObject::GetClearColor() const
+FLinearColor URiveTextureObject::GetClearColor() const
 {
 	return ClearColor;
 }
 
-FVector2f URiveObject::GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2f& InPosition)
+FVector2f URiveTextureObject::GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2f& InPosition)
 {
 #if WITH_RIVE
 	if (InArtboard)
@@ -93,7 +99,7 @@ FVector2f URiveObject::GetLocalCoordinate(URiveArtboard* InArtboard, const FVect
 	return FVector2f::ZeroVector;
 }
 
-FVector2f URiveObject::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const
+FVector2f URiveTextureObject::GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const
 {
 #if WITH_RIVE
 	if (GetArtboard())
@@ -104,7 +110,7 @@ FVector2f URiveObject::GetLocalCoordinatesFromExtents(const FVector2f& InPositio
 	return FVector2f::ZeroVector;
 }
 
-void URiveObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
+void URiveTextureObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 {
 	Artboard = nullptr;
 	RiveDescriptor = InRiveDescriptor;
@@ -129,10 +135,10 @@ void URiveObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 		return;
 	}
 
-	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateUObject(this, &URiveObject::RiveReady));
+	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateUObject(this, &URiveTextureObject::RiveReady));
 }
 
-void URiveObject::RiveReady(IRiveRenderer* InRiveRenderer)
+void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 {
 	Artboard = NewObject<URiveArtboard>(this);
 	RiveDescriptor.RiveFile->Artboards.Add(Artboard);
@@ -141,7 +147,7 @@ void URiveObject::RiveReady(IRiveRenderer* InRiveRenderer)
 			
 	if (!OnResourceInitializedOnRenderThread.IsBoundToObject(this))
 	{
-		OnResourceInitializedOnRenderThread.AddUObject(this, &URiveObject::OnResourceInitialized_RenderThread);
+		OnResourceInitializedOnRenderThread.AddUObject(this, &URiveTextureObject::OnResourceInitialized_RenderThread);
 	}
 			
 	RiveRenderTarget->SetClearColor(ClearColor);
@@ -180,14 +186,15 @@ void URiveObject::RiveReady(IRiveRenderer* InRiveRenderer)
 		}
 	}
 	
-	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveObject::OnArtboardTickRender);
-	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveObject::GetLocalCoordinate);
+	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveTextureObject::OnArtboardTickRender);
+	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveTextureObject::GetLocalCoordinate);
 	
 	RiveRenderTarget->Initialize();
+	bIsRendering = true;
 	OnRiveReady.Broadcast();
 }
 
-void URiveObject::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const
+void URiveTextureObject::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const
 {
 	// When the resource change, we need to tell the Render Target otherwise we will keep on drawing on an outdated RT
 	if (const TSharedPtr<IRiveRenderTarget> RenderTarget = RiveRenderTarget) //todo: might need a lock
@@ -196,13 +203,13 @@ void URiveObject::OnResourceInitialized_RenderThread(FRHICommandListImmediate& R
 	}
 }
 
-void URiveObject::OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard)
+void URiveTextureObject::OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard)
 {
 	InArtboard->Align(RiveDescriptor.FitType, RiveDescriptor.Alignment);
 	InArtboard->Draw();
 }
 
-URiveArtboard* URiveObject::GetArtboard() const
+URiveArtboard* URiveTextureObject::GetArtboard() const
 {
 #if WITH_RIVE
 	if (IsValid(Artboard) && Artboard->IsInitialized())

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectPtr.h"
 
-class URiveObject;
+class URiveTextureObject;
 class UWidgetBlueprint;
 class URiveFile;
 
@@ -32,9 +32,9 @@ public:
 
 private:
 	
-	URiveObject* CreateRiveObject();
+	URiveTextureObject* CreateRiveObject();
 	
-	bool SaveAsset(URiveObject* InRiveObject);
+	bool SaveAsset(URiveTextureObject* InRiveObject);
 
 private:
 	

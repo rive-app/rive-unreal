@@ -4,7 +4,7 @@
 #include "Rive/RiveFile.h"
 #include "Slate/SRiveWidget.h"
 #include "PropertyEditorModule.h"
-#include "Rive/RiveObject.h"
+#include "Rive/RiveTextureObject.h"
 #include "Widgets/Docking/SDockTab.h"
 
 const FName FRiveAssetToolkit::RiveViewportTabID(TEXT("RiveViewportTabID"));
@@ -130,7 +130,7 @@ TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_RiveViewportTab(const FSpawnTab
     {
         if (!RiveObject)
         {
-            RiveObject = NewObject<URiveObject>();
+            RiveObject = NewObject<URiveTextureObject>();
             RiveObject->Initialize(FRiveDescriptor{
                 RiveFile,
                 "",

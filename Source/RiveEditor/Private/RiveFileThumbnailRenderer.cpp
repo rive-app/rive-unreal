@@ -1,7 +1,7 @@
 ﻿// Copyright Rive, Inc. All rights reserved.
 
 
-#include "RiveTextureThumbnailRenderer.h"
+#include "RiveFileThumbnailRenderer.h"
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
@@ -10,24 +10,24 @@
 #include "Rive/RiveFile.h"
 #include "Rive/RiveTexture.h"
 
-URiveTextureThumbnailRenderer::URiveTextureThumbnailRenderer() : RiveTexture(nullptr)
+URiveFileThumbnailRenderer::URiveFileThumbnailRenderer() : RiveTexture(nullptr)
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	AssetRegistryModule.Get().OnAssetRemoved().AddUObject(this, &URiveTextureThumbnailRenderer::OnAssetRemoved);
+	AssetRegistryModule.Get().OnAssetRemoved().AddUObject(this, &URiveFileThumbnailRenderer::OnAssetRemoved);
 }
 
-bool URiveTextureThumbnailRenderer::CanVisualizeAsset(UObject* Object)
+bool URiveFileThumbnailRenderer::CanVisualizeAsset(UObject* Object)
 {
 	URiveFile* RiveFile = Cast<URiveFile>(Object);
 	return RiveFile && RiveFile->IsInitialized();
 }
 
-EThumbnailRenderFrequency URiveTextureThumbnailRenderer::GetThumbnailRenderFrequency(UObject* Object) const
+EThumbnailRenderFrequency URiveFileThumbnailRenderer::GetThumbnailRenderFrequency(UObject* Object) const
 {
 	return EThumbnailRenderFrequency::Realtime;
 }
 
-void URiveTextureThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* Viewport, FCanvas* Canvas, bool bAdditionalViewFamily)
+void URiveFileThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* Viewport, FCanvas* Canvas, bool bAdditionalViewFamily)
 {
 	if (URiveFile* RiveFile = Cast<URiveFile>(Object))
 	{
@@ -71,7 +71,7 @@ void URiveTextureThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint
 	}
 }
 
-void URiveTextureThumbnailRenderer::OnAssetRemoved(const FAssetData& AssetData)
+void URiveFileThumbnailRenderer::OnAssetRemoved(const FAssetData& AssetData)
 {
 	for (TTuple<FName, URiveArtboard*>& ThumbnailRenderer : ThumbnailRenderers)
 	{

@@ -9,7 +9,7 @@
 
 #if WITH_RIVE
 class URiveFile;
-class URiveObject;
+class URiveTextureObject;
 
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START

@@ -9,7 +9,7 @@
 #include "Rive/RiveFile.h"
 #include "RiveWidget.generated.h"
 
-class URiveObject;
+class URiveTextureObject;
 class URiveArtboard;
 class URiveTexture;
 class SRiveWidget;
@@ -74,7 +74,7 @@ private:
     
     // Runtime objects
     UPROPERTY(Transient)
-    TObjectPtr<URiveObject> RiveObject;
+    TObjectPtr<URiveTextureObject> RiveObject;
     
     void Setup();
     TSharedPtr<SRiveWidget> RiveWidget;

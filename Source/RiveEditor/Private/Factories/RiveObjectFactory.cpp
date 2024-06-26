@@ -5,7 +5,7 @@
 #include "Editor/EditorEngine.h"
 #include "AssetToolsModule.h"
 #include "Logs/RiveEditorLog.h"
-#include "Rive/RiveObject.h"
+#include "Rive/RiveTextureObject.h"
 #include "UMG/RiveWidget.h"
 #include "UObject/SavePackage.h"
 #include "HAL/FileManager.h"
@@ -23,7 +23,7 @@ FRiveObjectFactory::FRiveObjectFactory(URiveFile* InRiveFile)
 }
 
 
-bool FRiveObjectFactory::SaveAsset(URiveObject* InRiveObject)
+bool FRiveObjectFactory::SaveAsset(URiveTextureObject* InRiveObject)
 {
 	if (!InRiveObject)
 	{
@@ -65,7 +65,7 @@ bool FRiveObjectFactory::SaveAsset(URiveObject* InRiveObject)
 	return true;
 }
 
-URiveObject* FRiveObjectFactory::CreateRiveObject()
+URiveTextureObject* FRiveObjectFactory::CreateRiveObject()
 {
 	const UPackage* const RivePackage = RiveFile->GetOutermost();
 	const FString RivePackageName = RivePackage->GetName();
@@ -80,14 +80,14 @@ URiveObject* FRiveObjectFactory::CreateRiveObject()
 	
 	UPackage* RiveObjectPackage = CreatePackage(*RiveObjectPackageName);
 
-	URiveObject* RiveObject = NewObject<URiveObject>(RiveObjectPackage, URiveObject::StaticClass(), FName(RiveObjectName), RF_Public | RF_Standalone);
+	URiveTextureObject* RiveObject = NewObject<URiveTextureObject>(RiveObjectPackage, URiveTextureObject::StaticClass(), FName(RiveObjectName), RF_Public | RF_Standalone);
 	RiveObject->Initialize(FRiveDescriptor{RiveFile});
 	return RiveObject;
 }
 
 bool FRiveObjectFactory::Create()
 {
-	URiveObject* NewObject = CreateRiveObject();
+	URiveTextureObject* NewObject = CreateRiveObject();
 
 	if (!NewObject)
 	{

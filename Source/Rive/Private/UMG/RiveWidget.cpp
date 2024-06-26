@@ -2,7 +2,7 @@
 
 #include "UMG/RiveWidget.h"
 #include "Logs/RiveLog.h"
-#include "Rive/RiveObject.h"
+#include "Rive/RiveTextureObject.h"
 #include "Slate/SRiveWidget.h"
 #include "TimerManager.h"
 
@@ -57,7 +57,7 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 	
 	if (!RiveObject && RiveWidget.IsValid())
 	{
-		RiveObject = NewObject<URiveObject>();
+		RiveObject = NewObject<URiveTextureObject>();
 
 #if WITH_EDITOR
 		TimerHandle.Invalidate();

@@ -7,7 +7,7 @@
 #include "RiveTexture.h"
 #include "RiveTypes.h"
 #include "Tickable.h"
-#include "RiveObject.generated.h"
+#include "RiveTextureObject.generated.h"
 
 #if WITH_RIVE
 
@@ -31,7 +31,7 @@ class URiveFile;
  *
  */
 UCLASS(BlueprintType, Blueprintable, HideCategories=("ImportSettings", "Compression", "Adjustments", "LevelOfDetail", "Compositing"))
-class RIVE_API URiveObject : public URiveTexture, public FTickableGameObject
+class RIVE_API URiveTextureObject : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
 	DECLARE_MULTICAST_DELEGATE(FRiveReadyDelegate)
@@ -42,7 +42,7 @@ public:
 	 * Structor(s)
 	 */
 	
-	URiveObject();
+	URiveTextureObject();
 	
 	virtual void BeginDestroy() override;
 	void PostLoad() override;
@@ -57,7 +57,7 @@ public:
 
 	virtual bool IsTickableInEditor() const override
 	{
-		return bIsRendering;
+		return IsTickable();
 	}
 
 	virtual ETickableTickType GetTickableTickType() const override
@@ -108,15 +108,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rive)
 	FRiveDescriptor RiveDescriptor;
 
+	UPROPERTY(EditAnywhere, Transient, Category = Rive)
+	bool bIsRendering = false;
+	
 private:
 	UFUNCTION()
 	void OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);
 	
 	UPROPERTY(EditAnywhere, Category = Rive)
 	FLinearColor ClearColor = FLinearColor::Transparent;
-
-	UPROPERTY(EditAnywhere, Category = Rive)
-	bool bIsRendering = true;
 	
 	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 

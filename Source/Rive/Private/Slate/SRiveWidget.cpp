@@ -3,7 +3,7 @@
 #include "Slate/SRiveWidget.h"
 
 #include "RiveWidgetView.h"
-#include "Rive/RiveObject.h"
+#include "Rive/RiveTextureObject.h"
 
 
 void SRiveWidget::Construct(const FArguments& InArgs)

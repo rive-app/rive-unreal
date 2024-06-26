@@ -4,7 +4,7 @@
 
 #include "Toolkits/AssetEditorToolkit.h"
 
-class URiveObject;
+class URiveTextureObject;
 class URiveFile;
 class IDetailsView;
 class SRiveWidget;
@@ -42,5 +42,5 @@ private:
 
     /** The rive file asset being edited. */
     TObjectPtr<URiveFile> RiveFile;
-    TObjectPtr<URiveObject> RiveObject; // The Object used to render the preview
+    TObjectPtr<URiveTextureObject> RiveObject; // The Object used to render the preview
 };
