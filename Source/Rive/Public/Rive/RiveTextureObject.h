@@ -28,7 +28,7 @@ class UUserWidget;
 class URiveFile;
 
 /**
- *
+ * This class represents the logical side of a single RiveTexture / RenderTarget. It implements the logic to instantiate and tick an artboard passed into it with a RiveDescriptor.
  */
 UCLASS(BlueprintType, Blueprintable, HideCategories=("ImportSettings", "Compression", "Adjustments", "LevelOfDetail", "Compositing"))
 class RIVE_API URiveTextureObject : public URiveTexture, public FTickableGameObject
@@ -53,11 +53,14 @@ public:
 
 	virtual void Tick(float InDeltaSeconds) override;
 
-	virtual bool IsTickable() const override;
+	virtual bool IsTickable() const override
+	{
+		return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
+	}
 
 	virtual bool IsTickableInEditor() const override
 	{
-		return IsTickable();
+		return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering && bRenderInEditor;
 	}
 
 	virtual ETickableTickType GetTickableTickType() const override
@@ -86,11 +89,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
 	
-
-	/**
-	 * Initialize this Rive file by creating the Render Targets and importing the native Rive File 
-	 */
-	// void Initialize();
 	UFUNCTION(BlueprintCallable, Category=Rive)
 	void Initialize(const FRiveDescriptor& InRiveDescriptor);
 
@@ -105,12 +103,15 @@ protected:
 	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rive)
-	FRiveDescriptor RiveDescriptor;
-
 	UPROPERTY(EditAnywhere, Transient, Category = Rive)
 	bool bIsRendering = false;
 	
+#if WITH_EDITOR
+	bool bRenderInEditor = false;
+#endif
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rive)
+	FRiveDescriptor RiveDescriptor;
 private:
 	UFUNCTION()
 	void OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);

@@ -9,10 +9,10 @@ class URiveFile;
 class IDetailsView;
 class SRiveWidget;
 
-class RIVEEDITOR_API FRiveAssetToolkit : public FAssetEditorToolkit
+class RIVEEDITOR_API FRiveFileAssetEditorToolkit : public FAssetEditorToolkit
 {
 public:
-    virtual ~FRiveAssetToolkit() override;
+    virtual ~FRiveFileAssetEditorToolkit() override;
     void Initialize(URiveFile* InRiveFile, const EToolkitMode::Type InMode, const TSharedPtr<IToolkitHost>& InToolkitHost);
 	
     //~ BEGIN IToolkit interface
@@ -42,5 +42,5 @@ private:
 
     /** The rive file asset being edited. */
     TObjectPtr<URiveFile> RiveFile;
-    TObjectPtr<URiveTextureObject> RiveObject; // The Object used to render the preview
+    TObjectPtr<URiveTextureObject> RiveTextureObject; // The Object used to render the preview
 };

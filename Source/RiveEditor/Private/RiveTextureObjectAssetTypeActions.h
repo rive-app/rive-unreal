@@ -7,10 +7,10 @@
 /**
  * 
  */
-class RIVEEDITOR_API FRiveFile_AssetTypeActions : public FAssetTypeActions_Base
+class RIVEEDITOR_API FRiveTextureObjectAssetTypeActions : public FAssetTypeActions_Base
 {
 public:
-	FRiveFile_AssetTypeActions(EAssetTypeCategories::Type InAssetCategory);
+	FRiveTextureObjectAssetTypeActions(EAssetTypeCategories::Type InAssetCategory);
 	
 	// IAssetTypeActions interface
 	virtual FText GetName() const override;
@@ -20,6 +20,7 @@ public:
 	virtual bool IsImportedAsset() const override;
 	virtual void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor) override;
 	virtual uint32 GetCategories() override;
+	
 	// End of IAssetTypeActions interface
 
 private:

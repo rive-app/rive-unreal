@@ -78,11 +78,6 @@ void URiveTextureObject::Tick(float InDeltaSeconds)
 #endif // WITH_RIVE
 }
 
-bool URiveTextureObject::IsTickable() const
-{
-	return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
-}
-
 FLinearColor URiveTextureObject::GetClearColor() const
 {
 	return ClearColor;

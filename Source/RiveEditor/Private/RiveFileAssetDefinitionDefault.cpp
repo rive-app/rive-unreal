@@ -1,10 +1,11 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "RiveFile_AssetDefinitionDefault.h"
+#include "RiveFileAssetDefinitionDefault.h"
 
 #include "ContentBrowserMenuContexts.h"
 #include "IAssetTools.h"
-#include "RiveAssetToolkit.h"
+// #include "RiveFileAssetToolkit.h"
+#include "RiveFileAssetEditorToolkit.h"
 #include "Factories/RiveWidgetFactory.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
@@ -53,40 +54,40 @@ namespace MenuExtension_RiveFile
 	});
 }
 
-FText URiveFile_AssetDefinitionDefault::GetAssetDisplayName() const
+FText URiveFileAssetDefinitionDefault::GetAssetDisplayName() const
 {
 	return LOCTEXT("AssetTypeActions_RiveFile", "Rive File");
 }
 
-FLinearColor URiveFile_AssetDefinitionDefault::GetAssetColor() const
+FLinearColor URiveFileAssetDefinitionDefault::GetAssetColor() const
 {
 	return FLinearColor::Red;
 }
 
-TSoftClassPtr<> URiveFile_AssetDefinitionDefault::GetAssetClass() const
+TSoftClassPtr<> URiveFileAssetDefinitionDefault::GetAssetClass() const
 {
 	return URiveFile::StaticClass();
 }
 
-TConstArrayView<FAssetCategoryPath> URiveFile_AssetDefinitionDefault::GetAssetCategories() const
+TConstArrayView<FAssetCategoryPath> URiveFileAssetDefinitionDefault::GetAssetCategories() const
 {
 	static const FAssetCategoryPath Categories[] = { EAssetCategoryPaths::Misc };
 
 	return Categories;
 }
 
-EAssetCommandResult URiveFile_AssetDefinitionDefault::OpenAssets(const FAssetOpenArgs& OpenArgs) const
+EAssetCommandResult URiveFileAssetDefinitionDefault::OpenAssets(const FAssetOpenArgs& OpenArgs) const
 {
 	for (URiveFile* RiveFile : OpenArgs.LoadObjects<URiveFile>())
 	{
-		const TSharedRef<FRiveAssetToolkit> EditorToolkit = MakeShared<FRiveAssetToolkit>();
+		const TSharedRef<FRiveFileAssetEditorToolkit> EditorToolkit = MakeShared<FRiveFileAssetEditorToolkit>();
 		EditorToolkit->Initialize(RiveFile, OpenArgs.GetToolkitMode(), OpenArgs.ToolkitHost);
 	}
 
 	return EAssetCommandResult::Handled;
 }
 
-EAssetCommandResult URiveFile_AssetDefinitionDefault::GetSourceFiles(const FAssetSourceFilesArgs& InArgs, TFunctionRef<bool(const FAssetSourceFilesResult& InSourceFile)> SourceFileFunc) const
+EAssetCommandResult URiveFileAssetDefinitionDefault::GetSourceFiles(const FAssetSourceFilesArgs& InArgs, TFunctionRef<bool(const FAssetSourceFilesResult& InSourceFile)> SourceFileFunc) const
 {
 	for (URiveFile* RiveFile : InArgs.LoadObjects<URiveFile>())
 	{

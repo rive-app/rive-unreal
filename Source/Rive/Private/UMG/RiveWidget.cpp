@@ -115,6 +115,9 @@ void URiveWidget::Setup()
 	}
 	
 	FrameHandle = RiveObject->OnRiveReady.AddUObject(this, &URiveWidget::OnRiveObjectReady);
+#if WITH_EDITOR
+	RiveObject->bRenderInEditor = true;
+#endif
 	RiveObject->Initialize(RiveDescriptor);
 }
 
