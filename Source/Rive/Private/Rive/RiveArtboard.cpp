@@ -790,11 +790,6 @@ void URiveArtboard::PopulateReportedEvents()
 
 void URiveArtboard::Initialize_Internal(const rive::Artboard* InNativeArtboard)
 {
-	// if (RiveFile.IsValid())
-	// {
-	// 	RiveFile->TrackArtboard(this);
-	// }
-	
 	NativeArtboardPtr = InNativeArtboard->instance();
 	ArtboardName = FString{NativeArtboardPtr->name().c_str()};
 	NativeArtboardPtr->advance(0);
