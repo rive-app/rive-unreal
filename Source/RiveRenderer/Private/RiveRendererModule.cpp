@@ -3,6 +3,7 @@
 #include "RiveRendererModule.h"
 #include "RiveRenderer.h"
 #include "Logs/RiveRendererLog.h"
+#include "Platform/RiveRendererRHI.h"
 
 #if PLATFORM_WINDOWS
 #include "Platform/RiveRendererD3D11.h"
@@ -30,11 +31,6 @@ void FRiveRendererModule::StartupModule()
             RiveRenderer = MakeShared<FRiveRendererD3D11>();
             break;
         }
-    case ERHIInterfaceType::D3D12:
-        {
-            UE_LOG(LogRiveRenderer, Error, TEXT("Rive is NOT compatible with RHI 'D3D12'"))
-            break;
-        }
 #endif // PLATFORM_WINDOWS
 #if PLATFORM_ANDROID
     case ERHIInterfaceType::OpenGL:
@@ -57,12 +53,9 @@ void FRiveRendererModule::StartupModule()
             break;
         }
 #endif // PLATFORM_APPLE
-    case ERHIInterfaceType::Vulkan:
-        {
-            UE_LOG(LogRiveRenderer, Error, TEXT("Rive is NOT compatible with RHI 'Vulkan'"))
-            break;
-        }
     default:
+        UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'RHI'"))
+        RiveRenderer = MakeShared<FRiveRendererRHI>();
         if(!IsRunningCommandlet())
         {
             UE_LOG(LogRiveRenderer, Error, TEXT("Rive is NOT compatible with the current unknown RHI"))
