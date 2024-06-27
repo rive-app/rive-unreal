@@ -5,7 +5,7 @@
 #include "Editor/EditorEngine.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "RiveObjectFactory.h"
+#include "RiveTextureObjectFactory.h"
 #include "RiveWidgetFactory.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Logs/RiveEditorLog.h"
@@ -76,7 +76,7 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
         UE_LOG(LogRiveEditor, Warning, TEXT("Error after importing the Rive file '%s': Unable to create the Widget after importing the file"), *InFilename);
     }
 
-    if (!FRiveObjectFactory(RiveFile).Create())
+    if (!FRiveTextureObjectFactory(RiveFile).Create())
     {
         UE_LOG(LogRiveEditor, Warning, TEXT("Error after importing the Rive file '%s': Unable to create the Texture after importing the file"), *InFilename);
     }

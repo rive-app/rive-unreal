@@ -3,7 +3,7 @@
 
 #include "RiveTextureObjectAssetTypeActions.h"
 
-#include "RiveTextureObjectAssetEditorToolkit.h"
+#include "RiveTextureObjectEditor.h"
 #include "Rive/RiveTextureObject.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
@@ -44,7 +44,7 @@ void FRiveTextureObjectAssetTypeActions::OpenAssetEditor(const TArray<UObject*>&
 	{
 		if (URiveTextureObject* RiveTextureObject = Cast<URiveTextureObject>(Obj))
 		{
-			const TSharedRef<FRiveTextureObjectAssetEditorToolkit> EditorToolkit = MakeShared<FRiveTextureObjectAssetEditorToolkit>();
+			const TSharedRef<FRiveTextureObjectEditor> EditorToolkit = MakeShared<FRiveTextureObjectEditor>();
 			EditorToolkit->Initialize(RiveTextureObject, EToolkitMode::Standalone, EditWithinLevelEditor);
 		}
 	}

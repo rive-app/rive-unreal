@@ -1,19 +1,19 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "RiveFileAssetEditorToolkit.h"
+#include "RiveFileEditor.h"
 #include "Rive/RiveFile.h"
 #include "Slate/SRiveWidget.h"
 #include "PropertyEditorModule.h"
 #include "Rive/RiveTextureObject.h"
 #include "Widgets/Docking/SDockTab.h"
 
-const FName FRiveFileAssetEditorToolkit::RiveViewportTabID(TEXT("RiveViewportTabID"));
-const FName FRiveFileAssetEditorToolkit::DetailsTabID(TEXT("DetailsTabID"));
-const FName FRiveFileAssetEditorToolkit::AppIdentifier(TEXT("RiveFileApp"));
+const FName FRiveFileEditor::RiveViewportTabID(TEXT("RiveViewportTabID"));
+const FName FRiveFileEditor::DetailsTabID(TEXT("DetailsTabID"));
+const FName FRiveFileEditor::AppIdentifier(TEXT("RiveFileApp"));
 
 #define LOCTEXT_NAMESPACE "RiveFileAssetEditorToolkit"
 
-FRiveFileAssetEditorToolkit::~FRiveFileAssetEditorToolkit()
+FRiveFileEditor::~FRiveFileEditor()
 {
     if (RiveWidget)
     {
@@ -30,7 +30,7 @@ FRiveFileAssetEditorToolkit::~FRiveFileAssetEditorToolkit()
     }
 }
 
-void FRiveFileAssetEditorToolkit::Initialize(URiveFile* InRiveFile, const EToolkitMode::Type InMode, const TSharedPtr<IToolkitHost>& InToolkitHost)
+void FRiveFileEditor::Initialize(URiveFile* InRiveFile, const EToolkitMode::Type InMode, const TSharedPtr<IToolkitHost>& InToolkitHost)
 {
     check(InRiveFile);
     RiveFile = InRiveFile;
@@ -69,7 +69,7 @@ void FRiveFileAssetEditorToolkit::Initialize(URiveFile* InRiveFile, const EToolk
     FAssetEditorToolkit::InitAssetEditor(
         InMode,
         InToolkitHost,
-        FRiveFileAssetEditorToolkit::AppIdentifier,
+        FRiveFileEditor::AppIdentifier,
         Layout,
         true,
         true,
@@ -79,27 +79,27 @@ void FRiveFileAssetEditorToolkit::Initialize(URiveFile* InRiveFile, const EToolk
     RegenerateMenusAndToolbars();
 }
 
-FText FRiveFileAssetEditorToolkit::GetBaseToolkitName() const
+FText FRiveFileEditor::GetBaseToolkitName() const
 {
     return LOCTEXT("RiveFileAssetAppLabel", "Rive File Editor");
 }
 
-FName FRiveFileAssetEditorToolkit::GetToolkitFName() const
+FName FRiveFileEditor::GetToolkitFName() const
 {
     return FName("RiveFileEditor");
 }
 
-FLinearColor FRiveFileAssetEditorToolkit::GetWorldCentricTabColorScale() const
+FLinearColor FRiveFileEditor::GetWorldCentricTabColorScale() const
 {
     return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
 }
 
-FString FRiveFileAssetEditorToolkit::GetWorldCentricTabPrefix() const
+FString FRiveFileEditor::GetWorldCentricTabPrefix() const
 {
     return LOCTEXT("WorldCentricTabPrefix", "RiveFile ").ToString();
 }
 
-void FRiveFileAssetEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
+void FRiveFileEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
 {
     FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
     
@@ -110,20 +110,20 @@ void FRiveFileAssetEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManag
         AssetEditorTabsCategory = LocalCategories.Num() > 0 ? LocalCategories[0] : InTabManager->GetLocalWorkspaceMenuRoot();
     }
     
-    InTabManager->RegisterTabSpawner(RiveViewportTabID, FOnSpawnTab::CreateSP(this, &FRiveFileAssetEditorToolkit::SpawnTab_RiveViewportTab))
+    InTabManager->RegisterTabSpawner(RiveViewportTabID, FOnSpawnTab::CreateSP(this, &FRiveFileEditor::SpawnTab_RiveViewportTab))
         .SetDisplayName(LOCTEXT("Viewport", "Viewport"))
         .SetGroup(AssetEditorTabsCategory.ToSharedRef())
         .SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Viewports"));
     
-    InTabManager->RegisterTabSpawner(DetailsTabID, FOnSpawnTab::CreateSP(this, &FRiveFileAssetEditorToolkit::SpawnTab_DetailsTabID))
+    InTabManager->RegisterTabSpawner(DetailsTabID, FOnSpawnTab::CreateSP(this, &FRiveFileEditor::SpawnTab_DetailsTabID))
         .SetDisplayName(LOCTEXT("Details", "Details"))
         .SetGroup(AssetEditorTabsCategory.ToSharedRef())
         .SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"));
 }
 
-TSharedRef<SDockTab> FRiveFileAssetEditorToolkit::SpawnTab_RiveViewportTab(const FSpawnTabArgs& Args)
+TSharedRef<SDockTab> FRiveFileEditor::SpawnTab_RiveViewportTab(const FSpawnTabArgs& Args)
 {
-    check(Args.GetTabId() == FRiveFileAssetEditorToolkit::RiveViewportTabID);
+    check(Args.GetTabId() == FRiveFileEditor::RiveViewportTabID);
 
     TSharedPtr<SWidget> ViewportWidget = nullptr;
 
@@ -166,7 +166,7 @@ TSharedRef<SDockTab> FRiveFileAssetEditorToolkit::SpawnTab_RiveViewportTab(const
     return SpawnedTab;
 }
 
-TSharedRef<SDockTab> FRiveFileAssetEditorToolkit::SpawnTab_DetailsTabID(const FSpawnTabArgs& Args)
+TSharedRef<SDockTab> FRiveFileEditor::SpawnTab_DetailsTabID(const FSpawnTabArgs& Args)
 {
     DetailsTab = SNew(SDockTab).Label(LOCTEXT("DetailsTitle", "Details"));
 

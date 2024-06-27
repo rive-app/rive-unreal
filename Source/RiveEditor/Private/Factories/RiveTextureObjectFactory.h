@@ -12,7 +12,7 @@ class URiveFile;
 /**
  * 
  */
-class RIVEEDITOR_API FRiveObjectFactory
+class RIVEEDITOR_API FRiveTextureObjectFactory
 {
 	/**
 	 * Structor(s)
@@ -20,7 +20,7 @@ class RIVEEDITOR_API FRiveObjectFactory
 
 public:
 
-	FRiveObjectFactory(URiveFile* InRiveFile);
+	FRiveTextureObjectFactory(URiveFile* InRiveFile);
 	
 	/**
 	 * Implementation(s)
@@ -32,7 +32,7 @@ public:
 
 private:
 	
-	URiveTextureObject* CreateRiveObject();
+	URiveTextureObject* CreateRiveTextureObject();
 	
 	bool SaveAsset(URiveTextureObject* InRiveObject);
 

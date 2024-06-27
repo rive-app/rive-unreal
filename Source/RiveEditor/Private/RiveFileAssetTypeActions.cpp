@@ -1,7 +1,7 @@
 ﻿// Copyright Rive, Inc. All rights reserved.
 #include "RiveFileAssetTypeActions.h"
 
-#include "RiveFileAssetEditorToolkit.h"
+#include "RiveFileEditor.h"
 #include "Rive/RiveFile.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
@@ -42,7 +42,7 @@ void FRiveFileAssetTypeActions::OpenAssetEditor(const TArray<UObject*>& InObject
 	{
 		if (URiveFile* RiveFile = Cast<URiveFile>(Obj))
 		{
-			const TSharedRef<FRiveFileAssetEditorToolkit> EditorToolkit = MakeShared<FRiveFileAssetEditorToolkit>();
+			const TSharedRef<FRiveFileEditor> EditorToolkit = MakeShared<FRiveFileEditor>();
 			EditorToolkit->Initialize(RiveFile, EToolkitMode::Standalone, EditWithinLevelEditor);
 		}
 	}

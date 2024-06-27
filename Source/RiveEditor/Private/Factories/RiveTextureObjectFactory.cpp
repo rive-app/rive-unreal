@@ -1,6 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "RiveObjectFactory.h"
+#include "RiveTextureObjectFactory.h"
 
 #include "Editor/EditorEngine.h"
 #include "AssetToolsModule.h"
@@ -17,13 +17,13 @@ extern UNREALED_API class UEditorEngine* GEditor;
 
 #define LOCTEXT_NAMESPACE "FRiveObjectFactory"
 
-FRiveObjectFactory::FRiveObjectFactory(URiveFile* InRiveFile)
+FRiveTextureObjectFactory::FRiveTextureObjectFactory(URiveFile* InRiveFile)
 	: RiveFile(InRiveFile)
 {
 }
 
 
-bool FRiveObjectFactory::SaveAsset(URiveTextureObject* InRiveObject)
+bool FRiveTextureObjectFactory::SaveAsset(URiveTextureObject* InRiveObject)
 {
 	if (!InRiveObject)
 	{
@@ -65,7 +65,7 @@ bool FRiveObjectFactory::SaveAsset(URiveTextureObject* InRiveObject)
 	return true;
 }
 
-URiveTextureObject* FRiveObjectFactory::CreateRiveObject()
+URiveTextureObject* FRiveTextureObjectFactory::CreateRiveTextureObject()
 {
 	const UPackage* const RivePackage = RiveFile->GetOutermost();
 	const FString RivePackageName = RivePackage->GetName();
@@ -85,9 +85,9 @@ URiveTextureObject* FRiveObjectFactory::CreateRiveObject()
 	return RiveObject;
 }
 
-bool FRiveObjectFactory::Create()
+bool FRiveTextureObjectFactory::Create()
 {
-	URiveTextureObject* NewObject = CreateRiveObject();
+	URiveTextureObject* NewObject = CreateRiveTextureObject();
 
 	if (!NewObject)
 	{

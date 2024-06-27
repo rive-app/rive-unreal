@@ -9,10 +9,10 @@ class URiveFile;
 class IDetailsView;
 class SRiveWidget;
 
-class RIVEEDITOR_API FRiveFileAssetEditorToolkit : public FAssetEditorToolkit
+class RIVEEDITOR_API FRiveFileEditor : public FAssetEditorToolkit
 {
 public:
-    virtual ~FRiveFileAssetEditorToolkit() override;
+    virtual ~FRiveFileEditor() override;
     void Initialize(URiveFile* InRiveFile, const EToolkitMode::Type InMode, const TSharedPtr<IToolkitHost>& InToolkitHost);
 	
     //~ BEGIN IToolkit interface

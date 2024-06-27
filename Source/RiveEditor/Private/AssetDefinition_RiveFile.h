@@ -3,13 +3,13 @@
 #pragma once
 
 #include "AssetDefinitionDefault.h"
-#include "RiveFileAssetDefinitionDefault.generated.h"
+#include "AssetDefinition_RiveFile.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class RIVEEDITOR_API URiveFileAssetDefinitionDefault : public UAssetDefinitionDefault
+class RIVEEDITOR_API UAssetDefinition_RiveFile : public UAssetDefinitionDefault
 {
 	GENERATED_BODY()
 
