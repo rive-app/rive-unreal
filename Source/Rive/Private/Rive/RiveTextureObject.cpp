@@ -136,7 +136,6 @@ void URiveTextureObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 {
 	Artboard = NewObject<URiveArtboard>(this);
-	RiveDescriptor.RiveFile->Artboards.Add(Artboard);
 	RiveRenderTarget.Reset();
 	RiveRenderTarget = InRiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
 			
@@ -149,11 +148,11 @@ void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 
 	if (RiveDescriptor.ArtboardName.IsEmpty())
 	{
-		Artboard->Initialize(RiveDescriptor.RiveFile->GetNativeFile(), RiveRenderTarget, RiveDescriptor.ArtboardIndex, RiveDescriptor.StateMachineName);
+		Artboard->Initialize(RiveDescriptor.RiveFile, RiveRenderTarget, RiveDescriptor.ArtboardIndex, RiveDescriptor.StateMachineName);
 	}
 	else
 	{
-		Artboard->Initialize(RiveDescriptor.RiveFile->GetNativeFile(), RiveRenderTarget, RiveDescriptor.ArtboardName, RiveDescriptor.StateMachineName);
+		Artboard->Initialize(RiveDescriptor.RiveFile, RiveRenderTarget, RiveDescriptor.ArtboardName, RiveDescriptor.StateMachineName);
 	}
 
 	ResizeRenderTargets(Artboard->GetSize());

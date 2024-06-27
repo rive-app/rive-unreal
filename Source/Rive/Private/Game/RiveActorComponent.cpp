@@ -109,7 +109,7 @@ URiveArtboard* URiveActorComponent::AddArtboard(URiveFile* InRiveFile, const FSt
     }
     
     URiveArtboard* Artboard = NewObject<URiveArtboard>();
-    Artboard->Initialize(InRiveFile->GetNativeFile(), RiveRenderTarget, InArtboardName, InStateMachineName);    
+    Artboard->Initialize(InRiveFile, RiveRenderTarget, InArtboardName, InStateMachineName);    
     Artboards.Add(Artboard);
 
     if (RiveAudioEngine != nullptr)

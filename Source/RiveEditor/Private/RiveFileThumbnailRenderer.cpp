@@ -47,8 +47,7 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 
 		if (!ThumbnailRenderers.Contains(RiveFile->GetFName()))
 		{
 			Artboard = NewObject<URiveArtboard>();
-			Artboard->Initialize(RiveFile->GetNativeFile(), RiveRenderTarget);
-			RiveFile->Artboards.Add(Artboard);
+			Artboard->Initialize(RiveFile, RiveRenderTarget);
 			ThumbnailRenderers.Add(RiveFile->GetFName(), Artboard);
 		} else
 		{
