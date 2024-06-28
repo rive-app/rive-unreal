@@ -17,10 +17,10 @@ URiveWidget::~URiveWidget()
 
 	RiveWidget.Reset();
 
-	if (RiveObject != nullptr)
+	if (RiveTextureObject != nullptr)
 	{
-		RiveObject->MarkAsGarbage();
-		RiveObject = nullptr;
+		RiveTextureObject->MarkAsGarbage();
+		RiveTextureObject = nullptr;
 	}
 }
 
@@ -44,10 +44,10 @@ void URiveWidget::ReleaseSlateResources(bool bReleaseChildren)
 
 	RiveWidget.Reset();
 
-	if (RiveObject != nullptr)
+	if (RiveTextureObject != nullptr)
 	{
-		RiveObject->MarkAsGarbage();
-		RiveObject = nullptr;
+		RiveTextureObject->MarkAsGarbage();
+		RiveTextureObject = nullptr;
 	}
 }
 
@@ -55,9 +55,9 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 {
 	RiveWidget = SNew(SRiveWidget);
 	
-	if (!RiveObject && RiveWidget.IsValid())
+	if (!RiveTextureObject && RiveWidget.IsValid())
 	{
-		RiveObject = NewObject<URiveTextureObject>();
+		RiveTextureObject = NewObject<URiveTextureObject>();
 
 #if WITH_EDITOR
 		TimerHandle.Invalidate();
@@ -75,9 +75,9 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 
 void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
 {
-	if (RiveObject && RiveObject->GetArtboard())
+	if (RiveTextureObject && RiveTextureObject->GetArtboard())
 	{
-		RiveObject->GetArtboard()->SetAudioEngine(InAudioEngine);
+		RiveTextureObject->GetArtboard()->SetAudioEngine(InAudioEngine);
 		return;
 	}
 	
@@ -86,9 +86,9 @@ void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
 
 URiveArtboard* URiveWidget::GetArtboard() const
 {
-	if (RiveObject && RiveObject->GetArtboard())
+	if (RiveTextureObject && RiveTextureObject->GetArtboard())
 	{
-		return RiveObject->GetArtboard();
+		return RiveTextureObject->GetArtboard();
 	}
 	
 	return nullptr;
@@ -97,28 +97,28 @@ URiveArtboard* URiveWidget::GetArtboard() const
 void URiveWidget::OnRiveObjectReady()
 {
 	if (!RiveWidget.IsValid() || !GetCachedWidget()) return;
-	RiveObject->OnRiveReady.Remove(FrameHandle);
+	RiveTextureObject->OnRiveReady.Remove(FrameHandle);
 		
 	UE::Slate::FDeprecateVector2DResult AbsoluteSize = GetCachedGeometry().GetAbsoluteSize();
 
-	RiveObject->ResizeRenderTargets(FIntPoint(AbsoluteSize.X, AbsoluteSize.Y));
-	RiveWidget->SetRiveTexture(RiveObject);
-	RiveWidget->RegisterArtboardInputs({RiveObject->GetArtboard()});
+	RiveTextureObject->ResizeRenderTargets(FIntPoint(AbsoluteSize.X, AbsoluteSize.Y));
+	RiveWidget->SetRiveTexture(RiveTextureObject);
+	RiveWidget->RegisterArtboardInputs({RiveTextureObject->GetArtboard()});
 	OnRiveReady.Broadcast();
 }
 
 void URiveWidget::Setup()
 {
-	if (!RiveObject || !RiveWidget.IsValid())
+	if (!RiveTextureObject || !RiveWidget.IsValid())
 	{
 		return;
 	}
 	
-	FrameHandle = RiveObject->OnRiveReady.AddUObject(this, &URiveWidget::OnRiveObjectReady);
+	FrameHandle = RiveTextureObject->OnRiveReady.AddUObject(this, &URiveWidget::OnRiveObjectReady);
 #if WITH_EDITOR
-	RiveObject->bRenderInEditor = true;
+	RiveTextureObject->bRenderInEditor = true;
 #endif
-	RiveObject->Initialize(RiveDescriptor);
+	RiveTextureObject->Initialize(RiveDescriptor);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -115,6 +115,53 @@ FVector2f URiveTexture::GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard
 	}
 }
 
+ESimpleElementBlendMode URiveTexture::GetSimpleElementBlendMode() const
+{
+	ESimpleElementBlendMode NewBlendMode = ESimpleElementBlendMode::SE_BLEND_Opaque;
+
+	switch (RiveBlendMode)
+	{
+	case ERiveBlendMode::SE_BLEND_Opaque:
+		break;
+	case ERiveBlendMode::SE_BLEND_Masked:
+		NewBlendMode = SE_BLEND_Masked;
+		break;
+	case ERiveBlendMode::SE_BLEND_Translucent:
+		NewBlendMode = SE_BLEND_Translucent;
+		break;
+	case ERiveBlendMode::SE_BLEND_Additive:
+		NewBlendMode = SE_BLEND_Additive;
+		break;
+	case ERiveBlendMode::SE_BLEND_Modulate:
+		NewBlendMode = SE_BLEND_Modulate;
+		break;
+	case ERiveBlendMode::SE_BLEND_MaskedDistanceField:
+		NewBlendMode = SE_BLEND_MaskedDistanceField;
+		break;
+	case ERiveBlendMode::SE_BLEND_MaskedDistanceFieldShadowed:
+		NewBlendMode = SE_BLEND_MaskedDistanceFieldShadowed;
+		break;
+	case ERiveBlendMode::SE_BLEND_TranslucentDistanceField:
+		NewBlendMode = SE_BLEND_TranslucentDistanceField;
+		break;
+	case ERiveBlendMode::SE_BLEND_TranslucentDistanceFieldShadowed:
+		NewBlendMode = SE_BLEND_TranslucentDistanceFieldShadowed;
+		break;
+	case ERiveBlendMode::SE_BLEND_AlphaComposite:
+		NewBlendMode = SE_BLEND_AlphaComposite;
+		break;
+	case ERiveBlendMode::SE_BLEND_AlphaHoldout:
+		NewBlendMode = SE_BLEND_AlphaHoldout;
+		break;
+	case ERiveBlendMode::SE_BLEND_AlphaBlend:
+		NewBlendMode = SE_BLEND_AlphaBlend;
+		break;
+	}
+
+	return NewBlendMode;
+}
+
+
 void URiveTexture::InitializeResources() const
 {
 	if (!IRiveRendererModule::Get().GetRenderer())

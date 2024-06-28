@@ -74,7 +74,7 @@ private:
     
     // Runtime objects
     UPROPERTY(Transient)
-    TObjectPtr<URiveTextureObject> RiveObject;
+    TObjectPtr<URiveTextureObject> RiveTextureObject;
     
     void Setup();
     TSharedPtr<SRiveWidget> RiveWidget;

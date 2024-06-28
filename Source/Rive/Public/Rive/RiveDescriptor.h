@@ -34,4 +34,7 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
 	ERiveAlignment Alignment = ERiveAlignment::Center;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
+	ERiveBlendMode BlendMode = ERiveBlendMode::SE_BLEND_AlphaComposite;
 };

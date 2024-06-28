@@ -109,6 +109,7 @@ void URiveTextureObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 {
 	Artboard = nullptr;
 	RiveDescriptor = InRiveDescriptor;
+	RiveBlendMode = InRiveDescriptor.BlendMode;
 
 	if (!IRiveRendererModule::IsAvailable())
 	{
