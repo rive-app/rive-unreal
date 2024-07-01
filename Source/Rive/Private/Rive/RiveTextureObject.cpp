@@ -159,6 +159,9 @@ void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 	if (Size == FIntPoint::ZeroValue)
 	{
 		ResizeRenderTargets(Artboard->GetSize());
+	} else
+	{
+		ResizeRenderTargets(Size);
 	}
 
 	if (AudioEngine != nullptr)
