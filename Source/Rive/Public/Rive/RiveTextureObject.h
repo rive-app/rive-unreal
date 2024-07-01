@@ -107,6 +107,7 @@ public:
 	bool bIsRendering = false;
 	
 #if WITH_EDITOR
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 	bool bRenderInEditor = false;
 #endif
 	

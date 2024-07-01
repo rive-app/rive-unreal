@@ -156,7 +156,10 @@ void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 		Artboard->Initialize(RiveDescriptor.RiveFile, RiveRenderTarget, RiveDescriptor.ArtboardName, RiveDescriptor.StateMachineName);
 	}
 
-	ResizeRenderTargets(Artboard->GetSize());
+	if (Size == FIntPoint::ZeroValue)
+	{
+		ResizeRenderTargets(Artboard->GetSize());
+	}
 
 	if (AudioEngine != nullptr)
 	{
@@ -197,6 +200,42 @@ void URiveTextureObject::OnResourceInitialized_RenderThread(FRHICommandListImmed
 		RenderTarget->CacheTextureTarget_RenderThread(RHICmdList, NewResource);
 	}
 }
+
+#if WITH_EDITOR
+void URiveTextureObject::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	
+	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
+	const FName ActiveMemberNodeName = *PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue()->GetName();
+	
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor, RiveFile) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor, ArtboardIndex) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor, ArtboardName))
+	{
+		Initialize(RiveDescriptor);
+	}
+	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveTexture, Size))
+	{
+		ResizeRenderTargets(Size);
+	}
+	else if (ActiveMemberNodeName == GET_MEMBER_NAME_CHECKED(URiveTextureObject, ClearColor))
+	{
+		if (RiveRenderTarget)
+		{
+			RiveRenderTarget->SetClearColor(ClearColor);
+		}
+	}
+	
+	// Update the Rive CachedPLSRenderTarget
+	if (RiveRenderTarget)
+	{
+		RiveRenderTarget->Initialize();
+	}
+	
+	FlushRenderingCommands();
+}
+#endif
 
 void URiveTextureObject::OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard)
 {
