@@ -54,3 +54,5 @@ uint32 FRiveTextureObjectAssetTypeActions::GetCategories()
 {
 	return AssetCategory;
 }
+
+#undef LOCTEXT_NAMESPACE
