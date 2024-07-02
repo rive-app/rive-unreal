@@ -52,3 +52,5 @@ uint32 FRiveFileAssetTypeActions::GetCategories()
 {
 	return AssetCategory;
 }
+
+#undef LOCTEXT_NAMESPACE
