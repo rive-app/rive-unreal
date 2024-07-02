@@ -58,10 +58,12 @@ public:
 		return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
 	}
 
+#if WITH_EDITOR
 	virtual bool IsTickableInEditor() const override
 	{
 		return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering && bRenderInEditor;
 	}
+#endif
 
 	virtual ETickableTickType GetTickableTickType() const override
 	{
