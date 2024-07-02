@@ -2,7 +2,7 @@
 
 #include "Game/RiveWidgetActor.h"
 
-#include "Rive/RiveObject.h"
+#include "Rive/RiveTextureObject.h"
 #include "UMG/RiveWidget.h"
 
 #define LOCTEXT_NAMESPACE "ARiveActor"

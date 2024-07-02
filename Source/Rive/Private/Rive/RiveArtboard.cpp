@@ -6,6 +6,7 @@
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
 #include "Rive/RiveEvent.h"
+#include "Rive/RiveFile.h"
 #include "Rive/RiveStateMachine.h"
 #include "Stats/RiveStats.h"
 
@@ -382,7 +383,7 @@ bool URiveArtboard::BindNamedRiveEvent(const FString& EventName, const FRiveName
 		NamedRiveEventsDelegates.FindOrAdd(EventName, {}).AddUnique(Event);
 		return true;
 	}
-	UE_LOG(LogRive, Error, TEXT("Unable to bind event '%s' to Artboard '%s' as the event does not exist"), *EventName, *GetArtboardName())
+	UE_LOG(LogRive, Warning, TEXT("Unable to bind event '%s' to Artboard '%s' as the event does not exist"), *EventName, *GetArtboardName())
 	return false;
 }
 
@@ -400,7 +401,7 @@ bool URiveArtboard::UnbindNamedRiveEvent(const FString& EventName, const FRiveNa
 		}
 		return true;
 	}
-	UE_LOG(LogRive, Error, TEXT("Unable to bind event '%s' to Artboard '%s' as the event does not exist"), *EventName, *GetArtboardName())
+	UE_LOG(LogRive, Warning, TEXT("Unable to bind event '%s' to Artboard '%s' as the event does not exist"), *EventName, *GetArtboardName())
 	return false;
 }
 
@@ -419,11 +420,11 @@ bool URiveArtboard::TriggerNamedRiveEvent(const FString& EventName, float Report
 				return true;
 			}
 		}
-		UE_LOG(LogRive, Error, TEXT("Unable to trigger event '%s' for Artboard '%s' as the Artboard is not ready or it doesn't have a state machine"), *EventName, *GetArtboardName())
+		UE_LOG(LogRive, Warning, TEXT("Unable to trigger event '%s' for Artboard '%s' as the Artboard is not ready or it doesn't have a state machine"), *EventName, *GetArtboardName())
 	}
 	else
 	{
-		UE_LOG(LogRive, Error, TEXT("Unable to trigger event '%s' for Artboard '%s' as the event does not exist"), *EventName, *GetArtboardName())
+		UE_LOG(LogRive, Warning, TEXT("Unable to trigger event '%s' for Artboard '%s' as the event does not exist"), *EventName, *GetArtboardName())
 	}
 	
 	return false;
@@ -487,17 +488,18 @@ FVector2f URiveArtboard::GetLocalCoordinatesFromExtents(const FVector2f& InPosit
 	return GetLocalCoordinate(TextureRelativePosition, TextureSize, Alignment, FitType);
 }
 
-void URiveArtboard::Initialize(rive::File* InNativeFilePtr, const TSharedPtr<IRiveRenderTarget>& InRiveRenderTarget)
+void URiveArtboard::Initialize(URiveFile* InRiveFile, const TSharedPtr<IRiveRenderTarget>& InRiveRenderTarget)
 {
-	Initialize(InNativeFilePtr, InRiveRenderTarget, 0, "");
+	Initialize(InRiveFile, InRiveRenderTarget, 0, "");
 }
 
-void URiveArtboard::Initialize(rive::File* InNativeFilePtr, TSharedPtr<IRiveRenderTarget> InRiveRenderTarget,
+void URiveArtboard::Initialize(URiveFile* InRiveFile, TSharedPtr<IRiveRenderTarget> InRiveRenderTarget,
                                int32 InIndex, const FString& InStateMachineName)
 {
 	RiveRenderTarget = InRiveRenderTarget;
 	StateMachineName = InStateMachineName;
 	ArtboardIndex = InIndex;
+	RiveFile = InRiveFile;
 	
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 	if (!RiveRenderer)
@@ -508,32 +510,46 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, TSharedPtr<IRiveRend
 	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
-	if (!InNativeFilePtr)
+	if (!RiveFile.IsValid() || !RiveFile->GetNativeFile())
 	{
 		return;
 	}
 
-	int32 Index = InIndex;
-	if (Index >= InNativeFilePtr->artboardCount())
+	// If we have a RiveFile reference, it means we've started up before. Make sure if the RiveFile is initializing, we deinitialize
+	if (!RiveFileDeinitializationHandle.IsValid())
 	{
-		Index = InNativeFilePtr->artboardCount() - 1;
+  		RiveFileDeinitializationHandle = RiveFile->OnStartInitializingDelegate.AddUObject(this, &URiveArtboard::Deinitialize);
+	}
+
+	if (!RiveFileReinitializationHandle.IsValid())
+	{
+		RiveFileReinitializationHandle = RiveFile->OnInitializedDelegate.AddUObject(this, &URiveArtboard::Reinitialize);
+
+	}
+	
+	int32 Index = InIndex;
+	if (Index >= RiveFile->GetNativeFile()->artboardCount())
+	{
+		Index = RiveFile->GetNativeFile()->artboardCount() - 1;
 		UE_LOG(LogRive, Warning,
 		       TEXT(
 			       "Artboard index specified is out of bounds, using the last available artboard index instead, which is %d"
 		       ), Index);
 	}
 
-	if (const rive::Artboard* NativeArtboard = InNativeFilePtr->artboard(Index))
+	if (const rive::Artboard* NativeArtboard = RiveFile->GetNativeFile()->artboard(Index))
 	{
 		Initialize_Internal(NativeArtboard);
 	}
 }
 
-void URiveArtboard::Initialize(rive::File* InNativeFilePtr, TSharedPtr<IRiveRenderTarget> InRiveRenderTarget,
+void URiveArtboard::Initialize(URiveFile* InRiveFile, TSharedPtr<IRiveRenderTarget> InRiveRenderTarget,
                                const FString& InName, const FString& InStateMachineName)
 {
 	RiveRenderTarget = InRiveRenderTarget;
 	StateMachineName = InStateMachineName;
+	RiveFile = InRiveFile;
+	
 	
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 	if (!RiveRenderer)
@@ -544,7 +560,7 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, TSharedPtr<IRiveRend
 	
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
-	if (!InNativeFilePtr)
+	if (!RiveFile.IsValid() || !RiveFile->GetNativeFile())
 	{
 		return;
 	}
@@ -553,19 +569,32 @@ void URiveArtboard::Initialize(rive::File* InNativeFilePtr, TSharedPtr<IRiveRend
 	
 	if (InName.IsEmpty())
 	{
-		NativeArtboard = InNativeFilePtr->artboard();
+		NativeArtboard = RiveFile->GetNativeFile()->artboard();
 	} else
 	{
-		NativeArtboard = InNativeFilePtr->artboard(TCHAR_TO_UTF8(*InName));
+		NativeArtboard = RiveFile->GetNativeFile()->artboard(TCHAR_TO_UTF8(*InName));
 		if (!NativeArtboard)
 		{
-			UE_LOG(LogRive, Error,
+			UE_LOG(LogRive, Warning,
 				TEXT("Could not initialize the artboard by the name '%s'. Initializing with default artboard instead"),
 				*InName);
-			NativeArtboard = InNativeFilePtr->artboard();
+			NativeArtboard = RiveFile->GetNativeFile()->artboard();
 		}
 	}
 	Initialize_Internal(NativeArtboard);
+}
+
+void URiveArtboard::Reinitialize(bool InSuccess)
+{
+	if (this == nullptr || !InSuccess || !RiveFile.IsValid()) return;
+	
+	if (ArtboardName.IsEmpty())
+	{
+		Initialize(RiveFile.Get(), RiveRenderTarget, ArtboardIndex, StateMachineName);
+	} else
+	{
+		Initialize(RiveFile.Get(), RiveRenderTarget, ArtboardName, StateMachineName);
+	}
 }
 
 void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
@@ -582,19 +611,6 @@ void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
 		return;
 	}
 	NativeArtboardPtr->audioEngine(AudioEngine->GetNativeAudioEngine());
-}
-
-void URiveArtboard::Reinitialize(rive::File* InNativeFilePtr)
-{
-	if (this == nullptr) return;
-	
-	if (ArtboardName.IsEmpty())
-	{
-		Initialize(InNativeFilePtr, RiveRenderTarget, ArtboardIndex, StateMachineName);
-	} else
-	{
-		Initialize(InNativeFilePtr, RiveRenderTarget, ArtboardName, StateMachineName);
-	}
 }
 
 void URiveArtboard::Tick_Render(float InDeltaSeconds)
@@ -706,7 +722,7 @@ FVector2f URiveArtboard::GetSize() const
 	
 	if (!NativeArtboardPtr)
 	{
-		UE_LOG(LogRive, Error, TEXT("Could not retrieve artboard size as we have detected an empty rive artboard."));
+		UE_LOG(LogRive, Warning, TEXT("Could not retrieve artboard size as we have detected an empty rive artboard."));
 
 		return FVector2f::ZeroVector;
 	}
@@ -766,7 +782,7 @@ void URiveArtboard::PopulateReportedEvents()
 	}
 	else
 	{
-		UE_LOG(LogRive, Error, TEXT("Failed to populate reported event(s) as we could not retrieve native state machine."));
+		UE_LOG(LogRive, Warning, TEXT("Failed to populate reported event(s) as we could not retrieve native state machine."));
 	}
 
 #endif // WITH_RIVE

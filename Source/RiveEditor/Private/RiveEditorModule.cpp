@@ -5,12 +5,14 @@
 #include "AssetToolsModule.h"
 #include "IRiveRendererModule.h"
 #include "ISettingsEditorModule.h"
-#include "RiveFile_AssetTypeActions.h"
-#include "RiveTextureThumbnailRenderer.h"
+#include "RiveFileAssetTypeActions.h"
+#include "RiveFileThumbnailRenderer.h"
+#include "RiveTextureObjectAssetTypeActions.h"
+#include "RiveTextureObjectThumbnailRenderer.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
-#include "Rive/RiveObject.h"
+#include "Rive/RiveTextureObject.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
@@ -22,12 +24,16 @@
 
 void FRiveEditorModule::StartupModule()
 {
-	UThumbnailManager::Get().RegisterCustomRenderer(URiveFile::StaticClass(), URiveTextureThumbnailRenderer::StaticClass());
+	UThumbnailManager::Get().RegisterCustomRenderer(URiveFile::StaticClass(), URiveFileThumbnailRenderer::StaticClass());
+	UThumbnailManager::Get().RegisterCustomRenderer(URiveTextureObject::StaticClass(), URiveTextureObjectThumbnailRenderer::StaticClass());
 
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	
 	RiveAssetCategory = AssetTools.RegisterAdvancedAssetCategory(FName(TEXT("Rive")), LOCTEXT("RiveFileCategory", "Rive"));
-	RegisterAssetTypeActions(AssetTools, MakeShareable(new FRiveFile_AssetTypeActions(RiveAssetCategory)));
+
+	RegisterAssetTypeActions(AssetTools, MakeShareable(new FRiveFileAssetTypeActions(RiveAssetCategory)));
+	RegisterAssetTypeActions(AssetTools, MakeShareable(new FRiveTextureObjectAssetTypeActions(RiveAssetCategory)));
+
 
 	OnBeginFrameHandle = FCoreDelegates::OnBeginFrame.AddLambda([this]()
 	{

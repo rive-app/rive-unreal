@@ -1,15 +1,17 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "RiveFile_AssetDefinitionDefault.h"
+#include "AssetDefinition_RiveFile.h"
 
 #include "ContentBrowserMenuContexts.h"
 #include "IAssetTools.h"
-#include "RiveAssetToolkit.h"
+// #include "RiveFileAssetToolkit.h"
+#include "RiveFileEditor.h"
 #include "Factories/RiveWidgetFactory.h"
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveFile.h"
 
 #include "EditorFramework/AssetImportData.h"
+#include "Factories/RiveTextureObjectFactory.h"
 
 #define LOCTEXT_NAMESPACE "URiveFile_AssetDefinitionDefault"
 
@@ -25,6 +27,20 @@ namespace MenuExtension_RiveFile
 			if (IsValid(RiveFile))
 			{
 				FRiveWidgetFactory(RiveFile).Create();
+			}
+		}
+	}
+
+	void ExecuteCreateTextureObject(const FToolMenuContext& InContext)
+	{
+		const UContentBrowserAssetContextMenuContext* CBContext = UContentBrowserAssetContextMenuContext::FindContextWithAssets(InContext);
+
+		TArray<URiveFile*> RiveFileObjects = CBContext->LoadSelectedObjects<URiveFile>();
+		for (URiveFile* RiveFile : RiveFileObjects)
+		{
+			if (IsValid(RiveFile))
+			{
+				FRiveTextureObjectFactory(RiveFile).Create();
 			}
 		}
 	}
@@ -47,46 +63,54 @@ namespace MenuExtension_RiveFile
 							const FToolMenuExecuteAction UIAction = FToolMenuExecuteAction::CreateStatic(&ExecuteCreateWidget);
 							InSection.AddMenuEntry("RiveFile_CreateWidget", Label, ToolTip, Icon, UIAction);
 						}
+
+						{
+							const TAttribute<FText> Label = LOCTEXT("RiveFile_CreateTextureObject", "Create Rive Texture Object");
+							const TAttribute<FText> ToolTip = LOCTEXT("RiveFile_CreateWidgetTooltip", "Creates a new Rive Texture Object using this file.");
+							const FSlateIcon Icon = FSlateIcon(FAppStyle::GetAppStyleSetName(), "ClassIcon.Texture2D");
+							const FToolMenuExecuteAction UIAction = FToolMenuExecuteAction::CreateStatic(&ExecuteCreateTextureObject);
+							InSection.AddMenuEntry("RiveFile_CreateTextureObject", Label, ToolTip, Icon, UIAction);
+						}
 					}
 				}));
 		}));
 	});
 }
 
-FText URiveFile_AssetDefinitionDefault::GetAssetDisplayName() const
+FText UAssetDefinition_RiveFile::GetAssetDisplayName() const
 {
 	return LOCTEXT("AssetTypeActions_RiveFile", "Rive File");
 }
 
-FLinearColor URiveFile_AssetDefinitionDefault::GetAssetColor() const
+FLinearColor UAssetDefinition_RiveFile::GetAssetColor() const
 {
 	return FLinearColor::Red;
 }
 
-TSoftClassPtr<> URiveFile_AssetDefinitionDefault::GetAssetClass() const
+TSoftClassPtr<> UAssetDefinition_RiveFile::GetAssetClass() const
 {
 	return URiveFile::StaticClass();
 }
 
-TConstArrayView<FAssetCategoryPath> URiveFile_AssetDefinitionDefault::GetAssetCategories() const
+TConstArrayView<FAssetCategoryPath> UAssetDefinition_RiveFile::GetAssetCategories() const
 {
 	static const FAssetCategoryPath Categories[] = { EAssetCategoryPaths::Misc };
 
 	return Categories;
 }
 
-EAssetCommandResult URiveFile_AssetDefinitionDefault::OpenAssets(const FAssetOpenArgs& OpenArgs) const
+EAssetCommandResult UAssetDefinition_RiveFile::OpenAssets(const FAssetOpenArgs& OpenArgs) const
 {
 	for (URiveFile* RiveFile : OpenArgs.LoadObjects<URiveFile>())
 	{
-		const TSharedRef<FRiveAssetToolkit> EditorToolkit = MakeShared<FRiveAssetToolkit>();
+		const TSharedRef<FRiveFileEditor> EditorToolkit = MakeShared<FRiveFileEditor>();
 		EditorToolkit->Initialize(RiveFile, OpenArgs.GetToolkitMode(), OpenArgs.ToolkitHost);
 	}
 
 	return EAssetCommandResult::Handled;
 }
 
-EAssetCommandResult URiveFile_AssetDefinitionDefault::GetSourceFiles(const FAssetSourceFilesArgs& InArgs, TFunctionRef<bool(const FAssetSourceFilesResult& InSourceFile)> SourceFileFunc) const
+EAssetCommandResult UAssetDefinition_RiveFile::GetSourceFiles(const FAssetSourceFilesArgs& InArgs, TFunctionRef<bool(const FAssetSourceFilesResult& InSourceFile)> SourceFileFunc) const
 {
 	for (URiveFile* RiveFile : InArgs.LoadObjects<URiveFile>())
 	{

@@ -1,41 +1,39 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "RiveAssetToolkit.h"
-#include "Rive/RiveFile.h"
+#include "RiveTextureObjectEditor.h"
 #include "Slate/SRiveWidget.h"
 #include "PropertyEditorModule.h"
-#include "Rive/RiveObject.h"
+#include "Rive/RiveTextureObject.h"
 #include "Widgets/Docking/SDockTab.h"
 
-const FName FRiveAssetToolkit::RiveViewportTabID(TEXT("RiveViewportTabID"));
-const FName FRiveAssetToolkit::DetailsTabID(TEXT("DetailsTabID"));
-const FName FRiveAssetToolkit::AppIdentifier(TEXT("RiveFileApp"));
+const FName FRiveTextureObjectEditor::RiveViewportTabID(TEXT("RiveTextureObjectViewportTabID"));
+const FName FRiveTextureObjectEditor::DetailsTabID(TEXT("DetailsTabID"));
+const FName FRiveTextureObjectEditor::AppIdentifier(TEXT("RiveTextureObjectApp"));
 
-#define LOCTEXT_NAMESPACE "FRiveAssetToolkit"
+#define LOCTEXT_NAMESPACE "FRiveTextureObjectAssetToolkit"
 
-FRiveAssetToolkit::~FRiveAssetToolkit()
+FRiveTextureObjectEditor::~FRiveTextureObjectEditor()
 {
     if (RiveWidget)
     {
         RiveWidget->SetRiveTexture(nullptr);
         RiveWidget.Reset();
     }
-    
-    if (RiveObject)
+
+    if (RiveTextureObject)
     {
-        RiveObject->MarkAsGarbage();
-        RiveObject->ConditionalBeginDestroy();
-        RiveObject = nullptr;
+        RiveTextureObject->bRenderInEditor = false;
+        RiveTextureObject = nullptr;
     }
 }
 
-void FRiveAssetToolkit::Initialize(URiveFile* InRiveFile, const EToolkitMode::Type InMode, const TSharedPtr<IToolkitHost>& InToolkitHost)
+void FRiveTextureObjectEditor::Initialize(URiveTextureObject* InRiveTextureObject, const EToolkitMode::Type InMode, const TSharedPtr<IToolkitHost>& InToolkitHost)
 {
-    check(InRiveFile);
-    RiveFile = InRiveFile;
+    check(InRiveTextureObject);
+    RiveTextureObject = InRiveTextureObject;
     
     // Setup our default layout
-    const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout(FName("RiveFileEditorEditorLayout3"))
+    const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout(FName("RiveTextureObjectLayout"))
         ->AddArea
         (
             FTabManager::NewPrimaryArea()
@@ -68,37 +66,39 @@ void FRiveAssetToolkit::Initialize(URiveFile* InRiveFile, const EToolkitMode::Ty
     FAssetEditorToolkit::InitAssetEditor(
         InMode,
         InToolkitHost,
-        FRiveAssetToolkit::AppIdentifier,
+        FRiveTextureObjectEditor::AppIdentifier,
         Layout,
         true,
         true,
-        InRiveFile
+        RiveTextureObject
     );
+
+    RiveTextureObject->bRenderInEditor = true;
     
     RegenerateMenusAndToolbars();
 }
 
-FText FRiveAssetToolkit::GetBaseToolkitName() const
+FText FRiveTextureObjectEditor::GetBaseToolkitName() const
 {
-    return LOCTEXT("AppLabel", "Rive File Editor");
+    return LOCTEXT("RiveTextureObjectAppLabel", "Rive Texture Object Editor");
 }
 
-FName FRiveAssetToolkit::GetToolkitFName() const
+FName FRiveTextureObjectEditor::GetToolkitFName() const
 {
-    return FName("RiveFileEditor");
+    return FName("RiveTextureObjectEditor");
 }
 
-FLinearColor FRiveAssetToolkit::GetWorldCentricTabColorScale() const
+FLinearColor FRiveTextureObjectEditor::GetWorldCentricTabColorScale() const
 {
     return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
 }
 
-FString FRiveAssetToolkit::GetWorldCentricTabPrefix() const
+FString FRiveTextureObjectEditor::GetWorldCentricTabPrefix() const
 {
-    return LOCTEXT("WorldCentricTabPrefix", "RiveFile ").ToString();
+    return LOCTEXT("WorldCentricTabPrefix", "RiveTextureObject ").ToString();
 }
 
-void FRiveAssetToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
+void FRiveTextureObjectEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
 {
     FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
     
@@ -109,42 +109,27 @@ void FRiveAssetToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTab
         AssetEditorTabsCategory = LocalCategories.Num() > 0 ? LocalCategories[0] : InTabManager->GetLocalWorkspaceMenuRoot();
     }
     
-    InTabManager->RegisterTabSpawner(RiveViewportTabID, FOnSpawnTab::CreateSP(this, &FRiveAssetToolkit::SpawnTab_RiveViewportTab))
+    InTabManager->RegisterTabSpawner(RiveViewportTabID, FOnSpawnTab::CreateSP(this, &FRiveTextureObjectEditor::SpawnTab_RiveViewportTab))
         .SetDisplayName(LOCTEXT("Viewport", "Viewport"))
         .SetGroup(AssetEditorTabsCategory.ToSharedRef())
         .SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Viewports"));
     
-    InTabManager->RegisterTabSpawner(DetailsTabID, FOnSpawnTab::CreateSP(this, &FRiveAssetToolkit::SpawnTab_DetailsTabID))
+    InTabManager->RegisterTabSpawner(DetailsTabID, FOnSpawnTab::CreateSP(this, &FRiveTextureObjectEditor::SpawnTab_DetailsTabID))
         .SetDisplayName(LOCTEXT("Details", "Details"))
         .SetGroup(AssetEditorTabsCategory.ToSharedRef())
         .SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"));
 }
 
-TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_RiveViewportTab(const FSpawnTabArgs& Args)
+TSharedRef<SDockTab> FRiveTextureObjectEditor::SpawnTab_RiveViewportTab(const FSpawnTabArgs& Args)
 {
-    check(Args.GetTabId() == FRiveAssetToolkit::RiveViewportTabID);
+    check(Args.GetTabId() == FRiveTextureObjectEditor::RiveViewportTabID);
 
     TSharedPtr<SWidget> ViewportWidget = nullptr;
-
-    if (RiveFile)
+    
+    if (RiveTextureObject)
     {
-        if (!RiveObject)
-        {
-            RiveObject = NewObject<URiveObject>();
-            RiveObject->Initialize(FRiveDescriptor{
-                RiveFile,
-                "",
-                0,
-                "",
-                ERiveFitType::Contain,
-                ERiveAlignment::Center
-            });
-        }
-        RiveWidget = SNew(SRiveWidget)
-#if WITH_EDITOR
-            .bDrawCheckerboardInEditor(true);
-#endif
-        RiveWidget->SetRiveTexture(RiveObject);
+        RiveWidget = SNew(SRiveWidget).bDrawCheckerboardInEditor(true);
+        RiveWidget->SetRiveTexture(RiveTextureObject);
         ViewportWidget = RiveWidget;
     }
     else
@@ -153,12 +138,13 @@ TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_RiveViewportTab(const FSpawnTab
     }
 
     TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab).Label(LOCTEXT("ViewportTab_Title", "Viewport"));
+    
     SpawnedTab->SetContent(ViewportWidget.ToSharedRef());
 
     return SpawnedTab;
 }
 
-TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_DetailsTabID(const FSpawnTabArgs& Args)
+TSharedRef<SDockTab> FRiveTextureObjectEditor::SpawnTab_DetailsTabID(const FSpawnTabArgs& Args)
 {
     DetailsTab = SNew(SDockTab).Label(LOCTEXT("DetailsTitle", "Details"));
 
@@ -170,9 +156,9 @@ TSharedRef<SDockTab> FRiveAssetToolkit::SpawnTab_DetailsTabID(const FSpawnTabArg
     DetailsViewArgs.bAllowSearch = true;
     DetailsAssetView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
     
-    if (RiveFile)
+    if (RiveTextureObject)
     {
-        DetailsAssetView->SetObject(RiveFile);
+        DetailsAssetView->SetObject(RiveTextureObject);
     }
     
     DetailsTab->SetContent(DetailsAssetView.ToSharedRef());

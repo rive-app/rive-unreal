@@ -7,7 +7,7 @@
 #include "RiveTexture.h"
 #include "RiveTypes.h"
 #include "Tickable.h"
-#include "RiveObject.generated.h"
+#include "RiveTextureObject.generated.h"
 
 #if WITH_RIVE
 
@@ -28,10 +28,10 @@ class UUserWidget;
 class URiveFile;
 
 /**
- *
+ * This class represents the logical side of a single RiveTexture / RenderTarget. It implements the logic to instantiate and tick an artboard passed into it with a RiveDescriptor.
  */
 UCLASS(BlueprintType, Blueprintable, HideCategories=("ImportSettings", "Compression", "Adjustments", "LevelOfDetail", "Compositing"))
-class RIVE_API URiveObject : public URiveTexture, public FTickableGameObject
+class RIVE_API URiveTextureObject : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
 	DECLARE_MULTICAST_DELEGATE(FRiveReadyDelegate)
@@ -42,10 +42,10 @@ public:
 	 * Structor(s)
 	 */
 	
-	URiveObject();
+	URiveTextureObject();
 	
 	virtual void BeginDestroy() override;
-	
+	void PostLoad() override;
 	//~ BEGIN : FTickableGameObject Interface
 
 public:
@@ -53,11 +53,14 @@ public:
 
 	virtual void Tick(float InDeltaSeconds) override;
 
-	virtual bool IsTickable() const override;
+	virtual bool IsTickable() const override
+	{
+		return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
+	}
 
 	virtual bool IsTickableInEditor() const override
 	{
-		return true;
+		return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering && bRenderInEditor;
 	}
 
 	virtual ETickableTickType GetTickableTickType() const override
@@ -86,16 +89,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinatesFromExtents(const FVector2f& InPosition, const FBox2f& InExtents) const;
 	
-
-	/**
-	 * Initialize this Rive file by creating the Render Targets and importing the native Rive File 
-	 */
-	// void Initialize();
 	UFUNCTION(BlueprintCallable, Category=Rive)
 	void Initialize(const FRiveDescriptor& InRiveDescriptor);
-	// void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
-
-	// TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	URiveArtboard* GetArtboard() const;
@@ -108,28 +103,29 @@ protected:
 	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
 
 public:
-	UPROPERTY(BlueprintReadWrite, Category=Rive)
+	UPROPERTY(EditAnywhere, Transient, Category = Rive)
+	bool bIsRendering = false;
+	
+#if WITH_EDITOR
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	bool bRenderInEditor = false;
+#endif
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rive)
 	FRiveDescriptor RiveDescriptor;
-
 private:
 	UFUNCTION()
 	void OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);
 	
 	UPROPERTY(EditAnywhere, Category = Rive)
 	FLinearColor ClearColor = FLinearColor::Transparent;
-
-	UPROPERTY(EditAnywhere, Category = Rive)
-	bool bIsRendering = true;
 	
 	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 
-	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
+	UPROPERTY(Transient, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess, ShowInnerProperties))
 	URiveArtboard* Artboard = nullptr;
 	
 	UPROPERTY(Transient, BlueprintReadOnly, Category=Rive, meta=(AllowPrivateAccess))
 	URiveAudioEngine* AudioEngine = nullptr;
-	FDelegateHandle AudioEngineLambdaHandle;
-
-public:
-
+	FDelegateHandle AudioEngineLambdaHandle; 
 };

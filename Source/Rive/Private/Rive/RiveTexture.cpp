@@ -64,7 +64,7 @@ void URiveTexture::ResizeRenderTargets(FIntPoint InNewSize)
 		UE_LOG(LogRive, Warning, TEXT("Wrong Rive Texture Size {X:%d, Y:%d} being changed to {X:%d, Y:%d}"), OldNewSize.X, OldNewSize.Y, InNewSize.X, InNewSize.Y);
 	}
 	
-	if (InNewSize.X == Size.X && InNewSize.Y == Size.Y)
+	if (CurrentResource && InNewSize.X == Size.X && InNewSize.Y == Size.Y)
 	{
 		// Just making sure all internal data lines up
 		SizeX = Size.X;

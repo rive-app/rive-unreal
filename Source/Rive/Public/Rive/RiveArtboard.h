@@ -9,7 +9,7 @@
 
 #if WITH_RIVE
 class URiveFile;
-class URiveObject;
+class URiveTextureObject;
 
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
@@ -151,10 +151,12 @@ public:
 	void SetAudioEngine(URiveAudioEngine* AudioEngine);
 	
 #if WITH_RIVE
-	void Reinitialize(rive::File* InNativeFilePtr);
-	void Initialize(rive::File* InNativeFilePtr, const TSharedPtr<IRiveRenderTarget>& InRiveRenderTarget);
-	void Initialize(rive::File* InNativeFilePtr, TSharedPtr<IRiveRenderTarget> InRiveRenderTarget, int32 InIndex, const FString& InStateMachineName);
-	void Initialize(rive::File* InNativeFilePtr, TSharedPtr<IRiveRenderTarget> InRiveRenderTarget, const FString& InName, const FString& InStateMachineName);
+	void Initialize(URiveFile* InRiveFile, const TSharedPtr<IRiveRenderTarget>& InRiveRenderTarget);
+	void Initialize(URiveFile* InRiveFile, TSharedPtr<IRiveRenderTarget> InRiveRenderTarget, int32 InIndex, const FString& InStateMachineName);
+	void Initialize(URiveFile* InRiveFile, TSharedPtr<IRiveRenderTarget> InRiveRenderTarget, const FString& InName, const FString& InStateMachineName);
+	void Reinitialize(bool InSuccess);
+	void Deinitialize();
+	
 	void SetRenderTarget(const TSharedPtr<IRiveRenderTarget>& InRiveRenderTarget) { RiveRenderTarget = InRiveRenderTarget; }
 	
 	bool IsInitialized() const { return bIsInitialized; }
@@ -230,6 +232,9 @@ private:
 	/** The Matrix at the time of the last call to Draw for this Artboard **/
 	FMatrix LastDrawTransform = FMatrix::Identity;
 
+	FDelegateHandle RiveFileDeinitializationHandle;
+	FDelegateHandle RiveFileReinitializationHandle;
+
 public:
 	UFUNCTION()
 	TArray<FString> GetStateMachineNamesForDropdown() const
@@ -238,8 +243,6 @@ public:
 		Names.Append(StateMachineNames);
 		return Names;
 	}
-
-	void Deinitialize();
 	
 protected:
 	UPROPERTY(BlueprintAssignable)
