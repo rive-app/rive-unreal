@@ -35,7 +35,7 @@ FRiveViewportClient::~FRiveViewportClient()
 
 void FRiveViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
-	if (!IsValid(RiveTexture))
+	if (!RiveTexture.IsValid())
 	{
 		return;
 	}

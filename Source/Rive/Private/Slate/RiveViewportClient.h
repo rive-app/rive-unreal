@@ -41,7 +41,7 @@ public:
 	void RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards);
 
 private:
-	TObjectPtr<URiveTexture> RiveTexture;
+	TWeakObjectPtr<URiveTexture> RiveTexture;
 	/** Weak Ptr to view widget */
 	TWeakPtr<SRiveWidgetView> WidgetViewWeakPtr;
 
