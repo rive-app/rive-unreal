@@ -89,7 +89,7 @@ void FRiveSceneViewport::RegisterArtboardInputs(const TArray<URiveArtboard*>& In
 FReply FRiveSceneViewport::OnInput(const FGeometry& MyGeometry, const FPointerEvent& InEvent, const FStateMachineInputCallback& InStateMachineInputCallback)
 {
 #if WITH_RIVE
-	if (!IsValid(RiveTexture))
+	if (!RiveTexture.IsValid())
 	{
 		return FReply::Unhandled();
 	}
@@ -104,7 +104,7 @@ FReply FRiveSceneViewport::OnInput(const FGeometry& MyGeometry, const FPointerEv
 		Artboard->BeginInput();
 		if (FRiveStateMachine* StateMachine = Artboard->GetStateMachine())
 		{
-			FVector2f InputCoordinates = UE::Private::FRiveSceneViewport::GetInputCoordinates(RiveTexture, Artboard, MyGeometry, InEvent);
+			FVector2f InputCoordinates = UE::Private::FRiveSceneViewport::GetInputCoordinates(RiveTexture.Get(), Artboard, MyGeometry, InEvent);
 			InStateMachineInputCallback(InputCoordinates, StateMachine);
 		}
 		Artboard->EndInput();

@@ -24,8 +24,6 @@ FRiveFileEditor::~FRiveFileEditor()
     if (RiveTextureObject)
     {
         RiveTextureObject->bRenderInEditor = false;
-        RiveTextureObject->MarkAsGarbage();
-        RiveTextureObject->ConditionalBeginDestroy();
         RiveTextureObject = nullptr;
     }
 }
