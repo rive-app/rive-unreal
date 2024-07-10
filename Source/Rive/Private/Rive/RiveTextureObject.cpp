@@ -48,9 +48,12 @@ void URiveTextureObject::PostLoad()
 		return;
 	}
 	
-	if (RiveDescriptor.RiveFile)
+	if (!IsRunningCommandlet())
 	{
-		Initialize(RiveDescriptor);
+		if (RiveDescriptor.RiveFile)
+		{
+			Initialize(RiveDescriptor);
+		}
 	}
 }
 
