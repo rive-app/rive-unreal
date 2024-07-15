@@ -199,8 +199,8 @@ namespace
 	{
 		if (const UContentBrowserAssetContextMenuContext* Context = UContentBrowserAssetContextMenuContext::FindContextWithAssets(MenuContext))
 		{
-			TArray<URiveFile*> URiveFiles = Context->LoadSelectedObjects<URiveFile>();
-			for (URiveFile* RiveFile : URiveFiles)
+			TArray<URiveFile*> RiveFiles = Context->LoadSelectedObjects<URiveFile>();
+			for (URiveFile* RiveFile : RiveFiles)
 			{
 				if (UWorld* World = GEditor->GetEditorWorldContext().World())
 				{
