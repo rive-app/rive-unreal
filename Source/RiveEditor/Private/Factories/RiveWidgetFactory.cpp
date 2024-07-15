@@ -199,8 +199,8 @@ namespace
 	{
 		if (const UContentBrowserAssetContextMenuContext* Context = UContentBrowserAssetContextMenuContext::FindContextWithAssets(MenuContext))
 		{
-			TArray<URiveFile*> RiveFiles = Context->LoadSelectedObjects<URiveFile>();
-			for (URiveFile* RiveFile : RiveFiles)
+			TArray<URiveTextureObject*> RiveTextureObjects = Context->LoadSelectedObjects<URiveTextureObject>();
+			for (URiveTextureObject* RiveTextureObject : RiveTextureObjects)
 			{
 				if (UWorld* World = GEditor->GetEditorWorldContext().World())
 				{
@@ -208,9 +208,9 @@ namespace
 						World->SpawnActor<ARiveWidgetActor>(FVector::ZeroVector, FRotator::ZeroRotator,
 						                              FActorSpawnParameters()));
 					
-					if (NewActor)
+					if (NewActor && RiveTextureObject->RiveDescriptor.RiveFile)
 					{
-						NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
+						NewActor->SetWidgetClass(RiveTextureObject->RiveDescriptor.RiveFile->GetWidgetClass());
 					}
 				}
 			}
