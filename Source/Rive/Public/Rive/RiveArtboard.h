@@ -214,13 +214,6 @@ private:
 	int32 ArtboardIndex = -1;
 	
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
-	TArray<FString> BoolInputNames;
-	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
-	TArray<FString> NumberInputNames;
-	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
-	TArray<FString> TriggerInputNames;
-	
-	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
 	TArray<FString> EventNames;
 	
 	UPROPERTY(Transient, VisibleInstanceOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess)) //todo: unexpose to BP and UI
@@ -237,11 +230,9 @@ private:
 
 public:
 	UFUNCTION()
-	TArray<FString> GetStateMachineNamesForDropdown() const
+	TArray<FString> GetStateMachineNames() const
 	{
-		TArray<FString> Names {FString{}};
-		Names.Append(StateMachineNames);
-		return Names;
+		return StateMachineNames;
 	}
 	
 protected:

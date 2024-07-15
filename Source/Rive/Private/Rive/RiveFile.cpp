@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Copyright Rive, Inc. All rights reserved.
 #include "Rive/RiveFile.h"
 
 #include "IRiveRenderer.h"
@@ -15,6 +15,7 @@
 #if WITH_RIVE
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
+#include "rive/animation/state_machine_input.hpp"
 #include "rive/pls/pls_render_context.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
@@ -108,6 +109,7 @@ void URiveFile::Initialize()
 		if (ensure(PLSRenderContext))
 		{
 			ArtboardNames.Empty();
+			Artboards.Empty();
 			
 			FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 			rive::ImportResult ImportResult;
@@ -142,8 +144,12 @@ void URiveFile::Initialize()
 			// UI Helper
 			for (int i = 0; i < RiveNativeFilePtr->artboardCount(); ++i)
 			{
-				rive::Artboard* NativeArtboard = RiveNativeFilePtr->artboard(i);
-				ArtboardNames.Add(NativeArtboard->name().c_str());
+				auto Artboard = NewObject<URiveArtboard>();
+				
+				// We won't tick the artboard, it's just initialized for informational purposes
+				Artboard->Initialize(this, nullptr, i, "");
+				Artboards.Add(Artboard);
+				ArtboardNames.Add(Artboard->GetArtboardName());
 			}
 			
 			BroadcastInitializationResult(true);

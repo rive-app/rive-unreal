@@ -75,6 +75,10 @@ public:
 	 */
 	const FString& GetStateMachineName() const { return StateMachineName; }
 
+	TArray<FString> BoolInputNames;
+	TArray<FString> NumberInputNames;
+	TArray<FString> TriggerInputNames;
+	
 private:
 	FString StateMachineName;
 
