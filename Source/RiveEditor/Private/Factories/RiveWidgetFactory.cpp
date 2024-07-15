@@ -199,8 +199,8 @@ namespace
 	{
 		if (const UContentBrowserAssetContextMenuContext* Context = UContentBrowserAssetContextMenuContext::FindContextWithAssets(MenuContext))
 		{
-			TArray<URiveTextureObject*> RiveTextureObjects = Context->LoadSelectedObjects<URiveTextureObject>();
-			for (URiveTextureObject* RiveTextureObject : RiveTextureObjects)
+			TArray<URiveFile*> URiveFiles = Context->LoadSelectedObjects<URiveFile>();
+			for (URiveFile* RiveFile : URiveFiles)
 			{
 				if (UWorld* World = GEditor->GetEditorWorldContext().World())
 				{
@@ -208,9 +208,9 @@ namespace
 						World->SpawnActor<ARiveWidgetActor>(FVector::ZeroVector, FRotator::ZeroRotator,
 						                              FActorSpawnParameters()));
 					
-					if (NewActor && RiveTextureObject->RiveDescriptor.RiveFile)
+					if (NewActor)
 					{
-						NewActor->SetWidgetClass(RiveTextureObject->RiveDescriptor.RiveFile->GetWidgetClass());
+						NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
 					}
 				}
 			}
@@ -221,7 +221,7 @@ namespace
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateLambda([]()
 		{
 			FToolMenuOwnerScoped OwnerScoped(UE_MODULE_NAME);
-			UToolMenu* Menu = UE::ContentBrowser::ExtendToolMenu_AssetContextMenu(UTexture2DDynamic::StaticClass());
+			UToolMenu* Menu = UE::ContentBrowser::ExtendToolMenu_AssetContextMenu(URiveFile::StaticClass());
 	        
 			FToolMenuSection& Section = Menu->FindOrAddSection("GetAssetActions");
 			Section.AddDynamicEntry(TEXT("Rive"), FNewToolMenuSectionDelegate::CreateLambda([](FToolMenuSection& InSection)
