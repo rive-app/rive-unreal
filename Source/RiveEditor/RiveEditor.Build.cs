@@ -25,6 +25,7 @@ public class RiveEditor : ModuleRules
                 "Engine",
                 "PropertyEditor",
                 "Rive",
+                "RiveLibrary",
                 "Slate",
                 "SlateCore",
                 "UnrealEd",
@@ -32,6 +33,7 @@ public class RiveEditor : ModuleRules
                 "UMG",
                 "UMGEditor", 
                 "SettingsEditor",
+                "EditorStyle"
             }
         );
 

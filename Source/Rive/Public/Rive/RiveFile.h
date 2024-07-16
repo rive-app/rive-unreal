@@ -59,15 +59,17 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = Rive)
 	FRiveReadyDelegate OnRiveReady;
 
-	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
+	UPROPERTY(Transient, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
 	TArray<FString> ArtboardNames;
+
+	// This is only meant as a display feature for the editor, and not meant to be used as functional code
+	UPROPERTY(Transient, VisibleInstanceOnly, Category=Rive, NonTransactional, meta=(NoResetToDefault, AllowPrivateAccess))
+	TArray<URiveArtboard*> Artboards;
 
 	UFUNCTION()
 	TArray<FString> GetArtboardNamesForDropdown() const
 	{
-		TArray<FString> Names {FString{}};
-		Names.Append(ArtboardNames);
-		return Names;
+		return ArtboardNames;
 	}
 	
 	UPROPERTY(meta=(NoResetToDefault))
@@ -93,8 +95,6 @@ private:
 	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
 	TSubclassOf<UUserWidget> WidgetClass;
 
-	// UPROPERTY(Transient, NonTransactional)
-	// TSet<URiveArtboard*> Artboards;
 public:
 	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
 	TMap<uint32, TObjectPtr<URiveAsset>> Assets;

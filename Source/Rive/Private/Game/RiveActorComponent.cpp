@@ -125,6 +125,32 @@ void URiveActorComponent::RemoveArtboard(URiveArtboard* InArtboard)
     Artboards.RemoveSingle(InArtboard);
 }
 
+URiveArtboard* URiveActorComponent::GetDefaultArtboard() const
+{
+    return GetArtboardAtIndex(0);
+}
+
+URiveArtboard* URiveActorComponent::GetArtboardAtIndex(int32 InIndex) const
+{
+    if (Artboards.IsEmpty())
+    {
+        return nullptr;
+    }
+
+    if (InIndex >= Artboards.Num())
+    {
+        UE_LOG(LogRive, Warning, TEXT("GetArtboardAtIndex with index %d is out of bounds"), InIndex);
+        return nullptr;
+    }
+
+    return Artboards[InIndex];
+}
+
+int32 URiveActorComponent::GetArtboardCount() const
+{
+    return Artboards.Num();
+}
+
 void URiveActorComponent::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource)
 {
     // When the resource change, we need to tell the Render Target otherwise we will keep on drawing on an outdated RT

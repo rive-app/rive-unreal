@@ -31,8 +31,10 @@ void URiveArtboard::BeginDestroy()
 
 void URiveArtboard::AdvanceStateMachine(float InDeltaSeconds)
 {
+	if (!RiveRenderTarget) return;
+	
 	FRiveStateMachine* StateMachine = GetStateMachine();
-	if (StateMachine && StateMachine->IsValid() && ensure(RiveRenderTarget))
+	if (StateMachine && StateMachine->IsValid())
 	{
 		if (!bIsReceivingInput)
 		{
@@ -810,34 +812,6 @@ void URiveArtboard::Initialize_Internal(const rive::Artboard* InNativeArtboard)
 	for (const rive::Event* Event : Events)
 	{
 		EventNames.Add(Event->name().c_str());
-	}
-
-	BoolInputNames.Empty();
-	NumberInputNames.Empty();
-	TriggerInputNames.Empty();
-	if (DefaultStateMachinePtr && DefaultStateMachinePtr.IsValid())
-	{
-		for (uint32 i = 0; i < DefaultStateMachinePtr->GetInputCount(); ++i)
-		{
-			const rive::SMIInput* Input = DefaultStateMachinePtr->GetInput(i);
-			if (Input->input()->is<rive::StateMachineBoolBase>())
-			{
-				BoolInputNames.Add(Input->name().c_str());
-			}
-			else if (Input->input()->is<rive::StateMachineNumberBase>())
-			{
-				NumberInputNames.Add(Input->name().c_str());
-			}
-			else if (Input->input()->is<rive::StateMachineTriggerBase>())
-			{
-				TriggerInputNames.Add(Input->name().c_str());
-			}
-			else
-			{
-				UE_LOG(LogRive, Warning, TEXT("Found input of unknown type '%d' when getting inputs from StateMachine '%s' from Artboard '%hs'"),
-					Input->inputCoreType(), *DefaultStateMachinePtr->GetStateMachineName(), InNativeArtboard->name().c_str())
-			}
-		}
 	}
 	
 	bIsInitialized = true;

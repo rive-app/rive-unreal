@@ -5,6 +5,7 @@
 #include "AssetToolsModule.h"
 #include "IRiveRendererModule.h"
 #include "ISettingsEditorModule.h"
+#include "RiveFileDetailCustomization.h"
 #include "RiveFileAssetTypeActions.h"
 #include "RiveFileThumbnailRenderer.h"
 #include "RiveTextureObjectAssetTypeActions.h"
@@ -27,14 +28,15 @@ void FRiveEditorModule::StartupModule()
 	UThumbnailManager::Get().RegisterCustomRenderer(URiveFile::StaticClass(), URiveFileThumbnailRenderer::StaticClass());
 	UThumbnailManager::Get().RegisterCustomRenderer(URiveTextureObject::StaticClass(), URiveTextureObjectThumbnailRenderer::StaticClass());
 
-	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+    FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyModule.RegisterCustomClassLayout(URiveFile::StaticClass()->GetFName(), 
+		   FOnGetDetailCustomizationInstance::CreateStatic(&FRiveFileDetailCustomization::MakeInstance));
 	
+	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	RiveAssetCategory = AssetTools.RegisterAdvancedAssetCategory(FName(TEXT("Rive")), LOCTEXT("RiveFileCategory", "Rive"));
-
 	RegisterAssetTypeActions(AssetTools, MakeShareable(new FRiveFileAssetTypeActions(RiveAssetCategory)));
 	RegisterAssetTypeActions(AssetTools, MakeShareable(new FRiveTextureObjectAssetTypeActions(RiveAssetCategory)));
-
-
+	
 	OnBeginFrameHandle = FCoreDelegates::OnBeginFrame.AddLambda([this]()
 	{
 		CheckCurrentRHIAndNotify();
@@ -54,6 +56,13 @@ void FRiveEditorModule::ShutdownModule()
 	if (UObjectInitialized())
 	{
 		UThumbnailManager::Get().UnregisterCustomRenderer(URiveFile::StaticClass());
+		UThumbnailManager::Get().UnregisterCustomRenderer(URiveTextureObject::StaticClass());
+	}
+
+	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.UnregisterCustomClassLayout(URiveFile::StaticClass()->GetFName());
 	}
 	
 	// Unregister all the asset types that we registered

@@ -58,6 +58,15 @@ public:
     UFUNCTION(BlueprintCallable, Category = Rive)
     void RemoveArtboard(URiveArtboard* InArtboard);
     
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    URiveArtboard* GetDefaultArtboard() const;
+
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    URiveArtboard* GetArtboardAtIndex(int32 InIndex) const;
+
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    int32 GetArtboardCount() const;
+    
 protected:
     void RiveReady(IRiveRenderer* InRiveRenderer);
     void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource);

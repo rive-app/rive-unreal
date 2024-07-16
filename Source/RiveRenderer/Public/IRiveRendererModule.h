@@ -5,6 +5,8 @@
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
 
+class IRiveRenderer;
+
 class IRiveRendererModule : public IModuleInterface
 {
 	/**
