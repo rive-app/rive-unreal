@@ -103,7 +103,7 @@ void URiveFileFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& New
     {
         if (IsValid(RiveFile) && !NewReimportPaths.IsEmpty() && FPaths::FileExists(NewReimportPaths[0]))
         {
-            RiveFile->AssetImportData->GetFirstFilename() = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NewReimportPaths[0]);
+            RiveFile->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
         }
     }
 }
