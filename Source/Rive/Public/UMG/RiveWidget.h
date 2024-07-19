@@ -9,6 +9,7 @@
 #include "Rive/RiveFile.h"
 #include "RiveWidget.generated.h"
 
+class FRiveStateMachine;
 class URiveTextureObject;
 class URiveArtboard;
 class URiveTexture;
@@ -41,7 +42,9 @@ protected:
     virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
     virtual TSharedRef<SWidget> RebuildWidget() override;
-    
+    virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+    virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+    virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
     //~ END : UWidget Interface
 
     /**
@@ -70,13 +73,13 @@ public:
     TObjectPtr<URiveAudioEngine> RiveAudioEngine;
 
 private:
+    void Setup();
     void OnRiveObjectReady();
+    FReply OnInput(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, const TFunction<bool(const FVector2f&, FRiveStateMachine*)>& InStateMachineInputCallback);
     
-    // Runtime objects
     UPROPERTY(Transient)
     TObjectPtr<URiveTextureObject> RiveTextureObject;
     
-    void Setup();
     TSharedPtr<SRiveWidget> RiveWidget;
     FTimerHandle TimerHandle;
     FDelegateHandle FrameHandle;
