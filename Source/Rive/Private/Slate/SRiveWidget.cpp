@@ -1,9 +1,10 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "Slate/SRiveWidget.h"
-
 #include "ImageUtils.h"
 #include "Rive/RiveTextureObject.h"
+#include "TimerManager.h"
+#include "Widgets/Images/SImage.h"
 
 #if WITH_EDITOR
 #include "TextureEditorSettings.h"
