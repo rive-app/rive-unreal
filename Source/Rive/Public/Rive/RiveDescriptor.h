@@ -34,8 +34,4 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
 	ERiveAlignment Alignment = ERiveAlignment::Center;
-
-	// UIBlendMode is only used when being rendered as UI
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, DisplayName="UI Blend Mode")
-	ERiveBlendMode UIBlendMode = ERiveBlendMode::SE_BLEND_AlphaComposite;
 };
