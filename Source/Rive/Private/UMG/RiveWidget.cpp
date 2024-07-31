@@ -193,7 +193,7 @@ URiveArtboard* URiveWidget::GetArtboard() const
 void URiveWidget::OnRiveObjectReady()
 {
 	if (!RiveWidget.IsValid() || !GetCachedWidget()) return;
-	RiveTextureObject->OnRiveReady.Remove(FrameHandle);
+	RiveTextureObject->OnRiveReady.RemoveDynamic(this, &URiveWidget::OnRiveObjectReady);
 		
 	UE::Slate::FDeprecateVector2DResult AbsoluteSize = GetCachedGeometry().GetAbsoluteSize();
 
@@ -234,8 +234,8 @@ void URiveWidget::Setup()
 	{
 		return;
 	}
-	
-	FrameHandle = RiveTextureObject->OnRiveReady.AddUObject(this, &URiveWidget::OnRiveObjectReady);
+
+	RiveTextureObject->OnRiveReady.AddDynamic(this, &URiveWidget::OnRiveObjectReady);
 #if WITH_EDITOR
 	RiveTextureObject->bRenderInEditor = true;
 #endif

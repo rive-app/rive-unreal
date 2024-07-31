@@ -74,6 +74,8 @@ public:
 
 private:
     void Setup();
+    
+    UFUNCTION()
     void OnRiveObjectReady();
     FReply OnInput(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, const TFunction<bool(const FVector2f&, FRiveStateMachine*)>& InStateMachineInputCallback);
     
@@ -82,6 +84,5 @@ private:
     
     TSharedPtr<SRiveWidget> RiveWidget;
     FTimerHandle TimerHandle;
-    FDelegateHandle FrameHandle;
 
 };

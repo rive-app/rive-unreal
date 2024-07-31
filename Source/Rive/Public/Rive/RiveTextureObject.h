@@ -34,8 +34,7 @@ UCLASS(BlueprintType, Blueprintable, HideCategories=("ImportSettings", "Compress
 class RIVE_API URiveTextureObject : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
-	DECLARE_MULTICAST_DELEGATE(FRiveReadyDelegate)
-
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
 
 public:
 	/**
@@ -96,7 +95,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	URiveArtboard* GetArtboard() const;
-	
+
+	UPROPERTY(BlueprintAssignable, Category = Rive)
 	FRiveReadyDelegate OnRiveReady;
 	
 protected:
