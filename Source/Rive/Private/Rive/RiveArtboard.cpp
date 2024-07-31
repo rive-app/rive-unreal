@@ -32,7 +32,7 @@ void URiveArtboard::BeginDestroy()
 void URiveArtboard::AdvanceStateMachine(float InDeltaSeconds)
 {
 	if (!RiveRenderTarget) return;
-	
+
 	FRiveStateMachine* StateMachine = GetStateMachine();
 	if (StateMachine && StateMachine->IsValid())
 	{
@@ -53,7 +53,7 @@ void URiveArtboard::Transform(const FVector2f& One, const FVector2f& Two, const 
 	{
 		return;
 	}
-	
+
 	RiveRenderTarget->Transform(One.X, One.Y, Two.X, Two.Y, T.X, T.Y);
 }
 
