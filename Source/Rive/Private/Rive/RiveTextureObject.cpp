@@ -26,6 +26,13 @@ URiveTextureObject::URiveTextureObject()
 
 void URiveTextureObject::BeginDestroy()
 {
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		FEditorDelegates::EndPIE.RemoveAll(this);
+	}
+#endif
+	
 	bIsRendering = false;
 	OnRiveReady.Clear();
 	RiveRenderTarget.Reset();
@@ -52,6 +59,12 @@ void URiveTextureObject::PostLoad()
 	{
 		if (RiveDescriptor.RiveFile)
 		{
+#if WITH_EDITOR
+			if (GIsEditor)
+			{
+				FEditorDelegates::EndPIE.AddUObject(this, &URiveTextureObject::OnEndPIE);
+			}
+#endif
 			Initialize(RiveDescriptor);
 		}
 	}
@@ -72,6 +85,14 @@ void URiveTextureObject::Tick(float InDeltaSeconds)
 #if WITH_RIVE
 	if (bIsRendering)
 	{
+		
+#if WITH_EDITOR
+		if (!bHasBegunPlay)
+		{
+			EditorBeginPlay();
+		}
+#endif
+		
 		if (GetArtboard())
 		{
 			Artboard->Tick(InDeltaSeconds);
@@ -80,6 +101,19 @@ void URiveTextureObject::Tick(float InDeltaSeconds)
 	}
 #endif // WITH_RIVE
 }
+
+#if WITH_EDITOR
+void URiveTextureObject::EditorBeginPlay()
+{
+	bHasBegunPlay = true;
+	Initialize(RiveDescriptor);
+}
+
+void URiveTextureObject::OnEndPIE(bool bIsSimulating)
+{
+	bHasBegunPlay = false;
+}
+#endif
 
 FLinearColor URiveTextureObject::GetClearColor() const
 {
