@@ -169,28 +169,7 @@ void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 		ResizeRenderTargets(Size);
 	}
 
-	if (AudioEngine != nullptr)
-	{
-		if (AudioEngine->GetNativeAudioEngine() == nullptr)
-		{
-			if (AudioEngineLambdaHandle.IsValid())
-			{
-				AudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
-				AudioEngineLambdaHandle.Reset();
-			}
-
-			TFunction<void()> AudioLambda = [this]()
-			{
-				Artboard->SetAudioEngine(AudioEngine);
-				AudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
-			};
-			AudioEngineLambdaHandle = AudioEngine->OnRiveAudioReady.AddLambda(AudioLambda);
-		}
-		else
-		{
-			Artboard->SetAudioEngine(AudioEngine);
-		}
-	}
+	InitializeAudioEngine();
 	
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveTextureObject::OnArtboardTickRender);
 	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveTextureObject::GetLocalCoordinate);
@@ -282,6 +261,32 @@ TArray<FString> URiveTextureObject::GetStateMachineNamesForDropdown() const
 	return Output;
 }
 
+void URiveTextureObject::InitializeAudioEngine()
+{
+	if (RiveAudioEngine != nullptr && Artboard != nullptr)
+	{
+		if (RiveAudioEngine->GetNativeAudioEngine() == nullptr)
+		{
+			if (AudioEngineLambdaHandle.IsValid())
+			{
+				RiveAudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
+				AudioEngineLambdaHandle.Reset();
+			}
+
+			TFunction<void()> AudioLambda = [this]()
+			{
+				Artboard->SetAudioEngine(RiveAudioEngine);
+				RiveAudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
+			};
+			AudioEngineLambdaHandle = RiveAudioEngine->OnRiveAudioReady.AddLambda(AudioLambda);
+		}
+		else
+		{
+			Artboard->SetAudioEngine(RiveAudioEngine);
+		}
+	}
+}
+
 URiveArtboard* URiveTextureObject::GetArtboard() const
 {
 #if WITH_RIVE
@@ -291,4 +296,10 @@ URiveArtboard* URiveTextureObject::GetArtboard() const
 	}
 #endif // WITH_RIVE
 	return nullptr;
+}
+
+void URiveTextureObject::SetAudioEngine(URiveAudioEngine* InRiveAudioEngine)
+{
+	RiveAudioEngine = InRiveAudioEngine;
+	InitializeAudioEngine();
 }

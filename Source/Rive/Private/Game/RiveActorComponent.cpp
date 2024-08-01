@@ -151,6 +151,12 @@ int32 URiveActorComponent::GetArtboardCount() const
     return Artboards.Num();
 }
 
+void URiveActorComponent::SetAudioEngine(URiveAudioEngine* InRiveAudioEngine)
+{
+    RiveAudioEngine = InRiveAudioEngine;
+    InitializeAudioEngine();
+}
+
 #if WITH_EDITOR
 void URiveActorComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
@@ -226,6 +232,46 @@ TArray<FString> URiveActorComponent::GetStateMachineNamesForDropdown() const
     return Output;
 }
 
+void URiveActorComponent::InitializeAudioEngine()
+{
+    if (RiveAudioEngine == nullptr)
+    {
+        if (URiveAudioEngine* AudioEngine = GetOwner()->GetComponentByClass<URiveAudioEngine>())
+        {
+            RiveAudioEngine = AudioEngine;
+        }
+    }
+    
+    if (RiveAudioEngine != nullptr)
+    {
+        if (RiveAudioEngine->GetNativeAudioEngine() == nullptr)
+        {
+            if (AudioEngineLambdaHandle.IsValid())
+            {
+                RiveAudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
+                AudioEngineLambdaHandle.Reset();
+            }
+
+            TFunction<void()> AudioLambda = [this]()
+            {
+                for (URiveArtboard* Artboard : Artboards)
+                {
+                    Artboard->SetAudioEngine(RiveAudioEngine);
+                }
+                RiveAudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
+            };
+            AudioEngineLambdaHandle = RiveAudioEngine->OnRiveAudioReady.AddLambda(AudioLambda);
+        }
+        else
+        {
+            for (URiveArtboard* Artboard : Artboards)
+            {
+                Artboard->SetAudioEngine(RiveAudioEngine);
+            }
+        }
+    }
+}
+
 void URiveActorComponent::RiveReady(IRiveRenderer* InRiveRenderer)
 {
     RiveTexture = NewObject<URiveTexture>();
@@ -241,7 +287,9 @@ void URiveActorComponent::RiveReady(IRiveRenderer* InRiveRenderer)
     {
         URiveArtboard* Artboard = AddArtboard(DefaultRiveDescriptor.RiveFile, DefaultRiveDescriptor.ArtboardName, DefaultRiveDescriptor.StateMachineName);
         Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveActorComponent::OnDefaultArtboardTickRender);
-    } 
+    }
+    
+    InitializeAudioEngine();
     
     OnRiveReady.Broadcast();
 }

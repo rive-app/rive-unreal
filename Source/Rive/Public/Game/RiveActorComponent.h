@@ -68,6 +68,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = Rive)
     int32 GetArtboardCount() const;
 
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    void SetAudioEngine(URiveAudioEngine* InRiveAudioEngine);
+    
 #if WITH_EDITOR
     virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
@@ -104,6 +107,8 @@ private:
 
     UFUNCTION()
     TArray<FString> GetStateMachineNamesForDropdown() const;
-    
+
+    void InitializeAudioEngine();
+    FDelegateHandle AudioEngineLambdaHandle; 
     TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 };

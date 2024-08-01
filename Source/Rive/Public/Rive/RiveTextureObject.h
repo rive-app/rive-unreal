@@ -96,6 +96,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	URiveArtboard* GetArtboard() const;
 
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetAudioEngine(URiveAudioEngine* InRiveAudioEngine);
+
 	UPROPERTY(BlueprintAssignable, Category = Rive)
 	FRiveReadyDelegate OnRiveReady;
 	
@@ -134,6 +137,8 @@ private:
 	URiveArtboard* Artboard = nullptr;
 	
 	UPROPERTY(Transient, BlueprintReadOnly, Category=Rive, meta=(AllowPrivateAccess))
-	URiveAudioEngine* AudioEngine = nullptr;
-	FDelegateHandle AudioEngineLambdaHandle; 
+	URiveAudioEngine* RiveAudioEngine = nullptr;
+	void InitializeAudioEngine();
+	
+	FDelegateHandle AudioEngineLambdaHandle;
 };

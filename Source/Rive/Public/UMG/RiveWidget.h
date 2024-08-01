@@ -52,7 +52,7 @@ protected:
 public:
 
     UFUNCTION(BlueprintCallable, Category = Rive)
-    void SetAudioEngine(URiveAudioEngine* InAudioEngine);
+    void SetAudioEngine(URiveAudioEngine* InRiveAudioEngine);
 
     UFUNCTION(BlueprintCallable, Category = Rive)
     URiveArtboard* GetArtboard() const;
@@ -66,9 +66,6 @@ public:
     
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
     FRiveDescriptor RiveDescriptor;
-    
-    UPROPERTY(BlueprintReadOnly, Transient, Category = Rive)
-    TObjectPtr<URiveAudioEngine> RiveAudioEngine;
 
 #if WITH_EDITOR
     virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;

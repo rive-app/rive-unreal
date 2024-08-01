@@ -169,11 +169,11 @@ FReply URiveWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointe
 	});
 }
 
-void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
+void URiveWidget::SetAudioEngine(URiveAudioEngine* InRiveAudioEngine)
 {
-	if (RiveTextureObject && RiveTextureObject->GetArtboard())
+	if (RiveTextureObject)
 	{
-		RiveTextureObject->GetArtboard()->SetAudioEngine(InAudioEngine);
+		RiveTextureObject->SetAudioEngine(InRiveAudioEngine);
 		return;
 	}
 	
