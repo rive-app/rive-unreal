@@ -48,4 +48,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "Audio", meta = (ShowOnlyInnerProperties))
 	TObjectPtr<URiveAudioEngine> AudioEngine;
+
+	TObjectPtr<URiveWidget> RiveWidget;
+	
+	UFUNCTION()
+	void OnRiveWidgetReady();
 };

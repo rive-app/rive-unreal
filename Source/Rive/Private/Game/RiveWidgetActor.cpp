@@ -2,6 +2,8 @@
 
 #include "Game/RiveWidgetActor.h"
 
+#include "Blueprint/WidgetTree.h"
+#include "Components/CanvasPanel.h"
 #include "Rive/RiveTextureObject.h"
 #include "UMG/RiveWidget.h"
 
@@ -30,13 +32,23 @@ void ARiveWidgetActor::BeginPlay()
 		return;
 	}
 
-	
-	if (URiveWidget* RiveWidget = Cast<URiveWidget>(ScreenUserWidget))
+	ScreenUserWidget->AddToViewport();
+
+	if (UCanvasPanel* CanvasPanel = Cast<UCanvasPanel>(ScreenUserWidget->WidgetTree->RootWidget))
 	{
+		RiveWidget = Cast<URiveWidget>(CanvasPanel->GetChildAt(0));
+		if (RiveWidget)
+		{
+			RiveWidget->OnRiveReady.AddDynamic(this, &ARiveWidgetActor::OnRiveWidgetReady);
+		}
+	}
+}
+
+void ARiveWidgetActor::OnRiveWidgetReady()
+{
+	if (RiveWidget) {
 		RiveWidget->SetAudioEngine(AudioEngine);
 	}
-	
-	ScreenUserWidget->AddToViewport();
 }
 
 #undef LOCTEXT_NAMESPACE
