@@ -118,6 +118,12 @@ public:
 private:
 	UFUNCTION()
 	void OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);
+
+	UFUNCTION()
+	TArray<FString> GetArtboardNamesForDropdown() const;
+
+	UFUNCTION()
+	TArray<FString> GetStateMachineNamesForDropdown() const;
 	
 	UPROPERTY(EditAnywhere, Category = Rive)
 	FLinearColor ClearColor = FLinearColor::Transparent;

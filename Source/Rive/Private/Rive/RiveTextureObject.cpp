@@ -158,6 +158,9 @@ void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 		Artboard->Initialize(RiveDescriptor.RiveFile, RiveRenderTarget, RiveDescriptor.ArtboardName, RiveDescriptor.StateMachineName);
 	}
 
+	RiveDescriptor.ArtboardName = Artboard->GetArtboardName();
+	RiveDescriptor.StateMachineName = Artboard->StateMachineName;
+
 	if (Size == FIntPoint::ZeroValue)
 	{
 		ResizeRenderTargets(Artboard->GetSize());
@@ -246,6 +249,37 @@ void URiveTextureObject::OnArtboardTickRender(float DeltaTime, URiveArtboard* In
 {
 	InArtboard->Align(RiveDescriptor.FitType, RiveDescriptor.Alignment);
 	InArtboard->Draw();
+}
+
+TArray<FString> URiveTextureObject::GetArtboardNamesForDropdown() const
+{
+	TArray<FString> Output;
+	if (RiveDescriptor.RiveFile)
+	{
+		for (URiveArtboard* DescriptorArtboard : RiveDescriptor.RiveFile->Artboards)
+		{
+			Output.Add(DescriptorArtboard->GetArtboardName());
+		}
+	}
+	
+	return Output;
+}
+
+TArray<FString> URiveTextureObject::GetStateMachineNamesForDropdown() const
+{
+	TArray<FString> Output {""};
+	if (RiveDescriptor.RiveFile)
+	{
+		for (URiveArtboard* RiveFileArtboard : RiveDescriptor.RiveFile->Artboards)
+		{
+			if (RiveFileArtboard->GetArtboardName().Equals(RiveDescriptor.ArtboardName))
+			{
+				Output.Append(RiveFileArtboard->GetStateMachineNames());
+				break;
+			}
+		}
+	}
+	return Output;
 }
 
 URiveArtboard* URiveTextureObject::GetArtboard() const

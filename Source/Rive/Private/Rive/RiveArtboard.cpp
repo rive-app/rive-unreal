@@ -660,7 +660,7 @@ void URiveArtboard::Deinitialize()
 	if (this == nullptr) return;
 	bIsInitialized = false;
 
-	DefaultStateMachinePtr.Reset();
+	StateMachinePtr.Reset();
 	if (NativeArtboardPtr != nullptr)
 	{
 		NativeArtboardPtr.release();
@@ -755,13 +755,13 @@ FRiveStateMachine* URiveArtboard::GetStateMachine() const
 
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
-	if (!DefaultStateMachinePtr)
+	if (!StateMachinePtr)
 	{
 		// Not all artboards have state machines, so let's not error it out
 		return nullptr;
 	}
 
-	return DefaultStateMachinePtr.Get();
+	return StateMachinePtr.Get();
 }
 
 void URiveArtboard::PopulateReportedEvents()
@@ -808,9 +808,6 @@ void URiveArtboard::Initialize_Internal(const rive::Artboard* InNativeArtboard)
 	ArtboardName = FString{NativeArtboardPtr->name().c_str()};
 	NativeArtboardPtr->advance(0);
 
-	DefaultStateMachinePtr = MakeUnique<FRiveStateMachine>(
-		NativeArtboardPtr.get(), StateMachineName);
-
 	// UI Helpers
 	StateMachineNames.Empty();
 	for (int i = 0; i < NativeArtboardPtr->stateMachineCount(); ++i)
@@ -818,7 +815,13 @@ void URiveArtboard::Initialize_Internal(const rive::Artboard* InNativeArtboard)
 		const rive::StateMachine* NativeStateMachine = NativeArtboardPtr->stateMachine(i);
 		StateMachineNames.Add(NativeStateMachine->name().c_str());
 	}
+	
+	StateMachinePtr = MakeUnique<FRiveStateMachine>(
+		NativeArtboardPtr.get(), StateMachineName);
 
+	// Update our active StateMachineNAme with our actual state machine name
+	StateMachineName = StateMachinePtr->GetStateMachineName();
+	
 	EventNames.Empty();
 	const std::vector<rive::Event*> Events = NativeArtboardPtr->find<rive::Event>();
 	for (const rive::Event* Event : Events)

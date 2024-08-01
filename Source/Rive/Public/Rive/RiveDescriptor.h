@@ -19,14 +19,14 @@ public:
 	TObjectPtr<URiveFile> RiveFile;
 	
 	// Artboard Name is used if specified, otherwise ArtboardIndex will always be used
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive) // TODO: meta=(GetOptions="GetArtboardNamesForDropdown"))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetArtboardNamesForDropdown"))
 	FString ArtboardName;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive) // TODO: meta=(GetOptions="GetArtboardNamesForDropdown"))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
 	int32 ArtboardIndex = 0;
 	
 	// StateMachine name to pass into our default artboard instance
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive) // TODO: meta=(GetOptions="GetStateMachineNamesForDropdown"))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetStateMachineNamesForDropdown"))
 	FString StateMachineName;
     
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)

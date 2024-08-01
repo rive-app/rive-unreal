@@ -199,7 +199,7 @@ private:
 	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 
 	std::unique_ptr<rive::ArtboardInstance> NativeArtboardPtr = nullptr;
-	TUniquePtr<FRiveStateMachine> DefaultStateMachinePtr = nullptr;
+	TUniquePtr<FRiveStateMachine> StateMachinePtr = nullptr;
 #endif // WITH_RIVE
 public:
 	const FString& GetArtboardName() const { return ArtboardName; }

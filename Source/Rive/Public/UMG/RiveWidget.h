@@ -34,9 +34,7 @@ protected:
     //~ BEGIN : UWidget Interface
 
 #if WITH_EDITOR
-
     virtual const FText GetPaletteCategory() override;
-
 #endif // WITH_EDITOR
 
     virtual void ReleaseSlateResources(bool bReleaseChildren) override;
@@ -72,11 +70,20 @@ public:
     UPROPERTY(BlueprintReadOnly, Transient, Category = Rive)
     TObjectPtr<URiveAudioEngine> RiveAudioEngine;
 
+#if WITH_EDITOR
+    virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+#endif
 private:
     void Setup();
     
     UFUNCTION()
     void OnRiveObjectReady();
+
+    UFUNCTION()
+    TArray<FString> GetArtboardNamesForDropdown() const;
+
+    UFUNCTION()
+    TArray<FString> GetStateMachineNamesForDropdown() const;
     FReply OnInput(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, const TFunction<bool(const FVector2f&, FRiveStateMachine*)>& InStateMachineInputCallback);
     
     UPROPERTY(Transient)
