@@ -14,9 +14,9 @@ targets = [
     'rive_decoders',
     'rive_harfbuzz',
     'rive_pls_renderer',
-    # 'rive_pls_shaders',
+#   'rive_pls_shaders',
     'rive_sheenbidi',
-#     'rive_yoga',
+#    'rive_yoga',
     'libpng',
     'libjpeg',
     'zlib'
@@ -36,7 +36,7 @@ def main(rive_renderer_path):
         # determine a sane build environment
         output = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], universal_newlines=True)
         sdk_path = output.strip()
-        if "MacOSX12" not in sdk_path:
+        if "MacOSX13" not in sdk_path:
             print_red(f"SDK Path {sdk_path} didn't point to an SDK matching version 12, exiting..")
             return
         else:
