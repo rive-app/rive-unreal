@@ -2,36 +2,14 @@
 #define _RIVE_NESTED_ARTBOARD_HPP_
 
 #include "rive/generated/nested_artboard_base.hpp"
+#include "rive/data_bind/data_context.hpp"
+#include "rive/viewmodel/viewmodel_instance_value.hpp"
 #include "rive/hit_info.hpp"
 #include "rive/span.hpp"
 #include <stdio.h>
 
 namespace rive
 {
-
-enum class NestedArtboardFitType : uint8_t
-{
-    fill, // Default value - scales to fill available view without maintaining aspect ratio
-    contain,
-    cover,
-    fitWidth,
-    fitHeight,
-    resizeArtboard,
-    none,
-};
-
-enum class NestedArtboardAlignmentType : uint8_t
-{
-    center, // Default value
-    topLeft,
-    topCenter,
-    topRight,
-    centerLeft,
-    centerRight,
-    bottomLeft,
-    bottomCenter,
-    bottomRight,
-};
 
 class ArtboardInstance;
 class NestedAnimation;
@@ -40,13 +18,10 @@ class NestedStateMachine;
 class StateMachineInstance;
 class NestedArtboard : public NestedArtboardBase
 {
-
-private:
+protected:
     Artboard* m_Artboard = nullptr;               // might point to m_Instance, and might not
     std::unique_ptr<ArtboardInstance> m_Instance; // may be null
     std::vector<NestedAnimation*> m_NestedAnimations;
-    float m_layoutScaleX = NAN;
-    float m_layoutScaleY = NAN;
 
 protected:
     std::vector<uint32_t> m_DataBindPathIdsBuffer;
@@ -60,8 +35,7 @@ public:
     void addNestedAnimation(NestedAnimation* nestedAnimation);
 
     void nest(Artboard* artboard);
-
-    ArtboardInstance* artboard() { return m_Instance.get(); }
+    ArtboardInstance* artboardInstance() { return m_Instance.get(); }
 
     StatusCode import(ImportStack& importStack) override;
     Core* clone() const override;
@@ -75,14 +49,6 @@ public:
     NestedInput* input(std::string name) const;
     NestedInput* input(std::string name, std::string stateMachineName) const;
 
-    NestedArtboardAlignmentType alignmentType() const
-    {
-        return (NestedArtboardAlignmentType)alignment();
-    }
-    NestedArtboardFitType fitType() const { return (NestedArtboardFitType)fit(); }
-    float effectiveScaleX() { return std::isnan(m_layoutScaleX) ? scaleX() : m_layoutScaleX; }
-    float effectiveScaleY() { return std::isnan(m_layoutScaleY) ? scaleY() : m_layoutScaleY; }
-
     Vec2D measureLayout(float width,
                         LayoutMeasureMode widthMode,
                         float height,
@@ -94,9 +60,12 @@ public:
     /// nested within. Returns true when the conversion succeeds, and false
     /// when one is not possible.
     bool worldToLocal(Vec2D world, Vec2D* local);
+    void syncStyleChanges();
     void decodeDataBindPathIds(Span<const uint8_t> value) override;
     void copyDataBindPathIds(const NestedArtboardBase& object) override;
     std::vector<uint32_t> dataBindPathIds() { return m_DataBindPathIdsBuffer; };
+    void dataContextFromInstance(ViewModelInstance* viewModelInstance, DataContext* parent);
+    void internalDataContext(DataContext* dataContext, DataContext* parent);
 };
 } // namespace rive
 

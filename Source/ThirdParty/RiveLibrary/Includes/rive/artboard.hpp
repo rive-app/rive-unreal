@@ -13,7 +13,6 @@
 #include "rive/hit_info.hpp"
 #include "rive/math/aabb.hpp"
 #include "rive/renderer.hpp"
-#include "rive/shapes/shape_paint_container.hpp"
 #include "rive/text/text_value_run.hpp"
 #include "rive/event.hpp"
 #include "rive/audio/audio_engine.hpp"
@@ -44,7 +43,11 @@ class SMIInput;
 class SMINumber;
 class SMITrigger;
 
-class Artboard : public ArtboardBase, public CoreContext, public ShapePaintContainer
+#ifdef WITH_RIVE_TOOLS
+typedef void (*ArtboardCallback)(Artboard*);
+#endif
+
+class Artboard : public ArtboardBase, public CoreContext
 {
     friend class File;
     friend class ArtboardImporter;
@@ -67,8 +70,6 @@ private:
 
     unsigned int m_DirtDepth = 0;
     RawPath m_backgroundRawPath;
-    rcp<RenderPath> m_BackgroundPath;
-    rcp<RenderPath> m_ClipPath;
     Factory* m_Factory = nullptr;
     Drawable* m_FirstDrawable = nullptr;
     bool m_IsInstance = false;
@@ -76,6 +77,10 @@ private:
     std::unordered_set<LayoutComponent*> m_dirtyLayout;
     float m_originalWidth = 0;
     float m_originalHeight = 0;
+    bool m_updatesOwnLayout = true;
+    Artboard* parentArtboard() const;
+    NestedArtboard* m_host = nullptr;
+    bool sharesLayoutWithHost() const;
 
 #ifdef EXTERNAL_RIVE_AUDIO_ENGINE
     rcp<AudioEngine> m_audioEngine;
@@ -84,9 +89,14 @@ private:
     void sortDependencies();
     void sortDrawOrder();
     void updateDataBinds();
+    void updateRenderPath() override;
+    void update(ComponentDirt value) override;
 
-    Artboard* getArtboard() override { return this; }
+public:
+    void host(NestedArtboard* nestedArtboard);
+    NestedArtboard* host() const;
 
+private:
 #ifdef TESTING
 public:
     Artboard(Factory* factory) : m_Factory(factory) {}
@@ -96,7 +106,7 @@ public:
     void addStateMachine(StateMachine* object);
 
 public:
-    Artboard() {}
+    Artboard();
     ~Artboard() override;
     StatusCode initialize();
 
@@ -110,22 +120,27 @@ public:
 
     // EXPERIMENTAL -- for internal testing only for now.
     // DO NOT RELY ON THIS as it may change/disappear in the future.
-    Core* hitTest(HitInfo*, const Mat2D* = nullptr);
+    Core* hitTest(HitInfo*, const Mat2D&) override;
 
     void onComponentDirty(Component* component);
 
     /// Update components that depend on each other in DAG order.
     bool updateComponents();
-    void update(ComponentDirt value) override;
     void onDirty(ComponentDirt dirt) override;
 
-    void markLayoutDirty(LayoutComponent* layoutComponent)
-    {
-        m_dirtyLayout.insert(layoutComponent);
-    }
+    // Artboards don't update their world transforms in the same way
+    // as other TransformComponents so we override this.
+    // This is because LayoutComponent extends Drawable, but
+    // Artboard is a special type of LayoutComponent
+    void updateWorldTransform() override {}
 
-    bool advance(double elapsedSeconds);
-    bool advanceInternal(double elapsedSeconds, bool isRoot);
+    void markLayoutDirty(LayoutComponent* layoutComponent);
+
+    void* takeLayoutNode();
+    bool syncStyleChanges();
+
+    bool advance(double elapsedSeconds, bool nested = true);
+    bool advanceInternal(double elapsedSeconds, bool isRoot, bool nested = true);
     bool hasChangedDrawOrderInLastUpdate() { return m_HasChangedDrawOrderInLastUpdate; };
     Drawable* firstDrawable() { return m_FirstDrawable; };
 
@@ -135,12 +150,13 @@ public:
         kHideBG,
         kHideFG,
     };
-    void draw(Renderer* renderer, DrawOption = DrawOption::kNormal);
+    void draw(Renderer* renderer, DrawOption option);
+    void draw(Renderer* renderer) override;
     void addToRenderPath(RenderPath* path, const Mat2D& transform);
 
 #ifdef TESTING
-    RenderPath* clipPath() const { return m_ClipPath.get(); }
-    RenderPath* backgroundPath() const { return m_BackgroundPath.get(); }
+    RenderPath* clipPath() const { return m_clipPath.get(); }
+    RenderPath* backgroundPath() const { return m_backgroundPath.get(); }
 #endif
 
     const std::vector<Core*>& objects() const { return m_Objects; }
@@ -150,10 +166,14 @@ public:
     NestedArtboard* nestedArtboard(const std::string& name) const;
     NestedArtboard* nestedArtboardAtPath(const std::string& path) const;
 
-    float originalWidth() { return m_originalWidth; }
-    float originalHeight() { return m_originalHeight; }
-
+    float originalWidth() const { return m_originalWidth; }
+    float originalHeight() const { return m_originalHeight; }
+    float layoutWidth() const;
+    float layoutHeight() const;
+    float layoutX() const;
+    float layoutY() const;
     AABB bounds() const;
+    Vec2D origin() const;
 
     // Can we hide these from the public? (they use playable)
     bool isTranslucent() const;
@@ -166,9 +186,9 @@ public:
                                  DataContext* parent,
                                  bool isRoot);
     void dataContextFromInstance(ViewModelInstance* viewModelInstance);
-    void populateDataBinds(std::vector<Component*>* dataBinds);
-    void buildDataBindDependencies(std::vector<Component*>* dataBinds);
-    void sortDataBinds(std::vector<Component*> dataBinds);
+    void addDataBind(DataBind* dataBind);
+    void populateDataBinds(std::vector<DataBind*>* dataBinds);
+    void sortDataBinds(std::vector<DataBind*> dataBinds);
     bool hasAudio() const;
 
     template <typename T = Component> T* find(const std::string& name)
@@ -268,6 +288,17 @@ public:
             {
                 auto object = *itr;
                 cloneObjects.push_back(object == nullptr ? nullptr : object->clone());
+                // For each object, clone its data bind objects and target their clones
+                for (auto dataBind : m_DataBinds)
+                {
+                    if (dataBind->target() == object)
+                    {
+                        auto dataBindClone = static_cast<DataBind*>(dataBind->clone());
+                        dataBindClone->target(cloneObjects.back());
+                        dataBindClone->converter(dataBind->converter());
+                        artboardClone->m_DataBinds.push_back(dataBindClone);
+                    }
+                }
             }
         }
 
@@ -330,8 +361,20 @@ public:
     rcp<AudioEngine> audioEngine() const;
     void audioEngine(rcp<AudioEngine> audioEngine);
 #endif
+
+#ifdef WITH_RIVE_LAYOUT
+    void propagateSize() override;
+#endif
 private:
     float m_volume = 1.0f;
+#ifdef WITH_RIVE_TOOLS
+    ArtboardCallback m_layoutChangedCallback = nullptr;
+    ArtboardCallback m_layoutDirtyCallback = nullptr;
+
+public:
+    void onLayoutChanged(ArtboardCallback callback) { m_layoutChangedCallback = callback; }
+    void onLayoutDirty(ArtboardCallback callback) { m_layoutDirtyCallback = callback; }
+#endif
 };
 
 class ArtboardInstance : public Artboard

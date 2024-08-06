@@ -35,12 +35,12 @@ private:
 
     wgpu::Texture m_coverageTexture;
     wgpu::Texture m_clipTexture;
-    wgpu::Texture m_originalDstColorTexture;
+    wgpu::Texture m_scratchColorTexture;
 
     wgpu::TextureView m_targetTextureView;
     wgpu::TextureView m_coverageTextureView;
     wgpu::TextureView m_clipTextureView;
-    wgpu::TextureView m_originalDstColorTextureView;
+    wgpu::TextureView m_scratchColorTextureView;
 };
 
 class PLSRenderContextWebGPUImpl : public PLSRenderContextHelperImpl
@@ -172,7 +172,7 @@ private:
     // Draw paths and image meshes using the gradient and tessellation textures.
     class DrawPipeline;
     std::map<uint32_t, DrawPipeline> m_drawPipelines;
-    wgpu::BindGroupLayout m_drawBindGroupLayouts[3];
+    wgpu::BindGroupLayout m_drawBindGroupLayouts[4 /*BINDINGS_SET_COUNT*/];
     wgpu::Sampler m_linearSampler;
     wgpu::Sampler m_mipmapSampler;
     wgpu::BindGroup m_samplerBindings;

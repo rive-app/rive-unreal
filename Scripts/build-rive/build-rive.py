@@ -14,7 +14,7 @@ targets = [
     'rive_decoders',
     'rive_harfbuzz',
     'rive_pls_renderer',
-    'rive_pls_shaders',
+    # 'rive_pls_shaders',
     'rive_sheenbidi',
 #     'rive_yoga',
     'libpng',

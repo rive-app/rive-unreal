@@ -1,15 +1,15 @@
-#ifndef _RIVE_ABSOLUTE_LAYOUT_COMPONENT_BASE_HPP_
-#define _RIVE_ABSOLUTE_LAYOUT_COMPONENT_BASE_HPP_
-#include "rive/layout_component.hpp"
+#ifndef _RIVE_NESTED_ARTBOARD_LAYOUT_BASE_HPP_
+#define _RIVE_NESTED_ARTBOARD_LAYOUT_BASE_HPP_
+#include "rive/nested_artboard.hpp"
 namespace rive
 {
-class AbsoluteLayoutComponentBase : public LayoutComponent
+class NestedArtboardLayoutBase : public NestedArtboard
 {
 protected:
-    typedef LayoutComponent Super;
+    typedef NestedArtboard Super;
 
 public:
-    static const uint16_t typeKey = 423;
+    static const uint16_t typeKey = 452;
 
     /// Helper to quickly determine if a core object extends another without RTTI
     /// at runtime.
@@ -17,8 +17,11 @@ public:
     {
         switch (typeKey)
         {
-            case AbsoluteLayoutComponentBase::typeKey:
-            case LayoutComponentBase::typeKey:
+            case NestedArtboardLayoutBase::typeKey:
+            case NestedArtboardBase::typeKey:
+            case DrawableBase::typeKey:
+            case NodeBase::typeKey:
+            case TransformComponentBase::typeKey:
             case WorldTransformComponentBase::typeKey:
             case ContainerComponentBase::typeKey:
             case ComponentBase::typeKey:

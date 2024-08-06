@@ -12,11 +12,14 @@ class WorldTransformComponent;
 class AABB;
 class TransformComponent : public TransformComponentBase
 {
-private:
+protected:
     Mat2D m_Transform;
     float m_RenderOpacity = 0.0f;
     WorldTransformComponent* m_ParentTransformComponent = nullptr;
     std::vector<Constraint*> m_Constraints;
+
+protected:
+    void updateConstraints();
 
 public:
     bool collapse(bool value) override;
@@ -24,8 +27,8 @@ public:
     StatusCode onAddedClean(CoreContext* context) override;
     void buildDependencies() override;
     void update(ComponentDirt value) override;
-    void updateTransform();
-    void updateWorldTransform();
+    virtual void updateTransform();
+    virtual void updateWorldTransform();
     void markTransformDirty();
 
     /// Opacity inherited by any child of this transform component. This'll
