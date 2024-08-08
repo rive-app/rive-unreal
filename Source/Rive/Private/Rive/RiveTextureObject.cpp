@@ -29,6 +29,7 @@ void URiveTextureObject::BeginDestroy()
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
+		FEditorDelegates::BeginPIE.RemoveAll(this); 
 		FEditorDelegates::EndPIE.RemoveAll(this);
 	}
 #endif
@@ -62,6 +63,7 @@ void URiveTextureObject::PostLoad()
 #if WITH_EDITOR
 			if (GIsEditor)
 			{
+				FEditorDelegates::BeginPIE.AddUObject(this, &URiveTextureObject::OnBeginPIE);
 				FEditorDelegates::EndPIE.AddUObject(this, &URiveTextureObject::OnEndPIE);
 			}
 #endif
@@ -109,6 +111,11 @@ void URiveTextureObject::EditorBeginPlay()
 	Initialize(RiveDescriptor);
 }
 
+void URiveTextureObject::OnBeginPIE(bool bIsSimulating)
+{
+	EditorBeginPlay();
+}
+
 void URiveTextureObject::OnEndPIE(bool bIsSimulating)
 {
 	bHasBegunPlay = false;
@@ -144,7 +151,11 @@ FVector2f URiveTextureObject::GetLocalCoordinatesFromExtents(const FVector2f& In
 
 void URiveTextureObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 {
-	Artboard = nullptr;
+	if (Artboard == nullptr)
+		Artboard = NewObject<URiveArtboard>(this);
+	else
+		Artboard->Reinitialize(true);
+
 	RiveDescriptor = InRiveDescriptor;
 
 	if (!IRiveRendererModule::IsAvailable())
@@ -172,7 +183,6 @@ void URiveTextureObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 
 void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 {
-	Artboard = NewObject<URiveArtboard>(this);
 	RiveRenderTarget.Reset();
 	RiveRenderTarget = InRiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
 			
