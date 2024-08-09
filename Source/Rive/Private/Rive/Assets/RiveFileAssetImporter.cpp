@@ -5,7 +5,10 @@
 #include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/RiveAssetHelpers.h"
+#include "Rive/Assets/RiveAudioAsset.h"
 #include "Rive/Assets/RiveFileAssetLoader.h"
+#include "Rive/Assets/RiveFontAsset.h"
+#include "Rive/Assets/RiveImageAsset.h"
 
 #if WITH_EDITOR
 #include "AssetToolsModule.h"
@@ -56,7 +59,8 @@ bool FRiveFileAssetImporter::loadContents(rive::FileAsset& InAsset, rive::Span<c
 		}
 	}
 
-
+	ERiveAssetType Type = RiveAssetHelpers::GetUnrealType(InAsset.coreType());
+	
 	URiveAsset* RiveAsset = nullptr;
 	
 	if (!bIsInBand)
@@ -93,7 +97,7 @@ bool FRiveFileAssetImporter::loadContents(rive::FileAsset& InAsset, rive::Span<c
 	
 	RiveAsset->Id = InAsset.assetId();
 	RiveAsset->Name = FString(UTF8_TO_TCHAR(InAsset.name().c_str()));
-	RiveAsset->Type = RiveAssetHelpers::GetUnrealType(InAsset.coreType()); 
+	RiveAsset->Type = Type;
 	RiveAsset->bIsInBand = bIsInBand;
 	RiveAsset->MarkPackageDirty();
 	
@@ -102,11 +106,15 @@ bool FRiveFileAssetImporter::loadContents(rive::FileAsset& InAsset, rive::Span<c
 		Assets.Add(InAsset.assetId(), RiveAsset);
 		return true;
 	}
-	
+
+	// Search for the oob asset on disk, relative to the Rive File path
 	FString AssetPath;
 	if (RiveAssetHelpers::FindDiskAsset(RiveFilePath, RiveAsset))
 	{
-		RiveAsset->LoadFromDisk();
+		if (!FFileHelper::LoadFileToArray(RiveAsset->NativeAssetBytes, *AssetPath))
+		{
+			UE_LOG(LogRive, Error, TEXT("Could not load Asset: %s at path %s"), *RiveAsset->Name, *AssetPath);
+		}
 	}
 
 	Assets.Add(InAsset.assetId(), RiveAsset);
