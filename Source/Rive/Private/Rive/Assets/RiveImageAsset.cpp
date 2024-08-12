@@ -23,6 +23,9 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
 {
 	if (!InTexture) return;
 
+	UE_LOG(LogRive, Warning, TEXT("LoadTexture NYI"));
+	return;
+
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 
 	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
@@ -80,6 +83,37 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
 				}
 
 				NativeAsset->as<rive::ImageAsset>()->renderImage(DecodedImage);
+			}
+		}
+	));
+}
+
+void URiveImageAsset::LoadImageBytes(const TArray<uint8>& InBytes)
+{
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+
+	// We'll copy InBytes into the lambda because there's no guarantee they'll exist by the time it's hit
+	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
+		[this, InBytes](IRiveRenderer* RiveRenderer)
+		{
+			rive::pls::PLSRenderContext* PLSRenderContext;
+			{
+				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+				PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
+			}
+	
+			if (ensure(PLSRenderContext))
+			{
+				auto DecodedImage = PLSRenderContext->decodeImage(rive::make_span(InBytes.GetData(), InBytes.Num()));
+			
+				if (DecodedImage == nullptr)
+				{
+					UE_LOG(LogRive, Error, TEXT("LoadImageBytes: Could not decode image bytes"));
+					return;
+				}
+									
+				rive::ImageAsset* ImageAsset = NativeAsset->as<rive::ImageAsset>();
+				ImageAsset->renderImage(DecodedImage);
 			}
 		}
 	));
