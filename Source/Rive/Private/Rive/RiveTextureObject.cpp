@@ -86,15 +86,7 @@ void URiveTextureObject::Tick(float InDeltaSeconds)
 
 #if WITH_RIVE
 	if (bIsRendering)
-	{
-		
-#if WITH_EDITOR
-		if (!bHasBegunPlay)
-		{
-			EditorBeginPlay();
-		}
-#endif
-		
+	{		
 		if (GetArtboard())
 		{
 			Artboard->Tick(InDeltaSeconds);
@@ -105,20 +97,13 @@ void URiveTextureObject::Tick(float InDeltaSeconds)
 }
 
 #if WITH_EDITOR
-void URiveTextureObject::EditorBeginPlay()
-{
-	bHasBegunPlay = true;
-	Initialize(RiveDescriptor);
-}
-
 void URiveTextureObject::OnBeginPIE(bool bIsSimulating)
 {
-	EditorBeginPlay();
+	Initialize(RiveDescriptor);
 }
 
 void URiveTextureObject::OnEndPIE(bool bIsSimulating)
 {
-	bHasBegunPlay = false;
 }
 #endif
 
@@ -151,11 +136,6 @@ FVector2f URiveTextureObject::GetLocalCoordinatesFromExtents(const FVector2f& In
 
 void URiveTextureObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 {
-	if (Artboard == nullptr)
-		Artboard = NewObject<URiveArtboard>(this);
-	else
-		Artboard->Reinitialize(true);
-
 	RiveDescriptor = InRiveDescriptor;
 
 	if (!IRiveRendererModule::IsAvailable())
@@ -183,6 +163,11 @@ void URiveTextureObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 
 void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 {
+	if (Artboard == nullptr)
+		Artboard = NewObject<URiveArtboard>(this);
+	else
+		Artboard->Reinitialize(true);
+
 	RiveRenderTarget.Reset();
 	RiveRenderTarget = InRiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
 			
