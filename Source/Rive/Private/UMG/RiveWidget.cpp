@@ -108,16 +108,12 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 	if (!RiveTextureObject && RiveWidget.IsValid())
 	{
 		RiveTextureObject = NewObject<URiveTextureObject>();
-
-#if WITH_EDITOR
+		
 		TimerHandle.Invalidate();
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
 		{
 			Setup();
 		}, 0.05f, false);
-#else
-		Setup();
-#endif
 	}
 	
 	return RiveWidget.ToSharedRef();
