@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Copyright Rive, Inc. All rights reserved.
 
 #pragma once
 
@@ -16,7 +16,7 @@ class RIVE_API URiveImageAsset : public URiveAsset
 
 	URiveImageAsset();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category=Rive)
 	void LoadTexture(UTexture2D* InTexture);
 
 	UFUNCTION(BlueprintCallable, Category=Rive)

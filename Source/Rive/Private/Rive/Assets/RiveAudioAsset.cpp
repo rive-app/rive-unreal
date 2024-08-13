@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Copyright Rive, Inc. All rights reserved.
 
 
 #include "Rive/Assets/RiveAudioAsset.h"
