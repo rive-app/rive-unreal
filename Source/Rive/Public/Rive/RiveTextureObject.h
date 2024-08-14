@@ -76,9 +76,8 @@ public:
 	 */
 
 #if WITH_EDITOR
-	void EditorBeginPlay();
+	void OnBeginPIE(bool bIsSimulating);
 	void OnEndPIE(bool bIsSimulating);
-	bool bHasBegunPlay = false;
 #endif
 	
 public:
