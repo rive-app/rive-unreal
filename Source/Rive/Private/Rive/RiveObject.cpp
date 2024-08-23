@@ -66,11 +66,6 @@ bool URiveObject::IsTickable() const
 	return !HasAnyFlags(RF_ClassDefaultObject) && bIsRendering;
 }
 
-FLinearColor URiveObject::GetClearColor() const
-{
-	return ClearColor;
-}
-
 FVector2f URiveObject::GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2f& InPosition)
 {
 #if WITH_RIVE

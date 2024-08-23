@@ -1,4 +1,5 @@
 #pragma once
+#include "pls_render_context_rhi_impl.hpp"
 #include "RiveRenderTarget.h"
 
 class FRiveRendererRHI;
@@ -21,4 +22,7 @@ protected:
     virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
     //~ END : FRiveRenderTarget Interface
 #endif // WITH_RIVE
+private:
+    TSharedRef<FRiveRendererRHI> RiveRenderer;
+    rive::rcp<rive::pls::PLSRenderTargetRHI> CachedPLSRenderTarget;
 };

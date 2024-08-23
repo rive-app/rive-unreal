@@ -22,46 +22,14 @@ void FRiveRendererModule::StartupModule()
     check(GDynamicRHI);
     // Create Platform Specific Renderer
     RiveRenderer = nullptr;
-    switch (RHIGetInterfaceType())
+    
+    UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'RHI'"))
+    RiveRenderer = MakeShared<FRiveRendererRHI>();
+    if(!IsRunningCommandlet())
     {
-#if PLATFORM_WINDOWS
-    case ERHIInterfaceType::D3D11:
-        {
-            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'D3D11'"))
-            RiveRenderer = MakeShared<FRiveRendererD3D11>();
-            break;
-        }
-#endif // PLATFORM_WINDOWS
-#if PLATFORM_ANDROID
-    case ERHIInterfaceType::OpenGL:
-        {
-            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'OpenGL'"))
-            RiveRenderer = MakeShared<FRiveRendererOpenGL>();
-            break;
-        }
-#endif // PLATFORM_ANDROID
-#if PLATFORM_APPLE
-        case ERHIInterfaceType::Metal:
-        {
-            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'Metal'"))
-#if defined(WITH_RIVE_MAC_ARM64)
-            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on a Mac M1/M2 processor (Arm64)"))
-#elif defined(WITH_RIVE_MAC_INTEL)
-            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on a Mac Intel processor (x86 x64)"))
-#endif
-            RiveRenderer = MakeShared<FRiveRendererMetal>();
-            break;
-        }
-#endif // PLATFORM_APPLE
-    default:
-        UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI 'RHI'"))
-        RiveRenderer = MakeShared<FRiveRendererRHI>();
-        if(!IsRunningCommandlet())
-        {
-            UE_LOG(LogRiveRenderer, Error, TEXT("Rive is NOT compatible with the current unknown RHI"))
-        }
-        break;
+        UE_LOG(LogRiveRenderer, Error, TEXT("Rive is NOT compatible with the current unknown RHI"))
     }
+
     
     // OnBeginFrameHandle = FCoreDelegates::OnFEngineLoopInitComplete.AddLambda([this]()  // Crashes sometimes on Android when on GameThread
     OnBeginFrameHandle = FCoreDelegates::OnBeginFrame.AddLambda([this]()

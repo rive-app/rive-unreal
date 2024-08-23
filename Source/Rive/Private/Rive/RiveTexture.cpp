@@ -180,8 +180,8 @@ void URiveTexture::InitializeResources() const
 
 		FRHITextureCreateDesc RenderTargetTextureDesc =
 			FRHITextureCreateDesc::Create2D(*DebugName, Size.X, Size.Y, Format)
-				.SetClearValue(FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f)))
-				.SetFlags(ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | ETextureCreateFlags::RenderTargetable);
+				.SetClearValue(FClearValueBinding(ClearColor))
+				.SetFlags(ETextureCreateFlags::UAV | ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | ETextureCreateFlags::RenderTargetable);
 
 #if !(PLATFORM_IOS || PLATFORM_MAC) //SRGB could hvae been manually overriden
 		if (SRGB)

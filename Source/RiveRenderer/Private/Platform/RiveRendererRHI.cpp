@@ -30,6 +30,6 @@ void FRiveRendererRHI::CreatePLSContext_RenderThread(FRHICommandListImmediate& R
     } 
     
 #if WITH_RIVE
-    PLSRenderContext = rive::pls::PLSRenderContextRHIImpl::MakeContext();
+    PLSRenderContext = rive::pls::PLSRenderContextRHIImpl::MakeContext(RHICmdList);
 #endif // WITH_RIVE
 }

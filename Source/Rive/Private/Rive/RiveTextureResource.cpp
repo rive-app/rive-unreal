@@ -11,10 +11,9 @@
 #include "RenderUtils.h"
 #include "Rive/RiveTexture.h"
 
-FRiveTextureResource::FRiveTextureResource(URiveTexture* Owner)
-{
-	RiveTexture = Owner;
-}
+FRiveTextureResource::FRiveTextureResource(URiveTexture* Owner):
+RiveTexture(Owner)
+{ }
 
 void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
 {
