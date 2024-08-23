@@ -108,7 +108,7 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 	if (!RiveTextureObject && RiveWidget.IsValid())
 	{
 		RiveTextureObject = NewObject<URiveTextureObject>();
-		
+		RiveTextureObject->Size = FIntPoint::ZeroValue;  // Setting to zero value here will make the rive texture use the artboard size initially
 		TimerHandle.Invalidate();
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
 		{
@@ -188,17 +188,18 @@ URiveArtboard* URiveWidget::GetArtboard() const
 
 void URiveWidget::OnRiveObjectReady()
 {
+	if (RiveTextureObject)
+	{
+		RiveTextureObject->OnRiveReady.RemoveDynamic(this, &URiveWidget::OnRiveObjectReady);
+	}
+	
 	if (!RiveWidget.IsValid() || !GetCachedWidget()) return;
-	RiveTextureObject->OnRiveReady.RemoveDynamic(this, &URiveWidget::OnRiveObjectReady);
-		
-	UE::Slate::FDeprecateVector2DResult AbsoluteSize = GetCachedGeometry().GetAbsoluteSize();
 
-	RiveTextureObject->ResizeRenderTargets(FIntPoint(AbsoluteSize.X, AbsoluteSize.Y));
+	FVector2f ArtboardSize = RiveTextureObject->GetArtboard()->GetSize();
+	SetMinimumDesiredSize(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
 	RiveWidget->SetRiveTexture(RiveTextureObject);
-
 	RiveDescriptor.ArtboardName = RiveTextureObject->GetArtboard()->GetArtboardName();
 	RiveDescriptor.StateMachineName = RiveTextureObject->GetArtboard()->StateMachineName;
-	
 	OnRiveReady.Broadcast();
 }
 

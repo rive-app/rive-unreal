@@ -79,6 +79,7 @@ void SRiveWidget::SetRiveTexture(URiveTexture* InRiveTexture)
 			RiveTextureBrush->TintColor = FSlateColor(FLinearColor::White);
 			RiveTextureBrush->SetResourceObject(RiveTexture);
 			RiveImageView->SetImage(RiveTextureBrush.Get());
+			InRiveTexture->ResizeRenderTargets(FIntPoint(PreviousSize.X, PreviousSize.Y));
 		}
 	}
 }
