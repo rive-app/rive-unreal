@@ -73,9 +73,6 @@ public:
 
 public:
 
-	UFUNCTION(BlueprintPure, Category = Rive)
-	FLinearColor GetClearColor() const;
-
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FVector2f GetLocalCoordinate(URiveArtboard* InArtboard, const FVector2f& InPosition);
 
@@ -114,9 +111,6 @@ public:
 private:
 	UFUNCTION()
 	void OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);
-	
-	UPROPERTY(EditAnywhere, Category = Rive)
-	FLinearColor ClearColor = FLinearColor::Transparent;
 
 	UPROPERTY(EditAnywhere, Category = Rive)
 	bool bIsRendering = true;

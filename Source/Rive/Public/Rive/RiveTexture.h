@@ -42,7 +42,10 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
 	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaComposite;
-	
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = Rive)
+	FLinearColor ClearColor = FLinearColor::Transparent;
+
 	/**
 	 * Resize render resources
 	 */
