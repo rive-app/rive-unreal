@@ -97,6 +97,47 @@ public:
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
 };
 
+class FRiveImageRectPixelShader : public FGlobalShader
+{
+public:
+
+    DECLARE_GLOBAL_SHADER(FRiveImageRectPixelShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveImageRectPixelShader, FGlobalShader);
+    
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
+    SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
+    
+    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_imageTexture_raw)
+    
+    SHADER_PARAMETER_UAV(Texture2D, coverageCountBuffer)
+    
+    SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
+    SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
+    
+    SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
+    END_SHADER_PARAMETER_STRUCT()
+
+    static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+};
+
+class FRiveImageRectVertexShader : public FGlobalShader
+{
+public:
+
+    DECLARE_GLOBAL_SHADER( FRiveImageRectVertexShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveImageRectVertexShader, FGlobalShader);
+    
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
+    SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
+    END_SHADER_PARAMETER_STRUCT()
+    
+    static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+};
+
 class FRiveImageMeshPixelShader : public FGlobalShader
 {
 public:
@@ -259,5 +300,5 @@ typedef GraphicsPipeline<FRiveImageMeshVertexShader, FRiveImageMeshPixelShader> 
 typedef GraphicsPipeline<FRiveTessVertexShader, FRiveTessPixelShader> TessPipeline;
 typedef GraphicsPipeline<FRiveGradientVertexShader, FRiveGradientPixelShader> GradientPipeline;
 typedef GraphicsPipeline<FRiveAtomiResolveVertexShader, FRiveAtomiResolvePixelShader> AtomicResolvePipeline;
-
+typedef GraphicsPipeline<FRiveImageRectVertexShader, FRiveImageRectPixelShader> ImageRectPipeline;
 typedef SimpleGraphicsPipeline<FRiveTestVertexShader, FRiveTestPixelShader> TestSimplePipeline;

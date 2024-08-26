@@ -117,7 +117,13 @@ class StructuredBufferRingRHIImpl final : public BufferRing
 {
 public:
     StructuredBufferRingRHIImpl(EBufferUsageFlags flags, size_t in_sizeInBytes, size_t elementSize);
-    void Sync(FRHICommandListImmediate& commandList) const;
+    template<typename HighLevelStruct>
+    void Sync(FRHICommandListImmediate& commandList, size_t elementOffset, size_t elementCount)
+    {
+        auto data = commandList.LockBuffer(m_buffer, 0, elementCount * sizeof(HighLevelStruct), RLM_WriteOnly_NoOverwrite);
+        memcpy(data, shadowBuffer() + (elementOffset * sizeof(HighLevelStruct)), elementCount * sizeof(HighLevelStruct));
+        commandList.UnlockBuffer(m_buffer);
+    }
     FBufferRHIRef contents()const;
     FShaderResourceViewRHIRef srv() const;
 
@@ -130,6 +136,7 @@ private:
     EBufferUsageFlags m_flags;
     FShaderResourceViewRHIRef m_srv;
     size_t m_elementSize;
+    size_t m_lastMapSizeInBytes;
 };
 
 class PLSRenderContextRHIImpl : public PLSRenderContextImpl
@@ -192,9 +199,14 @@ private:
     FTextureRHIRef m_gradiantTexture;
     FTextureRHIRef m_tesselationTexture;
 
+    FBufferRHIRef m_imageRectVertexBuffer;
+    FBufferRHIRef m_imageRectIndexBuffer;
+    FBufferRHIRef m_tessSpanIndexBuffer;
+    
     FSamplerStateRHIRef m_linearSampler;
     FSamplerStateRHIRef m_mipmapSampler;
-    
+
+    std::unique_ptr<ImageRectPipeline> m_imageRectPipeline;
     std::unique_ptr<ImageMeshPipeline> m_imageMeshPipeline;
     std::unique_ptr<GradientPipeline> m_gradientPipeline;
     std::unique_ptr<TessPipeline> m_tessPipeline;
@@ -211,9 +223,6 @@ private:
     std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_tessSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_triangleBuffer;
-    
-    FBufferRHIRef m_tessSpanIndexBuffer;
-    TResourceArray<uint16_t> m_tessSpanIndexData;
     
     std::chrono::steady_clock::time_point m_localEpoch = std::chrono::steady_clock::now();
 };

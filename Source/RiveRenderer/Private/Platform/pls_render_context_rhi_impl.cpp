@@ -17,10 +17,24 @@ namespace rive
 {
 namespace pls
 {
+    template<typename DataType>
+    FBufferRHIRef makeSimpleImmutableBuffer(FRHICommandList& RHICmdList, const TCHAR* DebugName, size_t elementCount, EBufferUsageFlags bindFlags, const void* data)
+    {
+        const size_t size = sizeof(DataType) * elementCount;
+        FRHIResourceCreateInfo Info(DebugName);
+        auto buffer = RHICmdList.CreateBuffer(size,
+            EBufferUsageFlags::Static | bindFlags,sizeof(DataType),
+            ERHIAccess::VertexOrIndexBuffer, Info);
 
+        auto map = RHICmdList.LockBuffer(buffer, 0, size, RLM_WriteOnly_NoOverwrite);
+        memcpy(map, data, size);
+        RHICmdList.UnlockBuffer(buffer);
+        return buffer;
+    }
+    
 #define SYNC_BUFFER(buffer, command_list) if(buffer)buffer->Sync(command_list);
-#define SYNC_UNIFORM_BUFFER(buffer, command_list, offset)if(buffer)buffer->Sync(command_list, offset);
-
+#define SYNC_BUFFER_WITH_OFFSET(buffer, command_list, offset)if(buffer)buffer->Sync(command_list, offset);
+    
 BufferRingRHIImpl::BufferRingRHIImpl(EBufferUsageFlags flags,
 size_t in_sizeInBytes) : BufferRing(in_sizeInBytes), m_flags(flags)
 {
@@ -53,20 +67,14 @@ void BufferRingRHIImpl::onUnmapAndSubmitBuffer(int bufferIdx, size_t mapSizeInBy
 
 StructuredBufferRingRHIImpl::StructuredBufferRingRHIImpl(EBufferUsageFlags flags,
     size_t in_sizeInBytes,
-    size_t elementSize) : BufferRing(in_sizeInBytes), m_elementSize(elementSize), m_flags(flags)
+    size_t elementSize) : BufferRing(in_sizeInBytes), m_elementSize(elementSize),
+    m_flags(flags), m_lastMapSizeInBytes(in_sizeInBytes)
 {
     FRHIAsyncCommandList commandList;
     FRHIResourceCreateInfo Info(TEXT("BufferRingRHIImpl_"));
     m_buffer = commandList->CreateStructuredBuffer(m_elementSize, capacityInBytes(),
         EBufferUsageFlags::Volatile | m_flags, ERHIAccess::WriteOnlyMask, Info);
     m_srv = commandList->CreateShaderResourceView(m_buffer);
-}
-
-void StructuredBufferRingRHIImpl::Sync(FRHICommandListImmediate& commandList) const
-{
-    auto buffer = commandList.LockBuffer(m_buffer, 0, capacityInBytes(), RLM_WriteOnly_NoOverwrite);
-    memcpy(buffer, shadowBuffer(), capacityInBytes());
-    commandList.UnlockBuffer(m_buffer);
 }
 
 FBufferRHIRef StructuredBufferRingRHIImpl::contents()const
@@ -76,6 +84,7 @@ FBufferRHIRef StructuredBufferRingRHIImpl::contents()const
 
 void* StructuredBufferRingRHIImpl::onMapBuffer(int bufferIdx, size_t mapSizeInBytes)
 {
+    m_lastMapSizeInBytes = mapSizeInBytes;
     return shadowBuffer();
 }
 
@@ -158,15 +167,13 @@ private:
 PLSRenderTargetRHI::PLSRenderTargetRHI(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTextureTarget) :
 PLSRenderTarget(InTextureTarget->GetSizeX(), InTextureTarget->GetSizeY()), m_textureTarget(InTextureTarget)
 {
-    FRHITextureCreateDesc coverageDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveAtomicCoverage"));
-    coverageDesc.SetFormat(PF_R32_UINT);
+    FRHITextureCreateDesc coverageDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveAtomicCoverage"), width(), height(), PF_R32_UINT);
     coverageDesc.SetNumMips(1);
-    coverageDesc.AddFlags(ETextureCreateFlags::UAV);
+    coverageDesc.AddFlags(ETextureCreateFlags::UAV | ETextureCreateFlags::Memoryless);
     m_atomicCoverageTexture = RHICmdList.CreateTexture(coverageDesc);
-    FRHITextureCreateDesc scratchColorDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveAtomicCoverage"));
+    FRHITextureCreateDesc scratchColorDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveAtomicCoverage"), width(), height(), PF_R8G8B8A8);
     scratchColorDesc.SetNumMips(1);
     scratchColorDesc.AddFlags(ETextureCreateFlags::UAV);
-    scratchColorDesc.SetFormat(PF_R8G8B8A8);
     m_scratchColorTexture = RHICmdList.CreateTexture(scratchColorDesc);
     
     m_coverageUAV = RHICmdList.CreateUnorderedAccessView(m_atomicCoverageTexture);
@@ -181,20 +188,25 @@ std::unique_ptr<PLSRenderContext> PLSRenderContextRHIImpl::MakeContext(FRHIComma
     return std::make_unique<PLSRenderContext>(std::move(plsContextImpl));
 }
 
-PLSRenderContextRHIImpl::PLSRenderContextRHIImpl(FRHICommandListImmediate& CommandListImmediate) : m_tessSpanIndexData()
+PLSRenderContextRHIImpl::PLSRenderContextRHIImpl(FRHICommandListImmediate& CommandListImmediate)
 {
     m_platformFeatures.supportsRasterOrdering = false;
+    auto ShaderMap =  GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
     FVertexDeclarationElementList ElementList;
     ElementList.Add(FVertexElement(0, 0, VET_Float2, 0, sizeof(Vec2D), false));
     ElementList.Add(FVertexElement(1, 0, VET_Float2, 1, sizeof(Vec2D), false));
     auto VertexDeclaration = PipelineStateCache::GetOrCreateVertexDeclaration(ElementList);
-    auto ShaderMap =  GetGlobalShaderMap(GMaxRHIFeatureLevel);
     m_imageMeshPipeline = std::make_unique<ImageMeshPipeline>(VertexDeclaration,ShaderMap);
+
     FVertexDeclarationElementList SpanElementList;
-    SpanElementList.Add(FVertexElement(0, 0, VET_UShort4, 0, sizeof(short[4]), true));
+    SpanElementList.Add(FVertexElement(0, 0, VET_UInt, 0, sizeof(pls::GradientSpan), true));
+    SpanElementList.Add(FVertexElement(0, 4, VET_UInt, 1, sizeof(pls::GradientSpan), true));
+    SpanElementList.Add(FVertexElement(0, 8, VET_UInt, 2, sizeof(pls::GradientSpan), true));
+    SpanElementList.Add(FVertexElement(0, 12, VET_UInt, 3, sizeof(pls::GradientSpan), true));
     auto SpanVertexDeclaration = PipelineStateCache::GetOrCreateVertexDeclaration(SpanElementList);
     m_gradientPipeline = std::make_unique<GradientPipeline>(SpanVertexDeclaration, ShaderMap);
+
     FVertexDeclarationElementList TessElementList;
     size_t tessOffset = 0;
     size_t tessStride = sizeof(pls::TessVertexSpan);
@@ -216,16 +228,25 @@ PLSRenderContextRHIImpl::PLSRenderContextRHIImpl(FRHICommandListImmediate& Comma
     m_tessPipeline = std::make_unique<TessPipeline>(TessVertexDeclaration, ShaderMap);
 
     m_atomicResolvePipeline = std::make_unique<AtomicResolvePipeline>(GEmptyVertexDeclaration.VertexDeclarationRHI, ShaderMap);
-    
     m_testSimplePipeline = std::make_unique<TestSimplePipeline>(GEmptyVertexDeclaration.VertexDeclarationRHI, ShaderMap);
+
+    FVertexDeclarationElementList ImageRectVertexElementList;
+    ImageRectVertexElementList.Add(
+        FVertexElement(0, 0, VET_Float4, 0, sizeof(pls::ImageRectVertex), false));
+    auto ImageRectDecleration = PipelineStateCache::GetOrCreateVertexDeclaration(ImageRectVertexElementList);
+    m_imageRectPipeline = std::make_unique<ImageRectPipeline>(ImageRectDecleration, ShaderMap);
     
-    m_tessSpanIndexData.Reserve(std::size(pls::kTessSpanIndices));
-    m_tessSpanIndexData.AddUninitialized(std::size(pls::kTessSpanIndices));
+    m_tessSpanIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
+        TEXT("RiveTessIndexBuffer"), std::size(pls::kTessSpanIndices),
+        EBufferUsageFlags::IndexBuffer,pls::kTessSpanIndices);
     
-    FMemory::Memcpy(&(m_tessSpanIndexData)[0], pls::kTessSpanIndices,sizeof(pls::kTessSpanIndices));
-    FRHIResourceCreateInfo Info(TEXT("RiveTessIndexBuffer"), &m_tessSpanIndexData);
-    m_tessSpanIndexBuffer = CommandListImmediate.CreateIndexBuffer(sizeof(uint16_t),sizeof(pls::kTessSpanIndices)
-        ,EBufferUsageFlags::Static,ERHIAccess::VertexOrIndexBuffer,Info);
+    m_imageRectVertexBuffer = makeSimpleImmutableBuffer<ImageRectVertex>(CommandListImmediate,
+        TEXT("ImageRectVertexBuffer"), std::size(pls::kImageRectVertices),
+        EBufferUsageFlags::VertexBuffer,pls::kImageRectVertices);
+    
+    m_imageRectIndexBuffer = makeSimpleImmutableBuffer<uint16>(CommandListImmediate,
+        TEXT("ImageRectIndexBuffer"), std::size(pls::kImageRectIndices),
+        EBufferUsageFlags::IndexBuffer, pls::kImageRectIndices);
     
     m_linearSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp, 0, 1, 0, SCF_Never>::GetRHI();
     m_mipmapSampler = TStaticSamplerState<SF_AnisotropicLinear, AM_Clamp, AM_Clamp, AM_Clamp, 0, 1, 0, SCF_Never>::GetRHI();
@@ -473,7 +494,7 @@ void PLSRenderContextRHIImpl::resizeGradientTexture(uint32_t width, uint32_t hei
     auto& commandList = GRHICommandList.GetImmediateCommandList();
     FRHITextureCreateDesc Desc = FRHITextureCreateDesc::Create2D(TEXT("riveGradientTexture"),
         {static_cast<int32_t>(width), static_cast<int32_t>(height)}, PF_R8G8B8A8);
-    Desc.AddFlags(ETextureCreateFlags::RenderTargetable | ETextureCreateFlags::ShaderResource);
+    Desc.AddFlags(ETextureCreateFlags::UAV | ETextureCreateFlags::RenderTargetable | ETextureCreateFlags::ShaderResource);
     Desc.DetermineInititialState();
     m_gradiantTexture = commandList.CreateTexture(Desc);
 }
@@ -503,17 +524,29 @@ void PLSRenderContextRHIImpl::resizeTessellationTexture(uint32_t width, uint32_t
 
 void PLSRenderContextRHIImpl::flush(const pls::FlushDescriptor& desc)
 {
-    auto renderTarget = static_cast<PLSRenderTargetRHI*>(desc.renderTarget);
-    //FRHICommandListImmediate* CommandList = static_cast<FRHICommandListImmediate*>(desc.externalCommandBuffer);
     check(IsInRenderingThread());
-    
+
+    auto renderTarget = static_cast<PLSRenderTargetRHI*>(desc.renderTarget);
     FRHICommandListImmediate& CommandList = GRHICommandList.GetImmediateCommandList();
     
-    SYNC_UNIFORM_BUFFER(m_flushUniformBuffer,CommandList, desc.flushUniformDataOffsetInBytes);
-    SYNC_BUFFER(m_pathBuffer, CommandList);
-    SYNC_BUFFER(m_paintBuffer, CommandList);
-    SYNC_BUFFER(m_paintAuxBuffer, CommandList);
-    SYNC_BUFFER(m_contourBuffer, CommandList);
+    SYNC_BUFFER_WITH_OFFSET(m_flushUniformBuffer, CommandList, desc.flushUniformDataOffsetInBytes);
+    if( desc.pathCount > 0)
+    {
+        check(m_pathBuffer);
+        check(m_paintBuffer);
+        check(m_paintAuxBuffer);
+        
+        m_pathBuffer->Sync<pls::PathData>(CommandList, desc.firstPath, desc.pathCount);
+        m_paintBuffer->Sync<pls::PaintData>(CommandList, desc.firstPaint, desc.pathCount);
+        m_paintAuxBuffer->Sync<pls::PaintAuxData>(CommandList, desc.firstPaintAux, desc.pathCount);
+    }
+    
+    if(desc.contourCount > 0)
+    {
+        check(m_contourBuffer);
+        m_contourBuffer->Sync<pls::ContourData>(CommandList,  desc.firstContour, desc.contourCount);
+    }
+    
     SYNC_BUFFER(m_simpleColorRampsBuffer, CommandList);
     SYNC_BUFFER(m_gradSpanBuffer, CommandList);
     SYNC_BUFFER(m_tessSpanBuffer, CommandList);
@@ -525,38 +558,41 @@ void PLSRenderContextRHIImpl::flush(const pls::FlushDescriptor& desc)
     GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
     FRHIBatchedShaderParameters& BatchedShaderParameters = CommandList.GetScratchShaderParameters();
 
-    CommandList.ClearUAVUint(renderTarget->coverageUAV(), FUintVector4(desc.coverageClearValue,0 ,0 ,0 ));
-    
+    FRHIComputeCommandList& RHICmdListCompute = FRHIComputeCommandList::Get(CommandList);
+    RHICmdListCompute.ClearUAVUint(renderTarget->coverageUAV(), FUintVector4(desc.coverageClearValue,desc.coverageClearValue,desc.coverageClearValue,desc.coverageClearValue ));
+
     if (desc.complexGradSpanCount > 0)
     {
+        check(m_gradiantTexture);
         CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::Unknown, ERHIAccess::RTV));
         GraphicsPSOInit.RenderTargetFormats[0] = m_gradiantTexture->GetFormat();
         GraphicsPSOInit.RenderTargetFlags[0] = m_gradiantTexture->GetFlags();
         GraphicsPSOInit.NumSamples = m_gradiantTexture->GetNumSamples();
         GraphicsPSOInit.RenderTargetsEnabled = 1;
+        GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
         
         FRHIRenderPassInfo Info(m_gradiantTexture, ERenderTargetActions::DontLoad_Store);
         CommandList.BeginRenderPass(Info, TEXT("Rive_Render_Gradient"));
         CommandList.SetViewport(0, desc.complexGradRowsTop, 0, kGradTextureWidth, desc.complexGradRowsHeight, 1.0);
         
         m_gradientPipeline->BindShaders(CommandList, GraphicsPSOInit);
-        CommandList.DrawPrimitive(0, 4, desc.complexGradSpanCount);
+        CommandList.DrawPrimitive(0, 2, desc.complexGradSpanCount);
         
         CommandList.EndRenderPass();
         CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::RTV, ERHIAccess::UAVGraphics));
     }
-
-    if (desc.simpleGradTexelsHeight > 0)
-    {
-        assert(desc.simpleGradTexelsHeight * desc.simpleGradTexelsWidth * 4 <=
-               simpleColorRampsBufferRing()->capacityInBytes());
-
-        CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::UAVGraphics, ERHIAccess::CopyDest));
-        CommandList.UpdateFromBufferTexture2D(m_gradiantTexture, 0,
-            {0, 0, 0, 0, desc.simpleGradTexelsWidth, desc.simpleGradTexelsHeight},
-            kGradTextureWidth * 4, m_simpleColorRampsBuffer->contents(), desc.simpleGradDataOffsetInBytes);
-        CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::CopyDest, ERHIAccess::UAVGraphics));
-    }
+    
+    // if (desc.simpleGradTexelsHeight > 0)
+    // {
+    //     assert(desc.simpleGradTexelsHeight * desc.simpleGradTexelsWidth * 4 <=
+    //            simpleColorRampsBufferRing()->capacityInBytes());
+    //
+    //     CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::UAVGraphics, ERHIAccess::CopyDest));
+    //     CommandList.UpdateFromBufferTexture2D(m_gradiantTexture, 0,
+    //         {0, 0, 0, 0, desc.simpleGradTexelsWidth, desc.simpleGradTexelsHeight},
+    //         kGradTextureWidth * 4, m_simpleColorRampsBuffer->contents(), desc.simpleGradDataOffsetInBytes);
+    //     CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::CopyDest, ERHIAccess::UAVGraphics));
+    // }
 
     if (desc.tessVertexSpanCount > 0)
     {
@@ -571,9 +607,7 @@ void PLSRenderContextRHIImpl::flush(const pls::FlushDescriptor& desc)
         
         m_tessPipeline->BindShaders(CommandList, GraphicsPSOInit);
         
-        UINT tessStride = sizeof(TessVertexSpan);
-        UINT tessOffset = 0;
-        CommandList.SetStreamSource(0, m_tessSpanBuffer->contents(), tessOffset);
+        CommandList.SetStreamSource(0, m_tessSpanBuffer->contents(), 0);
         
         TessPipeline::PixelParameters PixelParameters;
         TessPipeline::VertexParameters VertexParameters;
@@ -588,13 +622,34 @@ void PLSRenderContextRHIImpl::flush(const pls::FlushDescriptor& desc)
         CommandList.SetViewport(0, 0, 0,
             static_cast<float>(kTessTextureWidth), static_cast<float>(desc.tessDataHeight), 1);
         
-        CommandList.DrawIndexedPrimitive(m_tessSpanIndexBuffer, 0, math::lossless_numeric_cast<uint32>(desc.tessVertexSpanCount),
-            desc.tessVertexSpanCount, 0, desc.tessVertexSpanCount/3, desc.tessVertexSpanCount);
+        CommandList.DrawIndexedPrimitive(m_tessSpanIndexBuffer, 0, desc.firstTessVertexSpan,
+            std::size(pls::kTessSpanIndices), 0, std::size(pls::kTessSpanIndices)/3, desc.tessVertexSpanCount);
         CommandList.EndRenderPass();
+    }
+
+    ERenderTargetActions loadAction;
+    switch (desc.colorLoadAction)
+    {
+    case LoadAction::clear:
+            //if(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_ADVANCED_BLEND)
+            {
+                float clearColor4f[4];
+                UnpackColorToRGBA32F(desc.clearColor, clearColor4f);
+                CommandList.ClearUAVFloat(renderTarget->targetUAV(),
+                    FVector4f(clearColor4f[0], clearColor4f[1], clearColor4f[2], clearColor4f[3]));
+            }
+        loadAction = ERenderTargetActions::Load_Store;
+        break;
+    case LoadAction::preserveRenderTarget:
+        loadAction = ERenderTargetActions::Load_Store;
+        break;
+    case LoadAction::dontCare:
+        loadAction = ERenderTargetActions::DontLoad_Store;
+        break;
     }
     
     FTextureRHIRef DestTexture = renderTarget->texture();
-    FRHIRenderPassInfo Info(DestTexture, ERenderTargetActions::Load_Store);
+    FRHIRenderPassInfo Info(DestTexture, loadAction);
     CommandList.Transition(FRHITransitionInfo(DestTexture, ERHIAccess::Unknown, ERHIAccess::RTV));
     CommandList.BeginRenderPass(Info, TEXT("Rive_Render_Flush"));
     CommandList.SetViewport(0, 0, 0, renderTarget->width(), renderTarget->height(), 1.0);
@@ -606,10 +661,6 @@ void PLSRenderContextRHIImpl::flush(const pls::FlushDescriptor& desc)
     GraphicsPSOInit.RenderTargetFlags[0] = DestTexture->GetFlags();
     GraphicsPSOInit.NumSamples = DestTexture->GetNumSamples();
     GraphicsPSOInit.RenderTargetsEnabled = 1;
-
-    // GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
-    // m_testSimplePipeline->BindShaders(CommandList,GraphicsPSOInit);
-    // CommandList.DrawPrimitive(0, 2, 1);
     
     for (const DrawBatch& batch : *desc.drawList)
     {
@@ -627,10 +678,45 @@ void PLSRenderContextRHIImpl::flush(const pls::FlushDescriptor& desc)
             case DrawType::interiorTriangulation:
                 break;
             case DrawType::imageRect:
-            case DrawType::imageMesh:
-                SYNC_UNIFORM_BUFFER(m_imageDrawUniformBuffer, CommandList, batch.imageDrawDataOffset);
-                GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+                SYNC_BUFFER_WITH_OFFSET(m_imageDrawUniformBuffer, CommandList, batch.imageDrawDataOffset);
             {
+                GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();;
+                GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
+                
+                m_imageRectPipeline->BindShaders(CommandList, GraphicsPSOInit);
+
+                auto imageTexture = static_cast<const PLSTextureRHIImpl*>(batch.imageTexture);
+                
+                ImageRectPipeline::VertexParameters VertexUniforms;
+                ImageRectPipeline::PixelParameters PixelUniforms;
+            
+                VertexUniforms.FlushUniforms = m_flushUniformBuffer->contents();
+                VertexUniforms.ImageDrawUniforms = m_imageDrawUniformBuffer->contents();
+            
+                PixelUniforms.FlushUniforms = m_flushUniformBuffer->contents();
+                PixelUniforms.ImageDrawUniforms = m_imageDrawUniformBuffer->contents();
+                
+                PixelUniforms.GLSL_gradTexture_raw = m_gradiantTexture;
+                PixelUniforms.GLSL_imageTexture_raw = imageTexture->contents();
+                PixelUniforms.gradSampler = m_linearSampler;
+                PixelUniforms.imageSampler = m_mipmapSampler;
+                PixelUniforms.GLSL_paintAuxBuffer_raw = m_paintAuxBuffer->srv();
+                PixelUniforms.GLSL_paintBuffer_raw = m_paintBuffer->srv();
+                PixelUniforms.coverageCountBuffer = renderTarget->coverageUAV();
+                //PixelUniforms.colorBuffer = renderTarget->scratchColorUAV();
+
+                m_imageRectPipeline->SetParameters(CommandList, BatchedShaderParameters, VertexUniforms, PixelUniforms);
+
+                CommandList.SetStreamSource(0, m_imageRectVertexBuffer, 0);
+                CommandList.DrawIndexedPrimitive(m_imageRectIndexBuffer, 0, 0, std::size(pls::kImageRectVertices), 0, std::size(pls::kImageRectIndices) / 3, 1);
+            }
+                break;
+            case DrawType::imageMesh:
+            {
+                SYNC_BUFFER_WITH_OFFSET(m_imageDrawUniformBuffer, CommandList, batch.imageDrawDataOffset);
+                GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+                GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+                    
                 LITE_RTTI_CAST_OR_RETURN(IndexBuffer,const rive::pls::RenderBufferRHIImpl*, batch.indexBuffer);
                 LITE_RTTI_CAST_OR_RETURN(VertexBuffer,const rive::pls::RenderBufferRHIImpl*, batch.vertexBuffer);
                 LITE_RTTI_CAST_OR_RETURN(UVBuffer,const rive::pls::RenderBufferRHIImpl*, batch.uvBuffer);
@@ -692,6 +778,7 @@ void PLSRenderContextRHIImpl::flush(const pls::FlushDescriptor& desc)
                 RIVE_UNREACHABLE();
         }
     }
+    
     CommandList.EndRenderPass();
     CommandList.Transition(FRHITransitionInfo(DestTexture, ERHIAccess::RTV, ERHIAccess::UAVGraphics));
 }

@@ -36,6 +36,16 @@ void FRiveTessVertexShader::ModifyCompilationEnvironment(const FShaderPermutatio
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
  }
 
+void FRiveImageRectPixelShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
+{
+    Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+}
+
+void FRiveImageRectVertexShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
+{
+    Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+}
+
 void FRiveImageMeshPixelShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
@@ -63,6 +73,9 @@ IMPLEMENT_GLOBAL_SHADER(FRiveGradientVertexShader, "/Plugin/Rive/Private/Rive/co
 
 IMPLEMENT_GLOBAL_SHADER(FRiveTessPixelShader, "/Plugin/Rive/Private/Rive/tessellate.usf", GLSL_tessellateFragmentMain, SF_Pixel);
 IMPLEMENT_GLOBAL_SHADER(FRiveTessVertexShader, "/Plugin/Rive/Private/Rive/tessellate.usf", GLSL_tessellateVertexMain, SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveImageRectPixelShader, "/Plugin/Rive/Private/Rive/atomic_draw_image_rect.usf", GLSL_drawFragmentMain, SF_Pixel);
+IMPLEMENT_GLOBAL_SHADER(FRiveImageRectVertexShader, "/Plugin/Rive/Private/Rive/atomic_draw_image_rect.usf", GLSL_drawVertexMain, SF_Vertex);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveImageMeshPixelShader, "/Plugin/Rive/Private/Rive/atomic_draw_image_mesh.usf", GLSL_drawFragmentMain, SF_Pixel);
 IMPLEMENT_GLOBAL_SHADER(FRiveImageMeshVertexShader, "/Plugin/Rive/Private/Rive/atomic_draw_image_mesh.usf", GLSL_drawVertexMain, SF_Vertex);
