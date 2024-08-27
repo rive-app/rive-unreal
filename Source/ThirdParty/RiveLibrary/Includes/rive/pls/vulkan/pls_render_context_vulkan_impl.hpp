@@ -5,7 +5,7 @@
 #pragma once
 
 #include "rive/pls/pls_render_context_impl.hpp"
-#include "vkutil.hpp"
+#include "rive/pls/vulkan/vulkan_context.hpp"
 #include <chrono>
 #include <map>
 #include <vulkan/vulkan.h>
@@ -15,18 +15,6 @@ namespace rive::pls
 {
 class PLSTextureVulkanImpl;
 
-// Specific Vulkan features that PLS uses (if available). The client should ensure
-// these get enabled on the Vulkan context when supported.
-struct VulkanFeatures
-{
-    // VkPhysicalDeviceFeatures.
-    bool fillModeNonSolid = false;
-    bool fragmentStoresAndAtomics = false;
-
-    // EXT_rasterization_order_attachment_access.
-    bool rasterizationOrderColorAttachmentAccess = false;
-};
-
 class PLSRenderTargetVulkan : public PLSRenderTarget
 {
 public:
@@ -35,24 +23,59 @@ public:
         m_targetTextureView = std::move(view);
     }
 
+    bool targetViewContainsUsageFlag(VkImageUsageFlagBits bit) const
+    {
+        return m_targetTextureView ? static_cast<bool>(m_targetTextureView->usageFlags() & bit)
+                                   : false;
+    }
+
+    const VkFormat framebufferFormat() const { return m_framebufferFormat; }
+
+    VkImage targetTexture() const { return m_targetTextureView->info().image; }
+
+    VkImageView targetTextureView() const { return *m_targetTextureView; }
+
+    VkImageView offscreenColorTextureView() const
+    {
+        return m_offscreenColorTextureView ? *m_offscreenColorTextureView : nullptr;
+    }
+
+    VkImage offscreenColorTexture() const { return *m_offscreenColorTexture; }
+    VkImage coverageTexture() const { return *m_coverageTexture; }
+    VkImage clipTexture() const { return *m_clipTexture; }
+    VkImage scratchColorTexture() const { return *m_scratchColorTexture; }
+    VkImage coverageAtomicTexture() const { return *m_coverageAtomicTexture; }
+
+    // getters that lazy load if needed.
+
+    VkImageView ensureOffscreenColorTextureView(VkCommandBuffer);
+    VkImageView ensureCoverageTextureView(VkCommandBuffer);
+    VkImageView ensureClipTextureView(VkCommandBuffer);
+    VkImageView ensureScratchColorTextureView(VkCommandBuffer);
+    VkImageView ensureCoverageAtomicTextureView(VkCommandBuffer);
+
 private:
     friend class PLSRenderContextVulkanImpl;
 
-    PLSRenderTargetVulkan(uint32_t width, uint32_t height, VkFormat framebufferFormat) :
-        PLSRenderTarget(width, height), m_framebufferFormat(framebufferFormat)
+    PLSRenderTargetVulkan(rcp<VulkanContext> vk,
+                          uint32_t width,
+                          uint32_t height,
+                          VkFormat framebufferFormat) :
+        PLSRenderTarget(width, height), m_vk(std::move(vk)), m_framebufferFormat(framebufferFormat)
     {}
 
-    // Called during flush(). Ensures the required offscreen views are all initialized.
-    void synchronize(vkutil::Allocator*, VkCommandBuffer, pls::InterlockMode);
-
+    const rcp<VulkanContext> m_vk;
     const VkFormat m_framebufferFormat;
     rcp<vkutil::TextureView> m_targetTextureView;
 
-    rcp<vkutil::Texture> m_coverageTexture; // pls::InterlockMode::rasterOrdering.
+    rcp<vkutil::Texture> m_offscreenColorTexture; // Used when m_targetTextureView does not have
+                                                  // VK_ACCESS_INPUT_ATTACHMENT_READ_BIT
+    rcp<vkutil::Texture> m_coverageTexture;       // pls::InterlockMode::rasterOrdering.
     rcp<vkutil::Texture> m_clipTexture;
     rcp<vkutil::Texture> m_scratchColorTexture;
     rcp<vkutil::Texture> m_coverageAtomicTexture; // pls::InterlockMode::atomics.
 
+    rcp<vkutil::TextureView> m_offscreenColorTextureView;
     rcp<vkutil::TextureView> m_coverageTextureView;
     rcp<vkutil::TextureView> m_clipTextureView;
     rcp<vkutil::TextureView> m_scratchColorTextureView;
@@ -62,33 +85,34 @@ private:
 class PLSRenderContextVulkanImpl : public PLSRenderContextImpl
 {
 public:
-    static std::unique_ptr<PLSRenderContext> MakeContext(rcp<vkutil::Allocator>, VulkanFeatures);
-
+    static std::unique_ptr<PLSRenderContext> MakeContext(VkInstance,
+                                                         VkPhysicalDevice,
+                                                         VkDevice,
+                                                         const VulkanFeatures&,
+                                                         PFN_vkGetInstanceProcAddr,
+                                                         PFN_vkGetDeviceProcAddr);
     ~PLSRenderContextVulkanImpl();
 
-    vkutil::Allocator* allocator() const { return m_allocator.get(); }
+    VulkanContext* vulkanContext() const { return m_vk.get(); }
 
     rcp<PLSRenderTargetVulkan> makeRenderTarget(uint32_t width,
                                                 uint32_t height,
                                                 VkFormat framebufferFormat)
     {
-        return rcp(new PLSRenderTargetVulkan(width, height, framebufferFormat));
+        return rcp(new PLSRenderTargetVulkan(m_vk, width, height, framebufferFormat));
     }
 
     rcp<RenderBuffer> makeRenderBuffer(RenderBufferType, RenderBufferFlags, size_t) override;
 
     rcp<PLSTexture> decodeImageTexture(Span<const uint8_t> encodedBytes) override;
 
-    // Called when a vkutil::RenderingResource has been fully released (refCnt
-    // reaches 0). The resource won't actually be deleted until the current frame's
-    // command buffer has finished executing.
-    void onRenderingResourceReleased(const vkutil::RenderingResource* resource)
-    {
-        m_resourcePurgatory.emplace_back(resource, m_currentFrameIdx);
-    }
-
 private:
-    PLSRenderContextVulkanImpl(rcp<vkutil::Allocator>, VulkanFeatures);
+    PLSRenderContextVulkanImpl(VkInstance instance,
+                               VkPhysicalDevice physicalDevice,
+                               VkDevice device,
+                               const VulkanFeatures& features,
+                               PFN_vkGetInstanceProcAddr fp_vkGetInstanceProcAddr,
+                               PFN_vkGetDeviceProcAddr fp_vkGetDeviceProcAddr);
 
     // Called outside the constructor so we can use virtual methods.
     void initGPUObjects();
@@ -150,6 +174,7 @@ private:
         // the plsContext still exists.
         void onRefCntReachedZero() const;
 
+        PLSRenderContextVulkanImpl* const m_plsImplVulkan;
         VkDescriptorPool m_vkDescriptorPool;
         std::vector<VkDescriptorSet> m_descriptorSets;
     };
@@ -164,9 +189,7 @@ private:
         return std::chrono::duration<double>(elapsed).count();
     }
 
-    const rcp<vkutil::Allocator> m_allocator;
-    const VkDevice m_device;
-    const VulkanFeatures m_features;
+    const rcp<VulkanContext> m_vk;
 
     // PLS buffers.
     vkutil::BufferRing m_flushUniformBufferRing;
@@ -196,9 +219,12 @@ private:
     rcp<vkutil::TextureView> m_tessVertexTextureView;
     rcp<vkutil::Framebuffer> m_tessTextureFramebuffer;
 
-    // One for pls::InterlockMode::rasterOrdering and one for pls::InterlockMode::atomics.
+    // A pipeline for each
+    // [rasterOrdering, atomics] x [all DrawPipelineLayoutOptions permutations].
     class DrawPipelineLayout;
-    std::array<std::unique_ptr<DrawPipelineLayout>, 2> m_drawPipelineLayouts;
+    constexpr static int kDrawPipelineLayoutOptionCount = 1;
+    std::array<std::unique_ptr<DrawPipelineLayout>, 2 * (1 << kDrawPipelineLayoutOptionCount)>
+        m_drawPipelineLayouts;
 
     class DrawShader;
     std::map<uint32_t, DrawShader> m_drawShaders;
@@ -215,32 +241,10 @@ private:
     rcp<vkutil::Buffer> m_imageRectIndexBuffer;
 
     rcp<pls::CommandBufferCompletionFence> m_frameCompletionFences[pls::kBufferRingSize];
-    uint64_t m_currentFrameIdx = 0;
     int m_bufferRingIdx = -1;
-
-    // A vkutil::RenderingResource that has been fully released, but whose
-    // underlying Vulkan object may still be referenced by an in-flight command
-    // buffer.
-    template <typename T> struct ZombieResource
-    {
-        ZombieResource(T* resource_, uint64_t lastFrameUsed) :
-            resource(resource_), expirationFrameIdx(lastFrameUsed + pls::kBufferRingSize)
-        {
-            assert(resource_->debugging_refcnt() == 0);
-        }
-        std::unique_ptr<T> resource;
-        // Frame index at which the underlying Vulkan resource is no longer is use
-        // by an in-flight command buffer.
-        const uint64_t expirationFrameIdx;
-    };
 
     // Pool of DescriptorSetPools that have been fully released. These can be
     // recycled once their expirationFrameIdx is reached.
-    std::deque<ZombieResource<DescriptorSetPool>> m_descriptorSetPoolPool;
-
-    // Temporary storage for vkutil::RenderingResource instances that have been
-    // fully released, but need to persist until in-flight command buffers have
-    // finished referencing their underlying Vulkan objects.
-    std::deque<ZombieResource<const vkutil::RenderingResource>> m_resourcePurgatory;
+    std::deque<vkutil::ZombieResource<DescriptorSetPool>> m_descriptorSetPoolPool;
 };
 } // namespace rive::pls

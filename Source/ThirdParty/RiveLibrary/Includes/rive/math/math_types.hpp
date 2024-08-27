@@ -61,6 +61,14 @@ template <typename Dst, typename Src> Dst bit_cast(const Src& src)
     return dst;
 }
 
+// Lossless cast function that asserts on overflow
+template <typename T, typename U> T lossless_numeric_cast(U u)
+{
+    T t = static_cast<T>(u);
+    assert(static_cast<U>(t) == u);
+    return t;
+}
+
 // Attempt to generate a "clz" assembly instruction.
 RIVE_ALWAYS_INLINE static int clz32(uint32_t x)
 {
@@ -106,11 +114,11 @@ RIVE_ALWAYS_INLINE static uint32_t rotateleft32(uint32_t x, int y)
 
 // Returns x rounded up to the next multiple of N.
 // If x is already a multiple of N, returns x.
-template <size_t N> RIVE_ALWAYS_INLINE constexpr size_t round_up_to_multiple_of(size_t x)
+template <size_t N, typename T> RIVE_ALWAYS_INLINE constexpr T round_up_to_multiple_of(T x)
 {
     static_assert(N != 0 && (N & (N - 1)) == 0,
                   "math::round_up_to_multiple_of<> only supports powers of 2.");
-    return (x + (N - 1)) & ~(N - 1);
+    return (x + (N - 1)) & ~static_cast<T>(N - 1);
 }
 
 // Behaves better with NaN than std::clamp(). (Matching simd::clamp().)

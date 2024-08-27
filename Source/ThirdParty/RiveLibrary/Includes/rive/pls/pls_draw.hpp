@@ -155,7 +155,7 @@ public:
     pls::ContourDirections m_contourDirections;
 
     // Used to guarantee m_pathRef doesn't change for the entire time we hold it.
-    RIVE_DEBUG_CODE(size_t m_rawPathMutationID;)
+    RIVE_DEBUG_CODE(uint64_t m_rawPathMutationID;)
 };
 
 // Draws a path by fanning tessellation patches around the midpoint of each contour.
@@ -253,13 +253,12 @@ protected:
         (kMaxParametricSegments + kPatchSegmentCountExcludingJoin - 1) /
         kPatchSegmentCountExcludingJoin;
 
-    static size_t FindSubdivisionCount(const Vec2D pts[],
-                                       const wangs_formula::VectorXform& vectorXform)
+    static uint32_t FindSubdivisionCount(const Vec2D pts[],
+                                         const wangs_formula::VectorXform& vectorXform)
     {
-        size_t numSubdivisions =
-            ceilf(wangs_formula::cubic(pts, kParametricPrecision, vectorXform) *
-                  (1.f / kPatchSegmentCountExcludingJoin));
-        return std::clamp<size_t>(numSubdivisions, 1, kMaxCurveSubdivisions);
+        float numSubdivisions = ceilf(wangs_formula::cubic(pts, kParametricPrecision, vectorXform) *
+                                      (1.f / kPatchSegmentCountExcludingJoin));
+        return static_cast<uint32_t>(math::clamp(numSubdivisions, 1, kMaxCurveSubdivisions));
     }
 
     enum class PathOp : bool

@@ -59,11 +59,13 @@
 #include "rive/animation/state_machine_number.hpp"
 #include "rive/animation/state_machine_trigger.hpp"
 #include "rive/animation/state_transition.hpp"
+#include "rive/animation/transition_artboard_condition.hpp"
 #include "rive/animation/transition_bool_condition.hpp"
 #include "rive/animation/transition_comparator.hpp"
 #include "rive/animation/transition_condition.hpp"
 #include "rive/animation/transition_input_condition.hpp"
 #include "rive/animation/transition_number_condition.hpp"
+#include "rive/animation/transition_property_artboard_comparator.hpp"
 #include "rive/animation/transition_property_comparator.hpp"
 #include "rive/animation/transition_property_viewmodel_comparator.hpp"
 #include "rive/animation/transition_trigger_condition.hpp"
@@ -119,6 +121,11 @@
 #include "rive/data_bind/bindable_property_number.hpp"
 #include "rive/data_bind/bindable_property_string.hpp"
 #include "rive/data_bind/converters/data_converter.hpp"
+#include "rive/data_bind/converters/data_converter_group.hpp"
+#include "rive/data_bind/converters/data_converter_group_item.hpp"
+#include "rive/data_bind/converters/data_converter_operation.hpp"
+#include "rive/data_bind/converters/data_converter_rounder.hpp"
+#include "rive/data_bind/converters/data_converter_to_string.hpp"
 #include "rive/data_bind/data_bind.hpp"
 #include "rive/data_bind/data_bind_context.hpp"
 #include "rive/draw_rules.hpp"
@@ -126,7 +133,12 @@
 #include "rive/drawable.hpp"
 #include "rive/event.hpp"
 #include "rive/joystick.hpp"
+#include "rive/layout/axis.hpp"
+#include "rive/layout/axis_x.hpp"
+#include "rive/layout/axis_y.hpp"
 #include "rive/layout/layout_component_style.hpp"
+#include "rive/layout/n_slicer.hpp"
+#include "rive/layout/n_slicer_tile_mode.hpp"
 #include "rive/layout_component.hpp"
 #include "rive/nested_animation.hpp"
 #include "rive/nested_artboard.hpp"
@@ -275,8 +287,16 @@ public:
                 return new Solo();
             case NestedArtboardLayoutBase::typeKey:
                 return new NestedArtboardLayout();
+            case NSlicerTileModeBase::typeKey:
+                return new NSlicerTileMode();
+            case AxisYBase::typeKey:
+                return new AxisY();
             case LayoutComponentStyleBase::typeKey:
                 return new LayoutComponentStyle();
+            case AxisXBase::typeKey:
+                return new AxisX();
+            case NSlicerBase::typeKey:
+                return new NSlicer();
             case ListenerFireEventBase::typeKey:
                 return new ListenerFireEvent();
             case KeyFrameUintBase::typeKey:
@@ -303,6 +323,8 @@ public:
                 return new KeyedProperty();
             case StateMachineListenerBase::typeKey:
                 return new StateMachineListener();
+            case TransitionPropertyArtboardComparatorBase::typeKey:
+                return new TransitionPropertyArtboardComparator();
             case TransitionPropertyViewModelComparatorBase::typeKey:
                 return new TransitionPropertyViewModelComparator();
             case KeyFrameIdBase::typeKey:
@@ -317,6 +339,10 @@ public:
                 return new TransitionNumberCondition();
             case TransitionValueBooleanComparatorBase::typeKey:
                 return new TransitionValueBooleanComparator();
+            case TransitionViewModelConditionBase::typeKey:
+                return new TransitionViewModelCondition();
+            case TransitionArtboardConditionBase::typeKey:
+                return new TransitionArtboardCondition();
             case AnyStateBase::typeKey:
                 return new AnyState();
             case CubicInterpolatorComponentBase::typeKey:
@@ -327,8 +353,6 @@ public:
                 return new KeyFrameString();
             case ListenerNumberChangeBase::typeKey:
                 return new ListenerNumberChange();
-            case TransitionViewModelConditionBase::typeKey:
-                return new TransitionViewModelCondition();
             case CubicEaseInterpolatorBase::typeKey:
                 return new CubicEaseInterpolator();
             case StateTransitionBase::typeKey:
@@ -451,6 +475,16 @@ public:
                 return new BindablePropertyBoolean();
             case DataBindBase::typeKey:
                 return new DataBind();
+            case DataConverterGroupItemBase::typeKey:
+                return new DataConverterGroupItem();
+            case DataConverterGroupBase::typeKey:
+                return new DataConverterGroup();
+            case DataConverterRounderBase::typeKey:
+                return new DataConverterRounder();
+            case DataConverterOperationBase::typeKey:
+                return new DataConverterOperation();
+            case DataConverterToStringBase::typeKey:
+                return new DataConverterToString();
             case DataBindContextBase::typeKey:
                 return new DataBindContext();
             case BindablePropertyStringBase::typeKey:
@@ -547,6 +581,9 @@ public:
                 break;
             case FollowPathConstraintBase::offsetPropertyKey:
                 object->as<FollowPathConstraintBase>()->offset(value);
+                break;
+            case AxisBase::normalizedPropertyKey:
+                object->as<AxisBase>()->normalized(value);
                 break;
             case LayoutComponentStyleBase::intrinsicallySizedValuePropertyKey:
                 object->as<LayoutComponentStyleBase>()->intrinsicallySizedValue(value);
@@ -682,6 +719,24 @@ public:
                 break;
             case SoloBase::activeComponentIdPropertyKey:
                 object->as<SoloBase>()->activeComponentId(value);
+                break;
+            case NestedArtboardLayoutBase::instanceWidthUnitsValuePropertyKey:
+                object->as<NestedArtboardLayoutBase>()->instanceWidthUnitsValue(value);
+                break;
+            case NestedArtboardLayoutBase::instanceHeightUnitsValuePropertyKey:
+                object->as<NestedArtboardLayoutBase>()->instanceHeightUnitsValue(value);
+                break;
+            case NestedArtboardLayoutBase::instanceWidthScaleTypePropertyKey:
+                object->as<NestedArtboardLayoutBase>()->instanceWidthScaleType(value);
+                break;
+            case NestedArtboardLayoutBase::instanceHeightScaleTypePropertyKey:
+                object->as<NestedArtboardLayoutBase>()->instanceHeightScaleType(value);
+                break;
+            case NSlicerTileModeBase::patchIndexPropertyKey:
+                object->as<NSlicerTileModeBase>()->patchIndex(value);
+                break;
+            case NSlicerTileModeBase::stylePropertyKey:
+                object->as<NSlicerTileModeBase>()->style(value);
                 break;
             case LayoutComponentStyleBase::layoutWidthScaleTypePropertyKey:
                 object->as<LayoutComponentStyleBase>()->layoutWidthScaleType(value);
@@ -860,6 +915,9 @@ public:
             case StateMachineListenerBase::eventIdPropertyKey:
                 object->as<StateMachineListenerBase>()->eventId(value);
                 break;
+            case TransitionPropertyArtboardComparatorBase::propertyTypePropertyKey:
+                object->as<TransitionPropertyArtboardComparatorBase>()->propertyType(value);
+                break;
             case KeyFrameIdBase::valuePropertyKey:
                 object->as<KeyFrameIdBase>()->value(value);
                 break;
@@ -997,6 +1055,15 @@ public:
                 break;
             case DataBindBase::converterIdPropertyKey:
                 object->as<DataBindBase>()->converterId(value);
+                break;
+            case DataConverterGroupItemBase::converterIdPropertyKey:
+                object->as<DataConverterGroupItemBase>()->converterId(value);
+                break;
+            case DataConverterRounderBase::decimalsPropertyKey:
+                object->as<DataConverterRounderBase>()->decimals(value);
+                break;
+            case DataConverterOperationBase::operationTypePropertyKey:
+                object->as<DataConverterOperationBase>()->operationType(value);
                 break;
             case BindablePropertyEnumBase::propertyValuePropertyKey:
                 object->as<BindablePropertyEnumBase>()->propertyValue(value);
@@ -1218,6 +1285,15 @@ public:
             case NodeBase::yPropertyKey:
             case NodeBase::yArtboardPropertyKey:
                 object->as<NodeBase>()->y(value);
+                break;
+            case NestedArtboardLayoutBase::instanceWidthPropertyKey:
+                object->as<NestedArtboardLayoutBase>()->instanceWidth(value);
+                break;
+            case NestedArtboardLayoutBase::instanceHeightPropertyKey:
+                object->as<NestedArtboardLayoutBase>()->instanceHeight(value);
+                break;
+            case AxisBase::offsetPropertyKey:
+                object->as<AxisBase>()->offset(value);
                 break;
             case LayoutComponentStyleBase::gapHorizontalPropertyKey:
                 object->as<LayoutComponentStyleBase>()->gapHorizontal(value);
@@ -1528,6 +1604,9 @@ public:
             case JoystickBase::heightPropertyKey:
                 object->as<JoystickBase>()->height(value);
                 break;
+            case DataConverterOperationBase::valuePropertyKey:
+                object->as<DataConverterOperationBase>()->value(value);
+                break;
             case BindablePropertyNumberBase::propertyValuePropertyKey:
                 object->as<BindablePropertyNumberBase>()->propertyValue(value);
                 break;
@@ -1705,6 +1784,8 @@ public:
                 return object->as<FollowPathConstraintBase>()->orient();
             case FollowPathConstraintBase::offsetPropertyKey:
                 return object->as<FollowPathConstraintBase>()->offset();
+            case AxisBase::normalizedPropertyKey:
+                return object->as<AxisBase>()->normalized();
             case LayoutComponentStyleBase::intrinsicallySizedValuePropertyKey:
                 return object->as<LayoutComponentStyleBase>()->intrinsicallySizedValue();
             case LayoutComponentStyleBase::linkCornerRadiusPropertyKey:
@@ -1798,6 +1879,18 @@ public:
                 return object->as<NestedAnimationBase>()->animationId();
             case SoloBase::activeComponentIdPropertyKey:
                 return object->as<SoloBase>()->activeComponentId();
+            case NestedArtboardLayoutBase::instanceWidthUnitsValuePropertyKey:
+                return object->as<NestedArtboardLayoutBase>()->instanceWidthUnitsValue();
+            case NestedArtboardLayoutBase::instanceHeightUnitsValuePropertyKey:
+                return object->as<NestedArtboardLayoutBase>()->instanceHeightUnitsValue();
+            case NestedArtboardLayoutBase::instanceWidthScaleTypePropertyKey:
+                return object->as<NestedArtboardLayoutBase>()->instanceWidthScaleType();
+            case NestedArtboardLayoutBase::instanceHeightScaleTypePropertyKey:
+                return object->as<NestedArtboardLayoutBase>()->instanceHeightScaleType();
+            case NSlicerTileModeBase::patchIndexPropertyKey:
+                return object->as<NSlicerTileModeBase>()->patchIndex();
+            case NSlicerTileModeBase::stylePropertyKey:
+                return object->as<NSlicerTileModeBase>()->style();
             case LayoutComponentStyleBase::layoutWidthScaleTypePropertyKey:
                 return object->as<LayoutComponentStyleBase>()->layoutWidthScaleType();
             case LayoutComponentStyleBase::layoutHeightScaleTypePropertyKey:
@@ -1916,6 +2009,8 @@ public:
                 return object->as<StateMachineListenerBase>()->listenerTypeValue();
             case StateMachineListenerBase::eventIdPropertyKey:
                 return object->as<StateMachineListenerBase>()->eventId();
+            case TransitionPropertyArtboardComparatorBase::propertyTypePropertyKey:
+                return object->as<TransitionPropertyArtboardComparatorBase>()->propertyType();
             case KeyFrameIdBase::valuePropertyKey:
                 return object->as<KeyFrameIdBase>()->value();
             case ListenerBoolChangeBase::valuePropertyKey:
@@ -2008,6 +2103,12 @@ public:
                 return object->as<DataBindBase>()->flags();
             case DataBindBase::converterIdPropertyKey:
                 return object->as<DataBindBase>()->converterId();
+            case DataConverterGroupItemBase::converterIdPropertyKey:
+                return object->as<DataConverterGroupItemBase>()->converterId();
+            case DataConverterRounderBase::decimalsPropertyKey:
+                return object->as<DataConverterRounderBase>()->decimals();
+            case DataConverterOperationBase::operationTypePropertyKey:
+                return object->as<DataConverterOperationBase>()->operationType();
             case BindablePropertyEnumBase::propertyValuePropertyKey:
                 return object->as<BindablePropertyEnumBase>()->propertyValue();
             case NestedArtboardLeafBase::fitPropertyKey:
@@ -2165,6 +2266,12 @@ public:
             case NodeBase::yPropertyKey:
             case NodeBase::yArtboardPropertyKey:
                 return object->as<NodeBase>()->y();
+            case NestedArtboardLayoutBase::instanceWidthPropertyKey:
+                return object->as<NestedArtboardLayoutBase>()->instanceWidth();
+            case NestedArtboardLayoutBase::instanceHeightPropertyKey:
+                return object->as<NestedArtboardLayoutBase>()->instanceHeight();
+            case AxisBase::offsetPropertyKey:
+                return object->as<AxisBase>()->offset();
             case LayoutComponentStyleBase::gapHorizontalPropertyKey:
                 return object->as<LayoutComponentStyleBase>()->gapHorizontal();
             case LayoutComponentStyleBase::gapVerticalPropertyKey:
@@ -2371,6 +2478,8 @@ public:
                 return object->as<JoystickBase>()->width();
             case JoystickBase::heightPropertyKey:
                 return object->as<JoystickBase>()->height();
+            case DataConverterOperationBase::valuePropertyKey:
+                return object->as<DataConverterOperationBase>()->value();
             case BindablePropertyNumberBase::propertyValuePropertyKey:
                 return object->as<BindablePropertyNumberBase>()->propertyValue();
             case NestedArtboardLeafBase::alignmentXPropertyKey:
@@ -2480,6 +2589,7 @@ public:
             case IKConstraintBase::invertDirectionPropertyKey:
             case FollowPathConstraintBase::orientPropertyKey:
             case FollowPathConstraintBase::offsetPropertyKey:
+            case AxisBase::normalizedPropertyKey:
             case LayoutComponentStyleBase::intrinsicallySizedValuePropertyKey:
             case LayoutComponentStyleBase::linkCornerRadiusPropertyKey:
             case NestedSimpleAnimationBase::isPlayingPropertyKey:
@@ -2524,6 +2634,12 @@ public:
             case NestedArtboardBase::artboardIdPropertyKey:
             case NestedAnimationBase::animationIdPropertyKey:
             case SoloBase::activeComponentIdPropertyKey:
+            case NestedArtboardLayoutBase::instanceWidthUnitsValuePropertyKey:
+            case NestedArtboardLayoutBase::instanceHeightUnitsValuePropertyKey:
+            case NestedArtboardLayoutBase::instanceWidthScaleTypePropertyKey:
+            case NestedArtboardLayoutBase::instanceHeightScaleTypePropertyKey:
+            case NSlicerTileModeBase::patchIndexPropertyKey:
+            case NSlicerTileModeBase::stylePropertyKey:
             case LayoutComponentStyleBase::layoutWidthScaleTypePropertyKey:
             case LayoutComponentStyleBase::layoutHeightScaleTypePropertyKey:
             case LayoutComponentStyleBase::layoutAlignmentTypePropertyKey:
@@ -2583,6 +2699,7 @@ public:
             case StateMachineListenerBase::targetIdPropertyKey:
             case StateMachineListenerBase::listenerTypeValuePropertyKey:
             case StateMachineListenerBase::eventIdPropertyKey:
+            case TransitionPropertyArtboardComparatorBase::propertyTypePropertyKey:
             case KeyFrameIdBase::valuePropertyKey:
             case ListenerBoolChangeBase::valuePropertyKey:
             case ListenerAlignTargetBase::targetIdPropertyKey:
@@ -2629,6 +2746,9 @@ public:
             case DataBindBase::propertyKeyPropertyKey:
             case DataBindBase::flagsPropertyKey:
             case DataBindBase::converterIdPropertyKey:
+            case DataConverterGroupItemBase::converterIdPropertyKey:
+            case DataConverterRounderBase::decimalsPropertyKey:
+            case DataConverterOperationBase::operationTypePropertyKey:
             case BindablePropertyEnumBase::propertyValuePropertyKey:
             case NestedArtboardLeafBase::fitPropertyKey:
             case WeightBase::valuesPropertyKey:
@@ -2701,6 +2821,9 @@ public:
             case NodeBase::xArtboardPropertyKey:
             case NodeBase::yPropertyKey:
             case NodeBase::yArtboardPropertyKey:
+            case NestedArtboardLayoutBase::instanceWidthPropertyKey:
+            case NestedArtboardLayoutBase::instanceHeightPropertyKey:
+            case AxisBase::offsetPropertyKey:
             case LayoutComponentStyleBase::gapHorizontalPropertyKey:
             case LayoutComponentStyleBase::gapVerticalPropertyKey:
             case LayoutComponentStyleBase::maxWidthPropertyKey:
@@ -2804,6 +2927,7 @@ public:
             case JoystickBase::originYPropertyKey:
             case JoystickBase::widthPropertyKey:
             case JoystickBase::heightPropertyKey:
+            case DataConverterOperationBase::valuePropertyKey:
             case BindablePropertyNumberBase::propertyValuePropertyKey:
             case NestedArtboardLeafBase::alignmentXPropertyKey:
             case NestedArtboardLeafBase::alignmentYPropertyKey:
@@ -2899,6 +3023,8 @@ public:
                 return object->is<FollowPathConstraintBase>();
             case FollowPathConstraintBase::offsetPropertyKey:
                 return object->is<FollowPathConstraintBase>();
+            case AxisBase::normalizedPropertyKey:
+                return object->is<AxisBase>();
             case LayoutComponentStyleBase::intrinsicallySizedValuePropertyKey:
                 return object->is<LayoutComponentStyleBase>();
             case LayoutComponentStyleBase::linkCornerRadiusPropertyKey:
@@ -2985,6 +3111,18 @@ public:
                 return object->is<NestedAnimationBase>();
             case SoloBase::activeComponentIdPropertyKey:
                 return object->is<SoloBase>();
+            case NestedArtboardLayoutBase::instanceWidthUnitsValuePropertyKey:
+                return object->is<NestedArtboardLayoutBase>();
+            case NestedArtboardLayoutBase::instanceHeightUnitsValuePropertyKey:
+                return object->is<NestedArtboardLayoutBase>();
+            case NestedArtboardLayoutBase::instanceWidthScaleTypePropertyKey:
+                return object->is<NestedArtboardLayoutBase>();
+            case NestedArtboardLayoutBase::instanceHeightScaleTypePropertyKey:
+                return object->is<NestedArtboardLayoutBase>();
+            case NSlicerTileModeBase::patchIndexPropertyKey:
+                return object->is<NSlicerTileModeBase>();
+            case NSlicerTileModeBase::stylePropertyKey:
+                return object->is<NSlicerTileModeBase>();
             case LayoutComponentStyleBase::layoutWidthScaleTypePropertyKey:
                 return object->is<LayoutComponentStyleBase>();
             case LayoutComponentStyleBase::layoutHeightScaleTypePropertyKey:
@@ -3103,6 +3241,8 @@ public:
                 return object->is<StateMachineListenerBase>();
             case StateMachineListenerBase::eventIdPropertyKey:
                 return object->is<StateMachineListenerBase>();
+            case TransitionPropertyArtboardComparatorBase::propertyTypePropertyKey:
+                return object->is<TransitionPropertyArtboardComparatorBase>();
             case KeyFrameIdBase::valuePropertyKey:
                 return object->is<KeyFrameIdBase>();
             case ListenerBoolChangeBase::valuePropertyKey:
@@ -3195,6 +3335,12 @@ public:
                 return object->is<DataBindBase>();
             case DataBindBase::converterIdPropertyKey:
                 return object->is<DataBindBase>();
+            case DataConverterGroupItemBase::converterIdPropertyKey:
+                return object->is<DataConverterGroupItemBase>();
+            case DataConverterRounderBase::decimalsPropertyKey:
+                return object->is<DataConverterRounderBase>();
+            case DataConverterOperationBase::operationTypePropertyKey:
+                return object->is<DataConverterOperationBase>();
             case BindablePropertyEnumBase::propertyValuePropertyKey:
                 return object->is<BindablePropertyEnumBase>();
             case NestedArtboardLeafBase::fitPropertyKey:
@@ -3331,6 +3477,12 @@ public:
             case NodeBase::yPropertyKey:
             case NodeBase::yArtboardPropertyKey:
                 return object->is<NodeBase>();
+            case NestedArtboardLayoutBase::instanceWidthPropertyKey:
+                return object->is<NestedArtboardLayoutBase>();
+            case NestedArtboardLayoutBase::instanceHeightPropertyKey:
+                return object->is<NestedArtboardLayoutBase>();
+            case AxisBase::offsetPropertyKey:
+                return object->is<AxisBase>();
             case LayoutComponentStyleBase::gapHorizontalPropertyKey:
                 return object->is<LayoutComponentStyleBase>();
             case LayoutComponentStyleBase::gapVerticalPropertyKey:
@@ -3537,6 +3689,8 @@ public:
                 return object->is<JoystickBase>();
             case JoystickBase::heightPropertyKey:
                 return object->is<JoystickBase>();
+            case DataConverterOperationBase::valuePropertyKey:
+                return object->is<DataConverterOperationBase>();
             case BindablePropertyNumberBase::propertyValuePropertyKey:
                 return object->is<BindablePropertyNumberBase>();
             case NestedArtboardLeafBase::alignmentXPropertyKey:
