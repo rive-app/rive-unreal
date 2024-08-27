@@ -24,7 +24,7 @@ targets = [
 
 def get_base_command(rive_runtime_path, release):
     return (
-        f"premake5 --scripts=\"{rive_runtime_path}build\" "
+        f"premake5 --scripts=\"{os.path.join(rive_runtime_path, 'build')}\" "
         f"--with_rive_text --with_rive_audio=external {'--config=release' if release else '--config=debug'}"
     )
 
