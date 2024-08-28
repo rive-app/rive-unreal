@@ -3,7 +3,7 @@
 #include "Rive/Assets/RiveFileAssetImporter.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Logs/RiveLog.h"
-#include "FileHelpers.h"
+#include "Misc/FileHelper.h"
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/RiveAssetHelpers.h"
 #include "Rive/Assets/RiveFileAssetLoader.h"
