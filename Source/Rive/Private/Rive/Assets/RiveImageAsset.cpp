@@ -5,9 +5,9 @@
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
+#include "Engine/Texture2D.h"
 
 #include "PreRiveHeaders.h"
-#include "rive/pls/pls_render_context_impl.hpp"
 THIRD_PARTY_INCLUDES_START
 #include "rive/factory.hpp"
 #include "rive/pls/pls_render_context.hpp"

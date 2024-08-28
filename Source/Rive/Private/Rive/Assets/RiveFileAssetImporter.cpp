@@ -3,12 +3,10 @@
 #include "Rive/Assets/RiveFileAssetImporter.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Logs/RiveLog.h"
+#include "FileHelpers.h"
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/RiveAssetHelpers.h"
-#include "Rive/Assets/RiveAudioAsset.h"
 #include "Rive/Assets/RiveFileAssetLoader.h"
-#include "Rive/Assets/RiveFontAsset.h"
-#include "Rive/Assets/RiveImageAsset.h"
 
 #if WITH_EDITOR
 #include "AssetToolsModule.h"

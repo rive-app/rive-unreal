@@ -5,11 +5,10 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "Engine/Font.h"
+#include "Engine/FontFace.h"
 #include "Logs/RiveLog.h"
 
 #include "PreRiveHeaders.h"
-#include "Engine/FontFace.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/pls/pls_render_context.hpp"
 THIRD_PARTY_INCLUDES_END
