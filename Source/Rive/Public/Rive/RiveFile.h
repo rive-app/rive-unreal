@@ -11,6 +11,7 @@
 #if WITH_RIVE
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
+#include "rive/file.hpp"
 #include "rive/span.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
@@ -20,11 +21,6 @@ THIRD_PARTY_INCLUDES_END
 class UUserWidget;
 class URiveAsset;
 class URiveArtboard;
-
-namespace rive
-{
-	class File;
-}
 
 /**
  *
