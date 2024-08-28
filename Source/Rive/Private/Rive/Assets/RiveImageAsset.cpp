@@ -6,6 +6,7 @@
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
 #include "Engine/Texture2D.h"
+#include "TextureResource.h"
 
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
