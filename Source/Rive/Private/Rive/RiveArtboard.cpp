@@ -265,6 +265,37 @@ FString URiveArtboard::GetTextValue(const FString& InPropertyName) const
 	return {};
 }
 
+FString URiveArtboard::GetStringValueAtPath(const FString& InInputName, const FString& InPath, bool& OutSuccess) const
+{
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
+	{
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
+		if (!NativeArtboardPtr)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid Artboard Pointer."));
+			OutSuccess = false;
+			return {};
+		}
+
+		rive::TextValueRunBase* TextValueRun = NativeArtboardPtr->getTextRun(TCHAR_TO_UTF8(*InInputName), TCHAR_TO_UTF8(*InPath));
+		if (!TextValueRun)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid input for %s at path %s"), *InInputName, *InPath);
+			OutSuccess = false;
+			return {};
+		}
+		
+
+		OutSuccess = true;
+		return {TextValueRun->text().c_str()};
+	}
+
+	OutSuccess = false;
+	return {};
+}
+
 void URiveArtboard::SetBoolValue(const FString& InPropertyName, bool bNewValue)
 {
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
@@ -337,6 +368,7 @@ void URiveArtboard::SetNumberValueAtPath(const FString& InInputName, float InVal
 		if (!NativeArtboardPtr)
 		{
 			UE_LOG(LogRive, Warning, TEXT("Invalid Artboard Pointer."));
+			OutSuccess = false;
 			return;
 		}
 
@@ -376,6 +408,35 @@ void URiveArtboard::SetTextValue(const FString& InPropertyName, const FString& N
 			}
 		}
 	}
+}
+
+void URiveArtboard::SetTextValueAtPath(const FString& InInputName, const FString& InValue, const FString& InPath, bool& OutSuccess)
+{
+	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+	if (ensure(RiveRenderer))
+	{
+		FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
+		if (!NativeArtboardPtr)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid Artboard Pointer."));
+			OutSuccess = false;
+			return;
+		}
+
+		rive::TextValueRunBase* TextValueRun = NativeArtboardPtr->getTextRun(TCHAR_TO_UTF8(*InInputName), TCHAR_TO_UTF8(*InPath));
+		if (!TextValueRun)
+		{
+			UE_LOG(LogRive, Warning, TEXT("Invalid input for %s at path %s"), *InInputName, *InPath);
+			OutSuccess = false;
+			return;
+		}
+
+		TextValueRun->text(TCHAR_TO_UTF8(*InValue));
+		OutSuccess = true;
+	}
+
+	OutSuccess = false;
 }
 
 bool URiveArtboard::BindNamedRiveEvent(const FString& EventName, const FRiveNamedEventDelegate& Event)
