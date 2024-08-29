@@ -6,9 +6,9 @@
 
 #include "D3D11RHIPrivate.h"
 #include "HLSLTypeAliases.h"
-#include "rive/shaders/out/generated/rhi.exports.h"
+#include "rive/shaders/out/generated/shaders/rhi.exports.h"
 
-namespace rive::pls
+namespace rive::gpu
 {
 struct DrawBatch;
 struct FlushDescriptor;
@@ -95,6 +95,84 @@ public:
     END_SHADER_PARAMETER_STRUCT()
     
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+};
+
+class FRivePathPixelShader : public FGlobalShader
+{
+public:
+    
+    DECLARE_GLOBAL_SHADER(FRivePathPixelShader);
+    SHADER_USE_PARAMETER_STRUCT(FRivePathPixelShader, FGlobalShader);
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
+    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+    SHADER_PARAMETER_UAV(Texture2D, coverageCountBuffer)
+    
+    SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
+    
+    SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
+    END_SHADER_PARAMETER_STRUCT()
+    
+    static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+
+};
+
+class FRivePathVertexShader : public FGlobalShader
+{
+public:
+    
+    DECLARE_GLOBAL_SHADER(FRivePathVertexShader);
+    SHADER_USE_PARAMETER_STRUCT(FRivePathVertexShader, FGlobalShader);
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
+
+    SHADER_PARAMETER_SRV(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
+    SHADER_PARAMETER_SRV(Buffer<uint4>, GLSL_pathBuffer_raw)
+    SHADER_PARAMETER_SRV(Buffer<uint4>, GLSL_contourBuffer_raw)
+    SHADER_PARAMETER(unsigned int, baseInstance)
+    
+    END_SHADER_PARAMETER_STRUCT()
+    
+    static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+
+};
+
+class FRiveInteriorTrianglesPixelShader : public FGlobalShader
+{
+public:
+    
+    DECLARE_GLOBAL_SHADER(FRiveInteriorTrianglesPixelShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveInteriorTrianglesPixelShader, FGlobalShader);
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
+    
+    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+    SHADER_PARAMETER_UAV(Texture2D, coverageCountBuffer)
+    
+    SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
+    
+    SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
+
+    END_SHADER_PARAMETER_STRUCT()
+
+    static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+
+};
+
+class FRiveInteriorTrianglesVertexShader : public FGlobalShader
+{
+public:
+    DECLARE_GLOBAL_SHADER(FRiveInteriorTrianglesVertexShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveInteriorTrianglesVertexShader, FGlobalShader);
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
+    SHADER_PARAMETER_SRV(Buffer<uint4>, GLSL_pathBuffer_raw)
+    END_SHADER_PARAMETER_STRUCT()
+
+    static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+
 };
 
 class FRiveImageRectPixelShader : public FGlobalShader
@@ -296,6 +374,9 @@ private:
     TShaderMapRef<PixelShaderType> PSShader;
 };
 
+typedef GraphicsPipeline<FRivePathVertexShader, FRivePathPixelShader> PathPipeline;
+typedef GraphicsPipeline<FRiveInteriorTrianglesVertexShader, FRiveInteriorTrianglesPixelShader> InteriorTrianglesPipeline;
+typedef GraphicsPipeline<FRiveImageMeshVertexShader, FRiveImageMeshPixelShader> ImageMeshPipeline;
 typedef GraphicsPipeline<FRiveImageMeshVertexShader, FRiveImageMeshPixelShader> ImageMeshPipeline;
 typedef GraphicsPipeline<FRiveTessVertexShader, FRiveTessPixelShader> TessPipeline;
 typedef GraphicsPipeline<FRiveGradientVertexShader, FRiveGradientPixelShader> GradientPipeline;

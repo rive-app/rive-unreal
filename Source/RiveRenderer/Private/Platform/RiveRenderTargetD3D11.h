@@ -12,9 +12,9 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
 
-namespace rive::pls
+namespace rive::gpu
 {
-	class PLSRenderTargetD3D;
+	class RenderTargetD3D;
 }
 
 #endif // WITH_RIVE
@@ -41,7 +41,7 @@ public:
 protected:
 	// It Might need to be on rendering thread, render QUEUE is required
 	virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands) override;
-	virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
+	virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const override;
 	//~ END : FRiveRenderTarget Interface
 
 	/**
@@ -49,7 +49,7 @@ protected:
 	 */
 private:
 	TSharedRef<FRiveRendererD3D11> RiveRendererD3D11;
-	rive::rcp<rive::pls::PLSRenderTargetD3D> CachedPLSRenderTargetD3D;
+	rive::rcp<rive::gpu::RenderTargetD3D> CachedRenderTargetD3D;
 #endif // WITH_RIVE
 };
 

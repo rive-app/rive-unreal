@@ -2,7 +2,7 @@
 #include "RiveRendererRHI.h"
 #include "Engine/Texture2DDynamic.h"
 THIRD_PARTY_INCLUDES_START
-#include "rive/pls/pls_render_target.hpp"
+#include "rive/renderer/render_target.hpp"
 THIRD_PARTY_INCLUDES_END
 
 FRiveRenderTargetRHI::FRiveRenderTargetRHI(const TSharedRef<FRiveRendererRHI>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget) :
@@ -24,7 +24,7 @@ void FRiveRenderTargetRHI::CacheTextureTarget_RenderThread(
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
 #if WITH_RIVE
-    rive::pls::PLSRenderContext* PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
+    rive::gpu::RenderContext* PLSRenderContext = RiveRenderer->GetRenderContextPtr();
     if (PLSRenderContext == nullptr)
     {
         return;
@@ -46,13 +46,13 @@ void FRiveRenderTargetRHI::CacheTextureTarget_RenderThread(
     SCOPED_GPU_STAT(RHICmdList, CacheTextureTargetRHI);
 #if WITH_RIVE
 
-    if(CachedPLSRenderTarget)
+    if(CachedRenderTarget)
     {
-        CachedPLSRenderTarget.reset();
+        CachedRenderTarget.reset();
     }
 
-    rive::pls::PLSRenderContextRHIImpl* const PLSRenderContextImpl = PLSRenderContext->static_impl_cast<rive::pls::PLSRenderContextRHIImpl>();
-    CachedPLSRenderTarget = PLSRenderContextImpl->makeRenderTarget(RHICmdList, InTexture);
+    rive::gpu::RenderContextRHIImpl* const PLSRenderContextImpl = PLSRenderContext->static_impl_cast<rive::gpu::RenderContextRHIImpl>();
+    CachedRenderTarget = PLSRenderContextImpl->makeRenderTarget(RHICmdList, InTexture);
     
 #endif
 }
@@ -64,8 +64,8 @@ void FRiveRenderTargetRHI::Render_RenderThread(
     FRiveRenderTarget::Render_Internal(RiveRenderCommands);
 }
 
-rive::rcp<rive::pls::PLSRenderTarget> FRiveRenderTargetRHI::
+rive::rcp<rive::gpu::RenderTarget> FRiveRenderTargetRHI::
 GetRenderTarget() const
 {
-    return CachedPLSRenderTarget;
+    return CachedRenderTarget;
 }

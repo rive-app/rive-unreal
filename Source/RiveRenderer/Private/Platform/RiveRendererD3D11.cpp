@@ -13,14 +13,14 @@
 #if WITH_RIVE
 #include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
-#include "rive/pls/d3d/pls_render_context_d3d_impl.hpp"
-#include "rive/pls/pls_renderer.hpp"
+#include "rive/renderer/d3d/render_context_d3d_impl.hpp"
+#include "rive/renderer/rive_renderer.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
 // ------------- FRiveRendererD3D11GPUAdapter -------------
 #if WITH_RIVE
-void FRiveRendererD3D11GPUAdapter::Initialize(rive::pls::PLSRenderContextD3DImpl::ContextOptions& OutContextOptions)
+void FRiveRendererD3D11GPUAdapter::Initialize(rive::gpu::RenderContextD3DImpl::ContextOptions& OutContextOptions)
 {
 	check(IsInRenderingThread());
 
@@ -81,12 +81,12 @@ void FRiveRendererD3D11::CreatePLSContext_RenderThread(FRHICommandListImmediate&
 	if (IsRHID3D11())
 	{
 #if WITH_RIVE
-		rive::pls::PLSRenderContextD3DImpl::ContextOptions ContextOptions;
+		rive::gpu::RenderContextD3DImpl::ContextOptions ContextOptions;
 
 		D3D11GPUAdapter = MakeUnique<FRiveRendererD3D11GPUAdapter>();
 		D3D11GPUAdapter->Initialize(ContextOptions);
 		
-		PLSRenderContext = rive::pls::PLSRenderContextD3DImpl::MakeContext(D3D11GPUAdapter->GetD3D11DevicePtr(), D3D11GPUAdapter->GetD3D11DeviceContext(), ContextOptions);
+		RenderContext = rive::gpu::RenderContextD3DImpl::MakeContext(D3D11GPUAdapter->GetD3D11DevicePtr(), D3D11GPUAdapter->GetD3D11DeviceContext(), ContextOptions);
 #endif // WITH_RIVE
 	}
 }

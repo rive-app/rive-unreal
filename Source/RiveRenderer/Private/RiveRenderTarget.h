@@ -14,9 +14,9 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 
 
-namespace rive::pls
+namespace rive::gpu
 {
-	class PLSRenderer;
+	class RiveRenderer;
 }
 
 #endif // WITH_RIVE
@@ -64,8 +64,8 @@ public:
 	virtual FMatrix GetTransformMatrix() const override;
 
 protected:
-	virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const = 0;
-	virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame();
+	virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const = 0;
+	virtual std::unique_ptr<rive::gpu::RiveRenderer> BeginFrame();
 	virtual void EndFrame() const;
 	virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands);
 	virtual void Render_Internal(const TArray<FRiveRenderCommand>& RiveRenderCommands);

@@ -9,10 +9,10 @@
 
 #if WITH_RIVE
 
-namespace rive::pls
+namespace rive::gpu
 {
-	class PLSRenderer;
-	class PLSRenderContext;
+	class Renderer;
+	class RenderContext;
 }
 
 #endif // WITH_RIVE
@@ -47,7 +47,7 @@ public:
 
 #if WITH_RIVE
 
-	virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() override;
+	virtual rive::gpu::RenderContext* GetRenderContextPtr() override;
 
 #endif // WITH_RIVE
 
@@ -60,7 +60,7 @@ public:
 protected:
 #if WITH_RIVE
 
-	std::unique_ptr<rive::pls::PLSRenderContext> PLSRenderContext;
+	std::unique_ptr<rive::gpu::RenderContext> RenderContext;
 
 #endif // WITH_RIVE
 

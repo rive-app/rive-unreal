@@ -19,10 +19,10 @@ public:
 protected:
     // It Might need to be on rendering thread, render QUEUE is required
     virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands) override;
-    virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
+    virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const override;
     //~ END : FRiveRenderTarget Interface
 #endif // WITH_RIVE
 private:
     TSharedRef<FRiveRendererRHI> RiveRenderer;
-    rive::rcp<rive::pls::PLSRenderTargetRHI> CachedPLSRenderTarget;
+    rive::rcp<rive::gpu::RenderTargetRHI> CachedRenderTarget;
 };

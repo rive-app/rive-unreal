@@ -14,10 +14,10 @@ namespace rive
 {
 	class Artboard;
 
-	namespace pls
+	namespace gpu
 	{
-		class PLSRenderContext;
-		class PLSRenderer;
+		class RenderContext;
+		class Renderer;
 	}
 }
 
@@ -57,7 +57,7 @@ public:
 
 #if WITH_RIVE
 
-	virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() = 0;
+	virtual rive::gpu::RenderContext* GetRenderContextPtr() = 0;
 
 #endif // WITH_RIVE
 };

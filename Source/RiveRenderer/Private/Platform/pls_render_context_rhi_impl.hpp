@@ -1,21 +1,24 @@
 #pragma once
+#include <chrono>
+
 #include "Shaders/ShaderPipelineManager.h"
 
 THIRD_PARTY_INCLUDES_START
 #undef PI
-#include <rive/pls/pls_render_context_helper_impl.hpp>
-#include "rive/pls/pls_image.hpp"
+#include "rive/renderer/rive_renderer.hpp"
+#include "rive/renderer/image.hpp"
+#include "rive/renderer/buffer_ring.hpp"
 THIRD_PARTY_INCLUDES_END
 
 namespace rive
 {
-namespace pls
+namespace gpu
 {
-class PLSRenderTargetRHI : public PLSRenderTarget
+class RenderTargetRHI : public RenderTarget
 {
 public:
-    PLSRenderTargetRHI(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTextureTarget);
-    virtual ~PLSRenderTargetRHI() override {}
+    RenderTargetRHI(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTextureTarget);
+    virtual ~RenderTargetRHI() override {}
 
     FShaderResourceViewRHIRef targetSRV() const
     { return m_targetSRV; }
@@ -48,7 +51,7 @@ class StructuredBufferRingRHIImpl;
 class BufferRingRHIImpl final : public BufferRing
 {
 public:
-    BufferRingRHIImpl(EBufferUsageFlags flags, size_t in_sizeInBytes);
+    BufferRingRHIImpl(EBufferUsageFlags flags, size_t in_sizeInBytes, size_t stride);
     void Sync(FRHICommandListImmediate& commandList) const;
     FBufferRHIRef contents()const;
     
@@ -99,7 +102,7 @@ class RenderBufferRHIImpl final: public lite_rtti_override<RenderBuffer, RenderB
 {
 public:
     RenderBufferRHIImpl(RenderBufferType in_type,
-    RenderBufferFlags in_flags, size_t in_sizeInBytes);
+    RenderBufferFlags in_flags, size_t in_sizeInBytes, size_t stride);
     void Sync(FRHICommandListImmediate& commandList) const;
     FBufferRHIRef contents()const;
     
@@ -139,14 +142,14 @@ private:
     size_t m_lastMapSizeInBytes;
 };
 
-class PLSRenderContextRHIImpl : public PLSRenderContextImpl
+class RenderContextRHIImpl : public RenderContextImpl
 {
 public:
-    static std::unique_ptr<PLSRenderContext> MakeContext(FRHICommandListImmediate& CommandListImmediate);
+    static std::unique_ptr<RenderContext> MakeContext(FRHICommandListImmediate& CommandListImmediate);
     
-    PLSRenderContextRHIImpl(FRHICommandListImmediate& CommandListImmediate);
+    RenderContextRHIImpl(FRHICommandListImmediate& CommandListImmediate);
 
-    rcp<PLSRenderTargetRHI> makeRenderTarget(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTargetTexture);
+    rcp<RenderTargetRHI> makeRenderTarget(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTargetTexture);
 
     virtual double secondsNow() const override
     {
@@ -154,14 +157,14 @@ public:
         return std::chrono::duration<double>(elapsed).count();
     }
 
-    virtual rcp<PLSTexture> decodeImageTexture(Span<const uint8_t> encodedBytes) override;
+    virtual rcp<Texture> decodeImageTexture(Span<const uint8_t> encodedBytes) override;
 
     virtual void resizeFlushUniformBuffer(size_t sizeInBytes) override;
     virtual void resizeImageDrawUniformBuffer(size_t sizeInBytes) override;
-    virtual void resizePathBuffer(size_t sizeInBytes, pls::StorageBufferStructure) override;
-    virtual void resizePaintBuffer(size_t sizeInBytes, pls::StorageBufferStructure) override;
-    virtual void resizePaintAuxBuffer(size_t sizeInBytes, pls::StorageBufferStructure) override;
-    virtual void resizeContourBuffer(size_t sizeInBytes, pls::StorageBufferStructure) override;
+    virtual void resizePathBuffer(size_t sizeInBytes, StorageBufferStructure) override;
+    virtual void resizePaintBuffer(size_t sizeInBytes, StorageBufferStructure) override;
+    virtual void resizePaintAuxBuffer(size_t sizeInBytes, StorageBufferStructure) override;
+    virtual void resizeContourBuffer(size_t sizeInBytes, StorageBufferStructure) override;
     virtual void resizeSimpleColorRampsBuffer(size_t sizeInBytes) override;
     virtual void resizeGradSpanBuffer(size_t sizeInBytes) override;
     virtual void resizeTessVertexSpanBuffer(size_t sizeInBytes) override;
@@ -193,15 +196,19 @@ public:
     virtual void resizeGradientTexture(uint32_t width, uint32_t height) override;
     virtual void resizeTessellationTexture(uint32_t width, uint32_t height) override;
     
-    virtual void flush(const pls::FlushDescriptor&)override;
+    virtual void flush(const FlushDescriptor&)override;
     
 private:
     FTextureRHIRef m_gradiantTexture;
     FTextureRHIRef m_tesselationTexture;
 
+    FBufferRHIRef m_patchVertexBuffer;
+    FBufferRHIRef m_patchIndexBuffer;
     FBufferRHIRef m_imageRectVertexBuffer;
     FBufferRHIRef m_imageRectIndexBuffer;
     FBufferRHIRef m_tessSpanIndexBuffer;
+
+    FShaderResourceViewRHIRef m_tessSRV;
     
     FSamplerStateRHIRef m_linearSampler;
     FSamplerStateRHIRef m_mipmapSampler;
@@ -212,6 +219,8 @@ private:
     std::unique_ptr<TessPipeline> m_tessPipeline;
     std::unique_ptr<AtomicResolvePipeline> m_atomicResolvePipeline;
     std::unique_ptr<TestSimplePipeline> m_testSimplePipeline;
+    std::unique_ptr<PathPipeline> m_pathPipeline;
+    std::unique_ptr<InteriorTrianglesPipeline> m_trianglesPipeline;
     
     std::unique_ptr<UniformBufferRHIImpl<FFlushUniforms>> m_flushUniformBuffer;
     std::unique_ptr<UniformBufferRHIImpl<FImageDrawUniforms>> m_imageDrawUniformBuffer;
@@ -219,7 +228,7 @@ private:
     std::unique_ptr<StructuredBufferRingRHIImpl> m_paintBuffer;
     std::unique_ptr<StructuredBufferRingRHIImpl> m_paintAuxBuffer;
     std::unique_ptr<StructuredBufferRingRHIImpl> m_contourBuffer;
-    std::unique_ptr<BufferRingRHIImpl> m_simpleColorRampsBuffer;
+    std::unique_ptr<HeapBufferRing>    m_simpleColorRampsBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_tessSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_triangleBuffer;

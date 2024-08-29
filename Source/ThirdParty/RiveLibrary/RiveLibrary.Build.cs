@@ -43,13 +43,14 @@ public class RiveLibrary : ModuleRules
             
             PublicAdditionalLibraries.AddRange(new string[]
             {
+                Path.Combine(libDirectory, $"rive_libwebp{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_sheenbidi{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_harfbuzz{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_libpng{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_libjpeg{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_decoders{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_pls_renderer{libSuffix}.{extension}"),
-                // Path.Combine(libDirectory, $"rive_yoga{libSuffix}.{extension}"),
+                Path.Combine(libDirectory, $"rive_yoga{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive{libSuffix}.{extension}"),
             });
 
