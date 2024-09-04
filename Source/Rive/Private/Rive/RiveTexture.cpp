@@ -17,7 +17,7 @@ URiveTexture::URiveTexture()
 #if PLATFORM_ANDROID
 	Format = PF_R8G8B8A8_SNORM;
 #else
-	Format = PF_R8G8B8A8_SNORM;
+	Format = PF_R8G8B8A8;
 #endif
 	
 	SizeY = SizeX = Size.X = Size.Y = RIVE_STANDARD_TEX_RESOLUTION;
@@ -133,7 +133,6 @@ void URiveTexture::InitializeResources() const
 
 		FRHITextureCreateDesc RenderTargetTextureDesc =
 			FRHITextureCreateDesc::Create2D(*DebugName, Size.X, Size.Y, Format)
-				.SetClearValue(FClearValueBinding(ClearColor))
 				.SetFlags(ETextureCreateFlags::UAV | ETextureCreateFlags::Dynamic | ETextureCreateFlags::ShaderResource | ETextureCreateFlags::RenderTargetable);
 
 #if !(PLATFORM_IOS || PLATFORM_MAC) //SRGB could hvae been manually overriden

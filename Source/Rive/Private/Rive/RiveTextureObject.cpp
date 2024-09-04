@@ -16,7 +16,7 @@
 #if WITH_RIVE
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
-#include "rive/pls/pls_render_context.hpp"
+#include "rive/renderer/render_context.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 

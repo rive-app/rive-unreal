@@ -155,6 +155,7 @@ FMatrix FRiveRenderTarget::GetTransformMatrix() const
 
 void FRiveRenderTarget::RegisterRenderCommand(RiveRenderFunction RenderFunction)
 {
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	ENQUEUE_RENDER_COMMAND(FRiveRenderTarget_CustomRenderCommand)(
    [this, RenderFunction = std::move(RenderFunction)](FRHICommandListImmediate& RHICmdList)
    {
