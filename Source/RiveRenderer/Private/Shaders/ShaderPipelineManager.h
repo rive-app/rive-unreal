@@ -6,6 +6,7 @@
 
 #include "D3D11RHIPrivate.h"
 #include "HLSLTypeAliases.h"
+#include "RenderGraphUtils.h"
 #include "rive/shaders/out/generated/shaders/rhi.exports.h"
 
 namespace rive::gpu
@@ -13,6 +14,30 @@ namespace rive::gpu
 struct DrawBatch;
 struct FlushDescriptor;
 }
+
+// shader permutation params
+// Whole
+class FEnableClip : SHADER_PERMUTATION_BOOL("ENABLE_CLIPPING");
+class FEnableClipRect : SHADER_PERMUTATION_BOOL("ENABLE_CLIP_RECT");
+class FEnableAdvanceBlend : SHADER_PERMUTATION_BOOL("ENABLE_ADVANCED_BLEND");
+
+// FragmentOnly
+class FEnableFixedFunctionColorBlend : SHADER_PERMUTATION_BOOL("FIXED_FUNCTION_COLOR_BLEND");
+class FEnableHSLBlendMode : SHADER_PERMUTATION_BOOL("ENABLE_HSL_BLEND_MODES");
+class FEnableNestedClip : SHADER_PERMUTATION_BOOL("ENABLE_NESTED_CLIPPING");
+class FEnableEvenOdd: SHADER_PERMUTATION_BOOL("ENABLE_EVEN_ODD");
+
+typedef TShaderPermutationDomain<FEnableClip, FEnableClipRect, FEnableNestedClip,
+                                FEnableFixedFunctionColorBlend, FEnableAdvanceBlend, FEnableEvenOdd,
+                                FEnableHSLBlendMode> AtomicPixelPermutationDomain; 
+typedef TShaderPermutationDomain<FEnableClip, FEnableClipRect, FEnableAdvanceBlend> AtomicVertexPermutationDomain; 
+
+
+#define USE_ATOMIC_PIXEL_PERMUTATIONS \
+using FPermutationDomain = AtomicPixelPermutationDomain;
+
+#define USE_ATOMIC_VERTEX_PERMUTATIONS \
+using FPermutationDomain = AtomicVertexPermutationDomain;    
 
 BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FFlushUniforms, )
     SHADER_PARAMETER(float, gradInverseViewportY)
@@ -106,15 +131,20 @@ public:
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
     SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
-    SHADER_PARAMETER_UAV(Texture2D, coverageCountBuffer)
-    
+    SHADER_PARAMETER_UAV(Texture2D<uint>, coverageCountBuffer)
+    SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
+    SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
     
     SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
     SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
     
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(const FShaderPermutationParameters& Parameters)
+    {return true;}
 
 };
 
@@ -133,8 +163,12 @@ public:
     SHADER_PARAMETER(unsigned int, baseInstance)
     
     END_SHADER_PARAMETER_STRUCT()
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
     
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(const FShaderPermutationParameters& Parameters)
+    {return true;}
 
 };
 
@@ -148,7 +182,9 @@ public:
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
     
     SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
-    SHADER_PARAMETER_UAV(Texture2D, coverageCountBuffer)
+    SHADER_PARAMETER_UAV(Texture2D<uint>, coverageCountBuffer)
+    SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
+    SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
     
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
     
@@ -157,7 +193,11 @@ public:
 
     END_SHADER_PARAMETER_STRUCT()
 
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(const FShaderPermutationParameters& Parameters)
+    {return true;}
 
 };
 
@@ -171,7 +211,11 @@ public:
     SHADER_PARAMETER_SRV(Buffer<uint4>, GLSL_pathBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
+    USE_ATOMIC_VERTEX_PERMUTATIONS
+
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(const FShaderPermutationParameters& Parameters)
+    {return true;}
 
 };
 
@@ -189,8 +233,9 @@ public:
     SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
     SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_imageTexture_raw)
     
-    SHADER_PARAMETER_UAV(Texture2D, coverageCountBuffer)
-    
+    SHADER_PARAMETER_UAV(Texture2D<uint>, coverageCountBuffer)
+    SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
+    SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
     SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
     
@@ -198,7 +243,11 @@ public:
     SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(const FShaderPermutationParameters& Parameters)
+    {return true;}
 };
 
 class FRiveImageRectVertexShader : public FGlobalShader
@@ -212,8 +261,12 @@ public:
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
     SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
     END_SHADER_PARAMETER_STRUCT()
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
     
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(const FShaderPermutationParameters& Parameters)
+    {return true;}
 };
 
 class FRiveImageMeshPixelShader : public FGlobalShader
@@ -230,8 +283,9 @@ public:
     SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
     SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_imageTexture_raw)
 
-    SHADER_PARAMETER_UAV(Texture2D, coverageCountBuffer)
-    //SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
+    SHADER_PARAMETER_UAV(Texture2D<uint>, coverageCountBuffer)
+    SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
+    SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
     
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
     SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
@@ -240,7 +294,11 @@ public:
     SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(const FShaderPermutationParameters& Parameters)
+    {return true;}
 };
 
 class FRiveImageMeshVertexShader : public FGlobalShader
@@ -254,8 +312,12 @@ public:
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
     SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
     END_SHADER_PARAMETER_STRUCT()
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
     
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(const FShaderPermutationParameters& Parameters)
+    {return true;}
 };
 
 class FRiveAtomiResolvePixelShader : public FGlobalShader
@@ -271,7 +333,11 @@ public:
     SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
     SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
     SHADER_PARAMETER_UAV(Texture2D, coverageCountBuffer)
+    SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
+    SHADER_PARAMETER_UAV(Texture2D, clipBuffer)
     END_SHADER_PARAMETER_STRUCT()
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
     
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
 };
@@ -285,101 +351,10 @@ public:
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
     END_SHADER_PARAMETER_STRUCT()
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
     
     static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(const FShaderPermutationParameters& Parameters)
+    {return true;}
 };
-
-class FRiveTestVertexShader : public FGlobalShader
-{
-public:
-    DECLARE_GLOBAL_SHADER( FRiveTestVertexShader);
-};
-
-class FRiveTestPixelShader : public FGlobalShader
-{
-public:
-    DECLARE_GLOBAL_SHADER( FRiveTestPixelShader);
-};
-
-template<typename VertexShaderType, typename PixelShaderType>
-class SimpleGraphicsPipeline
-{
-public:
-    explicit SimpleGraphicsPipeline(FRHIVertexDeclaration* InVertexDeclaration, FGlobalShaderMap* ShaderMap) : CachedVertexDeclaration(InVertexDeclaration), VSShader(ShaderMap), PSShader(ShaderMap)
-    {
-    }
-
-    void BindShaders(FRHICommandList& CommandList, FGraphicsPipelineStateInitializer& GraphicsPSOInit)
-    {
-        GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = CachedVertexDeclaration;
-        GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VSShader.GetVertexShader();
-        GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PSShader.GetPixelShader();
-        SetGraphicsPipelineState(CommandList, GraphicsPSOInit, 0, EApplyRendertargetOption::CheckApply, true, EPSOPrecacheResult::NotSupported);
-    }
-
-private:
-    FRHIVertexDeclaration* CachedVertexDeclaration;
-    TShaderMapRef<VertexShaderType> VSShader;
-    TShaderMapRef<PixelShaderType> PSShader;
-};
-
-template<typename VertexShaderType, typename PixelShaderType>
-class GraphicsPipeline
-{
-public:
-    typedef typename VertexShaderType::FParameters VertexParameters;
-    typedef typename PixelShaderType::FParameters  PixelParameters;
-    
-    explicit GraphicsPipeline(FRHIVertexDeclaration* InVertexDeclaration, FGlobalShaderMap* ShaderMap) : CachedVertexDeclaration(InVertexDeclaration), VSShader(ShaderMap), PSShader(ShaderMap)
-    {
-    }
-
-    void BindShaders(FRHICommandList& CommandList, FGraphicsPipelineStateInitializer& GraphicsPSOInit)
-    {
-        GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = CachedVertexDeclaration;
-        GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VSShader.GetVertexShader();
-        GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PSShader.GetPixelShader();
-        SetGraphicsPipelineState(CommandList, GraphicsPSOInit, 0, EApplyRendertargetOption::CheckApply, true, EPSOPrecacheResult::NotSupported);
-    }
-
-    void SetParameters(FRHICommandList& CommandList, FRHIBatchedShaderParameters& BatchedParameters,
-        const VertexParameters& VParameters,
-        const PixelParameters& PParameters)
-    {
-        SetShaderParameters(BatchedParameters, VSShader, VParameters);
-        CommandList.SetBatchedShaderParameters(VSShader.GetVertexShader(), BatchedParameters);
-        SetShaderParameters(BatchedParameters, PSShader, PParameters);
-        CommandList.SetBatchedShaderParameters(PSShader.GetPixelShader(), BatchedParameters);
-    }
-    
-    void SetVertexParameters(FRHICommandList& CommandList, 
-        FRHIBatchedShaderParameters& BatchedParameters,
-        const VertexParameters& Parameters)
-    {
-        SetShaderParameters(BatchedParameters, VSShader, Parameters);
-        CommandList.SetBatchedShaderParameters(VSShader.GetVertexShader(), BatchedParameters);
-    }
-
-    void SetPixelParameters(FRHICommandList& CommandList, 
-        FRHIBatchedShaderParameters& BatchedParameters,
-        const PixelParameters& Parameters)
-    {
-        SetShaderParameters(BatchedParameters, PSShader, Parameters);
-        CommandList.SetBatchedShaderParameters(PSShader.GetPixelShader(), BatchedParameters);
-    }
-
-private:
-    FRHIVertexDeclaration* CachedVertexDeclaration;
-    TShaderMapRef<VertexShaderType> VSShader;
-    TShaderMapRef<PixelShaderType> PSShader;
-};
-
-typedef GraphicsPipeline<FRivePathVertexShader, FRivePathPixelShader> PathPipeline;
-typedef GraphicsPipeline<FRiveInteriorTrianglesVertexShader, FRiveInteriorTrianglesPixelShader> InteriorTrianglesPipeline;
-typedef GraphicsPipeline<FRiveImageMeshVertexShader, FRiveImageMeshPixelShader> ImageMeshPipeline;
-typedef GraphicsPipeline<FRiveImageMeshVertexShader, FRiveImageMeshPixelShader> ImageMeshPipeline;
-typedef GraphicsPipeline<FRiveTessVertexShader, FRiveTessPixelShader> TessPipeline;
-typedef GraphicsPipeline<FRiveGradientVertexShader, FRiveGradientPixelShader> GradientPipeline;
-typedef GraphicsPipeline<FRiveAtomiResolveVertexShader, FRiveAtomiResolvePixelShader> AtomicResolvePipeline;
-typedef GraphicsPipeline<FRiveImageRectVertexShader, FRiveImageRectPixelShader> ImageRectPipeline;
-typedef SimpleGraphicsPipeline<FRiveTestVertexShader, FRiveTestPixelShader> TestSimplePipeline;

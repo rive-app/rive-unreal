@@ -12,12 +12,12 @@
 
 URiveTexture::URiveTexture()
 {
-    SRGB = true;
+    SRGB = false;
 
 #if PLATFORM_ANDROID
 	Format = PF_R8G8B8A8_SNORM;
 #else
-	Format = PF_R8G8B8A8;
+	Format = PF_R8G8B8A8_SNORM;
 #endif
 	
 	SizeY = SizeX = Size.X = Size.Y = RIVE_STANDARD_TEX_RESOLUTION;

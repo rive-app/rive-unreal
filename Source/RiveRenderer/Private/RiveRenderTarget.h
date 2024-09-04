@@ -62,6 +62,7 @@ public:
 	virtual void Align(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
 	virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
 	virtual FMatrix GetTransformMatrix() const override;
+	virtual void RegisterRenderCommand(RiveRenderFunction RenderFunction)override;
 
 protected:
 	virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const = 0;

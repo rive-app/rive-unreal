@@ -17,11 +17,8 @@ namespace gpu
 class RenderTargetRHI : public RenderTarget
 {
 public:
-    RenderTargetRHI(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTextureTarget);
+    RenderTargetRHI(FRHICommandList& RHICmdList, const FTexture2DRHIRef& InTextureTarget);
     virtual ~RenderTargetRHI() override {}
-
-    FShaderResourceViewRHIRef targetSRV() const
-    { return m_targetSRV; }
     
     FTexture2DRHIRef texture()const
     {return m_textureTarget;}
@@ -32,6 +29,9 @@ public:
     FUnorderedAccessViewRHIRef coverageUAV()const
     {return m_coverageUAV;}
 
+    FUnorderedAccessViewRHIRef clipUAV()const
+    {return m_clipUAV;}
+
     FUnorderedAccessViewRHIRef scratchColorUAV()const
     {return m_scratchColorUAV;}
     
@@ -39,11 +39,12 @@ private:
     FTexture2DRHIRef m_scratchColorTexture;
     FTexture2DRHIRef m_textureTarget;
     FTexture2DRHIRef m_atomicCoverageTexture;
+    FTexture2DRHIRef m_clipTexture;
 
     FUnorderedAccessViewRHIRef m_coverageUAV;
+    FUnorderedAccessViewRHIRef m_clipUAV;
     FUnorderedAccessViewRHIRef m_scratchColorUAV;
     FUnorderedAccessViewRHIRef m_targetUAV;
-    FShaderResourceViewRHIRef m_targetSRV;
 };
 
 class StructuredBufferRingRHIImpl;
@@ -52,7 +53,7 @@ class BufferRingRHIImpl final : public BufferRing
 {
 public:
     BufferRingRHIImpl(EBufferUsageFlags flags, size_t in_sizeInBytes, size_t stride);
-    void Sync(FRHICommandListImmediate& commandList) const;
+    void Sync(FRHICommandList& commandList) const;
     FBufferRHIRef contents()const;
     
 protected:
@@ -73,7 +74,7 @@ public:
         //m_buffer =  TUniformBufferRef<UniformBufferType>::CreateEmptyUniformBufferImmediate( UniformBuffer_MultiFrame);
     }
 
-    void Sync(FRHICommandListImmediate& commandList, int offset)
+    void Sync(FRHICommandList& commandList, int offset)
     {
         UniformBufferType* Buffer = reinterpret_cast<UniformBufferType*>(shadowBuffer() + offset);
         m_buffer = TUniformBufferRef<UniformBufferType>::CreateUniformBufferImmediate( *Buffer,UniformBuffer_SingleFrame);
@@ -103,7 +104,7 @@ class RenderBufferRHIImpl final: public lite_rtti_override<RenderBuffer, RenderB
 public:
     RenderBufferRHIImpl(RenderBufferType in_type,
     RenderBufferFlags in_flags, size_t in_sizeInBytes, size_t stride);
-    void Sync(FRHICommandListImmediate& commandList) const;
+    void Sync(FRHICommandList& commandList) const;
     FBufferRHIRef contents()const;
     
 protected:
@@ -121,7 +122,7 @@ class StructuredBufferRingRHIImpl final : public BufferRing
 public:
     StructuredBufferRingRHIImpl(EBufferUsageFlags flags, size_t in_sizeInBytes, size_t elementSize);
     template<typename HighLevelStruct>
-    void Sync(FRHICommandListImmediate& commandList, size_t elementOffset, size_t elementCount)
+    void Sync(FRHICommandList& commandList, size_t elementOffset, size_t elementCount)
     {
         auto data = commandList.LockBuffer(m_buffer, 0, elementCount * sizeof(HighLevelStruct), RLM_WriteOnly_NoOverwrite);
         memcpy(data, shadowBuffer() + (elementOffset * sizeof(HighLevelStruct)), elementCount * sizeof(HighLevelStruct));
@@ -142,6 +143,18 @@ private:
     size_t m_lastMapSizeInBytes;
 };
 
+enum class EVertexDeclarations : int32
+{
+    Tessellation,
+    Gradient,
+    Paths,
+    InteriorTriangles,
+    ImageRect,
+    ImageMesh,
+    Resolve,
+    NumVertexDeclarations
+};
+    
 class RenderContextRHIImpl : public RenderContextImpl
 {
 public:
@@ -213,14 +226,7 @@ private:
     FSamplerStateRHIRef m_linearSampler;
     FSamplerStateRHIRef m_mipmapSampler;
 
-    std::unique_ptr<ImageRectPipeline> m_imageRectPipeline;
-    std::unique_ptr<ImageMeshPipeline> m_imageMeshPipeline;
-    std::unique_ptr<GradientPipeline> m_gradientPipeline;
-    std::unique_ptr<TessPipeline> m_tessPipeline;
-    std::unique_ptr<AtomicResolvePipeline> m_atomicResolvePipeline;
-    std::unique_ptr<TestSimplePipeline> m_testSimplePipeline;
-    std::unique_ptr<PathPipeline> m_pathPipeline;
-    std::unique_ptr<InteriorTrianglesPipeline> m_trianglesPipeline;
+    FRHIVertexDeclaration* VertexDeclarations[static_cast<int32>(EVertexDeclarations::NumVertexDeclarations)];
     
     std::unique_ptr<UniformBufferRHIImpl<FFlushUniforms>> m_flushUniformBuffer;
     std::unique_ptr<UniformBufferRHIImpl<FImageDrawUniforms>> m_imageDrawUniformBuffer;

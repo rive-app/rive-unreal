@@ -109,8 +109,5 @@ IMPLEMENT_GLOBAL_SHADER(FRiveImageMeshVertexShader, "/Plugin/Rive/Private/Rive/a
 IMPLEMENT_GLOBAL_SHADER(FRiveAtomiResolvePixelShader, "/Plugin/Rive/Private/Rive/atomic_resolve_pls.usf", GLSL_drawFragmentMain, SF_Pixel);
 IMPLEMENT_GLOBAL_SHADER(FRiveAtomiResolveVertexShader, "/Plugin/Rive/Private/Rive/atomic_resolve_pls.usf", GLSL_drawVertexMain, SF_Vertex);
 
-IMPLEMENT_GLOBAL_SHADER(FRiveTestPixelShader, "/Plugin/Rive/Private/Rive/test.usf",  "TestFragment", SF_Pixel);
-IMPLEMENT_GLOBAL_SHADER(FRiveTestVertexShader, "/Plugin/Rive/Private/Rive/test.usf", "TestVertex", SF_Vertex);
-
 IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FFlushUniforms, "uniforms");
 IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FImageDrawUniforms, "imageDrawUniforms");

@@ -9,7 +9,7 @@ class FRiveRenderTargetRHI final: public FRiveRenderTarget
 public:
     FRiveRenderTargetRHI(const TSharedRef<FRiveRendererRHI>& InRiveRenderer, const FName& InRiveName, UTexture2DDynamic* InRenderTarget);
     virtual ~FRiveRenderTargetRHI() override;
-		
+    
     //~ BEGIN : IRiveRenderTarget Interface
     virtual void CacheTextureTarget_RenderThread(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InRHIResource) override;
     //~ END : IRiveRenderTarget Interface

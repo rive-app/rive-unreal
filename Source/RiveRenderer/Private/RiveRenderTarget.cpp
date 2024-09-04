@@ -153,6 +153,24 @@ FMatrix FRiveRenderTarget::GetTransformMatrix() const
 	return CurrentMatrix;
 }
 
+void FRiveRenderTarget::RegisterRenderCommand(RiveRenderFunction RenderFunction)
+{
+	ENQUEUE_RENDER_COMMAND(FRiveRenderTarget_CustomRenderCommand)(
+   [this, RenderFunction = std::move(RenderFunction)](FRHICommandListImmediate& RHICmdList)
+   {
+		auto renderer = BeginFrame();
+		if(!renderer)
+		{
+			return;
+		}
+
+		rive::gpu::RenderContext* factory = RiveRenderer->GetRenderContextPtr();
+		RenderFunction(factory, renderer.get());
+	
+		EndFrame();
+	});
+}
+
 std::unique_ptr<rive::gpu::RiveRenderer> FRiveRenderTarget::BeginFrame()
 {
 	rive::gpu::RenderContext* PLSRenderContextPtr = RiveRenderer->GetRenderContextPtr();
