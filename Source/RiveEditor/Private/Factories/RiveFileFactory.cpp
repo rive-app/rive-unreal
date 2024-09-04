@@ -5,6 +5,7 @@
 #include "Editor/EditorEngine.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "RiveTextureObjectFactory.h"
 #include "RiveWidgetFactory.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Logs/RiveEditorLog.h"
@@ -74,6 +75,11 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass, UObject* InParent,
     {
         UE_LOG(LogRiveEditor, Warning, TEXT("Error after importing the Rive file '%s': Unable to create the Widget after importing the file"), *InFilename);
     }
+
+    if (!FRiveTextureObjectFactory(RiveFile).Create())
+    {
+        UE_LOG(LogRiveEditor, Warning, TEXT("Error after importing the Rive file '%s': Unable to create the Texture after importing the file"), *InFilename);
+    }
     
     return RiveFile;
 }
@@ -97,7 +103,7 @@ void URiveFileFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& New
     {
         if (IsValid(RiveFile) && !NewReimportPaths.IsEmpty() && FPaths::FileExists(NewReimportPaths[0]))
         {
-            RiveFile->AssetImportData->GetFirstFilename() = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NewReimportPaths[0]);
+            RiveFile->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
         }
     }
 }

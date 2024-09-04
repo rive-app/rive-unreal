@@ -15,7 +15,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Logs/RiveEditorLog.h"
-#include "Rive/RiveObject.h"
+#include "Rive/RiveTextureObject.h"
 #include "Templates/WidgetTemplateClass.h"
 #include "UMG/RiveWidget.h"
 #include "UObject/SavePackage.h"
@@ -221,7 +221,7 @@ namespace
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateLambda([]()
 		{
 			FToolMenuOwnerScoped OwnerScoped(UE_MODULE_NAME);
-			UToolMenu* Menu = UE::ContentBrowser::ExtendToolMenu_AssetContextMenu(UTexture2DDynamic::StaticClass());
+			UToolMenu* Menu = UE::ContentBrowser::ExtendToolMenu_AssetContextMenu(URiveFile::StaticClass());
 	        
 			FToolMenuSection& Section = Menu->FindOrAddSection("GetAssetActions");
 			Section.AddDynamicEntry(TEXT("Rive"), FNewToolMenuSectionDelegate::CreateLambda([](FToolMenuSection& InSection)

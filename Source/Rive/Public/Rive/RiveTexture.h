@@ -39,13 +39,7 @@ public:
 	/** UI representation of Texture Size */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive, meta = (ClampMin = 1, UIMin = 1, ClampMax = 3840, UIMax = 3840, NoResetToDefault))
 	FIntPoint Size;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-	ERiveBlendMode RiveBlendMode = ERiveBlendMode::SE_BLEND_AlphaComposite;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = Rive)
-	FLinearColor ClearColor = FLinearColor::Transparent;
-
+	
 	/**
 	 * Resize render resources
 	 */
@@ -53,9 +47,6 @@ public:
 	virtual void ResizeRenderTargets(FIntPoint InNewSize);
 	
 	FVector2f GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const;
-
-	ESimpleElementBlendMode GetSimpleElementBlendMode() const;
-
 	
 	FOnResourceInitializedOnRenderThread OnResourceInitializedOnRenderThread;
 protected:

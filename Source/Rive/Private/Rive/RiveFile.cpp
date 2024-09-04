@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Copyright Rive, Inc. All rights reserved.
 #include "Rive/RiveFile.h"
 
 #include "IRiveRenderer.h"
@@ -15,6 +15,7 @@
 #if WITH_RIVE
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
+#include "rive/animation/state_machine_input.hpp"
 #include "rive/renderer/render_context.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
@@ -26,8 +27,6 @@ class FRiveFileAssetLoader;
 void URiveFile::BeginDestroy()
 {
 	InitState = ERiveInitState::Deinitializing;
-	Artboards.Reset();
-	
 	RiveNativeFileSpan = {};
 	RiveNativeFilePtr.reset();
 	UObject::BeginDestroy();
@@ -67,7 +66,7 @@ void URiveFile::Initialize()
 	
 	WasLastInitializationSuccessful.Reset();
 	InitState = ERiveInitState::Initializing;
-	OnStartInitializingDelegate.Broadcast(this);
+	OnStartInitializingDelegate.Broadcast();
 	
 	if (!IRiveRendererModule::IsAvailable())
 	{
@@ -110,6 +109,7 @@ void URiveFile::Initialize()
 		if (ensure(RenderContext))
 		{
 			ArtboardNames.Empty();
+			Artboards.Empty();
 			
 			FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 			rive::ImportResult ImportResult;
@@ -144,14 +144,12 @@ void URiveFile::Initialize()
 			// UI Helper
 			for (int i = 0; i < RiveNativeFilePtr->artboardCount(); ++i)
 			{
-				rive::Artboard* NativeArtboard = RiveNativeFilePtr->artboard(i);
-				ArtboardNames.Add(NativeArtboard->name().c_str());
-			}
-
-			for (auto i = Artboards.Num() - 1; i >= 0; i--)
-			{
-				URiveArtboard* Artboard = Artboards[i];
-				Artboard->Reinitialize(RiveNativeFilePtr.get());
+				auto Artboard = NewObject<URiveArtboard>();
+				
+				// We won't tick the artboard, it's just initialized for informational purposes
+				Artboard->Initialize(this, nullptr, i, "");
+				Artboards.Add(Artboard);
+				ArtboardNames.Add(Artboard->GetArtboardName());
 			}
 			
 			BroadcastInitializationResult(true);
@@ -164,26 +162,14 @@ void URiveFile::Initialize()
 #endif // WITH_RIVE
 }
 
-void URiveFile::WhenInitialized(FOnRiveFileInitialized::FDelegate&& Delegate)
-{
-	if (WasLastInitializationSuccessful.IsSet())
-	{
-		Delegate.Execute(this, WasLastInitializationSuccessful.GetValue());
-	}
-	else
-	{
-		OnInitializedOnceDelegate.Add(MoveTemp(Delegate));
-	}
-}
-
 void URiveFile::BroadcastInitializationResult(bool bSuccess)
 {
 	WasLastInitializationSuccessful = bSuccess;
 	InitState = bSuccess ? ERiveInitState::Initialized : ERiveInitState::Uninitialized;
 	// First broadcast the one time fire delegate
-	OnInitializedOnceDelegate.Broadcast(this, bSuccess);
+	OnInitializedOnceDelegate.Broadcast(bSuccess);
 	OnInitializedOnceDelegate.Clear();
-	OnInitializedDelegate.Broadcast(this, bSuccess);
+	OnInitializedDelegate.Broadcast(bSuccess);
 	if (bSuccess)
 	{
 		OnRiveReady.Broadcast();
@@ -196,7 +182,7 @@ void URiveFile::PrintStats() const
 	const rive::File* NativeFile = GetNativeFile();
 	if (!NativeFile)
 	{
-		UE_LOG(LogRive, Error, TEXT("Could not print statistics as we have detected an empty rive file."));
+		UE_LOG(LogRive, Warning, TEXT("Could not print statistics as we have detected an empty rive file."));
 		return;
 	}
 
@@ -244,12 +230,6 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath, TArray<uint8>& InRiv
 	RiveFileData = MoveTemp(InRiveFileBuffer);
 	if (bIsReimport)
 	{
-		for (auto i = Artboards.Num() - 1; i >= 0; i--)
-		{
-			URiveArtboard* Artboard = Artboards[i];
-			Artboard->Deinitialize();
-		}
-		
 		Initialize();
 	}
 	else

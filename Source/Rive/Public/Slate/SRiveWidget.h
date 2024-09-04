@@ -5,8 +5,8 @@
 #include "Widgets/SCompoundWidget.h"
 
 class URiveArtboard;
+class FRiveStateMachine;
 class URiveTexture;
-class SRiveWidgetView;
 
 /**
  *
@@ -25,23 +25,34 @@ public:
 	SLATE_ARGUMENT(bool, bDrawCheckerboardInEditor)
 #endif
     SLATE_END_ARGS()
-	
-    /**
-     * Implementation(s)
-     */
 
-public:
-
-    /** Constructs this widget with InArgs */
 	void Construct(const FArguments& InArgs);
+    virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
 
 	void SetRiveTexture(URiveTexture* InRiveTexture);
-	void RegisterArtboardInputs(const TArray<URiveArtboard*>& InArtboards);
-
-    /**
-     * Attribute(s)
-     */
 
 private:
-    TSharedPtr<SRiveWidgetView> RiveWidgetView;
+	UWorld* GetWorld() const;
+    void OnResize() const;
+	
+	URiveTexture* RiveTexture = nullptr;
+	TArray<URiveArtboard*> Artboards;
+	
+    TSharedPtr<SImage> RiveImageView;
+	TSharedPtr<FSlateBrush> RiveTextureBrush;
+
+	double LastSizeChangeTime = 0;
+    mutable FTimerHandle TimerHandle;
+	mutable FVector2D PreviousSize;
+
+	
+#if WITH_EDITOR // Implementation of Checkerboard textures, as per FTextureEditorViewportClient::ModifyCheckerboardTextureColors
+	/** Modifies the checkerboard texture's data */
+	void ModifyCheckerboardTextureColors();
+	/** Destroy the checkerboard texture if one exists */
+	void DestroyCheckerboardTexture();
+	/** Checkerboard texture */
+	TObjectPtr<UTexture2D> CheckerboardTexture;
+	FSlateBrush* CheckerboardBrush;
+#endif
 };

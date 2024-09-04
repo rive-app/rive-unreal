@@ -236,7 +236,7 @@ URiveArtboard* URiveActorComponent::AddArtboard(URiveFile* InRiveFile, const FSt
     }
     
     URiveArtboard* Artboard = NewObject<URiveArtboard>();
-    Artboard->Initialize(InRiveFile->GetNativeFile(), RiveRenderTarget, InArtboardName, InStateMachineName);    
+    Artboard->Initialize(InRiveFile, RiveRenderTarget, InArtboardName, InStateMachineName);    
     Artboards.Add(Artboard);
 
     if (RiveAudioEngine != nullptr)
@@ -250,6 +250,32 @@ URiveArtboard* URiveActorComponent::AddArtboard(URiveFile* InRiveFile, const FSt
 void URiveActorComponent::RemoveArtboard(URiveArtboard* InArtboard)
 {
     Artboards.RemoveSingle(InArtboard);
+}
+
+URiveArtboard* URiveActorComponent::GetDefaultArtboard() const
+{
+    return GetArtboardAtIndex(0);
+}
+
+URiveArtboard* URiveActorComponent::GetArtboardAtIndex(int32 InIndex) const
+{
+    if (Artboards.IsEmpty())
+    {
+        return nullptr;
+    }
+
+    if (InIndex >= Artboards.Num())
+    {
+        UE_LOG(LogRive, Warning, TEXT("GetArtboardAtIndex with index %d is out of bounds"), InIndex);
+        return nullptr;
+    }
+
+    return Artboards[InIndex];
+}
+
+int32 URiveActorComponent::GetArtboardCount() const
+{
+    return Artboards.Num();
 }
 
 void URiveActorComponent::OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource)

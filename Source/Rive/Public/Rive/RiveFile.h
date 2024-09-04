@@ -35,8 +35,8 @@ class RIVE_API URiveFile : public UObject
 
 	friend URiveArtboard;
 public:
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRiveFileInitialized, URiveFile*, bool /* bSuccess */ );
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRiveFileEvent, URiveFile*);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRiveFileInitializationResult, bool /* bSuccess */ );
+	DECLARE_MULTICAST_DELEGATE(FOnRiveFileEvent);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
 	
 	void BeginDestroy() override;
@@ -49,30 +49,27 @@ public:
 	ERiveInitState InitializationState() const { return InitState; }
 	UFUNCTION(BlueprintPure, Category = Rive)
 	bool IsInitialized() const { return InitState == ERiveInitState::Initialized; }
-
-	/**
-	 * Call the given delegate once this RiveFile has been initialized.
-	 * It is already initialized, the delegate will fire instantly.
-	 * The delegate will be called only once.
-	 */
-	virtual void WhenInitialized(FOnRiveFileInitialized::FDelegate&& Delegate);
+	
 	/** Delegate called everytime this RiveFile is Initialized */
-	FOnRiveFileInitialized OnInitializedDelegate;
+	FOnRiveFileInitializationResult OnInitializedDelegate;
+	
 	/** Delegate called everytime this RiveFile is starting to Initialize */
 	FOnRiveFileEvent OnStartInitializingDelegate;
 
 	UPROPERTY(BlueprintAssignable, Category = Rive)
 	FRiveReadyDelegate OnRiveReady;
 
-	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
+	UPROPERTY(Transient, BlueprintReadOnly, Category=Rive, meta=(NoResetToDefault, AllowPrivateAccess))
 	TArray<FString> ArtboardNames;
+
+	// This is only meant as a display feature for the editor, and not meant to be used as functional code
+	UPROPERTY(Transient, VisibleInstanceOnly, Category=Rive, NonTransactional, meta=(NoResetToDefault, AllowPrivateAccess))
+	TArray<URiveArtboard*> Artboards;
 
 	UFUNCTION()
 	TArray<FString> GetArtboardNamesForDropdown() const
 	{
-		TArray<FString> Names {FString{}};
-		Names.Append(ArtboardNames);
-		return Names;
+		return ArtboardNames;
 	}
 	
 	UPROPERTY(meta=(NoResetToDefault))
@@ -83,11 +80,11 @@ public:
 	UPROPERTY(VisibleAnywhere, Instanced, Category = "Import Settings")
 	UAssetImportData* AssetImportData;
 #endif
-	
+
 private:
 	void BroadcastInitializationResult(bool bSuccess);
 	TOptional<bool> WasLastInitializationSuccessful{};
-	FOnRiveFileInitialized OnInitializedOnceDelegate;
+	FOnRiveFileInitializationResult OnInitializedOnceDelegate;
 	
 	UPROPERTY(Transient, meta=(NoResetToDefault))
 	ERiveInitState InitState = ERiveInitState::Uninitialized;
@@ -99,9 +96,6 @@ private:
 	TSubclassOf<UUserWidget> WidgetClass;
 
 public:
-	UPROPERTY()
-	TArray<URiveArtboard*> Artboards;
-	
 	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
 	TMap<uint32, TObjectPtr<URiveAsset>> Assets;
 

@@ -11,6 +11,9 @@
 #include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/animation/state_machine_input_instance.hpp"
+#include "rive/generated/animation/state_machine_bool_base.hpp"
+#include "rive/generated/animation/state_machine_number_base.hpp"
+#include "rive/generated/animation/state_machine_trigger_base.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
@@ -44,6 +47,28 @@ FRiveStateMachine::FRiveStateMachine(rive::ArtboardInstance* InNativeArtboardIns
     if (NativeStateMachinePtr)
     {
         StateMachineName = NativeStateMachinePtr->name().c_str();
+        
+        for (uint32 i = 0; i < GetInputCount(); ++i)
+        {
+            const rive::SMIInput* Input = GetInput(i);
+            if (Input->input()->is<rive::StateMachineBoolBase>())
+            {
+                BoolInputNames.Add(Input->name().c_str());
+            }
+            else if (Input->input()->is<rive::StateMachineNumberBase>())
+            {
+                NumberInputNames.Add(Input->name().c_str());
+            }
+            else if (Input->input()->is<rive::StateMachineTriggerBase>())
+            {
+                TriggerInputNames.Add(Input->name().c_str());
+            }
+            else
+            {
+                UE_LOG(LogRive, Warning, TEXT("Found input of unknown type '%d' when getting inputs from StateMachine '%s' from Artboard '%hs'"),
+                    Input->inputCoreType(), *GetStateMachineName(), InNativeArtboardInst->name().c_str())
+            }
+        }
     }
 
     if (RiveRenderer)
@@ -245,9 +270,9 @@ bool FRiveStateMachine::PointerDown(const FVector2f& NewPosition)
     {
         return false;
     }
-    
-    NativeStateMachinePtr->pointerDown({ NewPosition.X, NewPosition.Y });
-    return true;
+
+    rive::HitResult HitResult = NativeStateMachinePtr->pointerDown({NewPosition.X, NewPosition.Y});
+    return HitResult == rive::HitResult::hitOpaque;
 }
 
 bool FRiveStateMachine::PointerMove(const FVector2f& NewPosition)
@@ -266,8 +291,8 @@ bool FRiveStateMachine::PointerMove(const FVector2f& NewPosition)
         return false;
     }
     
-    NativeStateMachinePtr->pointerMove({ NewPosition.X, NewPosition.Y });
-    return true;
+    rive::HitResult HitResult = NativeStateMachinePtr->pointerMove({ NewPosition.X, NewPosition.Y });
+    return HitResult == rive::HitResult::hitOpaque;
 }
 
 bool FRiveStateMachine::PointerUp(const FVector2f& NewPosition)
@@ -286,8 +311,8 @@ bool FRiveStateMachine::PointerUp(const FVector2f& NewPosition)
         return false;
     }
    
-    NativeStateMachinePtr->pointerUp({ NewPosition.X, NewPosition.Y });
-    return true;
+    rive::HitResult HitResult = NativeStateMachinePtr->pointerUp({ NewPosition.X, NewPosition.Y });
+    return HitResult == rive::HitResult::hitOpaque;
 }
 
 bool FRiveStateMachine::PointerExit(const FVector2f& NewPosition)
@@ -306,8 +331,8 @@ bool FRiveStateMachine::PointerExit(const FVector2f& NewPosition)
         return false;
     }
    
-    NativeStateMachinePtr->pointerExit({ NewPosition.X, NewPosition.Y });
-    return true;
+    rive::HitResult HitResult = NativeStateMachinePtr->pointerExit({ NewPosition.X, NewPosition.Y });
+    return HitResult == rive::HitResult::hitOpaque;
 }
 
 const rive::EventReport FRiveStateMachine::GetReportedEvent(int32 AtIndex) const
