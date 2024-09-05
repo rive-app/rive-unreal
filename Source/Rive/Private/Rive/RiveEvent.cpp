@@ -7,7 +7,6 @@
 #include "Logs/RiveLog.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/custom_property_boolean.hpp"
 #include "rive/custom_property_number.hpp"

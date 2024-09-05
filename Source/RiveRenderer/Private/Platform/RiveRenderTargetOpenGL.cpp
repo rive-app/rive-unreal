@@ -15,12 +15,11 @@
 
 
 #if WITH_RIVE
-#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
-#include "rive/pls/pls_renderer.hpp"
-#include "rive/pls/gl/pls_render_context_gl_impl.hpp"
-#include "rive/pls/gl/pls_render_target_gl.hpp"
+#include "rive/renderer.hpp"
+#include "rive/renderer/gl/render_context_gl_impl.hpp"
+#include "rive/renderer/gl/render_target_gl.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
@@ -33,7 +32,7 @@ FRiveRenderTargetOpenGL::FRiveRenderTargetOpenGL(const TSharedRef<FRiveRendererO
 FRiveRenderTargetOpenGL::~FRiveRenderTargetOpenGL()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
-	CachedPLSRenderTargetOpenGL.reset();
+	RenderTargetOpenGL.reset();
 }
 
 void FRiveRenderTargetOpenGL::Initialize()
@@ -96,25 +95,24 @@ void FRiveRenderTargetOpenGL::Submit()
 	}
 }
 
-rive::rcp<rive::pls::PLSRenderTarget> FRiveRenderTargetOpenGL::GetRenderTarget() const
+rive::rcp<rive::gpu::RenderTarget> FRiveRenderTargetOpenGL::GetRenderTarget() const
 {
-	return CachedPLSRenderTargetOpenGL;
+	return RenderTargetOpenGL;
 }
 
-std::unique_ptr<rive::pls::PLSRenderer> FRiveRenderTargetOpenGL::BeginFrame()
+std::unique_ptr<rive::RiveRenderer> FRiveRenderTargetOpenGL::BeginFrame()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread() || IsInRHIThread());
 	ENABLE_VERIFY_GL_THREAD;
 
-	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
-	if (PLSRenderContextPtr == nullptr)
+	rive::gpu::RenderContext* RenderContext = RiveRenderer->GetRenderContext();
+	if (RenderContext == nullptr)
 	{
 		return nullptr;
 	}
 	
-	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState() %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->invalidateGLState();
+	RIVE_DEBUG_VERBOSE("RenderContextGLImpl->resetGLState() %p", RenderContext->static_impl_cast<rive::gpu::RenderContextGLImpl>()->invalidateGLState();
 	
 	return FRiveRenderTarget::BeginFrame();
 }
@@ -125,20 +123,20 @@ void FRiveRenderTargetOpenGL::EndFrame() const
 	check(IsInGameThread() || IsInRHIThread());
 	ENABLE_VERIFY_GL_THREAD;
 	
-	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
-	if (PLSRenderContextPtr == nullptr)
+	rive::gpu::RenderContext* RenderContext = RiveRenderer->GetRenderContext();
+	if (RenderContext == nullptr)
 	{
 		return;
 	}
 
 	// End drawing a frame.
 	// Flush
-	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush()  %p", PLSRenderContextPtr);
-	const rive::pls::PLSRenderContext::FlushResources FlushResources
+	RIVE_DEBUG_VERBOSE("RenderContext->flush()  %p", RenderContext);
+	const rive::gpu::RenderContext::FlushResources FlushResources
 	{
 		GetRenderTarget().get()
 	};
-	PLSRenderContextPtr->flush(FlushResources);
+	RenderContext->flush(FlushResources);
 
 	//todo: to remove once OpenGL fully fixed
 	TArray<FIntVector2> Points{ {0,0}, { 100,100 }, { 200,200 }, { 300,300 }, { 400,400 }, { 500,500 }, { 600,600 }, { 700,700 } };
@@ -153,8 +151,8 @@ void FRiveRenderTargetOpenGL::EndFrame() const
 	}
 	
 	// Reset
-	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->unbindGLInternalResources() %p", PLSRenderContextPtr);
-	PLSRenderContextPtr->static_impl_cast<rive::pls::PLSRenderContextGLImpl>()->unbindGLInternalResources(); //careful, need UE's internal state to match
+	RIVE_DEBUG_VERBOSE("RenderContext->unbindGLInternalResources() %p", RenderContext);
+	RenderContext->static_impl_cast<rive::gpu::RenderContextGLImpl>()->unbindGLInternalResources(); //careful, need UE's internal state to match
 
 	ResetOpenGLState();
 }
@@ -187,14 +185,14 @@ void FRiveRenderTargetOpenGL::CacheTextureTarget_Internal(const FTexture2DRHIRef
 	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 	
 #if WITH_RIVE
-	rive::pls::PLSRenderContext* PLSRenderContext = RiveRendererGL->GetOrCreatePLSRenderContextPtr_Internal();
+	rive::gpu::RenderContext* RenderContext = RiveRendererGL->GetOrCreateRenderContext_Internal();
 
-	if (PLSRenderContext == nullptr)
+	if (RenderContext == nullptr)
 	{
-		UE_LOG(LogRiveRenderer, Error, TEXT("PLSRenderContext is null"));
+		UE_LOG(LogRiveRenderer, Error, TEXT("RenderContext is null"));
 		return;
 	}
-	RIVE_DEBUG_VERBOSE("PLSRenderContext is valid");
+	RIVE_DEBUG_VERBOSE("RenderContext is valid");
 #endif // WITH_RIVE
 
 	const IOpenGLDynamicRHI* OpenGlRHI = GetIOpenGLDynamicRHI();
@@ -218,9 +216,9 @@ void FRiveRenderTargetOpenGL::CacheTextureTarget_Internal(const FTexture2DRHIRef
 
 #if WITH_RIVE
 	// For now we just set one renderer and one texture
-	rive::pls::PLSRenderContextGLImpl* PLSRenderContextGLImpl = PLSRenderContext->static_impl_cast<rive::pls::PLSRenderContextGLImpl>();
-	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->resetGLState()");
-	PLSRenderContextGLImpl->invalidateGLState();
+	rive::gpu::RenderContextGLImpl* RenderContextGLImpl = RenderContext->static_impl_cast<rive::gpu::RenderContextGLImpl>();
+	RIVE_DEBUG_VERBOSE("RenderContextGLImpl->resetGLState()");
+	RenderContextGLImpl->invalidateGLState();
 
 	int w, h;
 	glActiveTexture(GL_TEXTURE0);
@@ -235,15 +233,15 @@ void FRiveRenderTargetOpenGL::CacheTextureTarget_Internal(const FTexture2DRHIRef
 	}
 	RIVE_DEBUG_VERBOSE("OpenGLResourcePtr %d texture size %dx%d", OpenGLResourcePtr, w, h);
 
-	if (CachedPLSRenderTargetOpenGL)
+	if (RenderTargetOpenGL)
 	{
-		CachedPLSRenderTargetOpenGL.reset();
+		RenderTargetOpenGL.reset();
 	}
 	
-	CachedPLSRenderTargetOpenGL = rive::make_rcp<rive::pls::TextureRenderTargetGL>(w, h);
-	RIVE_DEBUG_VERBOSE("PLSRenderContextGLImpl->setTargetTexture( %d )", OpenGLResourcePtr);
-	CachedPLSRenderTargetOpenGL->setTargetTexture(OpenGLResourcePtr);
-	RIVE_DEBUG_VERBOSE("CachedPLSRenderTargetOpenGL set to  %p", CachedPLSRenderTargetOpenGL.get());
+	RenderTargetOpenGL = rive::make_rcp<rive::gpu::TextureRenderTargetGL>(w, h);
+	RIVE_DEBUG_VERBOSE("RenderContextGLImpl->setTargetTexture( %d )", OpenGLResourcePtr);
+	RenderTargetOpenGL->setTargetTexture(OpenGLResourcePtr);
+	RIVE_DEBUG_VERBOSE("RenderTargetOpenGL set to  %p", RenderTargetOpenGL.get());
 
 	ResetOpenGLState();
 #endif // WITH_RIVE

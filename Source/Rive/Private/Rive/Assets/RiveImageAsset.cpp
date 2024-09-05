@@ -8,10 +8,9 @@
 #include "Engine/Texture2D.h"
 #include "TextureResource.h"
 
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/factory.hpp"
-#include "rive/pls/pls_render_context.hpp"
+#include "rive/renderer/render_context.hpp"
 THIRD_PARTY_INCLUDES_END
 
 
@@ -32,13 +31,13 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
 	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
 		[this, InTexture](IRiveRenderer* RiveRenderer)
 		{
-			rive::pls::PLSRenderContext* PLSRenderContext;
+			rive::gpu::RenderContext* RenderContext;
 			{
 				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-				PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
+				RenderContext = RiveRenderer->GetRenderContext();
 			}
 
-			if (ensure(PLSRenderContext))
+			if (ensure(RenderContext))
 			{
 				InTexture->SetForceMipLevelsToBeResident(30.f);
 				InTexture->WaitForStreaming();
@@ -71,7 +70,7 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
 				//   PLSRenderContextHelperImpl::decodeImageTexture() ->
 				//     Bitmap::decode()
 				//       // here, Bitmap only decodes webp, jpg, png and discards otherwise
-				rive::rcp<rive::RenderImage> DecodedImage = PLSRenderContext->decodeImage(rive::make_span(BitmapData.GetData(), BitmapDataSize));
+				rive::rcp<rive::RenderImage> DecodedImage = RenderContext->decodeImage(rive::make_span(BitmapData.GetData(), BitmapDataSize));
 
 				// This is what we need, to make a RenderImage and supply raw bitmap bytes that aren't already encoded:
 				// makeImage, createImage, or any other descriptive name could be used
@@ -97,15 +96,15 @@ void URiveImageAsset::LoadImageBytes(const TArray<uint8>& InBytes)
 	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
 		[this, InBytes](IRiveRenderer* RiveRenderer)
 		{
-			rive::pls::PLSRenderContext* PLSRenderContext;
+			rive::gpu::RenderContext* RenderContext;
 			{
 				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-				PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
+				RenderContext = RiveRenderer->GetRenderContext();
 			}
 	
-			if (ensure(PLSRenderContext))
+			if (ensure(RenderContext))
 			{
-				auto DecodedImage = PLSRenderContext->decodeImage(rive::make_span(InBytes.GetData(), InBytes.Num()));
+				auto DecodedImage = RenderContext->decodeImage(rive::make_span(InBytes.GetData(), InBytes.Num()));
 			
 				if (DecodedImage == nullptr)
 				{

@@ -6,7 +6,7 @@
 #include "UObject/Object.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
+
 THIRD_PARTY_INCLUDES_START
 #include "rive/assets/font_asset.hpp"
 #include "rive/assets/image_asset.hpp"

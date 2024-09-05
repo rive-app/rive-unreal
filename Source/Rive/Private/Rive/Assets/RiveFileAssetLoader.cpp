@@ -12,7 +12,6 @@
 #include "Rive/Assets/RiveImageAsset.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/assets/file_asset.hpp"
 #include "rive/assets/font_asset.hpp"

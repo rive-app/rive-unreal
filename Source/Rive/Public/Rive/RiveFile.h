@@ -9,7 +9,7 @@
 #include "Assets/RiveAsset.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
+
 THIRD_PARTY_INCLUDES_START
 #include "rive/file.hpp"
 #include "rive/span.hpp"

@@ -11,7 +11,7 @@
 class URiveFile;
 class URiveTextureObject;
 
-#include "PreRiveHeaders.h"
+
 THIRD_PARTY_INCLUDES_START
 #include "rive/file.hpp"
 THIRD_PARTY_INCLUDES_END

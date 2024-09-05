@@ -3,9 +3,6 @@
 
 #include "Rive/Assets/RiveAudioAsset.h"
 
-
-
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/assets/audio_asset.hpp"
 #include "rive/audio/audio_source.hpp"

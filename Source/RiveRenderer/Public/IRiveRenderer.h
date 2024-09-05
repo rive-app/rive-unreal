@@ -13,12 +13,6 @@ class UTextureRenderTarget2D;
 namespace rive
 {
 	class Artboard;
-
-	namespace pls
-	{
-		class PLSRenderContext;
-		class PLSRenderer;
-	}
 }
 
 #endif // WITH_RIVE
@@ -47,7 +41,7 @@ public:
 
 	virtual TSharedPtr<IRiveRenderTarget> CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) = 0;
 
-	virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) = 0;
+	virtual void CreateRenderContext_RenderThread(FRHICommandListImmediate& RHICmdList) = 0;
 
 	virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) = 0;
 
@@ -57,7 +51,7 @@ public:
 
 #if WITH_RIVE
 
-	virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() = 0;
+	virtual rive::gpu::RenderContext* GetRenderContext() = 0;
 
 #endif // WITH_RIVE
 };

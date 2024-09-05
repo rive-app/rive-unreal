@@ -8,9 +8,8 @@
 #include "Engine/FontFace.h"
 #include "Logs/RiveLog.h"
 
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
-#include "rive/pls/pls_render_context.hpp"
+#include "rive/renderer/render_context.hpp"
 THIRD_PARTY_INCLUDES_END
 
 
@@ -49,15 +48,15 @@ void URiveFontAsset::LoadFontBytes(const TArray<uint8>& InBytes)
 	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
 		[this, InBytes](IRiveRenderer* RiveRenderer)
 		{
-			rive::pls::PLSRenderContext* PLSRenderContext;
+			rive::gpu::RenderContext* RenderContext;
 			{
 				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-				PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
+				RenderContext = RiveRenderer->GetRenderContext();
 			}
 	
-			if (ensure(PLSRenderContext))
+			if (ensure(RenderContext))
 			{
-				auto DecodedFont = PLSRenderContext->decodeFont(rive::make_span(InBytes.GetData(), InBytes.Num()));
+				auto DecodedFont = RenderContext->decodeFont(rive::make_span(InBytes.GetData(), InBytes.Num()));
 			
 				if (DecodedFont == nullptr)
 				{

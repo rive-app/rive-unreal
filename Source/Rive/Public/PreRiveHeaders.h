@@ -14,7 +14,7 @@
 
 #ifdef NDEBUG
 	#pragma message("NDEBUG is set to " PREPROCESSOR_TO_STRING(NDEBUG) " before including Rive libraries! Undefining NDEBUG...")
-	#undef NDEBUG
+	// #undef NDEBUG
 #endif
 
 #ifdef DEBUG

@@ -8,7 +8,6 @@
 #include "ShaderCore.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/runtime_header.hpp"
 #include "Tests/JuiceRive.h"

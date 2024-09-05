@@ -9,15 +9,14 @@
 #include "RiveRenderTarget.h"
 
 #if WITH_RIVE
-#include "Rive/Public/PreRiveHeaders.h"
+namespace rive::gpu
+{
+	class RenderTargetMetal;
+}
+
 THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
-
-namespace rive::pls
-{
-	class PLSRenderTargetMetal;
-}
 
 #endif // WITH_RIVE
 
@@ -44,7 +43,7 @@ public:
 	//~ BEGIN : FRiveRenderTarget Interface
 
 protected:
-	virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
+	virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const override;
 	virtual void EndFrame() const override;
 	//~ END : FRiveRenderTarget Interface
 
@@ -53,7 +52,7 @@ protected:
 	 */
 
 private:
-	rive::rcp<rive::pls::PLSRenderTargetMetal> CachedPLSRenderTargetMetal;
+	rive::rcp<rive::gpu::RenderTargetMetal> RenderTargetMetal;
 
 #endif // WITH_RIVE
 

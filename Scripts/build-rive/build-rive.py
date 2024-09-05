@@ -88,7 +88,7 @@ def get_msbuild():
 def do_android(rive_runtime_path, release):
     try:
         out_dir = os.path.join('..', 'out', 'android', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'pls'))
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
 
         if 'NDK_ROOT' in os.environ and 'NDK_PATH' not in os.environ:
             os.environ['NDK_PATH'] = os.environ['NDK_ROOT']
@@ -118,7 +118,7 @@ def do_android(rive_runtime_path, release):
 def do_windows(rive_runtime_path, release):
     try:
         out_dir = os.path.join('..', 'out', 'windows', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'pls'))
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
         command = f'{get_base_command(rive_runtime_path, release)} --windows_runtime=dynamic --os=windows --out="{out_dir}" vs2022'
         execute_command(command)
 
@@ -145,7 +145,7 @@ def do_windows(rive_runtime_path, release):
 
 def do_ios(rive_runtime_path, release):
     try:
-        os.chdir(os.path.join(rive_runtime_path, 'pls'))
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
         command = f'{get_base_command(rive_runtime_path, release)} gmake2 --os=ios'
         build_dirs = {}
 
@@ -159,7 +159,7 @@ def do_ios(rive_runtime_path, release):
 
         print_green('Building iOS Simulator')
         out_dir = os.path.join('..', 'out', 'ios_sim', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'pls'))
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
         execute_command(f'{command} --variant=emulator --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['ios_sim'] = os.getcwd()
@@ -218,7 +218,7 @@ def do_mac(rive_runtime_path, release):
 
         print_green('Building macOS x64')
         out_dir = os.path.join('..', 'out', 'mac', 'x64', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'pls'))
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
         execute_command(f'{command} --arch=x64 --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['mac_x64'] = os.getcwd()
@@ -227,7 +227,7 @@ def do_mac(rive_runtime_path, release):
 
         print_green('Building macOS arm64')
         out_dir = os.path.join('..', 'out', 'mac', 'arm64', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'pls'))
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
         execute_command(f'{command} --arch=arm64 --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['mac_arm64'] = os.getcwd()
@@ -276,7 +276,7 @@ def copy_files(src, dst, extension, is_release):
 def copy_includes(rive_runtime_path):
     print_green('Copying rive includes...')
     rive_includes_path = os.path.join(rive_runtime_path, 'include')
-    rive_pls_includes_path = os.path.join(rive_runtime_path, 'pls', 'include')
+    rive_pls_includes_path = os.path.join(rive_runtime_path, 'renderer', 'include')
     rive_decoders_includes_path = os.path.join(rive_runtime_path, 'decoders', 'include')
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')
     if os.path.exists(target_path):
