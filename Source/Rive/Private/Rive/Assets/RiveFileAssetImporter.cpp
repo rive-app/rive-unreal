@@ -1,12 +1,14 @@
 ﻿// Copyright Rive, Inc. All rights reserved.
 
 #include "Rive/Assets/RiveFileAssetImporter.h"
+#include "AssetRegistry/AssetData.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Logs/RiveLog.h"
 #include "Misc/FileHelper.h"
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/RiveAssetHelpers.h"
 #include "Rive/Assets/RiveFileAssetLoader.h"
+#include "UObject/Package.h"
 
 #if WITH_EDITOR
 #include "AssetToolsModule.h"

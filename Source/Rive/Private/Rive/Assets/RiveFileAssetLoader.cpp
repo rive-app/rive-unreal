@@ -3,16 +3,19 @@
 #include "Rive/Assets/RiveFileAssetLoader.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Engine/Engine.h"
 #include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveAsset.h"
 #include "Rive/Assets/RiveAssetHelpers.h"
-#include "rive/factory.hpp"
 #include "Rive/Assets/RiveAudioAsset.h"
 #include "Rive/Assets/RiveFontAsset.h"
 #include "Rive/Assets/RiveImageAsset.h"
+#include "UObject/Package.h"
+#include "UObject/SavePackage.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
+#include "rive/factory.hpp"
 #include "rive/assets/file_asset.hpp"
 #include "rive/assets/font_asset.hpp"
 #include "rive/assets/image_asset.hpp"
@@ -96,7 +99,10 @@ namespace UE::Private::RiveFileAssetLoader
 		FAssetRegistryModule::AssetDeleted(RiveAsset);
 		FAssetRegistryModule::AssetCreated(NewAsset);
 		NewAsset->MarkPackageDirty();
-		UPackage::SavePackage(NewPackage, NewAsset, RF_Public | RF_Standalone, *FPackageName::LongPackageNameToFilename(AssetPath, FPackageName::GetAssetPackageExtension()));
+
+		FSavePackageArgs SaveArgs;
+		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+		UPackage::SavePackage(NewPackage, NewAsset, *FPackageName::LongPackageNameToFilename(AssetPath, FPackageName::GetAssetPackageExtension()), SaveArgs);
 #endif
 		
 		

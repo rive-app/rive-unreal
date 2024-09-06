@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "RiveWidgetActor.generated.h"
 
+class UUserWidget;
 class URiveWidget;
 struct FRiveDescriptor;
 class URiveTextureObject;

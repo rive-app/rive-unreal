@@ -3,10 +3,11 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "Rive/RiveArtboard.h"
+#include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveFileAssetImporter.h"
 #include "Rive/Assets/RiveFileAssetLoader.h"
-#include "Logs/RiveLog.h"
+#include "Rive/RiveArtboard.h"
+#include "Blueprint/UserWidget.h"
 
 #if WITH_EDITOR
 #include "EditorFramework/AssetImportData.h"

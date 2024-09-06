@@ -2,14 +2,14 @@
 
 #include "Game/RiveActorComponent.h"
 
-#include <Rive/RiveTexture.h>
-
+#include "GameFramework/Actor.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "Rive/RiveArtboard.h"
 #include "Logs/RiveLog.h"
+#include "Rive/RiveArtboard.h"
 #include "Rive/RiveDescriptor.h"
 #include "Rive/RiveFile.h"
+#include "Rive/RiveTexture.h"
 #include "Stats/RiveStats.h"
 
 class FRiveStateMachine;

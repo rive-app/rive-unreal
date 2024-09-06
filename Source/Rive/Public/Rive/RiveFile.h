@@ -2,11 +2,11 @@
 #pragma once
 
 #include <memory>
-
-#include "CoreMinimal.h"
-#include "UObject/Object.h"
-#include "RiveTypes.h"
 #include "Assets/RiveAsset.h"
+#include "Blueprint/UserWidget.h"
+#include "CoreMinimal.h"
+#include "RiveTypes.h"
+#include "UObject/Object.h"
 
 #if WITH_RIVE
 
@@ -18,7 +18,6 @@ THIRD_PARTY_INCLUDES_END
 
 #include "RiveFile.generated.h"
 
-class UUserWidget;
 class URiveAsset;
 class URiveArtboard;
 

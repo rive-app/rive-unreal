@@ -6,6 +6,7 @@
 
 #include "DynamicRHI.h"
 #include "Engine/Texture2DDynamic.h"
+#include "RenderGraphUtils.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderer.h"
 #include <Metal/Metal.h>
