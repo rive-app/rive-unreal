@@ -5,6 +5,7 @@
 #include "IRiveRenderTarget.h"
 #include "RiveTypes.h"
 #include "Components/ActorComponent.h"
+#include "Rive/RiveArtboard.h"
 #include "Rive/RiveDescriptor.h"
 #include "RiveActorComponent.generated.h"
 
@@ -66,7 +67,13 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = Rive)
     int32 GetArtboardCount() const;
+
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    void SetAudioEngine(URiveAudioEngine* InRiveAudioEngine);
     
+#if WITH_EDITOR
+    virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+#endif
 protected:
     void RiveReady(IRiveRenderer* InRiveRenderer);
     void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource);
@@ -95,5 +102,13 @@ private:
     UFUNCTION()
     void OnDefaultArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);
     
+    UFUNCTION()
+    TArray<FString> GetArtboardNamesForDropdown() const;
+
+    UFUNCTION()
+    TArray<FString> GetStateMachineNamesForDropdown() const;
+
+    void InitializeAudioEngine();
+    FDelegateHandle AudioEngineLambdaHandle; 
     TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 };

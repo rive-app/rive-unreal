@@ -2,8 +2,10 @@
 
 #pragma once
 
+#include "Engine/TimerHandle.h"
 #include "Widgets/SCompoundWidget.h"
 
+class SImage;
 class URiveArtboard;
 class FRiveStateMachine;
 class URiveTexture;

@@ -4,6 +4,7 @@
 #include <string>
 #include <stddef.h>
 #include <vector>
+#include <unordered_map>
 #include "rive/animation/linear_animation_instance.hpp"
 #include "rive/animation/state_instance.hpp"
 #include "rive/animation/state_transition.hpp"
@@ -25,12 +26,21 @@ class SMITrigger;
 class Shape;
 class StateMachineLayerInstance;
 class HitComponent;
+class HitShape;
+class ListenerGroup;
 class NestedArtboard;
 class NestedEventListener;
 class NestedEventNotifier;
 class Event;
 class KeyedProperty;
 class EventReport;
+class DataBind;
+class BindableProperty;
+
+#ifdef WITH_RIVE_TOOLS
+class StateMachineInstance;
+typedef void (*InputChanged)(StateMachineInstance*, uint64_t);
+#endif
 
 class StateMachineInstance : public Scene, public NestedEventNotifier, public NestedEventListener
 {
@@ -51,6 +61,7 @@ private:
     double randomValue();
     StateTransition* findRandomTransition(StateInstance* stateFromInstance, bool ignoreTriggers);
     StateTransition* findAllowedTransition(StateInstance* stateFromInstance, bool ignoreTriggers);
+    DataContext* m_DataContext;
 
 public:
     StateMachineInstance(const StateMachine* machine, ArtboardInstance* instance);
@@ -73,6 +84,8 @@ public:
     SMIBool* getBool(const std::string& name) const override;
     SMINumber* getNumber(const std::string& name) const override;
     SMITrigger* getTrigger(const std::string& name) const override;
+    void dataContextFromInstance(ViewModelInstance* viewModelInstance) override;
+    void dataContext(DataContext* dataContext);
 
     size_t currentAnimationCount() const;
     const LinearAnimationInstance* currentAnimationByIndex(size_t index) const;
@@ -92,6 +105,9 @@ public:
     HitResult pointerDown(Vec2D position) override;
     HitResult pointerUp(Vec2D position) override;
     HitResult pointerExit(Vec2D position) override;
+#ifdef WITH_RIVE_TOOLS
+    bool hitTest(Vec2D position) const;
+#endif
 
     float durationSeconds() const override { return -1; }
     Loop loop() const override { return Loop::oneShot; }
@@ -99,7 +115,7 @@ public:
 
     /// Allow anything referencing a concrete StateMachineInstace access to
     /// the backing artboard (explicitly not allowed on Scenes).
-    Artboard* artboard() { return m_artboardInstance; }
+    Artboard* artboard() const { return m_artboardInstance; }
 
     void setParentStateMachineInstance(StateMachineInstance* instance)
     {
@@ -120,6 +136,21 @@ public:
     /// Gets a reported event at an index < reportedEventCount().
     const EventReport reportedEventAt(std::size_t index) const;
     bool playsAudio() override { return true; }
+    BindableProperty* bindablePropertyInstance(BindableProperty* bindableProperty) const;
+    DataBind* bindableDataBind(BindableProperty* bindableProperty);
+#ifdef TESTING
+    size_t hitComponentsCount() { return m_hitComponents.size(); };
+    HitComponent* hitComponent(size_t index)
+    {
+        if (index < m_hitComponents.size())
+        {
+            return m_hitComponents[index].get();
+        }
+        return nullptr;
+    }
+    const LayerState* layerState(size_t index);
+#endif
+    void updateDataBinds();
 
 private:
     std::vector<EventReport> m_reportedEvents;
@@ -129,8 +160,42 @@ private:
     size_t m_layerCount;
     StateMachineLayerInstance* m_layers;
     std::vector<std::unique_ptr<HitComponent>> m_hitComponents;
+    std::vector<std::unique_ptr<ListenerGroup>> m_listenerGroups;
     StateMachineInstance* m_parentStateMachineInstance = nullptr;
     NestedArtboard* m_parentNestedArtboard = nullptr;
+    std::vector<DataBind*> m_dataBinds;
+    std::unordered_map<BindableProperty*, BindableProperty*> m_bindablePropertyInstances;
+    std::unordered_map<BindableProperty*, DataBind*> m_bindableDataBinds;
+
+#ifdef WITH_RIVE_TOOLS
+public:
+    void onInputChanged(InputChanged callback) { m_inputChangedCallback = callback; }
+    void onDataBindChanged(DataBindChanged callback);
+    InputChanged m_inputChangedCallback = nullptr;
+#endif
 };
+
+class HitComponent
+{
+public:
+    Component* component() const { return m_component; }
+    HitComponent(Component* component, StateMachineInstance* stateMachineInstance) :
+        m_component(component), m_stateMachineInstance(stateMachineInstance)
+    {}
+    virtual ~HitComponent() {}
+    virtual HitResult processEvent(Vec2D position, ListenerType hitType, bool canHit) = 0;
+    virtual void prepareEvent(Vec2D position, ListenerType hitType) = 0;
+#ifdef WITH_RIVE_TOOLS
+    virtual bool hitTest(Vec2D position) const = 0;
+#endif
+#ifdef TESTING
+    int earlyOutCount = 0;
+#endif
+
+protected:
+    Component* m_component;
+    StateMachineInstance* m_stateMachineInstance;
+};
+
 } // namespace rive
 #endif

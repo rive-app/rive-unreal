@@ -49,9 +49,9 @@ open-source runtime libraries allow them to load their animations into apps, gam
 
 🏡 [Homepage](https://rive.app/)
 
-📘 [General help docs](https://rive.app/community/doc/introduction/docvphVOrBbl) 
+📘 [General help docs](https://help.rive.app/) 
 
-📘 [Rive Unreal docs](https://rive.app/community/doc/unreal/docz17NbarFe)
+📘 Rive Unreal docs (Coming soon!)
 
 🛠 [Learning Rive](https://rive.app/learn-rive/)
 
@@ -59,9 +59,9 @@ open-source runtime libraries allow them to load their animations into apps, gam
 
 Check out the latest example project from the [releases page](https://github.com/rive-app/rive-unreal/releases) to see a few techniques for adding Rive graphics in an Unreal project, as well as documentation on navigating the samples.
 
-You can find the source for the rive-unreal-examples [here](https://github.com/rive-app/rive-unreal-examples).
+Stay tuned for more detailed and official documentation on using Rive in Unreal. You can find the source for the rive-unreal-examples [here](https://github.com/rive-app/rive-unreal-examples).
 
-You will need to work in the **Unreal 5.3 or 5.4** editor that supports OpenGL or D3D11 for Windows, or a Mac with ARM64 (M1, M2, etc) architecture.
+You will need to work in the **Unreal 5.3** editor that supports OpenGL or D3D11 for Windows, or a Mac with ARM64 (M1, M2, etc) architecture.
 
 Select either D3D11/OpenGL for Windows, or Metal for Mac/iOS as the Renderer ID under Editor Preferences -> Plugins - Graphics Switching in Unreal. If you are making an Android Build, make sure to use OpenGL instead of Vulcan.
 
@@ -69,7 +69,7 @@ Select either D3D11/OpenGL for Windows, or Metal for Mac/iOS as the Renderer ID 
 
 For this technical preview, you can add the Rive Unreal plugin to your existing Unreal projects by downloading the plugin from the Github Releases, and copy/pasting the Rive folder into your `Plugins/` folder of your project (or creating one). 
 
-Then drag in a `.riv` file to your Unreal project to generate a new Widget Blueprint, Texture Object, and a Rive File definition.
+Now, you should be able to drag in `.riv` files to your Unreal project to generate a new Widget Blueprint, and a Rive File definition.
 
 ### Awesome Rive
 

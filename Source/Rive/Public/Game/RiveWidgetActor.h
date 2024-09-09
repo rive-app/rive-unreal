@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "RiveWidgetActor.generated.h"
 
+class UUserWidget;
 class URiveWidget;
 struct FRiveDescriptor;
 class URiveTextureObject;
@@ -48,4 +49,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "Audio", meta = (ShowOnlyInnerProperties))
 	TObjectPtr<URiveAudioEngine> AudioEngine;
+
+	TObjectPtr<URiveWidget> RiveWidget;
+	
+	UFUNCTION()
+	void OnRiveWidgetReady();
 };

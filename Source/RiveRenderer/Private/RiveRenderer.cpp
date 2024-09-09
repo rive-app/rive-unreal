@@ -9,7 +9,7 @@
 #include "TextureResource.h"
 #include "UObject/Package.h"
 
-#include "rive/pls/pls_render_context.hpp"
+// #include "rive/renderer/render_context.hpp"
 
 FRiveRenderer::FRiveRenderer()
 {
@@ -24,10 +24,10 @@ FRiveRenderer::~FRiveRenderer()
     if (!IsRunningCommandlet())
     {
 
-        if (PLSRenderContext)
+        if (RenderContext)
         {
             FScopeLock Lock(&ThreadDataCS);
-            PLSRenderContext->releaseResources();
+            RenderContext->releaseResources();
         }
     }
 
@@ -48,7 +48,7 @@ void FRiveRenderer::Initialize()
     ENQUEUE_RENDER_COMMAND(FRiveRenderer_Initialize)(
     [this](FRHICommandListImmediate& RHICmdList)
     {
-        CreatePLSContext_RenderThread(RHICmdList);
+        CreateRenderContext_RenderThread(RHICmdList);
         AsyncTask(ENamedThreads::GameThread, [this]()
         {
             {
@@ -78,15 +78,15 @@ void FRiveRenderer::CallOrRegister_OnInitialized(FOnRendererInitialized::FDelega
     }
 }
 
-rive::pls::PLSRenderContext* FRiveRenderer::GetPLSRenderContextPtr()
+rive::gpu::RenderContext* FRiveRenderer::GetRenderContext()
 {
-    if (!PLSRenderContext)
+    if (!RenderContext)
     {
-        UE_LOG(LogRiveRenderer, Error, TEXT("Rive PLS Render Context is uninitialized."));
+        UE_LOG(LogRiveRenderer, Error, TEXT("Rive Render Context is uninitialized."));
         return nullptr;
     }
 
-    return PLSRenderContext.get();
+    return RenderContext.get();
 }
 
 

@@ -7,21 +7,14 @@
 #if PLATFORM_WINDOWS
 
 #if WITH_RIVE
-#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "Windows/MinWindows.h"
-#include "rive/pls/d3d/pls_render_context_d3d_impl.hpp" // This ends up including windows.h 
+#include "rive/renderer/d3d/render_context_d3d_impl.hpp" // This ends up including windows.h 
 #include "Windows/HideWindowsPlatformTypes.h"
 THIRD_PARTY_INCLUDES_END
 
 struct ID3D11DynamicRHI;
-
-namespace rive::pls
-{
-	class PLSRenderTargetD3D;
-	class PLSRenderContextD3DImpl;
-}
 
 #endif // WITH_RIVE
 
@@ -33,7 +26,7 @@ public:
 	}
 
 #if WITH_RIVE
-	void Initialize(rive::pls::PLSRenderContextD3DImpl::ContextOptions& OutContextOptions);
+	void Initialize(rive::gpu::RenderContextD3DImpl::ContextOptions& OutContextOptions);
 #endif // WITH_RIVE
 	void ResetDXState();
 
@@ -57,7 +50,7 @@ class RIVERENDERER_API FRiveRendererD3D11 : public FRiveRenderer
 public:
 	//~ BEGIN : IRiveRenderer Interface
 	virtual TSharedPtr<IRiveRenderTarget> CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override;
-	virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
+	virtual void CreateRenderContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
 	//~ END : IRiveRenderer Interface
 
 	void ResetDXState() const;

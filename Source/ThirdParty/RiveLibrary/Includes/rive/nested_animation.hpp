@@ -35,22 +35,19 @@ public:
 
     void notifyListeners(const std::vector<Event*>& events)
     {
-        if (m_nestedArtboard != nullptr)
+        std::vector<EventReport> eventReports;
+        for (auto event : events)
         {
-            std::vector<EventReport> eventReports;
-            for (auto event : events)
-            {
-                eventReports.push_back(EventReport(event, 0));
-            }
-            for (auto listener : m_nestedEventListeners)
-            {
-                listener->notify(eventReports, m_nestedArtboard);
-            }
+            eventReports.push_back(EventReport(event, 0));
+        }
+        for (auto listener : m_nestedEventListeners)
+        {
+            listener->notify(eventReports, m_nestedArtboard);
         }
     }
 
 private:
-    NestedArtboard* m_nestedArtboard;
+    NestedArtboard* m_nestedArtboard = nullptr;
     std::vector<NestedEventListener*> m_nestedEventListeners;
 };
 

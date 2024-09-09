@@ -3,20 +3,20 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "Rive/RiveArtboard.h"
+#include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveFileAssetImporter.h"
 #include "Rive/Assets/RiveFileAssetLoader.h"
-#include "Logs/RiveLog.h"
+#include "Rive/RiveArtboard.h"
+#include "Blueprint/UserWidget.h"
 
 #if WITH_EDITOR
 #include "EditorFramework/AssetImportData.h"
 #endif
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/animation/state_machine_input.hpp"
-#include "rive/pls/pls_render_context.hpp"
+#include "rive/renderer/render_context.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
@@ -100,13 +100,13 @@ void URiveFile::Initialize()
 	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
 	[this](IRiveRenderer* RiveRenderer)
 	{
-		rive::pls::PLSRenderContext* PLSRenderContext;
+		rive::gpu::RenderContext* RenderContext;
 		{
 			FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-			PLSRenderContext = RiveRenderer->GetPLSRenderContextPtr();
+			RenderContext = RiveRenderer->GetRenderContext();
 		}
 		
-		if (ensure(PLSRenderContext))
+		if (ensure(RenderContext))
 		{
 			ArtboardNames.Empty();
 			Artboards.Empty();
@@ -119,7 +119,7 @@ void URiveFile::Initialize()
 			{
 				bNeedsImport = false;
 				const TUniquePtr<FRiveFileAssetImporter> AssetImporter = MakeUnique<FRiveFileAssetImporter>(GetOutermost(), AssetImportData->GetFirstFilename(), GetAssets());
-				RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult, AssetImporter.Get());
+				RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, RenderContext, &ImportResult, AssetImporter.Get());
 				if (ImportResult != rive::ImportResult::success)
 				{
 					UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
@@ -131,7 +131,7 @@ void URiveFile::Initialize()
 #endif
 			
 			const TUniquePtr<FRiveFileAssetLoader> FileAssetLoader = MakeUnique<FRiveFileAssetLoader>(this, Assets);
-			RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, PLSRenderContext, &ImportResult, FileAssetLoader.Get());
+			RiveNativeFilePtr = rive::File::import(RiveNativeFileSpan, RenderContext, &ImportResult, FileAssetLoader.Get());
 
 			if (ImportResult != rive::ImportResult::success)
 			{

@@ -7,24 +7,9 @@
 #if PLATFORM_ANDROID
 
 #include "RiveRenderer.h"
-
-#if WITH_RIVE
 #include "IOpenGLDynamicRHI.h"
 
 class FOpenGLBase;
-
-namespace rive
-{
-	class File;
-}
-
-namespace rive::pls
-{
-	class PLSImage;
-	class PLSRenderTargetGL;
-}
-
-#endif // WITH_RIVE
 
 class RIVERENDERER_API FRiveRendererOpenGL : public FRiveRenderer
 {
@@ -36,13 +21,13 @@ public:
 public:
 	virtual void Initialize() override;
 #if WITH_RIVE
-	virtual rive::pls::PLSRenderContext* GetPLSRenderContextPtr() override;
+	virtual rive::gpu::RenderContext* GetRenderContext() override;
 	virtual TSharedPtr<IRiveRenderTarget> CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override;
-	virtual void CreatePLSContext_GameThread();
-	virtual void CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
+	virtual void CreateRenderContext_GameThread();
+	virtual void CreateRenderContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
 	//~ END : IRiveRenderer Interface
 
-	virtual rive::pls::PLSRenderContext* GetOrCreatePLSRenderContextPtr_Internal();
+	virtual rive::gpu::RenderContext* GetOrCreateRenderContext_Internal();
 #endif // WITH_RIVE
 	static bool IsRHIOpenGL();
 

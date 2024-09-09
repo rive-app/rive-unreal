@@ -11,18 +11,18 @@ class DataBindContextValueList : public DataBindContextValue
 {
 
 public:
-    DataBindContextValueList(ViewModelInstanceValue* value);
-    void apply(Component* component, uint32_t propertyKey) override;
-    void update(Component* target) override;
-    virtual void applyToSource(Component* component, uint32_t propertyKey) override;
+    DataBindContextValueList(ViewModelInstanceValue* source, DataConverter* converter);
+    void apply(Core* component, uint32_t propertyKey, bool isMainDirection) override;
+    void update(Core* target) override;
+    virtual void applyToSource(Core* component,
+                               uint32_t propertyKey,
+                               bool isMainDirection) override;
 
 private:
     std::vector<std::unique_ptr<DataBindContextValueListItem>> m_ListItemsCache;
-    void insertItem(Component* target,
-                    ViewModelInstanceListItem* viewModelInstanceListItem,
-                    int index);
-    void swapItems(Component* target, int index1, int index2);
-    void popItem(Component* target);
+    void insertItem(Core* target, ViewModelInstanceListItem* viewModelInstanceListItem, int index);
+    void swapItems(Core* target, int index1, int index2);
+    void popItem(Core* target);
     std::unique_ptr<ArtboardInstance> createArtboard(Component* target,
                                                      Artboard* artboard,
                                                      ViewModelInstanceListItem* listItem) const;

@@ -34,8 +34,7 @@ UCLASS(BlueprintType, Blueprintable, HideCategories=("ImportSettings", "Compress
 class RIVE_API URiveTextureObject : public URiveTexture, public FTickableGameObject
 {
 	GENERATED_BODY()
-	DECLARE_MULTICAST_DELEGATE(FRiveReadyDelegate)
-
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
 
 public:
 	/**
@@ -76,6 +75,11 @@ public:
 	 * Implementation(s)
 	 */
 
+#if WITH_EDITOR
+	void OnBeginPIE(bool bIsSimulating);
+	void OnEndPIE(bool bIsSimulating);
+#endif
+	
 public:
 
 	UFUNCTION(BlueprintPure, Category = Rive)
@@ -96,7 +100,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	URiveArtboard* GetArtboard() const;
-	
+
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetAudioEngine(URiveAudioEngine* InRiveAudioEngine);
+
+	UPROPERTY(BlueprintAssignable, Category = Rive)
 	FRiveReadyDelegate OnRiveReady;
 	
 protected:
@@ -118,6 +126,12 @@ public:
 private:
 	UFUNCTION()
 	void OnArtboardTickRender(float DeltaTime, URiveArtboard* InArtboard);
+
+	UFUNCTION()
+	TArray<FString> GetArtboardNamesForDropdown() const;
+
+	UFUNCTION()
+	TArray<FString> GetStateMachineNamesForDropdown() const;
 	
 	UPROPERTY(EditAnywhere, Category = Rive)
 	FLinearColor ClearColor = FLinearColor::Transparent;
@@ -128,6 +142,8 @@ private:
 	URiveArtboard* Artboard = nullptr;
 	
 	UPROPERTY(Transient, BlueprintReadOnly, Category=Rive, meta=(AllowPrivateAccess))
-	URiveAudioEngine* AudioEngine = nullptr;
-	FDelegateHandle AudioEngineLambdaHandle; 
+	URiveAudioEngine* RiveAudioEngine = nullptr;
+	void InitializeAudioEngine();
+	
+	FDelegateHandle AudioEngineLambdaHandle;
 };

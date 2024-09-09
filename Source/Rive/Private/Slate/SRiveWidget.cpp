@@ -1,10 +1,13 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "Slate/SRiveWidget.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "ImageUtils.h"
 #include "Rive/RiveTextureObject.h"
 #include "TimerManager.h"
 #include "Widgets/Images/SImage.h"
+#include "Widgets/SOverlay.h"
 
 #if WITH_EDITOR
 #include "TextureEditorSettings.h"
@@ -79,6 +82,7 @@ void SRiveWidget::SetRiveTexture(URiveTexture* InRiveTexture)
 			RiveTextureBrush->TintColor = FSlateColor(FLinearColor::White);
 			RiveTextureBrush->SetResourceObject(RiveTexture);
 			RiveImageView->SetImage(RiveTextureBrush.Get());
+			InRiveTexture->ResizeRenderTargets(FIntPoint(PreviousSize.X, PreviousSize.Y));
 		}
 	}
 }

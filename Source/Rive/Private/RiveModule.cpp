@@ -8,7 +8,6 @@
 #include "ShaderCore.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/runtime_header.hpp"
 #include "Tests/JuiceRive.h"
@@ -20,9 +19,6 @@ THIRD_PARTY_INCLUDES_END
 void FRiveModule::StartupModule()
 {
     TestRiveIntegration();
-
-    const FString PluginShaderDir = FPaths::Combine(IPluginManager::Get().FindPlugin(TEXT("Rive"))->GetBaseDir(), TEXT("Shaders"));
-    AddShaderSourceDirectoryMapping(TEXT("/Plugin/Rive"), PluginShaderDir);
 }
 
 void FRiveModule::ShutdownModule()

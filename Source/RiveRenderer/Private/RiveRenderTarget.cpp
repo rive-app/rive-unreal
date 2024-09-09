@@ -8,10 +8,9 @@
 #include "RenderingThread.h"
 #include "TextureResource.h"
 
-#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
-#include "rive/pls/pls_renderer.hpp"
+#include "rive/renderer/rive_renderer.hpp"
 THIRD_PARTY_INCLUDES_END
 
 #if PLATFORM_APPLE
@@ -153,19 +152,19 @@ FMatrix FRiveRenderTarget::GetTransformMatrix() const
 	return CurrentMatrix;
 }
 
-std::unique_ptr<rive::pls::PLSRenderer> FRiveRenderTarget::BeginFrame()
+std::unique_ptr<rive::RiveRenderer> FRiveRenderTarget::BeginFrame()
 {
-	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
-	if (PLSRenderContextPtr == nullptr)
+	rive::gpu::RenderContext* RenderContext = RiveRenderer->GetRenderContext();
+	if (RenderContext == nullptr)
 	{
 		return nullptr;
 	}
 
 	FColor Color = ClearColor.ToRGBE();
-	rive::pls::PLSRenderContext::FrameDescriptor FrameDescriptor;
+	rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
 	FrameDescriptor.renderTargetWidth = GetWidth();
 	FrameDescriptor.renderTargetHeight = GetHeight();
-	FrameDescriptor.loadAction = bIsCleared ? rive::pls::LoadAction::clear : rive::pls::LoadAction::preserveRenderTarget;
+	FrameDescriptor.loadAction = bIsCleared ? rive::gpu::LoadAction::clear : rive::gpu::LoadAction::preserveRenderTarget;
 	FrameDescriptor.clearColor = rive::colorARGB(Color.A, Color.R, Color.G, Color.B);
 	FrameDescriptor.wireframe = false;
 	FrameDescriptor.fillsDisabled = false;
@@ -177,17 +176,17 @@ std::unique_ptr<rive::pls::PLSRenderer> FRiveRenderTarget::BeginFrame()
 	}
 
 #if PLATFORM_ANDROID
-	RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL PLSRenderContextPtr->beginFrame %p", PLSRenderContextPtr);
+	RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL RenderContext->beginFrame %p", RenderContext);
 #endif
     
-	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
-	return std::make_unique<rive::pls::PLSRenderer>(PLSRenderContextPtr);
+	RenderContext->beginFrame(std::move(FrameDescriptor));
+	return std::make_unique<rive::RiveRenderer>(RenderContext);
 }
 
 void FRiveRenderTarget::EndFrame() const
 {
-	rive::pls::PLSRenderContext* PLSRenderContextPtr = RiveRenderer->GetPLSRenderContextPtr();
-	if (PLSRenderContextPtr == nullptr)
+	rive::gpu::RenderContext* RenderContext = RiveRenderer->GetRenderContext();
+	if (RenderContext == nullptr)
 	{
 		return;
 	}
@@ -195,13 +194,13 @@ void FRiveRenderTarget::EndFrame() const
 	// End drawing a frame.
 	// Flush
 #if PLATFORM_ANDROID
-	RIVE_DEBUG_VERBOSE("PLSRenderContextPtr->flush %p", PLSRenderContextPtr);
+	RIVE_DEBUG_VERBOSE("RenderContext->flush %p", RenderContext);
 #endif
-	const rive::pls::PLSRenderContext::FlushResources FlushResources
+	const rive::gpu::RenderContext::FlushResources FlushResources
 	{
 		GetRenderTarget().get()
 	};
-	PLSRenderContextPtr->flush(FlushResources);
+	RenderContext->flush(FlushResources);
 }
 
 uint32 FRiveRenderTarget::GetWidth() const
@@ -240,15 +239,15 @@ void FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRe
 #endif
     
 	// Begin Frame
-	std::unique_ptr<rive::pls::PLSRenderer> PLSRenderer = BeginFrame();
-	if (PLSRenderer == nullptr)
+	std::unique_ptr<rive::RiveRenderer> Renderer = BeginFrame();
+	if (Renderer == nullptr)
 	{
 		return;
 	}
 	
 #if PLATFORM_ANDROID
 	// We need to invert the Y Axis for OpenGL, and this needs to not affect input transforms
-	PLSRenderer->transform(rive::Mat2D::fromScaleAndTranslation(1.f, -1.f, 0.f, GetHeight()));
+	Renderer->transform(rive::Mat2D::fromScaleAndTranslation(1.f, -1.f, 0.f, GetHeight()));
 #endif
 	
 	for (const FRiveRenderCommand& RenderCommand : RiveRenderCommands)
@@ -256,16 +255,16 @@ void FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRe
 		switch (RenderCommand.Type)
 		{
 		case ERiveRenderCommandType::Save:
-			PLSRenderer->save();
+			Renderer->save();
 			break;
 		case ERiveRenderCommandType::Restore:
-			PLSRenderer->restore();
+			Renderer->restore();
 			break;
 		case ERiveRenderCommandType::DrawArtboard:
 #if PLATFORM_ANDROID
 			RIVE_DEBUG_VERBOSE("RenderCommand.NativeArtboard->draw()");
 #endif
-			RenderCommand.NativeArtboard->draw(PLSRenderer.get());
+			RenderCommand.NativeArtboard->draw(Renderer.get());
 			break;
 		case ERiveRenderCommandType::DrawPath:
 			// TODO: Support DrawPath
@@ -276,7 +275,7 @@ void FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRe
 		case ERiveRenderCommandType::Transform:
 		case ERiveRenderCommandType::AlignArtboard:
 		case ERiveRenderCommandType::Translate:
-			PLSRenderer->transform(RenderCommand.GetSaved2DTransform());
+			Renderer->transform(RenderCommand.GetSaved2DTransform());
 			break;
 		}
 	}
