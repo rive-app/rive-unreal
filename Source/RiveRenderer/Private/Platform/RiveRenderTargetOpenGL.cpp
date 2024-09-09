@@ -112,7 +112,8 @@ std::unique_ptr<rive::RiveRenderer> FRiveRenderTargetOpenGL::BeginFrame()
 		return nullptr;
 	}
 	
-	RIVE_DEBUG_VERBOSE("RenderContextGLImpl->resetGLState() %p", RenderContext->static_impl_cast<rive::gpu::RenderContextGLImpl>()->invalidateGLState();
+	RIVE_DEBUG_VERBOSE("RenderContextGLImpl->invalidateGLState() %p", RenderContext);
+	RenderContext->static_impl_cast<rive::gpu::RenderContextGLImpl>()->invalidateGLState();
 	
 	return FRiveRenderTarget::BeginFrame();
 }
