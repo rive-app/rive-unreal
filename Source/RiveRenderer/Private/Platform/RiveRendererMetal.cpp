@@ -12,11 +12,10 @@
 #include <Metal/Metal.h>
 
 #if WITH_RIVE
-#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
-#include "rive/pls/metal/pls_render_context_metal_impl.h"
-#include "rive/pls/pls_renderer.hpp"
+#include "rive/renderer/metal/render_context_metal_impl.h"
+#include "rive/renderer.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 #include "Mac/AutoreleasePool.h"
@@ -34,15 +33,15 @@ TSharedPtr<IRiveRenderTarget> FRiveRendererMetal::CreateTextureTarget_GameThread
     return RiveRenderTarget;
 }
 
-DECLARE_GPU_STAT_NAMED(CreatePLSContext, TEXT("CreatePLSContext_RenderThread"));
-void FRiveRendererMetal::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
+DECLARE_GPU_STAT_NAMED(CreateRenderContext, TEXT("CreateRenderContext_RenderThread"));
+void FRiveRendererMetal::CreateRenderContext_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
     AutoreleasePool pool;
     check(IsInRenderingThread());
     
     FScopeLock Lock(&ThreadDataCS);
     
-    SCOPED_GPU_STAT(RHICmdList, CreatePLSContext);
+    SCOPED_GPU_STAT(RHICmdList, CreateRenderContext);
     
     if (GDynamicRHI != nullptr && GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Metal)
     {
@@ -51,7 +50,7 @@ void FRiveRendererMetal::CreatePLSContext_RenderThread(FRHICommandListImmediate&
         check(MetalDevice);
 
 #if WITH_RIVE
-        PLSRenderContext = rive::pls::PLSRenderContextMetalImpl::MakeContext(MetalDevice);
+        RenderContext = rive::gpu::RenderContextMetalImpl::MakeContext(MetalDevice);
 #endif // WITH_RIVE
     }
 }

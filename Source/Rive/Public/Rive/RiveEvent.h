@@ -6,7 +6,7 @@
 #include "UObject/NoExportTypes.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
+
 THIRD_PARTY_INCLUDES_START
 #include "rive/animation/state_machine_instance.hpp"
 #include "rive/custom_property.hpp"

@@ -3,17 +3,17 @@
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
-#include "Rive/RiveArtboard.h"
+#include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveFileAssetImporter.h"
 #include "Rive/Assets/RiveFileAssetLoader.h"
-#include "Logs/RiveLog.h"
+#include "Rive/RiveArtboard.h"
+#include "Blueprint/UserWidget.h"
 
 #if WITH_EDITOR
 #include "EditorFramework/AssetImportData.h"
 #endif
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/animation/state_machine_input.hpp"
 #include "rive/renderer/render_context.hpp"
@@ -103,7 +103,7 @@ void URiveFile::Initialize()
 		rive::gpu::RenderContext* RenderContext;
 		{
 			FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-			RenderContext = RiveRenderer->GetRenderContextPtr();
+			RenderContext = RiveRenderer->GetRenderContext();
 		}
 		
 		if (ensure(RenderContext))

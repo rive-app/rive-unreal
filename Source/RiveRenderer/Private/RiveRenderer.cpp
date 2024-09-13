@@ -9,7 +9,7 @@
 #include "TextureResource.h"
 #include "UObject/Package.h"
 
-#include "rive/renderer/render_context.hpp"
+// #include "rive/renderer/render_context.hpp"
 
 FRiveRenderer::FRiveRenderer()
 {
@@ -48,7 +48,7 @@ void FRiveRenderer::Initialize()
     ENQUEUE_RENDER_COMMAND(FRiveRenderer_Initialize)(
     [this](FRHICommandListImmediate& RHICmdList)
     {
-        CreatePLSContext_RenderThread(RHICmdList);
+        CreateRenderContext_RenderThread(RHICmdList);
         AsyncTask(ENamedThreads::GameThread, [this]()
         {
             {
@@ -78,11 +78,11 @@ void FRiveRenderer::CallOrRegister_OnInitialized(FOnRendererInitialized::FDelega
     }
 }
 
-rive::gpu::RenderContext* FRiveRenderer::GetRenderContextPtr()
+rive::gpu::RenderContext* FRiveRenderer::GetRenderContext()
 {
     if (!RenderContext)
     {
-        UE_LOG(LogRiveRenderer, Error, TEXT("Rive PLS Render Context is uninitialized."));
+        UE_LOG(LogRiveRenderer, Error, TEXT("Rive Render Context is uninitialized."));
         return nullptr;
     }
 

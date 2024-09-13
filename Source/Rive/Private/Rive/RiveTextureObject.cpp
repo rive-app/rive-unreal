@@ -14,7 +14,6 @@
 #include "Rive/RiveFile.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/render_context.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -26,6 +25,14 @@ URiveTextureObject::URiveTextureObject()
 
 void URiveTextureObject::BeginDestroy()
 {
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		FEditorDelegates::BeginPIE.RemoveAll(this); 
+		FEditorDelegates::EndPIE.RemoveAll(this);
+	}
+#endif
+	
 	bIsRendering = false;
 	OnRiveReady.Clear();
 	RiveRenderTarget.Reset();
@@ -52,6 +59,13 @@ void URiveTextureObject::PostLoad()
 	{
 		if (RiveDescriptor.RiveFile)
 		{
+#if WITH_EDITOR
+			if (GIsEditor)
+			{
+				FEditorDelegates::BeginPIE.AddUObject(this, &URiveTextureObject::OnBeginPIE);
+				FEditorDelegates::EndPIE.AddUObject(this, &URiveTextureObject::OnEndPIE);
+			}
+#endif
 			Initialize(RiveDescriptor);
 		}
 	}
@@ -71,7 +85,7 @@ void URiveTextureObject::Tick(float InDeltaSeconds)
 
 #if WITH_RIVE
 	if (bIsRendering)
-	{
+	{		
 		if (GetArtboard())
 		{
 			Artboard->Tick(InDeltaSeconds);
@@ -80,6 +94,17 @@ void URiveTextureObject::Tick(float InDeltaSeconds)
 	}
 #endif // WITH_RIVE
 }
+
+#if WITH_EDITOR
+void URiveTextureObject::OnBeginPIE(bool bIsSimulating)
+{
+	Initialize(RiveDescriptor);
+}
+
+void URiveTextureObject::OnEndPIE(bool bIsSimulating)
+{
+}
+#endif
 
 FLinearColor URiveTextureObject::GetClearColor() const
 {
@@ -110,7 +135,6 @@ FVector2f URiveTextureObject::GetLocalCoordinatesFromExtents(const FVector2f& In
 
 void URiveTextureObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 {
-	Artboard = nullptr;
 	RiveDescriptor = InRiveDescriptor;
 
 	if (!IRiveRendererModule::IsAvailable())
@@ -138,7 +162,11 @@ void URiveTextureObject::Initialize(const FRiveDescriptor& InRiveDescriptor)
 
 void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 {
-	Artboard = NewObject<URiveArtboard>(this);
+	if (Artboard == nullptr)
+		Artboard = NewObject<URiveArtboard>(this);
+	else
+		Artboard->Reinitialize(true);
+
 	RiveRenderTarget.Reset();
 	RiveRenderTarget = InRiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
 			
@@ -158,6 +186,9 @@ void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 		Artboard->Initialize(RiveDescriptor.RiveFile, RiveRenderTarget, RiveDescriptor.ArtboardName, RiveDescriptor.StateMachineName);
 	}
 
+	RiveDescriptor.ArtboardName = Artboard->GetArtboardName();
+	RiveDescriptor.StateMachineName = Artboard->StateMachineName;
+
 	if (Size == FIntPoint::ZeroValue)
 	{
 		ResizeRenderTargets(Artboard->GetSize());
@@ -166,28 +197,7 @@ void URiveTextureObject::RiveReady(IRiveRenderer* InRiveRenderer)
 		ResizeRenderTargets(Size);
 	}
 
-	if (AudioEngine != nullptr)
-	{
-		if (AudioEngine->GetNativeAudioEngine() == nullptr)
-		{
-			if (AudioEngineLambdaHandle.IsValid())
-			{
-				AudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
-				AudioEngineLambdaHandle.Reset();
-			}
-
-			TFunction<void()> AudioLambda = [this]()
-			{
-				Artboard->SetAudioEngine(AudioEngine);
-				AudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
-			};
-			AudioEngineLambdaHandle = AudioEngine->OnRiveAudioReady.AddLambda(AudioLambda);
-		}
-		else
-		{
-			Artboard->SetAudioEngine(AudioEngine);
-		}
-	}
+	InitializeAudioEngine();
 	
 	Artboard->OnArtboardTick_Render.BindDynamic(this, &URiveTextureObject::OnArtboardTickRender);
 	Artboard->OnGetLocalCoordinate.BindDynamic(this, &URiveTextureObject::GetLocalCoordinate);
@@ -232,7 +242,7 @@ void URiveTextureObject::PostEditChangeChainProperty(FPropertyChangedChainEvent&
 		}
 	}
 	
-	// Update the Rive CachedPLSRenderTarget
+	// Update the Rive Cached RiveRenderTarget
 	if (RiveRenderTarget)
 	{
 		RiveRenderTarget->Initialize();
@@ -248,6 +258,63 @@ void URiveTextureObject::OnArtboardTickRender(float DeltaTime, URiveArtboard* In
 	InArtboard->Draw();
 }
 
+TArray<FString> URiveTextureObject::GetArtboardNamesForDropdown() const
+{
+	TArray<FString> Output;
+	if (RiveDescriptor.RiveFile)
+	{
+		for (URiveArtboard* DescriptorArtboard : RiveDescriptor.RiveFile->Artboards)
+		{
+			Output.Add(DescriptorArtboard->GetArtboardName());
+		}
+	}
+	
+	return Output;
+}
+
+TArray<FString> URiveTextureObject::GetStateMachineNamesForDropdown() const
+{
+	TArray<FString> Output {""};
+	if (RiveDescriptor.RiveFile)
+	{
+		for (URiveArtboard* RiveFileArtboard : RiveDescriptor.RiveFile->Artboards)
+		{
+			if (RiveFileArtboard->GetArtboardName().Equals(RiveDescriptor.ArtboardName))
+			{
+				Output.Append(RiveFileArtboard->GetStateMachineNames());
+				break;
+			}
+		}
+	}
+	return Output;
+}
+
+void URiveTextureObject::InitializeAudioEngine()
+{
+	if (RiveAudioEngine != nullptr && Artboard != nullptr)
+	{
+		if (RiveAudioEngine->GetNativeAudioEngine() == nullptr)
+		{
+			if (AudioEngineLambdaHandle.IsValid())
+			{
+				RiveAudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
+				AudioEngineLambdaHandle.Reset();
+			}
+
+			TFunction<void()> AudioLambda = [this]()
+			{
+				Artboard->SetAudioEngine(RiveAudioEngine);
+				RiveAudioEngine->OnRiveAudioReady.Remove(AudioEngineLambdaHandle);
+			};
+			AudioEngineLambdaHandle = RiveAudioEngine->OnRiveAudioReady.AddLambda(AudioLambda);
+		}
+		else
+		{
+			Artboard->SetAudioEngine(RiveAudioEngine);
+		}
+	}
+}
+
 URiveArtboard* URiveTextureObject::GetArtboard() const
 {
 #if WITH_RIVE
@@ -257,4 +324,10 @@ URiveArtboard* URiveTextureObject::GetArtboard() const
 	}
 #endif // WITH_RIVE
 	return nullptr;
+}
+
+void URiveTextureObject::SetAudioEngine(URiveAudioEngine* InRiveAudioEngine)
+{
+	RiveAudioEngine = InRiveAudioEngine;
+	InitializeAudioEngine();
 }

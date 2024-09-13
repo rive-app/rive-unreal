@@ -90,17 +90,19 @@ index 428aa156..27b12025 100644
  
      filter({ 'options:not no-harfbuzz-renames' })
 diff --git a/dependencies/premake5_sheenbidi_v2.lua b/dependencies/premake5_sheenbidi_v2.lua
-index f7410050..d6cc1cc2 100644
+index 891c963e..d9019afd 100644
 --- a/dependencies/premake5_sheenbidi_v2.lua
 +++ b/dependencies/premake5_sheenbidi_v2.lua
-@@ -47,6 +47,6 @@ do
+@@ -47,7 +47,7 @@ do
      filter('options:config=release')
      do
          defines({ 'SB_CONFIG_UNITY' })
 -        optimize('Size')
 +        -- optimize('Size')
      end
- end
+ 
+     filter({ 'system:linux' })
+
 diff --git a/premake5_v2.lua b/premake5_v2.lua
 index 3d6c8aa5..d5078a55 100644
 --- a/premake5_v2.lua

@@ -1,62 +1,71 @@
 #ifndef _RIVE_LAYOUT_COMPONENT_STYLE_HPP_
 #define _RIVE_LAYOUT_COMPONENT_STYLE_HPP_
 #include "rive/generated/layout/layout_component_style_base.hpp"
-#include "rive/math/bit_field_loc.hpp"
 #ifdef WITH_RIVE_LAYOUT
 #include "yoga/Yoga.h"
 #endif
 #include <stdio.h>
 namespace rive
 {
-// ---- Flags 0
-extern BitFieldLoc DisplayBits;
-extern BitFieldLoc PositionTypeBits;
-extern BitFieldLoc FlexDirectionBits;
-extern BitFieldLoc DirectionBits;
-extern BitFieldLoc AlignContentBits;
-extern BitFieldLoc AlignItemsBits;
-extern BitFieldLoc AlignSelfBits;
-extern BitFieldLoc JustifyContentBits;
-extern BitFieldLoc FlexWrapBits;
-extern BitFieldLoc OverflowBits;
-extern BitFieldLoc IntrinsicallySizedBits;
-extern BitFieldLoc WidthUnitsBits;
-extern BitFieldLoc HeightUnitsBits;
+enum class LayoutAnimationStyle : uint8_t
+{
+    none,
+    inherit,
+    custom
+};
 
-// ---- Flags 1
-extern BitFieldLoc BorderLeftUnitsBits;
-extern BitFieldLoc BorderRightUnitsBits;
-extern BitFieldLoc BorderTopUnitsBits;
-extern BitFieldLoc BorderBottomUnitsBits;
-extern BitFieldLoc MarginLeftUnitsBits;
-extern BitFieldLoc MarginRightUnitsBits;
-extern BitFieldLoc MarginTopUnitsBits;
-extern BitFieldLoc MarginBottomUnitsBits;
-extern BitFieldLoc PaddingLeftUnitsBits;
-extern BitFieldLoc PaddingRightUnitsBits;
-extern BitFieldLoc PaddingTopUnitsBits;
-extern BitFieldLoc PaddingBottomUnitsBits;
-extern BitFieldLoc PositionLeftUnitsBits;
-extern BitFieldLoc PositionRightUnitsBits;
-extern BitFieldLoc PositionTopUnitsBits;
-extern BitFieldLoc PositionBottomUnitsBits;
+enum class LayoutStyleInterpolation : uint8_t
+{
+    hold,
+    linear,
+    cubic,
+    elastic
+};
 
-// ---- Flags 2
-extern BitFieldLoc GapHorizontalUnitsBits;
-extern BitFieldLoc GapVerticalUnitsBits;
-extern BitFieldLoc MinWidthUnitsBits;
-extern BitFieldLoc MinHeightUnitsBits;
-extern BitFieldLoc MaxWidthUnitsBits;
-extern BitFieldLoc MaxHeightUnitsBits;
+enum class LayoutAlignmentType : uint8_t
+{
+    topLeft,
+    topCenter,
+    topRight,
+    centerLeft,
+    center,
+    centerRight,
+    bottomLeft,
+    bottomCenter,
+    bottomRight,
+    spaceBetweenStart,
+    spaceBetweenCenter,
+    spaceBetweenEnd
+};
 
+enum class LayoutScaleType : uint8_t
+{
+    fixed,
+    fill,
+    hug
+};
+
+class KeyFrameInterpolator;
 class LayoutComponentStyle : public LayoutComponentStyleBase
 {
+private:
+#ifdef WITH_RIVE_LAYOUT
+    KeyFrameInterpolator* m_interpolator;
+#endif
+
 public:
     LayoutComponentStyle() {}
 
 #ifdef WITH_RIVE_LAYOUT
+    StatusCode onAddedDirty(CoreContext* context) override;
+    KeyFrameInterpolator* interpolator();
+    LayoutStyleInterpolation interpolation();
+    LayoutAnimationStyle animationStyle();
     YGDisplay display();
     YGPositionType positionType();
+    LayoutAlignmentType alignmentType();
+    LayoutScaleType widthScaleType();
+    LayoutScaleType heightScaleType();
 
     YGFlexDirection flexDirection();
     YGDirection direction();
@@ -97,10 +106,22 @@ public:
 #endif
 
     void markLayoutNodeDirty();
+    void markLayoutStyleDirty();
 
-    void layoutFlags0Changed() override;
-    void layoutFlags1Changed() override;
-    void layoutFlags2Changed() override;
+    void layoutAlignmentTypeChanged() override;
+    void layoutWidthScaleTypeChanged() override;
+    void layoutHeightScaleTypeChanged() override;
+    void displayValueChanged() override;
+    void positionTypeValueChanged() override;
+    void overflowValueChanged() override;
+    void intrinsicallySizedValueChanged() override;
+    void flexDirectionValueChanged() override;
+    void directionValueChanged() override;
+    void alignContentValueChanged() override;
+    void alignItemsValueChanged() override;
+    void alignSelfValueChanged() override;
+    void justifyContentValueChanged() override;
+    void flexWrapValueChanged() override;
     void flexChanged() override;
     void flexGrowChanged() override;
     void flexShrinkChanged() override;
@@ -128,6 +149,36 @@ public:
     void positionRightChanged() override;
     void positionTopChanged() override;
     void positionBottomChanged() override;
+
+    void widthUnitsValueChanged() override;
+    void heightUnitsValueChanged() override;
+    void gapHorizontalUnitsValueChanged() override;
+    void gapVerticalUnitsValueChanged() override;
+    void maxWidthUnitsValueChanged() override;
+    void maxHeightUnitsValueChanged() override;
+    void minWidthUnitsValueChanged() override;
+    void minHeightUnitsValueChanged() override;
+    void borderLeftUnitsValueChanged() override;
+    void borderRightUnitsValueChanged() override;
+    void borderTopUnitsValueChanged() override;
+    void borderBottomUnitsValueChanged() override;
+    void marginLeftUnitsValueChanged() override;
+    void marginRightUnitsValueChanged() override;
+    void marginTopUnitsValueChanged() override;
+    void marginBottomUnitsValueChanged() override;
+    void paddingLeftUnitsValueChanged() override;
+    void paddingRightUnitsValueChanged() override;
+    void paddingTopUnitsValueChanged() override;
+    void paddingBottomUnitsValueChanged() override;
+    void positionLeftUnitsValueChanged() override;
+    void positionRightUnitsValueChanged() override;
+    void positionTopUnitsValueChanged() override;
+    void positionBottomUnitsValueChanged() override;
+
+    void cornerRadiusTLChanged() override;
+    void cornerRadiusTRChanged() override;
+    void cornerRadiusBLChanged() override;
+    void cornerRadiusBRChanged() override;
 };
 } // namespace rive
 

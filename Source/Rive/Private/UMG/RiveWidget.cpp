@@ -108,16 +108,12 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 	if (!RiveTextureObject && RiveWidget.IsValid())
 	{
 		RiveTextureObject = NewObject<URiveTextureObject>();
-
-#if WITH_EDITOR
+		RiveTextureObject->Size = FIntPoint::ZeroValue;  // Setting to zero value here will make the rive texture use the artboard size initially
 		TimerHandle.Invalidate();
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
 		{
 			Setup();
 		}, 0.05f, false);
-#else
-		Setup();
-#endif
 	}
 	
 	return RiveWidget.ToSharedRef();
@@ -169,11 +165,11 @@ FReply URiveWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointe
 	});
 }
 
-void URiveWidget::SetAudioEngine(URiveAudioEngine* InAudioEngine)
+void URiveWidget::SetAudioEngine(URiveAudioEngine* InRiveAudioEngine)
 {
-	if (RiveTextureObject && RiveTextureObject->GetArtboard())
+	if (RiveTextureObject)
 	{
-		RiveTextureObject->GetArtboard()->SetAudioEngine(InAudioEngine);
+		RiveTextureObject->SetAudioEngine(InRiveAudioEngine);
 		return;
 	}
 	
@@ -192,13 +188,18 @@ URiveArtboard* URiveWidget::GetArtboard() const
 
 void URiveWidget::OnRiveObjectReady()
 {
+	if (RiveTextureObject)
+	{
+		RiveTextureObject->OnRiveReady.RemoveDynamic(this, &URiveWidget::OnRiveObjectReady);
+	}
+	
 	if (!RiveWidget.IsValid() || !GetCachedWidget()) return;
-	RiveTextureObject->OnRiveReady.Remove(FrameHandle);
-		
-	UE::Slate::FDeprecateVector2DResult AbsoluteSize = GetCachedGeometry().GetAbsoluteSize();
 
-	RiveTextureObject->ResizeRenderTargets(FIntPoint(AbsoluteSize.X, AbsoluteSize.Y));
+	FVector2f ArtboardSize = RiveTextureObject->GetArtboard()->GetSize();
+	SetMinimumDesiredSize(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
 	RiveWidget->SetRiveTexture(RiveTextureObject);
+	RiveDescriptor.ArtboardName = RiveTextureObject->GetArtboard()->GetArtboardName();
+	RiveDescriptor.StateMachineName = RiveTextureObject->GetArtboard()->StateMachineName;
 	OnRiveReady.Broadcast();
 }
 
@@ -228,14 +229,77 @@ FReply URiveWidget::OnInput(const FGeometry& MyGeometry, const FPointerEvent& Mo
 	return Result ? FReply::Handled() : FReply::Unhandled();
 }
 
+TArray<FString> URiveWidget::GetArtboardNamesForDropdown() const
+{
+	TArray<FString> Output;
+	
+	if (RiveDescriptor.RiveFile)
+	{
+		for (URiveArtboard* Artboard : RiveDescriptor.RiveFile->Artboards)
+		{
+			Output.Add(Artboard->GetArtboardName());
+		}
+	}
+
+	return Output;
+}
+
+TArray<FString> URiveWidget::GetStateMachineNamesForDropdown() const
+{
+	TArray<FString> Output {""};
+	if (RiveDescriptor.RiveFile)
+	{
+		for (URiveArtboard* Artboard : RiveDescriptor.RiveFile->Artboards)
+		{
+			if (Artboard->GetArtboardName().Equals(RiveDescriptor.ArtboardName))
+			{
+				Output.Append(Artboard->GetStateMachineNames());
+				break;
+			}
+		}
+	}
+	
+	return Output;
+}
+
+#if WITH_EDITOR
+void URiveWidget::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	
+	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
+	const FName ActiveMemberNodeName = *PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue()->GetName();
+	
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor, RiveFile) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor, ArtboardIndex) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor, ArtboardName))
+	{
+		TArray<FString> ArtboardNames = GetArtboardNamesForDropdown();
+		if (ArtboardNames.Num() > 0 && RiveDescriptor.ArtboardIndex == 0 && (RiveDescriptor.ArtboardName.IsEmpty() || !ArtboardNames.Contains(RiveDescriptor.ArtboardName)))
+		{
+			RiveDescriptor.ArtboardName = ArtboardNames[0];
+		}
+        
+		TArray<FString> StateMachineNames = GetStateMachineNamesForDropdown();
+		if (StateMachineNames.Num() == 1)
+		{
+			RiveDescriptor.StateMachineName = StateMachineNames[0]; // No state machine, use blank
+		} else if (RiveDescriptor.StateMachineName.IsEmpty() || !StateMachineNames.Contains(RiveDescriptor.StateMachineName))
+		{
+			RiveDescriptor.StateMachineName = StateMachineNames[1];
+		}
+	}
+}
+#endif
+
 void URiveWidget::Setup()
 {
 	if (!RiveTextureObject || !RiveWidget.IsValid())
 	{
 		return;
 	}
-	
-	FrameHandle = RiveTextureObject->OnRiveReady.AddUObject(this, &URiveWidget::OnRiveObjectReady);
+
+	RiveTextureObject->OnRiveReady.AddDynamic(this, &URiveWidget::OnRiveObjectReady);
 #if WITH_EDITOR
 	RiveTextureObject->bRenderInEditor = true;
 #endif

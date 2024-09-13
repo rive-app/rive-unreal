@@ -7,7 +7,6 @@
 #if PLATFORM_WINDOWS
 
 #if WITH_RIVE
-#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -49,7 +48,7 @@ protected:
 	 */
 private:
 	TSharedRef<FRiveRendererD3D11> RiveRendererD3D11;
-	rive::rcp<rive::gpu::RenderTargetD3D> CachedRenderTargetD3D;
+	rive::rcp<rive::gpu::RenderTargetD3D> RenderTargetD3D;
 #endif // WITH_RIVE
 };
 

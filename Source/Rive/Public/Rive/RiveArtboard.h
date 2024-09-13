@@ -11,7 +11,7 @@
 class URiveFile;
 class URiveTextureObject;
 
-#include "PreRiveHeaders.h"
+
 THIRD_PARTY_INCLUDES_START
 #include "rive/file.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -98,6 +98,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FString GetTextValue(const FString& InPropertyName) const;
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	FString GetStringValueAtPath(const FString& InInputName, const FString& InPath, bool& OutSuccess) const;
+
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
@@ -109,9 +112,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetNumberValueAtPath(const FString& InInputName, float InValue, const FString& InPath, bool& OutSuccess);
 
-
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	void SetTextValue(const FString& InPropertyName, const FString& NewValue);
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetTextValueAtPath(const FString& InInputName, const FString& InValue, const FString& InPath, bool& OutSuccess);
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	bool BindNamedRiveEvent(const FString& EventName, const FRiveNamedEventDelegate& Event);
@@ -199,7 +203,7 @@ private:
 	TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 
 	std::unique_ptr<rive::ArtboardInstance> NativeArtboardPtr = nullptr;
-	TUniquePtr<FRiveStateMachine> DefaultStateMachinePtr = nullptr;
+	TUniquePtr<FRiveStateMachine> StateMachinePtr = nullptr;
 #endif // WITH_RIVE
 public:
 	const FString& GetArtboardName() const { return ArtboardName; }

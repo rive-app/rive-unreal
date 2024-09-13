@@ -15,10 +15,9 @@
 #include "UObject/UObjectGlobals.h"
 
 #if WITH_RIVE
-#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
-#include "rive/pls/gl/pls_render_context_gl_impl.hpp"
-#include "rive/pls/pls_renderer.hpp"
+#include "rive/renderer/gl/render_context_gl_impl.hpp"
+#include "rive/renderer.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
@@ -62,7 +61,7 @@ void FRiveRendererOpenGL::Initialize()
 			}
 			InitializationState = ERiveInitState::Initializing;
 		
-			CreatePLSContext_GameThread();
+			CreateRenderContext_GameThread();
 			InitializationState = ERiveInitState::Initialized;
 		}
 		
@@ -74,19 +73,19 @@ void FRiveRendererOpenGL::Initialize()
 	}
 }
 
-rive::pls::PLSRenderContext* FRiveRendererOpenGL::GetPLSRenderContextPtr()
+rive::gpu::RenderContext* FRiveRendererOpenGL::GetRenderContext()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	if (ensure(IsRHIOpenGL()))
 	{
 		FScopeLock Lock(&ContextsCS);
-		if (PLSRenderContext)
+		if (RenderContext)
 		{
-			return PLSRenderContext.get();
+			return RenderContext.get();
 		}
 	}
 	
-	UE_LOG(LogRiveRenderer, Error, TEXT("Rive PLS Render Context is uninitialized for the Current OpenGL Context."));
+	UE_LOG(LogRiveRenderer, Error, TEXT("Rive Render Context is uninitialized for the Current OpenGL Context."));
 	return nullptr;
 }
 
@@ -101,30 +100,30 @@ TSharedPtr<IRiveRenderTarget> FRiveRendererOpenGL::CreateTextureTarget_GameThrea
 	return RiveRenderTarget;
 }
 
-DECLARE_GPU_STAT_NAMED(CreatePLSContext, TEXT("CreatePLSContext_RenderThread"));
-void FRiveRendererOpenGL::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
+DECLARE_GPU_STAT_NAMED(CreateRenderContext, TEXT("CreateRenderContext_RenderThread"));
+void FRiveRendererOpenGL::CreateRenderContext_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInRenderingThread());
 
 	RHICmdList.EnqueueLambda(
-		GET_FUNCTION_NAME_STRING_CHECKED(FRiveRendererOpenGL, GetOrCreatePLSRenderContextPtr_Internal),
+		GET_FUNCTION_NAME_STRING_CHECKED(FRiveRendererOpenGL, GetOrCreateRenderContext_Internal),
 		[this](FRHICommandListImmediate& RHICmdList)
 		{
-			GetOrCreatePLSRenderContextPtr_Internal();
+			GetOrCreateRenderContext_Internal();
 		});
 }
 
-void FRiveRendererOpenGL::CreatePLSContext_GameThread()
+void FRiveRendererOpenGL::CreateRenderContext_GameThread()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread());
 	
-	GetOrCreatePLSRenderContextPtr_Internal();
+	GetOrCreateRenderContext_Internal();
 }
 
 
-rive::pls::PLSRenderContext* FRiveRendererOpenGL::GetOrCreatePLSRenderContextPtr_Internal()
+rive::gpu::RenderContext* FRiveRendererOpenGL::GetOrCreateRenderContext_Internal()
 {
 	RIVE_DEBUG_FUNCTION_INDENT;
 	check(IsInGameThread() || IsInRHIThread());
@@ -134,9 +133,9 @@ rive::pls::PLSRenderContext* FRiveRendererOpenGL::GetOrCreatePLSRenderContextPtr
 	{
 #if WITH_RIVE
 		FScopeLock Lock(&ContextsCS);
-		if (PLSRenderContext)
+		if (RenderContext)
 		{
-			return PLSRenderContext.get();
+			return RenderContext.get();
 		}
 		
 		DebugLogOpenGLStatus();
@@ -166,15 +165,14 @@ rive::pls::PLSRenderContext* FRiveRendererOpenGL::GetOrCreatePLSRenderContextPtr
 		}
 		RIVE_DEBUG_VERBOSE(" - `GUseThreadedRendering`:  %s", GUseThreadedRendering ? TEXT("TRUE") : TEXT("false"));
 		
+		RenderContext = rive::gpu::RenderContextGLImpl::MakeContext();
+		RIVE_DEBUG_VERBOSE("RiveRenderContext: %p", RenderContext.get());
 		
-		PLSRenderContext = rive::pls::PLSRenderContextGLImpl::MakeContext();
-		RIVE_DEBUG_VERBOSE("PLSRenderContext: %p", PLSRenderContext.get());
-		
-		if (!ensure(PLSRenderContext.get() != nullptr))
+		if (!ensure(RenderContext.get() != nullptr))
 		{
-			UE_LOG(LogRiveRenderer, Error, TEXT("Not able to create an OpenGL PLS Render Context"))
+			UE_LOG(LogRiveRenderer, Error, TEXT("Not able to create an OpenGL Rive Render Context"))
 		}
-		return PLSRenderContext.get();
+		return RenderContext.get();
 #endif // WITH_RIVE
 	}
 	return nullptr;

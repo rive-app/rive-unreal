@@ -4,7 +4,7 @@
 #include "CoreMinimal.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
+
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/animation/state_machine_instance.hpp"

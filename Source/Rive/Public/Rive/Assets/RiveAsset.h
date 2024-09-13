@@ -6,7 +6,7 @@
 #include "UObject/Object.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
+
 THIRD_PARTY_INCLUDES_START
 #include "rive/assets/font_asset.hpp"
 #include "rive/assets/image_asset.hpp"
@@ -34,7 +34,8 @@ class RIVE_API URiveAsset : public UObject
 
 public:
 	virtual void PostLoad() override;
-
+	virtual bool LoadNativeAssetBytes(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes) { return false; }
+	
 	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
 	uint32 Id;
 	
@@ -55,17 +56,6 @@ public:
 	
 	UPROPERTY()
 	TArray<uint8> NativeAssetBytes;
-
-#if WITH_RIVE
+	
 	rive::Asset* NativeAsset;
-#else
-	void* NativeAsset;
-#endif
-
-	void LoadFromDisk();
-	bool LoadNativeAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes);
-private:
-	bool DecodeImageAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes);
-	bool DecodeFontAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes);
-	bool LoadAudioAsset(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes);
 };

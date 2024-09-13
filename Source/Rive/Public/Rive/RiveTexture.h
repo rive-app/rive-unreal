@@ -45,6 +45,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	virtual void ResizeRenderTargets(FIntPoint InNewSize);
+	virtual void ResizeRenderTargets(const FVector2f InNewSize);
 	
 	FVector2f GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const;
 	
@@ -54,14 +55,7 @@ protected:
 	 * Create Texture Rendering resource on RHI Thread
 	 */
 	void InitializeResources() const;
-
-	/**
-	 * Resize render resources
-	 */
-	virtual void ResizeRenderTargets(const FVector2f InNewSize);
-
-protected:
-
+	
 	/**
 	 * Rendering resource for Rive File
 	 */

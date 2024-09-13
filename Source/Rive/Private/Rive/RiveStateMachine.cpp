@@ -8,7 +8,6 @@
 #include "Stats/RiveStats.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/animation/state_machine_input_instance.hpp"
 #include "rive/generated/animation/state_machine_bool_base.hpp"

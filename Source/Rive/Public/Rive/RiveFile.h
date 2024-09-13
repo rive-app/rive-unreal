@@ -2,28 +2,24 @@
 #pragma once
 
 #include <memory>
-
+#include "Assets/RiveAsset.h"
+#include "Blueprint/UserWidget.h"
 #include "CoreMinimal.h"
-#include "UObject/Object.h"
 #include "RiveTypes.h"
+#include "UObject/Object.h"
 
 #if WITH_RIVE
-#include "PreRiveHeaders.h"
+
 THIRD_PARTY_INCLUDES_START
+#include "rive/file.hpp"
 #include "rive/span.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
 #include "RiveFile.generated.h"
 
-class UUserWidget;
 class URiveAsset;
 class URiveArtboard;
-
-namespace rive
-{
-	class File;
-}
 
 /**
  *
@@ -102,6 +98,20 @@ public:
 	TMap<uint32, TObjectPtr<URiveAsset>>& GetAssets()
 	{
 		return Assets;
+	}
+
+	UFUNCTION(BlueprintCallable, Category=Rive)
+	URiveAsset* GetRiveAssetById(int32 InId) const
+	{
+		for (const TTuple<unsigned int, TObjectPtr<URiveAsset>>& x : Assets)
+		{
+			if (x.Value->Id == InId)
+			{
+				return x.Value;
+			}
+		}
+
+		return nullptr;
 	}
 	
 	rive::Span<const uint8> RiveNativeFileSpan;

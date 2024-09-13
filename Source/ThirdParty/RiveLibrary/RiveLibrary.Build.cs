@@ -46,6 +46,7 @@ public class RiveLibrary : ModuleRules
                 Path.Combine(libDirectory, $"rive_libwebp{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_sheenbidi{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_harfbuzz{libSuffix}.{extension}"),
+                Path.Combine(libDirectory, $"rive_libwebp{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_libpng{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_libjpeg{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_decoders{libSuffix}.{extension}"),
@@ -75,11 +76,12 @@ public class RiveLibrary : ModuleRules
             {
                 Path.Combine(libDirectory, $"librive_sheenbidi{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_harfbuzz{libSuffix}.{extension}"),
+                Path.Combine(libDirectory, $"liblibwebp{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"liblibpng{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"liblibjpeg{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_decoders{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_pls_renderer{libSuffix}.{extension}"),
-                // Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
+                Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive{libSuffix}.{extension}"),
             });
             
@@ -94,11 +96,12 @@ public class RiveLibrary : ModuleRules
             {
                 Path.Combine(libDirectory, $"librive_sheenbidi{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_harfbuzz{libSuffix}.{extension}"),
+                Path.Combine(libDirectory, $"liblibwebp{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"liblibpng{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"liblibjpeg{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_decoders{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_pls_renderer{libSuffix}.{extension}"),
-                // Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
+                Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive{libSuffix}.{extension}"),
             });
 
@@ -117,11 +120,12 @@ public class RiveLibrary : ModuleRules
             {
                 Path.Combine(libDirectory, $"librive_sheenbidi{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_harfbuzz{libSuffix}.{extension}"),
+                Path.Combine(libDirectory, $"liblibwebp{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"liblibpng{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"liblibjpeg{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_decoders{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive_pls_renderer{libSuffix}.{extension}"),
-                // Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
+                Path.Combine(libDirectory, $"librive_yoga{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"librive{libSuffix}.{extension}"),
             });
             

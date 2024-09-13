@@ -14,53 +14,53 @@ targets = [
     'rive_decoders',
     'rive_harfbuzz',
     'rive_pls_renderer',
-    'rive_pls_shaders',
     'rive_sheenbidi',
-#     'rive_yoga',
+    'rive_yoga',
     'libpng',
     'libjpeg',
+    'libwebp',
     'zlib'
 ]
 
-def get_base_command(rive_renderer_path, release):
+def get_base_command(rive_runtime_path, release):
     return (
-        f"premake5 --scripts=\"{rive_renderer_path}/submodules/rive-cpp/build\" "
+        f"premake5 --scripts=\"{os.path.join(rive_runtime_path, 'build')}\" "
         f"--with_rive_text --with_rive_audio=external {'--config=release' if release else '--config=debug'}"
     )
 
 @click.command()
-@click.argument('rive_renderer_path')
-def main(rive_renderer_path):
+@click.argument('rive_runtime_path')
+def main(rive_runtime_path):
     if sys.platform.startswith('darwin'):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
         # determine a sane build environment
         output = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], universal_newlines=True)
         sdk_path = output.strip()
-        if "MacOSX12" not in sdk_path:
+        if "MacOSX13" not in sdk_path:
             print_red(f"SDK Path {sdk_path} didn't point to an SDK matching version 12, exiting..")
             return
         else:
             print_green(f"Using SDK at: {output}")
     
-        if not do_mac(rive_renderer_path, True) or not do_mac(rive_renderer_path, False):
+        if not do_mac(rive_runtime_path, True) or not do_mac(rive_runtime_path, False):
             return
         
-        if not do_ios(rive_renderer_path, True) or not do_ios(rive_renderer_path, False):
+        if not do_ios(rive_runtime_path, True) or not do_ios(rive_runtime_path, False):
             return
     elif sys.platform.startswith('win32'):
-        if not do_windows(rive_renderer_path, True) or not do_windows(rive_renderer_path, False):
+        if not do_windows(rive_runtime_path, True) or not do_windows(rive_runtime_path, False):
             return
         
         # apply android patch before android
-        os.chdir(os.path.join(rive_renderer_path, 'submodules', 'rive-cpp'))
+        os.chdir(rive_runtime_path)
         patch_output = subprocess.check_output(['git', 'apply', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
         print(patch_output)
         android_succeeded = True
-        if not do_android(rive_renderer_path, True) or not do_android(rive_renderer_path, False):
+        if not do_android(rive_runtime_path, True) or not do_android(rive_runtime_path, False):
            android_succeeded = False
 
         # unapply android patch after
-        os.chdir(os.path.join(rive_renderer_path, 'submodules', 'rive-cpp'))
+        os.chdir(rive_runtime_path)
         patch_output = subprocess.check_output(['git', 'apply', '-R', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
         print(patch_output)
 
@@ -70,7 +70,7 @@ def main(rive_renderer_path):
         print_red("Unsupported platform")
         return
 
-    copy_includes(rive_renderer_path)
+    copy_includes(rive_runtime_path)
 
 def get_msbuild():
     msbuild_path = ''
@@ -85,15 +85,15 @@ def get_msbuild():
         raise Exception(f'Invalid MSBuild path {msbuild_path}')
     return msbuild_path
 
-def do_android(rive_renderer_path, release):
+def do_android(rive_runtime_path, release):
     try:
-        out_dir = os.path.join('out', 'android', 'release' if release else 'debug')
-        os.chdir(rive_renderer_path)
+        out_dir = os.path.join('..', 'out', 'android', 'release' if release else 'debug')
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
 
         if 'NDK_ROOT' in os.environ and 'NDK_PATH' not in os.environ:
             os.environ['NDK_PATH'] = os.environ['NDK_ROOT']
 
-        command = f'{get_base_command(rive_renderer_path, release)} --os=android --arch=arm64 --out="{out_dir}" vs2022'
+        command = f'{get_base_command(rive_runtime_path, release)} --os=android --arch=arm64 --out="{out_dir}" vs2022'
         execute_command(command)
 
         msbuild_path = get_msbuild()
@@ -115,19 +115,21 @@ def do_android(rive_renderer_path, release):
     return True
 
 
-def do_windows(rive_renderer_path, release):
+def do_windows(rive_runtime_path, release):
     try:
-        out_dir = os.path.join('out', 'windows', 'release' if release else 'debug')
-        os.chdir(rive_renderer_path)
-        command = f'{get_base_command(rive_renderer_path, release)} --windows_runtime=dynamic --os=windows --out="{out_dir}" vs2022'
+        out_dir = os.path.join('..', 'out', 'windows', 'release' if release else 'debug')
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
+        command = f'{get_base_command(rive_runtime_path, release)} --windows_runtime=dynamic --os=windows --out="{out_dir}" vs2022'
         execute_command(command)
 
+        # build
         msbuild_path = get_msbuild()
             
         os.chdir(out_dir)
         execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
         
         print_green(f'Built in {os.getcwd()}')
+        # end build
 
         rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
@@ -141,14 +143,14 @@ def do_windows(rive_renderer_path, release):
     return True
 
 
-def do_ios(rive_renderer_path, release):
+def do_ios(rive_runtime_path, release):
     try:
-        os.chdir(rive_renderer_path)
-        command = f'{get_base_command(rive_renderer_path, release)} gmake2 --os=ios'
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
+        command = f'{get_base_command(rive_runtime_path, release)} gmake2 --os=ios'
         build_dirs = {}
 
         print_green('Building iOS')
-        out_dir = os.path.join('out', 'ios', 'release' if release else 'debug')
+        out_dir = os.path.join('..', 'out', 'ios', 'release' if release else 'debug')
         execute_command(f'{command} --variant=system --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['ios'] = os.getcwd()
@@ -156,8 +158,8 @@ def do_ios(rive_renderer_path, release):
             execute_command(f'make {target}')
 
         print_green('Building iOS Simulator')
-        out_dir = os.path.join('out', 'ios_sim', 'release' if release else 'debug')
-        os.chdir(rive_renderer_path)
+        out_dir = os.path.join('..', 'out', 'ios_sim', 'release' if release else 'debug')
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
         execute_command(f'{command} --variant=emulator --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['ios_sim'] = os.getcwd()
@@ -183,7 +185,7 @@ def do_ios(rive_renderer_path, release):
                         pass
                     os.rename(old_file, new_file)
 
-        os.chdir(rive_renderer_path)
+        os.chdir(rive_runtime_path)
         print_green(f'Built in {build_dirs}')
 
         rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
@@ -199,24 +201,24 @@ def do_ios(rive_renderer_path, release):
     return True
 
 
-def do_mac(rive_renderer_path, release):
+def do_mac(rive_runtime_path, release):
     try:
-        command = f'{get_base_command(rive_renderer_path, release)} --os=macosx gmake2'
+        command = f'{get_base_command(rive_runtime_path, release)} --os=macosx gmake2'
         build_dirs = {}
 
         # we currently don't use fat libs, otherwise we could use this for macOS
         # build_fat = False
         # if build_fat:
         #     execute_command(f'{command} --arch=universal --out=out/universal')
-        #     os.chdir(os.path.join(rive_renderer_path, 'out', 'universal'))
+        #     os.chdir(os.path.join('..', 'out', 'universal'))
         #     build_dirs['universal'] = os.getcwd()
         #     execute_command('make')
         # else:
 
 
         print_green('Building macOS x64')
-        out_dir = os.path.join('out', 'mac', 'x64', 'release' if release else 'debug')
-        os.chdir(rive_renderer_path)
+        out_dir = os.path.join('..', 'out', 'mac', 'x64', 'release' if release else 'debug')
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
         execute_command(f'{command} --arch=x64 --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['mac_x64'] = os.getcwd()
@@ -224,15 +226,15 @@ def do_mac(rive_renderer_path, release):
             execute_command(f'make {target}')
 
         print_green('Building macOS arm64')
-        out_dir = os.path.join('out', 'mac', 'arm64', 'release' if release else 'debug')
-        os.chdir(rive_renderer_path)
+        out_dir = os.path.join('..', 'out', 'mac', 'arm64', 'release' if release else 'debug')
+        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
         execute_command(f'{command} --arch=arm64 --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['mac_arm64'] = os.getcwd()
         for target in targets:
             execute_command(f'make {target}')
 
-        os.chdir(rive_renderer_path)
+        os.chdir(rive_runtime_path)
         print_green(f'Built in {build_dirs}')
 
         rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
@@ -271,11 +273,11 @@ def copy_files(src, dst, extension, is_release):
             shutil.copy2(src_path, dest_path)
 
 
-def copy_includes(rive_renderer_path):
+def copy_includes(rive_runtime_path):
     print_green('Copying rive includes...')
-    rive_includes_path = os.path.join(rive_renderer_path, 'submodules', 'rive-cpp', 'include')
-    rive_pls_includes_path = os.path.join(rive_renderer_path, 'include')
-    rive_decoders_includes_path = os.path.join(rive_renderer_path, 'submodules', 'rive-cpp', 'decoders', 'include')
+    rive_includes_path = os.path.join(rive_runtime_path, 'include')
+    rive_pls_includes_path = os.path.join(rive_runtime_path, 'renderer', 'include')
+    rive_decoders_includes_path = os.path.join(rive_runtime_path, 'decoders', 'include')
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')
     if os.path.exists(target_path):
         shutil.rmtree(target_path)

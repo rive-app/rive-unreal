@@ -11,10 +11,9 @@
 #include "D3D11RHIPrivate.h"
 
 #if WITH_RIVE
-#include "Rive/Public/PreRiveHeaders.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/d3d/render_context_d3d_impl.hpp"
-#include "rive/renderer/rive_renderer.hpp"
+#include "rive/renderer.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
@@ -69,14 +68,14 @@ TSharedPtr<IRiveRenderTarget> FRiveRendererD3D11::CreateTextureTarget_GameThread
 	return RiveRenderTarget;
 }
 
-DECLARE_GPU_STAT_NAMED(CreatePLSContext, TEXT("CreatePLSContext_RenderThread"));
-void FRiveRendererD3D11::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
+DECLARE_GPU_STAT_NAMED(CreateRenderContext, TEXT("CreateRenderContext_RenderThread"));
+void FRiveRendererD3D11::CreateRenderContext_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
 	check(IsInRenderingThread());
 
 	FScopeLock Lock(&ThreadDataCS);
 
-	SCOPED_GPU_STAT(RHICmdList, CreatePLSContext);
+	SCOPED_GPU_STAT(RHICmdList, CreateRenderContext);
 
 	if (IsRHID3D11())
 	{

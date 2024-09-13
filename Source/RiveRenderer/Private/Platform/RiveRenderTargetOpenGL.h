@@ -7,16 +7,15 @@
 #include "RiveRenderTarget.h"
 
 #if WITH_RIVE
-#include "Rive/Public/PreRiveHeaders.h"
+
+namespace rive::gpu
+{
+	class TextureRenderTargetGL;
+}
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
-
-namespace rive::pls
-{
-	class TextureRenderTargetGL;
-}
 
 class FRiveRendererOpenGL;
 
@@ -43,8 +42,8 @@ public:
 
 protected:
 	// It Might need to be on rendering thread, render QUEUE is required
-	virtual rive::rcp<rive::pls::PLSRenderTarget> GetRenderTarget() const override;
-	virtual std::unique_ptr<rive::pls::PLSRenderer> BeginFrame() override;
+	virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const override;
+	virtual std::unique_ptr<rive::RiveRenderer> BeginFrame() override;
 	virtual void EndFrame() const override;
 	virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands) override;
 	//~ END : FRiveRenderTarget Interface
@@ -58,7 +57,7 @@ private:
 	 * Attribute(s)
 	 */
 
-	rive::rcp<rive::pls::TextureRenderTargetGL> CachedPLSRenderTargetOpenGL;
+	rive::rcp<rive::gpu::TextureRenderTargetGL> RenderTargetOpenGL;
 	TSharedPtr<FRiveRendererOpenGL> RiveRendererGL;
 
 #endif // WITH_RIVE
