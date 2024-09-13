@@ -2,11 +2,8 @@
 #include "ShaderParameterStruct.h"
 #include "RenderResource.h"
 #include "RHI.h"
-#include <string>
 
-#include "D3D11RHIPrivate.h"
 #include "HLSLTypeAliases.h"
-#include "RenderGraphUtils.h"
 #include "rive/shaders/out/generated/shaders/rhi.exports.h"
 
 namespace rive::gpu
