@@ -14,7 +14,7 @@ namespace rive
 {
 namespace gpu
 {
-class RenderTargetRHI : public RenderTarget
+class RIVERENDERER_API RenderTargetRHI : public RenderTarget
 {
 public:
     RenderTargetRHI(FRHICommandList& RHICmdList, const FTexture2DRHIRef& InTextureTarget);
@@ -155,7 +155,7 @@ enum class EVertexDeclarations : int32
     NumVertexDeclarations
 };
     
-class RenderContextRHIImpl : public RenderContextImpl
+class RIVERENDERER_API RenderContextRHIImpl : public RenderContextImpl
 {
 public:
     static std::unique_ptr<RenderContext> MakeContext(FRHICommandListImmediate& CommandListImmediate);

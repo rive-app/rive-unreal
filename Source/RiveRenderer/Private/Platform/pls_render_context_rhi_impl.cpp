@@ -12,6 +12,7 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/image.hpp"
 #include "rive/shaders/out/generated/shaders/constants.glsl.hpp"
 THIRD_PARTY_INCLUDES_END
+#include "RenderGraphUtils.h"
 
 template<typename VShaderType, typename PShaderType>
 void BindShaders(FRHICommandList& CommandList, FGraphicsPipelineStateInitializer& GraphicsPSOInit,
