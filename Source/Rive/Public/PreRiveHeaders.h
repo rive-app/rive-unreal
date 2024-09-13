@@ -11,12 +11,3 @@
 
 #include "HAL/PreprocessorHelpers.h"
 
-
-#ifdef NDEBUG
-	#pragma message("NDEBUG is set to " PREPROCESSOR_TO_STRING(NDEBUG) " before including Rive libraries! Undefining NDEBUG...")
-	#undef NDEBUG
-#endif
-
-#ifdef DEBUG
-	#pragma message("DEBUG is set to " PREPROCESSOR_TO_STRING(DEBUG) " before including Rive libraries!")
-#endif
