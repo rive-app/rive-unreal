@@ -277,17 +277,14 @@ void FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRe
 		{
 		case ERiveRenderCommandType::Save:
 			Renderer->save();
-			Renderer->save();
 			break;
 		case ERiveRenderCommandType::Restore:
-			Renderer->restore();
 			Renderer->restore();
 			break;
 		case ERiveRenderCommandType::DrawArtboard:
 #if PLATFORM_ANDROID
 			RIVE_DEBUG_VERBOSE("RenderCommand.NativeArtboard->draw()");
 #endif
-			RenderCommand.NativeArtboard->draw(Renderer.get());
 			RenderCommand.NativeArtboard->draw(Renderer.get());
 			break;
 		case ERiveRenderCommandType::DrawPath:
@@ -299,7 +296,6 @@ void FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRe
 		case ERiveRenderCommandType::Transform:
 		case ERiveRenderCommandType::AlignArtboard:
 		case ERiveRenderCommandType::Translate:
-			Renderer->transform(RenderCommand.GetSaved2DTransform());
 			Renderer->transform(RenderCommand.GetSaved2DTransform());
 			break;
 		}
