@@ -16,7 +16,7 @@ TSharedPtr<IRiveRenderTarget> FRiveRendererRHI::CreateTextureTarget_GameThread(c
 }
 
 DECLARE_GPU_STAT_NAMED(CreatePLSContextRHI, TEXT("CreatePLSContext_RenderThread"));
-void FRiveRendererRHI::CreatePLSContext_RenderThread(FRHICommandListImmediate& RHICmdList)
+void FRiveRendererRHI::CreateRenderContext_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
     check(IsInRenderingThread());
     check(GDynamicRHI);

@@ -9,7 +9,7 @@
 #include "Shaders/ShaderPipelineManager.h"
 
 THIRD_PARTY_INCLUDES_START
-#include "rive/renderer/image.hpp"
+#include "rive/renderer/rive_render_image.hpp"
 #include "rive/shaders/out/generated/shaders/constants.glsl.hpp"
 THIRD_PARTY_INCLUDES_END
 #include "RenderGraphUtils.h"

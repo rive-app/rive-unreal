@@ -47,7 +47,7 @@ public:
 
 #if WITH_RIVE
 
-	virtual rive::gpu::RenderContext* GetRenderContextPtr() override;
+	virtual rive::gpu::RenderContext* GetRenderContext() override;
 
 #endif // WITH_RIVE
 
@@ -60,7 +60,6 @@ public:
 protected:
 #if WITH_RIVE
 
-	std::unique_ptr<rive::gpu::RenderContext> RenderContext;
 	std::unique_ptr<rive::gpu::RenderContext> RenderContext;
 
 #endif // WITH_RIVE

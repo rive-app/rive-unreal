@@ -32,12 +32,6 @@ enum class TextOrigin : uint8_t
     baseline
 };
 
-enum class TextWrap : uint8_t
-{
-    wrap,
-    noWrap
-};
-
 class OrderedLine;
 class TextModifierGroup;
 
@@ -182,7 +176,7 @@ public:
     void modifierShapeDirty();
     void markPaintDirty();
     void update(ComponentDirt value) override;
-    Mat2D m_fitScale;
+    Mat2D m_transform;
 
     TextSizing sizing() const { return (TextSizing)sizingValue(); }
     TextSizing effectiveSizing() const
@@ -192,6 +186,7 @@ public:
     TextOverflow overflow() const { return (TextOverflow)overflowValue(); }
     TextOrigin textOrigin() const { return (TextOrigin)originValue(); }
     TextWrap wrap() const { return (TextWrap)wrapValue(); }
+    VerticalTextAlign verticalAlign() const { return (VerticalTextAlign)verticalAlignValue(); }
     void overflow(TextOverflow value) { return overflowValue((uint32_t)value); }
     void buildRenderStyles();
     const TextStyle* styleFromShaperId(uint16_t id) const;
@@ -211,7 +206,8 @@ public:
     const std::vector<TextValueRun*>& runs() const { return m_runs; }
     static SimpleArray<SimpleArray<GlyphLine>> BreakLines(const SimpleArray<Paragraph>& paragraphs,
                                                           float width,
-                                                          TextAlign align);
+                                                          TextAlign align,
+                                                          TextWrap wrap);
 #endif
 
     bool haveModifiers() const

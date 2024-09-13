@@ -34,7 +34,6 @@ public:
 
 #if WITH_RIVE
 	void Initialize(rive::gpu::RenderContextD3DImpl::ContextOptions& OutContextOptions);
-	void Initialize(rive::gpu::RenderContextD3DImpl::ContextOptions& OutContextOptions);
 #endif // WITH_RIVE
 	void ResetDXState();
 

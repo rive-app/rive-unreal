@@ -24,7 +24,7 @@ void FRiveRenderTargetRHI::CacheTextureTarget_RenderThread(
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 
 #if WITH_RIVE
-    rive::gpu::RenderContext* PLSRenderContext = RiveRenderer->GetRenderContextPtr();
+    rive::gpu::RenderContext* PLSRenderContext = RiveRenderer->GetRenderContext();
     if (PLSRenderContext == nullptr)
     {
         return;

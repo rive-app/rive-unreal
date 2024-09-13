@@ -11,7 +11,8 @@
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/renderer/rive_renderer.hpp"
-#include "rive/renderer/rive_renderer.hpp"
+#include "rive/renderer/render_target.hpp"
+
 THIRD_PARTY_INCLUDES_END
 
 #if PLATFORM_APPLE
@@ -165,16 +166,16 @@ void FRiveRenderTarget::RegisterRenderCommand(RiveRenderFunction RenderFunction)
 			return;
 		}
 
-		rive::gpu::RenderContext* factory = RiveRenderer->GetRenderContextPtr();
+		rive::gpu::RenderContext* factory = RiveRenderer->GetRenderContext();
 		RenderFunction(factory, renderer.get());
 	
 		EndFrame();
 	});
 }
 
-std::unique_ptr<rive::gpu::RiveRenderer> FRiveRenderTarget::BeginFrame()
+std::unique_ptr<rive::RiveRenderer> FRiveRenderTarget::BeginFrame()
 {
-	rive::gpu::RenderContext* PLSRenderContextPtr = RiveRenderer->GetRenderContextPtr();
+	rive::gpu::RenderContext* PLSRenderContextPtr = RiveRenderer->GetRenderContext();
 	if (PLSRenderContextPtr == nullptr)
 	{
 		return nullptr;
@@ -182,10 +183,8 @@ std::unique_ptr<rive::gpu::RiveRenderer> FRiveRenderTarget::BeginFrame()
 
 	FColor Color = ClearColor.ToRGBE();
 	rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
-	rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
 	FrameDescriptor.renderTargetWidth = GetWidth();
 	FrameDescriptor.renderTargetHeight = GetHeight();
-	FrameDescriptor.loadAction = bIsCleared ? rive::gpu::LoadAction::clear : rive::gpu::LoadAction::preserveRenderTarget;
 	FrameDescriptor.loadAction = bIsCleared ? rive::gpu::LoadAction::clear : rive::gpu::LoadAction::preserveRenderTarget;
 	FrameDescriptor.clearColor = rive::colorARGB(Color.A, Color.R, Color.G, Color.B);
 	FrameDescriptor.wireframe = false;
@@ -202,13 +201,13 @@ std::unique_ptr<rive::gpu::RiveRenderer> FRiveRenderTarget::BeginFrame()
 #endif
     
 	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
-	return std::make_unique<rive::gpu::RiveRenderer>(PLSRenderContextPtr);
+	return std::make_unique<rive::RiveRenderer>(PLSRenderContextPtr);
 }
 
 void FRiveRenderTarget::EndFrame() const
 {
-	rive::gpu::RenderContext* PLSRenderContextPtr = RiveRenderer->GetRenderContextPtr();
-	if (PLSRenderContextPtr == nullptr)
+	rive::gpu::RenderContext* RenderContext = RiveRenderer->GetRenderContext();
+	if (RenderContext == nullptr)
 	{
 		return;
 	}
@@ -218,7 +217,6 @@ void FRiveRenderTarget::EndFrame() const
 #if PLATFORM_ANDROID
 	RIVE_DEBUG_VERBOSE("RenderContext->flush %p", RenderContext);
 #endif
-	const rive::gpu::RenderContext::FlushResources FlushResources
 	const rive::gpu::RenderContext::FlushResources FlushResources
 	{
 		GetRenderTarget().get()
@@ -262,7 +260,7 @@ void FRiveRenderTarget::Render_Internal(const TArray<FRiveRenderCommand>& RiveRe
 #endif
     
 	// Begin Frame
-	std::unique_ptr<rive::gpu::RiveRenderer> Renderer = BeginFrame();
+	std::unique_ptr<rive::RiveRenderer> Renderer = BeginFrame();
 	if (Renderer == nullptr)
 	{
 		return;

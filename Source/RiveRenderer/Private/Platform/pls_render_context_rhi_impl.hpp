@@ -6,7 +6,7 @@
 THIRD_PARTY_INCLUDES_START
 #undef PI
 #include "rive/renderer/rive_renderer.hpp"
-#include "rive/renderer/image.hpp"
+#include "rive/renderer/rive_render_image.hpp"
 #include "rive/renderer/buffer_ring.hpp"
 THIRD_PARTY_INCLUDES_END
 

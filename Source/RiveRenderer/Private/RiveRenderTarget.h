@@ -13,7 +13,7 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 
 
-namespace rive::gpu
+namespace rive
 {
 	class RiveRenderer;
 }
@@ -65,7 +65,7 @@ public:
 
 protected:
 	virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const = 0;
-	virtual std::unique_ptr<rive::gpu::RiveRenderer> BeginFrame();
+	virtual std::unique_ptr<rive::RiveRenderer> BeginFrame();
 	virtual void EndFrame() const;
 	virtual void Render_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<FRiveRenderCommand>& RiveRenderCommands);
 	virtual void Render_Internal(const TArray<FRiveRenderCommand>& RiveRenderCommands);
