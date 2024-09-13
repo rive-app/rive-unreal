@@ -1,0 +1,11 @@
+#include "/Engine/Public/Platform.ush"
+
+void TestVertex(uint _vertexID : SV_VertexID, out float4 out_position : SV_Position)
+{
+	out_position = float4(((_vertexID & 1) == 0) ? -1 : 1, ((_vertexID & 2) == 0) ? -1 : 1, 0.0, 1.0);
+}
+
+void TestFragment(out float4 out_color : SV_Target0)
+{
+	out_color = float4(1.0, 1.0, 1.0, 1.0);
+}
