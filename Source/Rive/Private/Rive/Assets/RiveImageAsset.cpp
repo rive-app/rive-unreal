@@ -2,17 +2,62 @@
 
 #include "Rive/Assets/RiveImageAsset.h"
 
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
+
 #include "Engine/Texture2D.h"
+#include "Engine/Texture.h"
 #include "TextureResource.h"
+#include "rive/renderer/render_context_helper_impl.hpp"
+#include "rive/renderer/rive_render_image.hpp"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/factory.hpp"
 #include "rive/renderer/render_context.hpp"
 THIRD_PARTY_INCLUDES_END
 
+namespace UE::Private::RiveImageAsset
+{
+	void GetTextureData(UTexture2D* Texture, TArray<uint8>& OutData)
+	{
+		if (!Texture)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Invalid Texture."));
+			return;
+		}
+
+		// Access the platform data
+		FTexturePlatformData* PlatformData = Texture->GetPlatformData();
+		if (!PlatformData || PlatformData->Mips.Num() == 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("No platform data available."));
+			return;
+		}
+
+		if (PlatformData->Mips.Num() > 1)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Can't load a texture with Mip count > 1"));
+			return;
+		}
+		
+		// Get the mip data from the first mip level
+		FTexture2DMipMap& Mip = PlatformData->Mips[0];
+		if (const uint8* MipData = static_cast<uint8*>(Mip.BulkData.Lock(LOCK_READ_ONLY)))
+		{
+			// Copy data to output array
+			const uint32 MipSize = Mip.SizeX * Mip.SizeY * sizeof(FColor);
+			OutData.SetNumUninitialized(MipSize);
+			FMemory::Memcpy(OutData.GetData(), MipData, MipSize);
+		} else {
+			UE_LOG(LogTemp, Warning, TEXT("No texture data available."));
+		}
+
+		Mip.BulkData.Unlock();
+	}
+}
 
 URiveImageAsset::URiveImageAsset()
 {
@@ -23,9 +68,23 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
 {
 	if (!InTexture) return;
 
-	UE_LOG(LogRive, Warning, TEXT("LoadTexture NYI"));
-	return;
+	{ // Ensure we have a single mip
+		int32 MipCount = InTexture->GetNumMips();
+		if (MipCount != 1)
+		{
+			UE_LOG(LogRive, Error, TEXT("LoadTexture: Texture being loaded needs to have 1 mip level to load. You can do this by either setting 'Mip Gen Settings' to 'NoMipMaps', or 'Mip Gen Settings' to 'FromTextureGroup' AND 'Texture Group' set to 'UI'"));
+			return;
+		}
+	}
 
+	{ // Ensure our compression is simple RGBA
+		if (InTexture->CompressionSettings != TC_EditorIcon) // TC_EditorIcon is RGBA
+		{
+			UE_LOG(LogRive, Error, TEXT("LoadTexture: Texture needs to be set to have a 'CompressionSetting' of 'UserInterface2D'"));
+			return;
+		}
+	}
+	
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 
 	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
@@ -39,50 +98,21 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
 
 			if (ensure(RenderContext))
 			{
-				InTexture->SetForceMipLevelsToBeResident(30.f);
-				InTexture->WaitForStreaming();
-
-				EPixelFormat PixelFormat = InTexture->GetPixelFormat();
-				if (PixelFormat != PF_R8G8B8A8)
+				TArray<uint8> ImageData;
+				UE::Private::RiveImageAsset::GetTextureData(InTexture, ImageData);
+			
+				if (ImageData.IsEmpty())
 				{
-					UE_LOG(LogRive, Error, TEXT("Error loading Texture '%s': Rive only supports RGBA pixel formats. This texture is of format"), *InTexture->GetName())
+					UE_LOG(LogRive, Error, TEXT("LoadTexture: Could not get raw bitmap data from Texture."));
 					return;
 				}
-
-				FTexture2DMipMap& Mip = InTexture->GetPlatformData()->Mips[0];
-				uint8* MipData = reinterpret_cast<uint8*>(Mip.BulkData.Lock(LOCK_READ_ONLY));
-				int32 BitmapDataSize = Mip.SizeX * Mip.SizeY * sizeof(FColor);
-
-				TArray<uint8> BitmapData;
-				BitmapData.AddUninitialized(BitmapDataSize);
-				FMemory::Memcpy(BitmapData.GetData(), MipData, BitmapDataSize);
-				Mip.BulkData.Unlock();
-
-				if (MipData == nullptr)
-				{
-					UE_LOG(LogRive, Error, TEXT("Unable to load Mip data for %s"), *InTexture->GetName());
-					return;
-				}
-
-
-				// decodeImage() here requires encoded bytes and returns a rive::RenderImage
-				// it will call:
-				//   PLSRenderContextHelperImpl::decodeImageTexture() ->
-				//     Bitmap::decode()
-				//       // here, Bitmap only decodes webp, jpg, png and discards otherwise
-				rive::rcp<rive::RenderImage> DecodedImage = RenderContext->decodeImage(rive::make_span(BitmapData.GetData(), BitmapDataSize));
-
-				// This is what we need, to make a RenderImage and supply raw bitmap bytes that aren't already encoded:
-				// makeImage, createImage, or any other descriptive name could be used
-				// rive::rcp<rive::RenderImage> RenderImage = PLSRenderContext->makeImage(rive::make_span(BitmapData.GetData(), BitmapDataSize));
-
-				if (DecodedImage == nullptr)
-				{
-					UE_LOG(LogRive, Error, TEXT("Could not decode image asset: %s"), *InTexture->GetName());
-					return;
-				}
-
-				NativeAsset->as<rive::ImageAsset>()->renderImage(DecodedImage);
+				
+				TArray64<uint8> CompressedImage;
+				FImageView ImageView = FImageView(ImageData.GetData(), InTexture->GetSizeX(), InTexture->GetSizeY(), ERawImageFormat::BGRA8);
+				IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+				ImageWrapperModule.CompressImage(CompressedImage, EImageFormat::PNG, ImageView, 100);
+				rive::rcp<rive::RenderImage> RenderImage = RenderContext->decodeImage(rive::make_span(CompressedImage.GetData(), CompressedImage.Num()));
+				NativeAsset->as<rive::ImageAsset>()->renderImage(RenderImage);
 			}
 		}
 	));
@@ -101,17 +131,17 @@ void URiveImageAsset::LoadImageBytes(const TArray<uint8>& InBytes)
 				FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
 				RenderContext = RiveRenderer->GetRenderContext();
 			}
-	
+
 			if (ensure(RenderContext))
 			{
 				auto DecodedImage = RenderContext->decodeImage(rive::make_span(InBytes.GetData(), InBytes.Num()));
-			
+
 				if (DecodedImage == nullptr)
 				{
 					UE_LOG(LogRive, Error, TEXT("LoadImageBytes: Could not decode image bytes"));
 					return;
 				}
-									
+
 				rive::ImageAsset* ImageAsset = NativeAsset->as<rive::ImageAsset>();
 				ImageAsset->renderImage(DecodedImage);
 			}
