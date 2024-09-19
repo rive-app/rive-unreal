@@ -179,8 +179,8 @@ void BufferRingRHIImpl::onUnmapAndSubmitBuffer(int bufferIdx, size_t mapSizeInBy
 
 StructuredBufferRingRHIImpl::StructuredBufferRingRHIImpl(EBufferUsageFlags flags,
     size_t in_sizeInBytes,
-    size_t elementSize) : BufferRing(in_sizeInBytes), m_elementSize(elementSize),
-    m_flags(flags), m_lastMapSizeInBytes(in_sizeInBytes)
+    size_t elementSize) : BufferRing(in_sizeInBytes),  m_flags(flags),
+    m_elementSize(elementSize), m_lastMapSizeInBytes(in_sizeInBytes)
 {
     FRHIAsyncCommandList commandList;
     FRHIResourceCreateInfo Info(TEXT("BufferRingRHIImpl_"));
@@ -812,6 +812,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         CommandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::RTV, ERHIAccess::SRVGraphics));
     }
 
+#pragma warning (push)
+#pragma warning (disable: 4701)
     ERenderTargetActions loadAction;
     switch (desc.colorLoadAction)
     {
@@ -844,7 +846,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     {
         Info.ResolveRect = FResolveRect(0, 0, renderTarget->width(), renderTarget->height());
     }
-    
+#pragma warning (pop)
      CommandList.BeginRenderPass(Info, TEXT("Rive_Render_Flush"));
      CommandList.SetViewport(0, 0, 0, renderTarget->width(), renderTarget->height(), 1.0);
 

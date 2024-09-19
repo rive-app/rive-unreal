@@ -26,6 +26,8 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
 	UE_LOG(LogRive, Warning, TEXT("LoadTexture NYI"));
 	return;
 
+#pragma warning (push)
+#pragma warning (disable: 4702)
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 
 	RiveRenderer->CallOrRegister_OnInitialized(IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
@@ -86,6 +88,7 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
 			}
 		}
 	));
+#pragma warning (pop)
 }
 
 void URiveImageAsset::LoadImageBytes(const TArray<uint8>& InBytes)

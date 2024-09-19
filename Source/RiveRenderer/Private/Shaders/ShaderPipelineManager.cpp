@@ -19,72 +19,86 @@ THIRD_PARTY_INCLUDES_END
 void FRiveGradientPixelShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
  }
 
 void FRiveGradientVertexShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveTessPixelShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveTessVertexShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
  }
 
 void FRivePathPixelShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRivePathVertexShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveInteriorTrianglesPixelShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveInteriorTrianglesVertexShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveImageRectPixelShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveImageRectVertexShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveImageMeshPixelShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveImageMeshVertexShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveAtomiResolvePixelShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 
 void FRiveAtomiResolveVertexShader::ModifyCompilationEnvironment(const FShaderPermutationParameters& Params, FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 
