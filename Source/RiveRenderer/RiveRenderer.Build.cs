@@ -36,6 +36,8 @@ public class RiveRenderer : ModuleRules
 			new string[]
 			{
 				"CoreUObject",
+				"DeveloperSettings",
+				"UnrealEd",
 				"Engine",
                 "RHI",
 				"RenderCore",
