@@ -5,14 +5,24 @@
 #include "IImageWrapper.h"
 #include "RenderGraphBuilder.h"
 #include "RHIResourceUpdates.h"
+#include "Containers/ResourceArray.h"
+#include "RHIStaticStates.h"
+#include "Modules/ModuleManager.h"
+
+#include "RHICommandList.h"
 
 #include "Shaders/ShaderPipelineManager.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
 #include "rive/shaders/out/generated/shaders/constants.glsl.hpp"
+
+#include "webp/decode.h"
+#include "webp/demux.h"
+
 THIRD_PARTY_INCLUDES_END
 #include "RenderGraphUtils.h"
+#include "Logs/RiveRendererLog.h"
 
 template<typename VShaderType, typename PShaderType>
 void BindShaders(FRHICommandList& CommandList, FGraphicsPipelineStateInitializer& GraphicsPSOInit,
@@ -252,11 +262,11 @@ void RenderBufferRHIImpl::onUnmap()
 class PLSTextureRHIImpl : public Texture
 {
 public:
-    PLSTextureRHIImpl(uint32_t width, uint32_t height, uint32_t mipLevelCount, const TArray<uint8>& imageDataRGBA) : 
+    PLSTextureRHIImpl(uint32_t width, uint32_t height, uint32_t mipLevelCount, const TArray<uint8>& imageDataRGBA, EPixelFormat PixelFormat = PF_B8G8R8A8) : 
         Texture(width, height)
     {
         FRHIAsyncCommandList commandList;
-        auto Desc = FRHITextureCreateDesc::Create2D(TEXT("PLSTextureRHIImpl_"), m_width, m_height, EPixelFormat::PF_B8G8R8A8);
+        auto Desc = FRHITextureCreateDesc::Create2D(TEXT("PLSTextureRHIImpl_"), m_width, m_height, PixelFormat);
         Desc.SetNumMips(mipLevelCount);
         m_texture = commandList->CreateTexture(Desc);
         commandList->UpdateTexture2D(m_texture, 0,
@@ -410,21 +420,110 @@ rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(FRHICommandListImmed
 
 rcp<Texture> RenderContextRHIImpl::decodeImageTexture(Span<const uint8_t> encodedBytes)
 {
-    IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
-    if(!ImageWrapper.IsValid() || !ImageWrapper->SetCompressed(encodedBytes.data(), encodedBytes.size()))
-    {
-        return nullptr;
-    }
+    constexpr uint8_t PNG[4] =  {0x89, 0x50, 0x4E, 0x47};
+    constexpr uint8_t JPEG[3] =  {0xFF, 0xD8, 0xFF};
+    constexpr uint8_t WEBP[3] = {0x52, 0x49, 0x46};
 
-    TArray<uint8> UncompressedBGRA;
-    if (!ImageWrapper->GetRaw(ERGBFormat::BGRA, 8, UncompressedBGRA))
-    {
-        return nullptr;
-    }
+    EImageFormat format = EImageFormat::Invalid;
     
-    return make_rcp<PLSTextureRHIImpl>(ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), 1, UncompressedBGRA);
+    if(memcmp(PNG, encodedBytes.data(), sizeof(PNG)) == 0)
+    {
+        format = EImageFormat::PNG;
+    }
+    else if (memcmp(JPEG, encodedBytes.data(), sizeof(JPEG)) == 0)
+    {
+        format = EImageFormat::JPEG;
+    }
+    else if(memcmp(WEBP, encodedBytes.data(), sizeof(WEBP)) == 0)
+    {
+        format = EImageFormat::Invalid;
+    }
+    else
+    {
+        RIVE_DEBUG_VERBOSE("Invalid Decode Image header");
+        return nullptr;
+    }
+
+    if(format != EImageFormat::Invalid)
+    {
+        // Use Unreal for PNG and JPEG
+        IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+        TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(format);
+        if(!ImageWrapper.IsValid() || !ImageWrapper->SetCompressed(encodedBytes.data(), encodedBytes.size()))
+        {
+            return nullptr;
+        }
+
+        TArray<uint8> UncompressedBGRA;
+        if (!ImageWrapper->GetRaw(ERGBFormat::BGRA, 8, UncompressedBGRA))
+        {
+            return nullptr;
+        }
+    
+        return make_rcp<PLSTextureRHIImpl>(ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), 1, UncompressedBGRA);
+    }
+    else
+    {
+        // WEBP Decoding
+        WebPDecoderConfig config;
+        if (!WebPInitDecoderConfig(&config))
+        {
+            fprintf(stderr, "DecodeWebP - Library version mismatch!\n");
+            return nullptr;
+        }
+        config.options.dithering_strength = 50;
+        config.options.alpha_dithering_strength = 100;
+
+        if (!WebPGetInfo(encodedBytes.data(), encodedBytes.size(), nullptr, nullptr))
+        {
+            fprintf(stderr, "DecodeWebP - Input file doesn't appear to be WebP format.\n");
+        }
+
+        WebPData data = {encodedBytes.data(), encodedBytes.size()};
+        WebPDemuxer* demuxer = WebPDemux(&data);
+        if (demuxer == nullptr)
+        {
+            RIVE_DEBUG_VERBOSE("DecodeWebP - Could not create demuxer.");
+            return nullptr;
+        }
+
+        WebPIterator currentFrame;
+        if (!WebPDemuxGetFrame(demuxer, 1, &currentFrame))
+        {
+            RIVE_DEBUG_VERBOSE("DecodeWebP - WebPDemuxGetFrame couldn't get frame.");
+            WebPDemuxDelete(demuxer);
+            return nullptr;
+        }
+        config.output.colorspace = MODE_RGBA;
+
+        uint32_t width = WebPDemuxGetI(demuxer, WEBP_FF_CANVAS_WIDTH);
+        uint32_t height = WebPDemuxGetI(demuxer, WEBP_FF_CANVAS_HEIGHT);
+
+        size_t pixelBufferSize =
+            static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(4);
+        TArray<uint8> pixelBuffer;
+        pixelBuffer.AddUninitialized(pixelBufferSize);
+
+        config.output.u.RGBA.rgba = (uint8_t*)pixelBuffer.GetData();
+        config.output.u.RGBA.stride = static_cast<int>(width * 4);
+        config.output.u.RGBA.size = pixelBufferSize;
+        config.output.is_external_memory = 1;
+
+        if (WebPDecode(currentFrame.fragment.bytes, currentFrame.fragment.size, &config) !=
+            VP8_STATUS_OK)
+        {
+            RIVE_DEBUG_VERBOSE("DecodeWebP - WebPDemuxGetFrame couldn't decode.");
+            WebPDemuxReleaseIterator(&currentFrame);
+            WebPDemuxDelete(demuxer);
+            return nullptr;
+        }
+
+        WebPDemuxReleaseIterator(&currentFrame);
+        WebPDemuxDelete(demuxer);
+
+        return make_rcp<PLSTextureRHIImpl>(width, height, 1, std::move(pixelBuffer), EPixelFormat::PF_R8G8B8A8);
+    }
 }
 
 void RenderContextRHIImpl::resizeFlushUniformBuffer(size_t sizeInBytes)
