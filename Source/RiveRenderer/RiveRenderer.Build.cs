@@ -37,7 +37,6 @@ public class RiveRenderer : ModuleRules
 			{
 				"CoreUObject",
 				"DeveloperSettings",
-				"UnrealEd",
 				"Engine",
                 "RHI",
 				"RenderCore",

@@ -33,7 +33,10 @@ public class RiveEditor : ModuleRules
                 "UMG",
                 "UMGEditor", 
                 "SettingsEditor",
-                "EditorStyle"
+                "EditorStyle",
+                "UnrealEd",
+                "DeveloperSettings",
+                "RiveRenderer"
             }
         );
 

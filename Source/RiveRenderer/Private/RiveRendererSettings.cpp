@@ -5,11 +5,5 @@
 
 URiveRendererSettings::URiveRendererSettings() : bEnableRHITechPreview(false)
 {
-#if WITH_EDITOR
-	this->OnSettingChanged().AddLambda([this](UObject*, struct FPropertyChangedEvent&)
-	{
-		FUnrealEdMisc::Get().RestartEditor();
-	});
-#endif
+	
 }
-

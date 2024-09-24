@@ -5,9 +5,11 @@
 #include "AssetToolsModule.h"
 #include "IRiveRendererModule.h"
 #include "ISettingsEditorModule.h"
+#include "ISettingsModule.h"
 #include "RiveFileDetailCustomization.h"
 #include "RiveFileAssetTypeActions.h"
 #include "RiveFileThumbnailRenderer.h"
+#include "RiveRendererSettings.h"
 #include "RiveTextureObjectAssetTypeActions.h"
 #include "RiveTextureObjectThumbnailRenderer.h"
 #include "Framework/Notifications/NotificationManager.h"
@@ -42,6 +44,20 @@ void FRiveEditorModule::StartupModule()
 		CheckCurrentRHIAndNotify();
 		FCoreDelegates::OnBeginFrame.Remove(OnBeginFrameHandle);
 	});
+
+	// Register settings
+	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+	{
+		SettingsModule->RegisterSettings("Project", "Plugins", "Rive",
+			LOCTEXT("RiveRendererSettingsName", "Rive"),
+			LOCTEXT("RiveRendererDescription", "Configure Rive settings"),
+			GetMutableDefault<URiveRendererSettings>());
+	}
+	
+	GetMutableDefault<URiveRendererSettings>()->OnSettingChanged().AddLambda([this](UObject*, struct FPropertyChangedEvent&)
+	{
+		FUnrealEdMisc::Get().RestartEditor();
+	});
 }
 
 void FRiveEditorModule::ShutdownModule()
@@ -75,6 +91,11 @@ void FRiveEditorModule::ShutdownModule()
 		}
 	}
 	CreatedAssetTypeActions.Empty();
+
+	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+	{
+		SettingsModule->UnregisterSettings("Project", "Plugins", "Rive");
+	}
 }
 
 bool FRiveEditorModule::CheckCurrentRHIAndNotify()

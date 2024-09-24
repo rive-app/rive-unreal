@@ -2,7 +2,6 @@
 
 #include "RiveRendererModule.h"
 
-#include "ISettingsModule.h"
 #include "RiveRenderer.h"
 #include "Logs/RiveRendererLog.h"
 #include "Platform/RiveRendererRHI.h"
@@ -21,15 +20,6 @@
 void FRiveRendererModule::StartupModule()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
-
-    // Register settings
-    if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-    {
-        SettingsModule->RegisterSettings("Project", "Plugins", "Rive",
-            LOCTEXT("RiveRendererSettingsName", "Rive"),
-            LOCTEXT("RiveRendererDescription", "Configure Rive settings"),
-            GetMutableDefault<URiveRendererSettings>());
-    }
     
     check(GDynamicRHI);
     // Create Platform Specific Renderer
@@ -63,11 +53,6 @@ void FRiveRendererModule::ShutdownModule()
     if (RiveRenderer)
     {
         RiveRenderer.Reset();
-    }
-
-    if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-    {
-        SettingsModule->UnregisterSettings("Project", "Plugins", "Rive");
     }
 }
 
