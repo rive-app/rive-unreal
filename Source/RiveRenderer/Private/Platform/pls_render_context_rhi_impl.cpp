@@ -167,7 +167,8 @@ size_t in_sizeInBytes, size_t stride) : BufferRing(in_sizeInBytes), m_flags(flag
 
 void BufferRingRHIImpl::Sync(FRHICommandList& commandList) const
 {
-    auto buffer = commandList.LockBuffer(m_buffer, 0, capacityInBytes(), RLM_WriteOnly_NoOverwrite);
+    // for DX12 we should use RLM_WriteOnly_NoOverwrite but RLM_WriteOnly works everywhere so we use it for now
+    auto buffer = commandList.LockBuffer(m_buffer, 0, capacityInBytes(), RLM_WriteOnly);
     memcpy(buffer, shadowBuffer(), capacityInBytes());
     commandList.UnlockBuffer(m_buffer);
 }

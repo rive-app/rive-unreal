@@ -120,7 +120,8 @@ public:
     template<typename HighLevelStruct>
     void Sync(FRHICommandList& commandList, size_t elementOffset, size_t elementCount)
     {
-        auto data = commandList.LockBuffer(m_buffer, 0, elementCount * sizeof(HighLevelStruct), RLM_WriteOnly_NoOverwrite);
+        // for DX12 we should use RLM_WriteOnly_NoOverwrite but RLM_WriteOnly works everywhere so we use it for now
+        auto data = commandList.LockBuffer(m_buffer, 0, elementCount * sizeof(HighLevelStruct), RLM_WriteOnly);
         memcpy(data, shadowBuffer() + (elementOffset * sizeof(HighLevelStruct)), elementCount * sizeof(HighLevelStruct));
         commandList.UnlockBuffer(m_buffer);
     }
