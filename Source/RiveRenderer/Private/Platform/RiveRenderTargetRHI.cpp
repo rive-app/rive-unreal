@@ -51,7 +51,7 @@ void FRiveRenderTargetRHI::CacheTextureTarget_RenderThread(
         CachedRenderTarget.reset();
     }
 
-    rive::gpu::RenderContextRHIImpl* const PLSRenderContextImpl = PLSRenderContext->static_impl_cast<rive::gpu::RenderContextRHIImpl>();
+    RenderContextRHIImpl* const PLSRenderContextImpl = PLSRenderContext->static_impl_cast<RenderContextRHIImpl>();
     CachedRenderTarget = PLSRenderContextImpl->makeRenderTarget(RHICmdList, InTexture);
     
 #endif

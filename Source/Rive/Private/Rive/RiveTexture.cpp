@@ -12,7 +12,7 @@
 
 URiveTexture::URiveTexture()
 {
-    SRGB = false;
+    SRGB = true;
 
 #if PLATFORM_ANDROID
 	Format = PF_R8G8B8A8_SNORM;

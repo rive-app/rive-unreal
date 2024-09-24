@@ -30,6 +30,6 @@ void FRiveRendererRHI::CreateRenderContext_RenderThread(FRHICommandListImmediate
     } 
     
 #if WITH_RIVE
-    RenderContext = rive::gpu::RenderContextRHIImpl::MakeContext(RHICmdList);
+    RenderContext = RenderContextRHIImpl::MakeContext(RHICmdList);
 #endif // WITH_RIVE
 }

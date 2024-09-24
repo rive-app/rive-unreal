@@ -107,10 +107,9 @@ public:
     virtual void SetAllowCPUAccess( bool bInNeedsCPUAccess ){}
 };
 
-namespace rive
-{
-namespace gpu
-{
+using namespace rive;
+using namespace rive::gpu;
+
     TStaticExternalResourceData GImageRectIndices(kImageRectIndices);
     TStaticExternalResourceData GImageRectVertices(kImageRectVertices);
     TStaticExternalResourceData GTessSpanIndices(kTessSpanIndices);
@@ -1090,6 +1089,4 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         // needed for fixed function blend mode
         CommandList.Transition(FRHITransitionInfo(DestTexture, ERHIAccess::RTV, ERHIAccess::UAVGraphics));
     }
-}
-}
 }

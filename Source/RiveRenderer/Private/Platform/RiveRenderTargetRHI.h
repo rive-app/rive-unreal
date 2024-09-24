@@ -24,5 +24,5 @@ protected:
 #endif // WITH_RIVE
 private:
     TSharedRef<FRiveRendererRHI> RiveRenderer;
-    rive::rcp<rive::gpu::RenderTargetRHI> CachedRenderTarget;
+    rive::rcp<RenderTargetRHI> CachedRenderTarget;
 };
