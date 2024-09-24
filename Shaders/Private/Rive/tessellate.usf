@@ -1,0 +1,9 @@
+#include "/Engine/Public/Platform.ush"
+#define USE_GENERATED_UNIFORMS 1
+#define SPLIT_UINT4_ATTRIBUTES 1
+
+#include "parse_environment.ush"
+#include "Generated/rhi.minified.ush"
+#include "Generated/constants.minified.ush"
+#include "Generated/common.minified.ush"
+#include "Generated/tessellate.minified.ush"

@@ -30,6 +30,9 @@ public:
 	 */
 
 private:
+    void StartupLegacyRiveRenderer();
+    
+private:
 	TSharedPtr<IRiveRenderer> RiveRenderer;
 	FSimpleMulticastDelegate OnRendererInitializedDelegate;
 	FDelegateHandle OnBeginFrameHandle;

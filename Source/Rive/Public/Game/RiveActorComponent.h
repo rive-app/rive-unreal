@@ -49,6 +49,10 @@ public:
 
     UPROPERTY(BlueprintAssignable, Category = Rive)
     FRiveReadyDelegate OnRiveReady;
+
+    // Render a test example for rive renderer
+    UFUNCTION(BlueprintCallable, Category= Rive)
+    void RenderRiveTest();
     
     UFUNCTION(BlueprintCallable, Category = Rive)
     void ResizeRenderTarget(int32 InSizeX, int32 InSizeY);

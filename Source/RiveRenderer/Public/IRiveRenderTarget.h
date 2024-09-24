@@ -17,9 +17,16 @@ namespace rive
 {
 	class Artboard;
 	class Renderer;
+
+	namespace renderer
+	{
+		class rendererRenderContext;
+	}
 }
 
 #endif // WITH_RIVE
+
+using RiveRenderFunction=TUniqueFunction<void(rive::Factory* factory, rive::Renderer* renderer)>;
 class IRiveRenderTarget : public TSharedFromThis<IRiveRenderTarget>
 {
 	/**
@@ -47,6 +54,7 @@ public:
 	virtual void Draw(rive::Artboard* InArtboard) = 0;
 	virtual void Align(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) = 0;
 	virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) = 0;
+	virtual void RegisterRenderCommand(RiveRenderFunction RenderFunction) =0;
 	/** Returns the transformation Matrix from the start of the Render Queue up to now */
 	virtual FMatrix GetTransformMatrix() const = 0;
 

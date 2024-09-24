@@ -35,7 +35,7 @@ public:
 		return FModuleManager::Get().IsModuleLoaded(ModuleName);
 	}
 
-	virtual IRiveRenderer* GetRenderer() = 0;
+	virtual class IRiveRenderer* GetRenderer() = 0;
 
 	virtual void CallOrRegister_OnRendererInitialized(FSimpleMulticastDelegate::FDelegate&& Delegate) = 0;
 

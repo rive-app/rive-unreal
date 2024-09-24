@@ -11,6 +11,8 @@
 THIRD_PARTY_INCLUDES_START
 #include "rive/artboard.hpp"
 #include "rive/renderer/rive_renderer.hpp"
+#include "rive/renderer/render_target.hpp"
+
 THIRD_PARTY_INCLUDES_END
 
 #if PLATFORM_APPLE
@@ -152,10 +154,29 @@ FMatrix FRiveRenderTarget::GetTransformMatrix() const
 	return CurrentMatrix;
 }
 
+void FRiveRenderTarget::RegisterRenderCommand(RiveRenderFunction RenderFunction)
+{
+	FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+	ENQUEUE_RENDER_COMMAND(FRiveRenderTarget_CustomRenderCommand)(
+   [this, RenderFunction = std::move(RenderFunction)](FRHICommandListImmediate& RHICmdList)
+   {
+		auto renderer = BeginFrame();
+		if(!renderer)
+		{
+			return;
+		}
+
+		rive::gpu::RenderContext* factory = RiveRenderer->GetRenderContext();
+		RenderFunction(factory, renderer.get());
+	
+		EndFrame();
+	});
+}
+
 std::unique_ptr<rive::RiveRenderer> FRiveRenderTarget::BeginFrame()
 {
-	rive::gpu::RenderContext* RenderContext = RiveRenderer->GetRenderContext();
-	if (RenderContext == nullptr)
+	rive::gpu::RenderContext* PLSRenderContextPtr = RiveRenderer->GetRenderContext();
+	if (PLSRenderContextPtr == nullptr)
 	{
 		return nullptr;
 	}
@@ -179,8 +200,8 @@ std::unique_ptr<rive::RiveRenderer> FRiveRenderTarget::BeginFrame()
 	RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL RenderContext->beginFrame %p", RenderContext);
 #endif
     
-	RenderContext->beginFrame(std::move(FrameDescriptor));
-	return std::make_unique<rive::RiveRenderer>(RenderContext);
+	PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
+	return std::make_unique<rive::RiveRenderer>(PLSRenderContextPtr);
 }
 
 void FRiveRenderTarget::EndFrame() const

@@ -43,6 +43,7 @@ public class RiveLibrary : ModuleRules
             
             PublicAdditionalLibraries.AddRange(new string[]
             {
+                Path.Combine(libDirectory, $"rive_libwebp{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_sheenbidi{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_harfbuzz{libSuffix}.{extension}"),
                 Path.Combine(libDirectory, $"rive_libwebp{libSuffix}.{extension}"),
