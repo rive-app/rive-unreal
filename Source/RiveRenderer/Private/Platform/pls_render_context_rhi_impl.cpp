@@ -812,9 +812,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         CommandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::RTV, ERHIAccess::SRVGraphics));
     }
 
-#pragma warning (push)
-#pragma warning (disable: 4701)
-    ERenderTargetActions loadAction;
+    ERenderTargetActions loadAction = ERenderTargetActions::Load_Store;
     switch (desc.colorLoadAction)
     {
     case LoadAction::clear:
@@ -833,7 +831,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         loadAction = ERenderTargetActions::DontLoad_Store;
         break;
     }
-
     
     FRHIRenderPassInfo Info;
     if(!(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_ADVANCED_BLEND))
@@ -846,7 +843,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     {
         Info.ResolveRect = FResolveRect(0, 0, renderTarget->width(), renderTarget->height());
     }
-#pragma warning (pop)
+    
      CommandList.BeginRenderPass(Info, TEXT("Rive_Render_Flush"));
      CommandList.SetViewport(0, 0, 0, renderTarget->width(), renderTarget->height(), 1.0);
 
