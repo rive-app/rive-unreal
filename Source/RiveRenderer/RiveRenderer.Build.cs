@@ -42,6 +42,7 @@ public class RiveRenderer : ModuleRules
 				"RenderCore",
 				"Renderer",
 				"RiveLibrary",
+				"ImageWrapper"
 			}
 		);
 		

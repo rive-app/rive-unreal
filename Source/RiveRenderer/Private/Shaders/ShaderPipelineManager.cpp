@@ -1,18 +1,16 @@
 #include "ShaderPipelineManager.h"
 
-#include <fstream>
-#include <iostream>
 #include <filesystem>
 
 #include <CoreMinimal.h>
 #include "GlobalShader.h"
-#include <mutex>
 
 #include "CommonRenderResources.h"
 #include "ResolveShader.h"
 #include "Platform/pls_render_context_rhi_impl.hpp"
+#include "ShaderCompilerCore.h"
+
 THIRD_PARTY_INCLUDES_START
-#include "rive/shaders/out/generated/shaders/hlsl.glsl.hpp"
 #include "rive/shaders/out/generated/shaders/constants.glsl.hpp"
 THIRD_PARTY_INCLUDES_END
 
