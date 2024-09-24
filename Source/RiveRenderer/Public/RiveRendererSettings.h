@@ -13,7 +13,7 @@ UCLASS(Config=Engine, DefaultConfig)
 class RIVERENDERER_API URiveRendererSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
-
+public:
 	/**
 	 * 
 	 */
