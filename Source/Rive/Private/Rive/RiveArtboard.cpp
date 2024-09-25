@@ -264,7 +264,7 @@ FString URiveArtboard::GetTextValue(const FString& InPropertyName) const
 	return {};
 }
 
-FString URiveArtboard::GetStringValueAtPath(const FString& InInputName, const FString& InPath, bool& OutSuccess) const
+FString URiveArtboard::GetTextValueAtPath(const FString& InInputName, const FString& InPath, bool& OutSuccess) const
 {
 	IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 	if (ensure(RiveRenderer))
