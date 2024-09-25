@@ -16,6 +16,12 @@ THIRD_PARTY_INCLUDES_END
 
 struct ID3D11DynamicRHI;
 
+namespace rive::gpu
+{
+	class RenderTargetD3D;
+	class RenderContextD3DImpl;
+}
+
 #endif // WITH_RIVE
 
 class FRiveRendererD3D11GPUAdapter

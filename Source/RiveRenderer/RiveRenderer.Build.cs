@@ -27,7 +27,7 @@ public class RiveRenderer : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core"
+				"Core", "RiveLibrary"
 			}
 		);
 			
@@ -36,11 +36,13 @@ public class RiveRenderer : ModuleRules
 			new string[]
 			{
 				"CoreUObject",
+				"DeveloperSettings",
 				"Engine",
                 "RHI",
 				"RenderCore",
 				"Renderer",
 				"RiveLibrary",
+				"ImageWrapper"
 			}
 		);
 		

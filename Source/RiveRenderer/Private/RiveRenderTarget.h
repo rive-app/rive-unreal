@@ -12,6 +12,12 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
 
+
+namespace rive
+{
+	class RiveRenderer;
+}
+
 #endif // WITH_RIVE
 
 class UTexture2DDynamic;
@@ -55,6 +61,7 @@ public:
 	virtual void Align(const FBox2f& InBox, ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
 	virtual void Align(ERiveFitType InFit, const FVector2f& InAlignment, rive::Artboard* InArtboard) override;
 	virtual FMatrix GetTransformMatrix() const override;
+	virtual void RegisterRenderCommand(RiveRenderFunction RenderFunction)override;
 
 protected:
 	virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const = 0;

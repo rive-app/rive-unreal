@@ -109,9 +109,9 @@ public:
 	
 protected:
 
-	void RiveReady(IRiveRenderer* InRiveRenderer);
+	void OnRiveRendererInitialized(IRiveRenderer* InRiveRenderer);
 	void OnResourceInitialized_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIRef& NewResource) const;
-
+	void OnRiveFileInitialized(bool bSuccess);
 public:
 	UPROPERTY(EditAnywhere, Transient, Category = Rive)
 	bool bIsRendering = false;

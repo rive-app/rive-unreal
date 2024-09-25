@@ -9,6 +9,11 @@
 
 #if WITH_RIVE
 
+namespace rive::gpu
+{
+	class Renderer;
+	class RenderContext;
+}
 
 #endif // WITH_RIVE
 
