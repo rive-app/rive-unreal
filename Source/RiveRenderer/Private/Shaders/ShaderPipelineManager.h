@@ -330,9 +330,9 @@ public:
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
     SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
     SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
-    SHADER_PARAMETER_UAV(Texture2D, coverageCountBuffer)
+    SHADER_PARAMETER_UAV(Texture2D<uint>, coverageCountBuffer)
     SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
-    SHADER_PARAMETER_UAV(Texture2D, clipBuffer)
+    SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_PIXEL_PERMUTATIONS

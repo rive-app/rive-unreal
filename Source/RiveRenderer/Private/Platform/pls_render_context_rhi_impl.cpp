@@ -24,6 +24,17 @@ THIRD_PARTY_INCLUDES_END
 #include "RenderGraphUtils.h"
 #include "Logs/RiveRendererLog.h"
 
+#include "Misc/EngineVersionComparison.h"
+
+#if UE_VERSION_OLDER_THAN (5, 4,0)
+#define CREATE_TEXTURE(RHICmdList, Desc) RHICreateTexture(Desc)
+#define RASTER_STATE(FillMode, CullMode, DepthClip) TStaticRasterizerState<FillMode, CullMode, false, false , DepthClip>::GetRHI()
+#else //UE_VERSION_OLDER_THAN (5, 4,0)
+#define CREATE_TEXTURE(RHICmdList, Desc) RHICmdList.CreateTexture(Desc)
+#define RASTER_STATE(FillMode, CullMode, DepthClip) TStaticRasterizerState<FillMode, CullMode, DepthClip, false>::GetRHI()
+#endif
+
+
 template<typename VShaderType, typename PShaderType>
 void BindShaders(FRHICommandList& CommandList, FGraphicsPipelineStateInitializer& GraphicsPSOInit,
     TShaderMapRef<VShaderType> VSShader, TShaderMapRef<PShaderType> PSShader, FRHIVertexDeclaration* VertexDeclaration)
@@ -269,7 +280,7 @@ public:
         FRHIAsyncCommandList commandList;
         auto Desc = FRHITextureCreateDesc::Create2D(TEXT("PLSTextureRHIImpl_"), m_width, m_height, PixelFormat);
         Desc.SetNumMips(mipLevelCount);
-        m_texture = commandList->CreateTexture(Desc);
+        m_texture = CREATE_TEXTURE(commandList, Desc);
         commandList->UpdateTexture2D(m_texture, 0,
             FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height), m_width * 4, imageDataRGBA.GetData());
         //commandList->Transition(FRHITransitionInfo(m_texture, ERHIAccess::Unknown, ERHIAccess::SRVGraphics));
@@ -294,17 +305,17 @@ RenderTarget(InTextureTarget->GetSizeX(), InTextureTarget->GetSizeY()), m_textur
     FRHITextureCreateDesc coverageDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveAtomicCoverage"), width(), height(), PF_R32_UINT);
     coverageDesc.SetNumMips(1);
     coverageDesc.AddFlags(ETextureCreateFlags::UAV | ETextureCreateFlags::Memoryless);
-    m_atomicCoverageTexture = RHICmdList.CreateTexture(coverageDesc);
-
+    m_atomicCoverageTexture = CREATE_TEXTURE(RHICmdList, coverageDesc);
+    
     FRHITextureCreateDesc scratchColorDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveScratchColor"), width(), height(), PF_R8G8B8A8);
     scratchColorDesc.SetNumMips(1);
     scratchColorDesc.AddFlags(ETextureCreateFlags::UAV);
-    m_scratchColorTexture = RHICmdList.CreateTexture(scratchColorDesc);
+    m_scratchColorTexture = CREATE_TEXTURE(RHICmdList, scratchColorDesc);
 
     FRHITextureCreateDesc clipDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveClip"), width(), height(), PF_R32_UINT);
     clipDesc.SetNumMips(1);
     clipDesc.AddFlags(ETextureCreateFlags::UAV);
-    m_clipTexture = RHICmdList.CreateTexture(clipDesc);
+    m_clipTexture = CREATE_TEXTURE(RHICmdList, clipDesc);
     
     RHICmdList.Transition(FRHITransitionInfo(m_coverageUAV, ERHIAccess::Unknown, ERHIAccess::UAVGraphics));
     RHICmdList.Transition(FRHITransitionInfo(m_scratchColorTexture, ERHIAccess::Unknown, ERHIAccess::UAVGraphics));
@@ -746,7 +757,7 @@ void RenderContextRHIImpl::resizeGradientTexture(uint32_t width, uint32_t height
     Desc.AddFlags(ETextureCreateFlags::RenderTargetable | ETextureCreateFlags::ShaderResource);
     Desc.SetClearValue(FClearValueBinding(FLinearColor::Red));
     Desc.DetermineInititialState();
-    m_gradiantTexture = commandList.CreateTexture(Desc);
+    m_gradiantTexture = CREATE_TEXTURE(commandList, Desc);
 
     commandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::Unknown, ERHIAccess::SRVGraphics));
 
@@ -769,7 +780,7 @@ void RenderContextRHIImpl::resizeTessellationTexture(uint32_t width, uint32_t he
         {static_cast<int32_t>(width), static_cast<int32_t>(height)}, PF_R32G32B32A32_UINT);
     Desc.AddFlags(ETextureCreateFlags::RenderTargetable | ETextureCreateFlags::ShaderResource );
     Desc.DetermineInititialState();
-    m_tesselationTexture = commandList.CreateTexture(Desc);
+    m_tesselationTexture = CREATE_TEXTURE(commandList, Desc);
 
     commandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::Unknown, ERHIAccess::SRVGraphics));
 
@@ -813,7 +824,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
     GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-    GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClamp, false>::GetRHI();
+    GraphicsPSOInit.RasterizerState = RASTER_STATE(FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClamp);
     GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, ECompareFunction::CF_Always>::GetRHI();
     FRHIBatchedShaderParameters& BatchedShaderParameters = CommandList.GetScratchShaderParameters();
 
@@ -872,13 +883,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
     if (desc.tessVertexSpanCount > 0)
     {
+        //auto SPanCount = FMath::Min(100783u, desc.tessVertexSpanCount);
         check(m_tesselationTexture)
         CommandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::SRVGraphics, ERHIAccess::RTV));
         FRHIRenderPassInfo Info(m_tesselationTexture, ERenderTargetActions::DontLoad_Store);
         CommandList.BeginRenderPass(Info, TEXT("RiveTessUpdate"));
         CommandList.ApplyCachedRenderTargets(GraphicsPSOInit);
         
-        GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_CCW, ERasterizerDepthClipMode::DepthClip, false>::GetRHI();
+        GraphicsPSOInit.RasterizerState = RASTER_STATE(FM_Solid, CM_CCW, ERasterizerDepthClipMode::DepthClamp);
         GraphicsPSOInit.PrimitiveType = PT_TriangleList;
         
         TShaderMapRef<FRiveTessVertexShader> VertexShader(ShaderMap);
@@ -903,9 +915,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         CommandList.SetViewport(0, 0, 0,
             static_cast<float>(kTessTextureWidth), static_cast<float>(desc.tessDataHeight), 1);
 
-        const size_t numTessVerts = (m_tessSpanBuffer->capacityInBytes() / sizeof(TessVertexSpan)) - desc.firstTessVertexSpan;
+        //const size_t numTessVerts = (m_tessSpanBuffer->capacityInBytes() / sizeof(TessVertexSpan)) - desc.firstTessVertexSpan;
         CommandList.DrawIndexedPrimitive(m_tessSpanIndexBuffer, 0, desc.firstTessVertexSpan,
-            numTessVerts, 0, std::size(kTessSpanIndices)/3,
+            8, 0, std::size(kTessSpanIndices)/3,
             desc.tessVertexSpanCount);
         CommandList.EndRenderPass();
         CommandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::RTV, ERHIAccess::SRVGraphics));
@@ -916,8 +928,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     {
     case LoadAction::clear:
             {
-                float clearColor4f[4];
-                UnpackColorToRGBA32F(desc.clearColor, clearColor4f);
+                float clearColor4f[4]; 
+                UnpackColorToRGBA32FPremul(desc.clearColor, clearColor4f);
                 CommandList.ClearUAVFloat(renderTarget->targetUAV(),
                     FVector4f(clearColor4f[0], clearColor4f[1], clearColor4f[2], clearColor4f[3]));
             }
@@ -1011,7 +1023,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
                  CommandList.SetStreamSource(0, m_patchVertexBuffer, 0);
                  CommandList.DrawIndexedPrimitive(m_patchIndexBuffer, 0,
-                     0, kPatchVertexBufferCount,
+                     batch.baseElement, kPatchVertexBufferCount,
                      PatchBaseIndex(batch.drawType), 
                      PatchIndexCount(batch.drawType) / 3,
                      batch.elementCount);
@@ -1054,7 +1066,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
              case DrawType::imageRect:
                  SYNC_BUFFER_WITH_OFFSET(m_imageDrawUniformBuffer, CommandList, batch.imageDrawDataOffset);
              {
-                 GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClip, false>::GetRHI();;
+                 GraphicsPSOInit.RasterizerState = RASTER_STATE(FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClamp);
                  GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
                  
                  TShaderMapRef<FRiveImageRectVertexShader> VertexShader(ShaderMap, VertexPermutationDomain);
@@ -1094,7 +1106,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
              case DrawType::imageMesh:
              {
                  SYNC_BUFFER_WITH_OFFSET(m_imageDrawUniformBuffer, CommandList, batch.imageDrawDataOffset);
-                 GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClip, false>::GetRHI();
+                 GraphicsPSOInit.RasterizerState = RASTER_STATE(FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClamp);
                  GraphicsPSOInit.PrimitiveType = PT_TriangleList;
                      
                  LITE_RTTI_CAST_OR_RETURN(IndexBuffer,const RenderBufferRHIImpl*, batch.indexBuffer);
@@ -1145,7 +1157,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 break;
          case DrawType::gpuAtomicResolve:
              {
-                 GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClip, false>::GetRHI();
+                 GraphicsPSOInit.RasterizerState = RASTER_STATE(FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClamp);
                  GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
 
                  TShaderMapRef<FRiveAtomiResolveVertexShader> VertexShader(ShaderMap, VertexPermutationDomain);
