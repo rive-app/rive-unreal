@@ -7,21 +7,21 @@ public class Rive : ModuleRules
 	public Rive(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
+
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
 			}
 		);
-				
-		
+
+
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
 			}
 		);
-			
-		
+
+
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
@@ -30,17 +30,21 @@ public class Rive : ModuleRules
 				"CoreUObject",
 				"InputCore",
 				"Projects",
-				"RHICore",
 				"RHI",
 				"RenderCore",
 				"RiveLibrary",
-				"RiveRenderer", 
+				"RiveRenderer",
 				"Engine"
 				// ... add other public dependencies that you statically link with here ...
 			}
 		);
-			
 		
+#if UE_5_0_OR_LATER
+		PublicDependencyModuleNames.Add("RHICore");
+#else
+#endif
+
+
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
@@ -57,22 +61,24 @@ public class Rive : ModuleRules
 				"Slate",
 				"SlateCore",
 				"UMG"
-            }
+			}
 		);
-		
+
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
 				// ... add any modules that your module loads dynamically here ...
 			}
 		);
-		
+
 		if (Target.Type == TargetType.Editor)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
+#if UE_5_0_OR_LATER
 					"EditorFramework",
+#endif
 					"LevelEditor",
 					"UnrealEd",
 					"ViewportInteraction",

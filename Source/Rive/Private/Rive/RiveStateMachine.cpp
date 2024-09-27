@@ -271,7 +271,7 @@ bool FRiveStateMachine::PointerDown(const FVector2f& NewPosition)
     }
 
     rive::HitResult HitResult = NativeStateMachinePtr->pointerDown({NewPosition.X, NewPosition.Y});
-    return HitResult == rive::HitResult::hitOpaque;
+    return HitResult != rive::HitResult::none;
 }
 
 bool FRiveStateMachine::PointerMove(const FVector2f& NewPosition)
@@ -291,7 +291,7 @@ bool FRiveStateMachine::PointerMove(const FVector2f& NewPosition)
     }
     
     rive::HitResult HitResult = NativeStateMachinePtr->pointerMove({ NewPosition.X, NewPosition.Y });
-    return HitResult == rive::HitResult::hitOpaque;
+    return HitResult != rive::HitResult::none;
 }
 
 bool FRiveStateMachine::PointerUp(const FVector2f& NewPosition)
@@ -311,7 +311,7 @@ bool FRiveStateMachine::PointerUp(const FVector2f& NewPosition)
     }
    
     rive::HitResult HitResult = NativeStateMachinePtr->pointerUp({ NewPosition.X, NewPosition.Y });
-    return HitResult == rive::HitResult::hitOpaque;
+    return HitResult != rive::HitResult::none;
 }
 
 bool FRiveStateMachine::PointerExit(const FVector2f& NewPosition)
@@ -331,7 +331,7 @@ bool FRiveStateMachine::PointerExit(const FVector2f& NewPosition)
     }
    
     rive::HitResult HitResult = NativeStateMachinePtr->pointerExit({ NewPosition.X, NewPosition.Y });
-    return HitResult == rive::HitResult::hitOpaque;
+    return HitResult != rive::HitResult::none;
 }
 
 const rive::EventReport FRiveStateMachine::GetReportedEvent(int32 AtIndex) const
