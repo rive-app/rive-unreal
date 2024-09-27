@@ -34,6 +34,7 @@ public class RiveLibrary : ModuleRules
         string libSuffix = bDebug ? "_d" : "";
         string libDirectory = "";
         string extension = "";
+        string libPrefix = "";
 
         if (Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
         {
@@ -50,6 +51,7 @@ public class RiveLibrary : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
+            libPrefix = "lib";
             extension = ".a";
             libDirectory = Path.Combine(rootDir, "Libraries", "Mac");
 #if UE_5_0_OR_LATER
@@ -71,6 +73,7 @@ public class RiveLibrary : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.IOS)
         {
+            libPrefix = "lib";
             libDirectory = Path.Combine(rootDir, "Libraries", "IOS");
 #if UE_5_0_OR_LATER
             extension = (Target.Architecture == UnrealArch.IOSSimulator) ? ".sim.a" : ".a";
@@ -108,16 +111,16 @@ public class RiveLibrary : ModuleRules
         {
             PublicAdditionalLibraries.AddRange(new string[]
             {
-                Path.Combine(libDirectory, "rive_libwebp" + libSuffix +  extension),
-                Path.Combine(libDirectory, "rive_sheenbidi" + libSuffix + extension),
-                Path.Combine(libDirectory, "rive_harfbuzz" + libSuffix + extension),
-                Path.Combine(libDirectory, "rive_libwebp" + libSuffix + extension),
-                Path.Combine(libDirectory, "rive_libpng" + libSuffix + extension),
-                Path.Combine(libDirectory, "rive_libjpeg" + libSuffix + extension),
-                Path.Combine(libDirectory, "rive_decoders" + libSuffix + extension),
-                Path.Combine(libDirectory, "rive_pls_renderer" + libSuffix + extension),
-                Path.Combine(libDirectory, "rive_yoga" + libSuffix + extension),
-                Path.Combine(libDirectory, "rive" + libSuffix + extension),
+                Path.Combine(libDirectory, libPrefix+ "rive_libwebp" + libSuffix +  extension),
+                Path.Combine(libDirectory, libPrefix+ "rive_sheenbidi" + libSuffix + extension),
+                Path.Combine(libDirectory, libPrefix+ "rive_harfbuzz" + libSuffix + extension),
+                Path.Combine(libDirectory, libPrefix+ "rive_libwebp" + libSuffix + extension),
+                Path.Combine(libDirectory, libPrefix+ "rive_libpng" + libSuffix + extension),
+                Path.Combine(libDirectory, libPrefix+ "rive_libjpeg" + libSuffix + extension),
+                Path.Combine(libDirectory, libPrefix+ "rive_decoders" + libSuffix + extension),
+                Path.Combine(libDirectory, libPrefix+ "rive_pls_renderer" + libSuffix + extension),
+                Path.Combine(libDirectory, libPrefix+ "rive_yoga" + libSuffix + extension),
+                Path.Combine(libDirectory, libPrefix+ "rive" + libSuffix + extension),
             });
 
             PublicDefinitions.Add("WITH_RIVE=1");
