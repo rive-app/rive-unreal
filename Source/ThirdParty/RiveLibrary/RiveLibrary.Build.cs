@@ -109,7 +109,7 @@ public class RiveLibrary : ModuleRules
 
         if (bIsPlatformAdded)
         {
-            if (Target.Platform == UnrealTargetPlatform.Mac)
+            if (Target.IsInPlatformGroup(UnrealPlatformGroup.Apple))
             {
                 PublicAdditionalLibraries.AddRange(new string[]
                {
