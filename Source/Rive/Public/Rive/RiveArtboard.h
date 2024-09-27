@@ -99,7 +99,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rive)
 	FString GetTextValue(const FString& InPropertyName) const;
 	UFUNCTION(BlueprintCallable, Category = Rive)
-	FString GetStringValueAtPath(const FString& InInputName, const FString& InPath, bool& OutSuccess) const;
+	FString GetTextValueAtPath(const FString& InInputName, const FString& InPath, bool& OutSuccess) const;
 
 	
 	UFUNCTION(BlueprintCallable, Category = Rive)
