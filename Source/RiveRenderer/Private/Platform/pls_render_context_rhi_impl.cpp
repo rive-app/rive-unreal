@@ -27,9 +27,11 @@ THIRD_PARTY_INCLUDES_END
 #include "Misc/EngineVersionComparison.h"
 
 #if UE_VERSION_OLDER_THAN (5, 4,0)
+#define CREATE_TEXTURE_ASNYC(RHICmdList, Desc) RHICmdList->CreateTexture(Desc)
 #define CREATE_TEXTURE(RHICmdList, Desc) RHICreateTexture(Desc)
 #define RASTER_STATE(FillMode, CullMode, DepthClip) TStaticRasterizerState<FillMode, CullMode, false, false , DepthClip>::GetRHI()
 #else //UE_VERSION_OLDER_THAN (5, 4,0)
+#define CREATE_TEXTURE_ASNYC(RHICmdList, Desc) RHICmdList->CreateTexture(Desc)
 #define CREATE_TEXTURE(RHICmdList, Desc) RHICmdList.CreateTexture(Desc)
 #define RASTER_STATE(FillMode, CullMode, DepthClip) TStaticRasterizerState<FillMode, CullMode, DepthClip, false>::GetRHI()
 #endif
@@ -280,7 +282,7 @@ public:
         FRHIAsyncCommandList commandList;
         auto Desc = FRHITextureCreateDesc::Create2D(TEXT("PLSTextureRHIImpl_"), m_width, m_height, PixelFormat);
         Desc.SetNumMips(mipLevelCount);
-        m_texture = CREATE_TEXTURE(commandList, Desc);
+        m_texture = CREATE_TEXTURE_ASNYC(commandList, Desc);
         commandList->UpdateTexture2D(m_texture, 0,
             FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height), m_width * 4, imageDataRGBA.GetData());
         //commandList->Transition(FRHITransitionInfo(m_texture, ERHIAccess::Unknown, ERHIAccess::SRVGraphics));
@@ -779,6 +781,7 @@ void RenderContextRHIImpl::resizeTessellationTexture(uint32_t width, uint32_t he
     FRHITextureCreateDesc Desc = FRHITextureCreateDesc::Create2D(TEXT("riveTessTexture"),
         {static_cast<int32_t>(width), static_cast<int32_t>(height)}, PF_R32G32B32A32_UINT);
     Desc.AddFlags(ETextureCreateFlags::RenderTargetable | ETextureCreateFlags::ShaderResource );
+    Desc.SetClearValue(FClearValueBinding::Black);
     Desc.DetermineInititialState();
     m_tesselationTexture = CREATE_TEXTURE(commandList, Desc);
 
@@ -880,12 +883,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             kGradTextureWidth * 4, m_simpleColorRampsBuffer->contents() + desc.simpleGradDataOffsetInBytes);
         CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::CopyDest, ERHIAccess::SRVGraphics));
     }
-
+    
     if (desc.tessVertexSpanCount > 0)
     {
-        //auto SPanCount = FMath::Min(100783u, desc.tessVertexSpanCount);
         check(m_tesselationTexture)
         CommandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::SRVGraphics, ERHIAccess::RTV));
+
         FRHIRenderPassInfo Info(m_tesselationTexture, ERenderTargetActions::DontLoad_Store);
         CommandList.BeginRenderPass(Info, TEXT("RiveTessUpdate"));
         CommandList.ApplyCachedRenderTargets(GraphicsPSOInit);
@@ -916,7 +919,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             static_cast<float>(kTessTextureWidth), static_cast<float>(desc.tessDataHeight), 1);
 
         //const size_t numTessVerts = (m_tessSpanBuffer->capacityInBytes() / sizeof(TessVertexSpan)) - desc.firstTessVertexSpan;
-        CommandList.DrawIndexedPrimitive(m_tessSpanIndexBuffer, 0, desc.firstTessVertexSpan,
+        CommandList.DrawIndexedPrimitive(m_tessSpanIndexBuffer, 0, 0,
             8, 0, std::size(kTessSpanIndices)/3,
             desc.tessVertexSpanCount);
         CommandList.EndRenderPass();

@@ -19,7 +19,9 @@ public class RiveEditor : ModuleRules
             new string[]
             {
                 "AssetTools",
+#if UE_5_0_OR_LATER
                 "AssetDefinition",
+#endif
                 "CoreUObject",
                 "ContentBrowser",
                 "Engine",
