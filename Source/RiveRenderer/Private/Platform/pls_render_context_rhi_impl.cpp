@@ -27,10 +27,10 @@ THIRD_PARTY_INCLUDES_END
 #include "Misc/EngineVersionComparison.h"
 
 #if UE_VERSION_OLDER_THAN (5, 4,0)
-#define CREATE_TEXTURE_ASNYC(RHICmdList, Desc) RHICmdList->CreateTexture(Desc)
+#define CREATE_TEXTURE_ASNYC(RHICmdList, Desc) RHICreateTexture(Desc)
 #define CREATE_TEXTURE(RHICmdList, Desc) RHICreateTexture(Desc)
 #define RASTER_STATE(FillMode, CullMode, DepthClip) TStaticRasterizerState<FillMode, CullMode, false, false , DepthClip>::GetRHI()
-#else //UE_VERSION_OLDER_THAN (5, 4,0)
+#else //UE_VERSION_NEWER_OR_EQUASL_TO (5, 4,0)
 #define CREATE_TEXTURE_ASNYC(RHICmdList, Desc) RHICmdList->CreateTexture(Desc)
 #define CREATE_TEXTURE(RHICmdList, Desc) RHICmdList.CreateTexture(Desc)
 #define RASTER_STATE(FillMode, CullMode, DepthClip) TStaticRasterizerState<FillMode, CullMode, DepthClip, false>::GetRHI()
