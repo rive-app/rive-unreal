@@ -126,7 +126,7 @@ public class RiveLibrary : ModuleRules
                         Path.Combine(libDirectory, libPrefix+ "rive_libwebp" + libSuffix +  extension),
                         Path.Combine(libDirectory, libPrefix+ "rive_libpng" + libSuffix + extension),
                         Path.Combine(libDirectory, libPrefix+ "rive_libjpeg" + libSuffix + extension),
-               }):
+               });
             }
 
             PublicAdditionalLibraries.AddRange(new string[]
