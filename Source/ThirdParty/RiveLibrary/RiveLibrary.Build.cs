@@ -109,14 +109,31 @@ public class RiveLibrary : ModuleRules
 
         if (bIsPlatformAdded)
         {
+            if (Target.Platform == UnrealTargetPlatform.Mac)
+            {
+                PublicAdditionalLibraries.AddRange(new string[]
+               {
+                        Path.Combine(libDirectory, libPrefix+ "libwebp" + libSuffix +  extension),
+                        Path.Combine(libDirectory, libPrefix+ "libpng" + libSuffix + extension),
+                        Path.Combine(libDirectory, libPrefix+ "libjpeg" + libSuffix + extension),
+               });
+
+            }
+            else
+            {
+                PublicAdditionalLibraries.AddRange(new string[]
+               {
+                        Path.Combine(libDirectory, libPrefix+ "rive_libwebp" + libSuffix +  extension),
+                        Path.Combine(libDirectory, libPrefix+ "rive_libpng" + libSuffix + extension),
+                        Path.Combine(libDirectory, libPrefix+ "rive_libjpeg" + libSuffix + extension),
+               }):
+            }
+
             PublicAdditionalLibraries.AddRange(new string[]
             {
-                Path.Combine(libDirectory, libPrefix+ "rive_libwebp" + libSuffix +  extension),
                 Path.Combine(libDirectory, libPrefix+ "rive_sheenbidi" + libSuffix + extension),
                 Path.Combine(libDirectory, libPrefix+ "rive_harfbuzz" + libSuffix + extension),
                 Path.Combine(libDirectory, libPrefix+ "rive_libwebp" + libSuffix + extension),
-                Path.Combine(libDirectory, libPrefix+ "rive_libpng" + libSuffix + extension),
-                Path.Combine(libDirectory, libPrefix+ "rive_libjpeg" + libSuffix + extension),
                 Path.Combine(libDirectory, libPrefix+ "rive_decoders" + libSuffix + extension),
                 Path.Combine(libDirectory, libPrefix+ "rive_pls_renderer" + libSuffix + extension),
                 Path.Combine(libDirectory, libPrefix+ "rive_yoga" + libSuffix + extension),
