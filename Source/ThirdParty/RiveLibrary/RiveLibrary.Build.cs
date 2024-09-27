@@ -133,7 +133,6 @@ public class RiveLibrary : ModuleRules
             {
                 Path.Combine(libDirectory, libPrefix+ "rive_sheenbidi" + libSuffix + extension),
                 Path.Combine(libDirectory, libPrefix+ "rive_harfbuzz" + libSuffix + extension),
-                Path.Combine(libDirectory, libPrefix+ "rive_libwebp" + libSuffix + extension),
                 Path.Combine(libDirectory, libPrefix+ "rive_decoders" + libSuffix + extension),
                 Path.Combine(libDirectory, libPrefix+ "rive_pls_renderer" + libSuffix + extension),
                 Path.Combine(libDirectory, libPrefix+ "rive_yoga" + libSuffix + extension),
