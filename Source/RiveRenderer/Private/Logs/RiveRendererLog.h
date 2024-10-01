@@ -85,3 +85,9 @@ public:
 */
 #define RIVE_DEBUG_VERBOSE(Format, ...) \
 	UE_LOG(LogRiveRenderer, Verbose, TEXT("[%s]%s %s"), *FDebugLogger::CurrentThread(), FDebugLogger::Ind(), *FString::Printf(TEXT(Format), ##__VA_ARGS__));
+
+/**
+* Logs the the given message indented with thread information
+*/
+#define RIVE_DEBUG_ERROR(Format, ...) \
+UE_LOG(LogRiveRenderer, Error, TEXT("[%s]%s %s"), *FDebugLogger::CurrentThread(), FDebugLogger::Ind(), *FString::Printf(TEXT(Format), ##__VA_ARGS__));

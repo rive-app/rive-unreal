@@ -5,6 +5,10 @@
 #include "IImageWrapper.h"
 #include "RenderGraphBuilder.h"
 #include "RHIResourceUpdates.h"
+#include "RenderGraphUtils.h"
+#include "Logs/RiveRendererLog.h"
+
+#include "Misc/EngineVersionComparison.h"
 #include "Containers/ResourceArray.h"
 #include "RHIStaticStates.h"
 #include "Modules/ModuleManager.h"
@@ -17,12 +21,8 @@
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
 #include "rive/shaders/out/generated/shaders/constants.glsl.hpp"
-
 THIRD_PARTY_INCLUDES_END
-#include "RenderGraphUtils.h"
-#include "Logs/RiveRendererLog.h"
 
-#include "Misc/EngineVersionComparison.h"
 
 #if UE_VERSION_OLDER_THAN (5, 4,0)
 #define CREATE_TEXTURE_ASNYC(RHICmdList, Desc) RHICreateTexture(Desc)
@@ -469,7 +469,7 @@ rcp<Texture> RenderContextRHIImpl::decodeImageTexture(Span<const uint8_t> encode
     }
     else
     {
-        RIVE_DEBUG_VERBOSE("Invalid Decode Image header");
+        RIVE_DEBUG_ERROR("Invalid Decode Image header");
         return nullptr;
     }
 
@@ -496,6 +496,15 @@ rcp<Texture> RenderContextRHIImpl::decodeImageTexture(Span<const uint8_t> encode
         // WEBP Decoding
         auto bitmap = DecodeWebP(encodedBytes.data(), encodedBytes.size());
 
+        if(!bitmap)
+        {
+            RIVE_DEBUG_ERROR("Webp Decoding Failed !");
+            return nullptr;
+        }
+        
+        EPixelFormat PixelFormat = EPixelFormat::PF_R8G8B8A8;
+        check(bitmap->pixelFormat() == Bitmap::PixelFormat::RGBA);
+        
         return make_rcp<PLSTextureRHIImpl>(bitmap->width(), bitmap->height(), 1, bitmap->bytes(), EPixelFormat::PF_R8G8B8A8);
     }
 }
