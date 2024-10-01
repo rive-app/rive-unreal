@@ -36,7 +36,6 @@ THIRD_PARTY_INCLUDES_END
 #define RASTER_STATE(FillMode, CullMode, DepthClip) TStaticRasterizerState<FillMode, CullMode, DepthClip, false>::GetRHI()
 #endif
 
-
 template<typename VShaderType, typename PShaderType>
 void BindShaders(FRHICommandList& CommandList, FGraphicsPipelineStateInitializer& GraphicsPSOInit,
     TShaderMapRef<VShaderType> VSShader, TShaderMapRef<PShaderType> PSShader, FRHIVertexDeclaration* VertexDeclaration)
@@ -68,30 +67,30 @@ public:
     /**
      * @return A pointer to the resource data.
      */
-    virtual const void* GetResourceData() const
+    virtual const void* GetResourceData() const override
     {return Data;}
 
     /**
      * @return size of resource data allocation (in bytes)
      */
-    virtual uint32 GetResourceDataSize() const
+    virtual uint32 GetResourceDataSize() const override
     {return size*sizeof(DataType);};
 
     /** Do nothing on discard because this is static const CPU data */
-    virtual void Discard() {};
+    virtual void Discard() override {};
 
-    virtual bool IsStatic() const {return true;}
+    virtual bool IsStatic() const override {return true;}
 
     /**
      * @return true if the resource keeps a copy of its resource data after the RHI resource has been created
      */
-    virtual bool GetAllowCPUAccess() const
+    virtual bool GetAllowCPUAccess() const override
     {return true;}
 
     /** 
      * Sets whether the resource array will be accessed by CPU. 
      */
-    virtual void SetAllowCPUAccess( bool bInNeedsCPUAccess ){}
+    virtual void SetAllowCPUAccess( bool bInNeedsCPUAccess ) override {}
 };
 
 template<typename DataType, size_t size>
@@ -104,30 +103,30 @@ public:
     /**
      * @return A pointer to the resource data.
      */
-    virtual const void* GetResourceData() const
+    virtual const void* GetResourceData() const override
     {return Data;};
 
     /**
      * @return size of resource data allocation (in bytes)
      */
-    virtual uint32 GetResourceDataSize() const
+    virtual uint32 GetResourceDataSize() const override
     {return size*sizeof(DataType);};
 
     /** Do nothing on discard because this is static const CPU data */
-    virtual void Discard() {};
+    virtual void Discard() override {};
 
-    virtual bool IsStatic() const {return true;}
+    virtual bool IsStatic() const override {return true;}
 
     /**
      * @return true if the resource keeps a copy of its resource data after the RHI resource has been created
      */
-    virtual bool GetAllowCPUAccess() const
+    virtual bool GetAllowCPUAccess() const override
     {return true;}
 
     /** 
      * Sets whether the resource array will be accessed by CPU. 
      */
-    virtual void SetAllowCPUAccess( bool bInNeedsCPUAccess ){}
+    virtual void SetAllowCPUAccess( bool bInNeedsCPUAccess ) override {}
 };
 
 using namespace rive;
@@ -280,14 +279,15 @@ public:
         Texture(width, height)
     {
         FRHIAsyncCommandList commandList;
+        // TODO: Move to Staging Buffer
         auto Desc = FRHITextureCreateDesc::Create2D(TEXT("PLSTextureRHIImpl_"), m_width, m_height, PixelFormat);
         Desc.SetNumMips(mipLevelCount);
         m_texture = CREATE_TEXTURE_ASNYC(commandList, Desc);
         commandList->UpdateTexture2D(m_texture, 0,
             FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height), m_width * 4, imageDataRGBA.GetData());
         //commandList->Transition(FRHITransitionInfo(m_texture, ERHIAccess::Unknown, ERHIAccess::SRVGraphics));
-
     }
+        
     virtual ~PLSTextureRHIImpl()override
     {
     }
@@ -787,7 +787,6 @@ void RenderContextRHIImpl::resizeTessellationTexture(uint32_t width, uint32_t he
 
     commandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::Unknown, ERHIAccess::SRVGraphics));
 
-    
     FRHITextureSRVCreateInfo Info(0, 1, 0, 1, EPixelFormat::PF_R32G32B32A32_UINT);
     m_tessSRV = commandList.CreateShaderResourceView(m_tesselationTexture, Info);
 }
