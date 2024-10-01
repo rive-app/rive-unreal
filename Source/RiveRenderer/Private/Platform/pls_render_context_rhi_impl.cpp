@@ -18,9 +18,6 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
 #include "rive/shaders/out/generated/shaders/constants.glsl.hpp"
 
-#include "webp/decode.h"
-#include "webp/demux.h"
-
 THIRD_PARTY_INCLUDES_END
 #include "RenderGraphUtils.h"
 #include "Logs/RiveRendererLog.h"
