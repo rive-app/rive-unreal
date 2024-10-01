@@ -29,7 +29,7 @@ THIRD_PARTY_INCLUDES_END
 #define CREATE_TEXTURE(RHICmdList, Desc) RHICreateTexture(Desc)
 #define RASTER_STATE(FillMode, CullMode, DepthClip) TStaticRasterizerState<FillMode, CullMode, false, false , DepthClip>::GetRHI()
 #else //UE_VERSION_NEWER_OR_EQUASL_TO (5, 4,0)
-#define CREATE_TEXTURE_ASNYC(RHICmdList, Desc) RHICmdList->CreateTexture(Desc)
+#define CREATE_TEXTURE_ASYNC(RHICmdList, Desc) RHICmdList->CreateTexture(Desc)
 #define CREATE_TEXTURE(RHICmdList, Desc) RHICmdList.CreateTexture(Desc)
 #define RASTER_STATE(FillMode, CullMode, DepthClip) TStaticRasterizerState<FillMode, CullMode, DepthClip, false>::GetRHI()
 #endif
@@ -167,11 +167,11 @@ FBufferRHIRef makeSimpleImmutableBuffer(FRHICommandList& RHICmdList, const TCHAR
 }
     
 BufferRingRHIImpl::BufferRingRHIImpl(EBufferUsageFlags flags,
-size_t in_sizeInBytes, size_t stride) : BufferRing(in_sizeInBytes), m_flags(flags)
+size_t InsizeInBytes, size_t stride) : BufferRing(InsizeInBytes), m_flags(flags)
 {
     FRHIAsyncCommandList tmpCommandList;
     FRHIResourceCreateInfo Info(TEXT("BufferRingRHIImpl_"));
-    m_buffer = tmpCommandList->CreateBuffer(in_sizeInBytes,
+    m_buffer = tmpCommandList->CreateBuffer(InsizeInBytes,
         /*EBufferUsageFlags::Volatile |*/ flags, stride, ERHIAccess::WriteOnlyMask, Info);
 }
 
@@ -198,9 +198,9 @@ void BufferRingRHIImpl::onUnmapAndSubmitBuffer(int bufferIdx, size_t mapSizeInBy
 }
 
 StructuredBufferRingRHIImpl::StructuredBufferRingRHIImpl(EBufferUsageFlags flags,
-    size_t in_sizeInBytes,
-    size_t elementSize) : BufferRing(in_sizeInBytes),  m_flags(flags),
-    m_elementSize(elementSize), m_lastMapSizeInBytes(in_sizeInBytes)
+    size_t InSizeInBytes,
+    size_t elementSize) : BufferRing(InSizeInBytes),  m_flags(flags),
+    m_elementSize(elementSize), m_lastMapSizeInBytes(InSizeInBytes)
 {
     FRHIAsyncCommandList commandList;
     FRHIResourceCreateInfo Info(TEXT("BufferRingRHIImpl_"));
@@ -230,15 +230,15 @@ FShaderResourceViewRHIRef StructuredBufferRingRHIImpl::srv() const
 }
 
 
-RenderBufferRHIImpl::RenderBufferRHIImpl(RenderBufferType in_type,
-                                         RenderBufferFlags in_flags, size_t in_sizeInBytes, size_t stride) :
-    lite_rtti_override(in_type, in_flags, in_sizeInBytes),
-    m_buffer(in_type == RenderBufferType::vertex ? EBufferUsageFlags::VertexBuffer : EBufferUsageFlags::IndexBuffer, in_sizeInBytes, stride),
+RenderBufferRHIImpl::RenderBufferRHIImpl(RenderBufferType InType,
+                                         RenderBufferFlags InFlags, size_t InSizeInBytes, size_t stride) :
+    lite_rtti_override(InType, InFlags, InSizeInBytes),
+    m_buffer(InType == RenderBufferType::vertex ? EBufferUsageFlags::VertexBuffer : EBufferUsageFlags::IndexBuffer, InSizeInBytes, stride),
     m_mappedBuffer(nullptr)
 {
-    if(in_flags & RenderBufferFlags::mappedOnceAtInitialization)
+    if(InFlags & RenderBufferFlags::mappedOnceAtInitialization)
     {
-        m_mappedBuffer = m_buffer.mapBuffer(in_sizeInBytes);
+        m_mappedBuffer = m_buffer.mapBuffer(InSizeInBytes);
     }
 }
 
@@ -264,9 +264,6 @@ void* RenderBufferRHIImpl::onMap()
 
 void RenderBufferRHIImpl::onUnmap()
 {
-    if(flags() & RenderBufferFlags::mappedOnceAtInitialization)
-        return;
-    
     m_buffer.unmapAndSubmitBuffer();
 }
 
@@ -280,7 +277,7 @@ public:
         // TODO: Move to Staging Buffer
         auto Desc = FRHITextureCreateDesc::Create2D(TEXT("PLSTextureRHIImpl_"), m_width, m_height, PixelFormat);
         Desc.SetNumMips(mipLevelCount);
-        m_texture = CREATE_TEXTURE_ASNYC(commandList, Desc);
+        m_texture = CREATE_TEXTURE_ASYNC(commandList, Desc);
         commandList->UpdateTexture2D(m_texture, 0,
             FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height), m_width * 4, imageData);
     }
@@ -292,7 +289,7 @@ public:
         // TODO: Move to Staging Buffer
         auto Desc = FRHITextureCreateDesc::Create2D(TEXT("PLSTextureRHIImpl_"), m_width, m_height, PixelFormat);
         Desc.SetNumMips(mipLevelCount);
-        m_texture = CREATE_TEXTURE_ASNYC(commandList, Desc);
+        m_texture = CREATE_TEXTURE_ASYNC(commandList, Desc);
         commandList->UpdateTexture2D(m_texture, 0,
             FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height), m_width * 4, imageData.GetData());
     }
@@ -315,28 +312,25 @@ RenderTarget(InTextureTarget->GetSizeX(), InTextureTarget->GetSizeY()), m_textur
 {
     FRHITextureCreateDesc coverageDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveAtomicCoverage"), width(), height(), PF_R32_UINT);
     coverageDesc.SetNumMips(1);
-    coverageDesc.AddFlags(ETextureCreateFlags::UAV | ETextureCreateFlags::Memoryless);
+    coverageDesc.AddFlags(ETextureCreateFlags::UAV);
     m_atomicCoverageTexture = CREATE_TEXTURE(RHICmdList, coverageDesc);
-    
-    FRHITextureCreateDesc scratchColorDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveScratchColor"), width(), height(), PF_R8G8B8A8);
+
+    // revisit this later, for now not needed
+    /*FRHITextureCreateDesc scratchColorDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveScratchColor"), width(), height(), PF_R8G8B8A8);
     scratchColorDesc.SetNumMips(1);
     scratchColorDesc.AddFlags(ETextureCreateFlags::UAV);
-    m_scratchColorTexture = CREATE_TEXTURE(RHICmdList, scratchColorDesc);
+    m_scratchColorTexture = CREATE_TEXTURE(RHICmdList, scratchColorDesc);*/
 
     FRHITextureCreateDesc clipDesc = FRHITextureCreateDesc::Create2D(TEXT("RiveClip"), width(), height(), PF_R32_UINT);
     clipDesc.SetNumMips(1);
     clipDesc.AddFlags(ETextureCreateFlags::UAV);
     m_clipTexture = CREATE_TEXTURE(RHICmdList, clipDesc);
     
-    RHICmdList.Transition(FRHITransitionInfo(m_coverageUAV, ERHIAccess::Unknown, ERHIAccess::UAVGraphics));
-    RHICmdList.Transition(FRHITransitionInfo(m_scratchColorTexture, ERHIAccess::Unknown, ERHIAccess::UAVGraphics));
-    RHICmdList.Transition(FRHITransitionInfo(m_clipTexture, ERHIAccess::Unknown, ERHIAccess::UAVGraphics));
-    RHICmdList.Transition(FRHITransitionInfo(m_textureTarget, ERHIAccess::Unknown, ERHIAccess::UAVGraphics));
-
+    // TODO: Lazy Load these
+    m_targetUAV = RHICmdList.CreateUnorderedAccessView(m_textureTarget);
     m_coverageUAV = RHICmdList.CreateUnorderedAccessView(m_atomicCoverageTexture);
     m_clipUAV = RHICmdList.CreateUnorderedAccessView(m_clipTexture);
-    m_scratchColorUAV = RHICmdList.CreateUnorderedAccessView(m_scratchColorTexture);
-    m_targetUAV = RHICmdList.CreateUnorderedAccessView(m_textureTarget);
+    //m_scratchColorUAV = RHICmdList.CreateUnorderedAccessView(m_scratchColorTexture);
 }
 
 std::unique_ptr<RenderContext> RenderContextRHIImpl::MakeContext(FRHICommandListImmediate& CommandListImmediate)
@@ -717,16 +711,13 @@ void RenderContextRHIImpl::resizeGradientTexture(uint32_t width, uint32_t height
     width = std::max(width, 1u);
     height = std::max(height, 1u);
     
-    auto& commandList = GRHICommandList.GetImmediateCommandList();
+    FRHIAsyncCommandList commandList;
     FRHITextureCreateDesc Desc = FRHITextureCreateDesc::Create2D(TEXT("riveGradientTexture"),
         {static_cast<int32_t>(width), static_cast<int32_t>(height)}, PF_R8G8B8A8);
     Desc.AddFlags(ETextureCreateFlags::RenderTargetable | ETextureCreateFlags::ShaderResource);
     Desc.SetClearValue(FClearValueBinding(FLinearColor::Red));
     Desc.DetermineInititialState();
-    m_gradiantTexture = CREATE_TEXTURE(commandList, Desc);
-
-    commandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::Unknown, ERHIAccess::SRVGraphics));
-
+    m_gradiantTexture = CREATE_TEXTURE_ASYNC(commandList, Desc);
 }
 
 void RenderContextRHIImpl::resizeTessellationTexture(uint32_t width, uint32_t height)
@@ -736,18 +727,17 @@ void RenderContextRHIImpl::resizeTessellationTexture(uint32_t width, uint32_t he
     width = std::max(width, 1u);
     height = std::max(height, 1u);
     
-    auto& commandList = GRHICommandList.GetImmediateCommandList();
+    FRHIAsyncCommandList commandList;
     FRHITextureCreateDesc Desc = FRHITextureCreateDesc::Create2D(TEXT("riveTessTexture"),
         {static_cast<int32_t>(width), static_cast<int32_t>(height)}, PF_R32G32B32A32_UINT);
     Desc.AddFlags(ETextureCreateFlags::RenderTargetable | ETextureCreateFlags::ShaderResource );
     Desc.SetClearValue(FClearValueBinding::Black);
     Desc.DetermineInititialState();
-    m_tesselationTexture = CREATE_TEXTURE(commandList, Desc);
+    m_tesselationTexture = CREATE_TEXTURE_ASYNC(commandList, Desc);
 
-    commandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::Unknown, ERHIAccess::SRVGraphics));
-
+    // we don't need to transition because we do it in flush
     FRHITextureSRVCreateInfo Info(0, 1, 0, 1, EPixelFormat::PF_R32G32B32A32_UINT);
-    m_tessSRV = commandList.CreateShaderResourceView(m_tesselationTexture, Info);
+    m_tessSRV = commandList->CreateShaderResourceView(m_tesselationTexture, Info);
 }
 
 
@@ -804,7 +794,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     if (desc.complexGradSpanCount > 0)
     {
         check(m_gradiantTexture);
-        CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::SRVGraphics, ERHIAccess::RTV));
+        CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::Unknown, ERHIAccess::RTV));
         GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
         
         FRHIRenderPassInfo Info(m_gradiantTexture, ERenderTargetActions::Clear_Store);
@@ -833,7 +823,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         CommandList.DrawPrimitive(0, 2, desc.complexGradSpanCount);
         
         CommandList.EndRenderPass();
-        CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::RTV, ERHIAccess::SRVGraphics));
+        if (desc.simpleGradTexelsHeight > 0)
+            CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::RTV, ERHIAccess::CopyDest));
+        else
+            CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::RTV, ERHIAccess::SRVGraphics));
     }
     
     if (desc.simpleGradTexelsHeight > 0)
@@ -841,7 +834,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         assert(desc.simpleGradTexelsHeight * desc.simpleGradTexelsWidth * 4 <=
                simpleColorRampsBufferRing()->capacityInBytes());
         
-        CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::SRVGraphics, ERHIAccess::CopyDest));
         CommandList.UpdateTexture2D(m_gradiantTexture, 0,
             {0, 0, 0, 0, desc.simpleGradTexelsWidth, desc.simpleGradTexelsHeight},
             kGradTextureWidth * 4, m_simpleColorRampsBuffer->contents() + desc.simpleGradDataOffsetInBytes);
@@ -851,7 +843,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     if (desc.tessVertexSpanCount > 0)
     {
         check(m_tesselationTexture)
-        CommandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::SRVGraphics, ERHIAccess::RTV));
+        CommandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::Unknown, ERHIAccess::RTV));
 
         FRHIRenderPassInfo Info(m_tesselationTexture, ERenderTargetActions::DontLoad_Store);
         CommandList.BeginRenderPass(Info, TEXT("RiveTessUpdate"));
@@ -891,6 +883,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     }
 
     ERenderTargetActions loadAction = ERenderTargetActions::Load_Store;
+    bool shouldPreserveRenderTarget = true;
     switch (desc.colorLoadAction)
     {
     case LoadAction::clear:
@@ -907,6 +900,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         break;
     case LoadAction::dontCare:
         loadAction = ERenderTargetActions::DontLoad_Store;
+        shouldPreserveRenderTarget = false;
         break;
     }
     
@@ -915,11 +909,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     {
         Info.ColorRenderTargets[0].RenderTarget = DestTexture;
         Info.ColorRenderTargets[0].Action = loadAction;
-        CommandList.Transition(FRHITransitionInfo(DestTexture, ERHIAccess::UAVGraphics, ERHIAccess::RTV));
+        CommandList.Transition(FRHITransitionInfo(DestTexture, shouldPreserveRenderTarget ? ERHIAccess::UAVGraphics : ERHIAccess::Unknown, ERHIAccess::RTV));
     }
     else
     {
         Info.ResolveRect = FResolveRect(0, 0, renderTarget->width(), renderTarget->height());
+        CommandList.Transition(FRHITransitionInfo(DestTexture, shouldPreserveRenderTarget ? ERHIAccess::UAVGraphics : ERHIAccess::Unknown, ERHIAccess::UAVGraphics));
     }
     
      CommandList.BeginRenderPass(Info, TEXT("Rive_Render_Flush"));
