@@ -167,12 +167,12 @@ FBufferRHIRef makeSimpleImmutableBuffer(FRHICommandList& RHICmdList, const TCHAR
 }
     
 BufferRingRHIImpl::BufferRingRHIImpl(EBufferUsageFlags flags,
-size_t InsizeInBytes, size_t stride) : BufferRing(InsizeInBytes), m_flags(flags)
+size_t inSizeInBytes, size_t stride) : BufferRing(inSizeInBytes), m_flags(flags)
 {
     FRHIAsyncCommandList tmpCommandList;
     FRHIResourceCreateInfo Info(TEXT("BufferRingRHIImpl_"));
-    m_buffer = tmpCommandList->CreateBuffer(InsizeInBytes,
-        /*EBufferUsageFlags::Volatile |*/ flags, stride, ERHIAccess::WriteOnlyMask, Info);
+    m_buffer = tmpCommandList->CreateBuffer(inSizeInBytes,
+        flags, stride, ERHIAccess::WriteOnlyMask, Info);
 }
 
 void BufferRingRHIImpl::Sync(FRHICommandList& commandList) const
@@ -874,7 +874,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         CommandList.SetViewport(0, 0, 0,
             static_cast<float>(kTessTextureWidth), static_cast<float>(desc.tessDataHeight), 1);
 
-        //const size_t numTessVerts = (m_tessSpanBuffer->capacityInBytes() / sizeof(TessVertexSpan)) - desc.firstTessVertexSpan;
         CommandList.DrawIndexedPrimitive(m_tessSpanIndexBuffer, 0, 0,
             8, 0, std::size(kTessSpanIndices)/3,
             desc.tessVertexSpanCount);

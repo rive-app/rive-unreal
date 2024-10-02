@@ -44,7 +44,7 @@ private:
 };
 
 class StructuredBufferRingRHIImpl;
-
+// TODO: Make this use structured buffer
 class BufferRingRHIImpl final : public rive::gpu::BufferRing
 {
 public:
@@ -97,8 +97,8 @@ private:
 class RenderBufferRHIImpl final: public rive::lite_rtti_override<rive::RenderBuffer, RenderBufferRHIImpl>
 {
 public:
-    RenderBufferRHIImpl(rive::RenderBufferType in_type,
-                        rive::RenderBufferFlags in_flags, size_t in_sizeInBytes, size_t stride);
+    RenderBufferRHIImpl(rive::RenderBufferType inType,
+                        rive::RenderBufferFlags inFlags, size_t inSizeInBytes, size_t stride);
     void Sync(FRHICommandList& commandList) const;
     FBufferRHIRef contents()const;
     
@@ -115,7 +115,7 @@ private:
 class StructuredBufferRingRHIImpl final : public rive::gpu::BufferRing
 {
 public:
-    StructuredBufferRingRHIImpl(EBufferUsageFlags flags, size_t in_sizeInBytes, size_t elementSize);
+    StructuredBufferRingRHIImpl(EBufferUsageFlags flags, size_t inSizeInBytes, size_t elementSize);
     template<typename HighLevelStruct>
     void Sync(FRHICommandList& commandList, size_t elementOffset, size_t elementCount)
     {
