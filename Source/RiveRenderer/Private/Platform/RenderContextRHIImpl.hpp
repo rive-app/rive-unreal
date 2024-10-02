@@ -48,7 +48,7 @@ class StructuredBufferRingRHIImpl;
 class BufferRingRHIImpl final : public rive::gpu::BufferRing
 {
 public:
-    BufferRingRHIImpl(EBufferUsageFlags flags, size_t in_sizeInBytes, size_t stride);
+    BufferRingRHIImpl(EBufferUsageFlags flags, size_t InSizeInBytes, size_t stride);
     void Sync(FRHICommandList& commandList) const;
     FBufferRHIRef contents()const;
     
@@ -65,12 +65,11 @@ template<typename UniformBufferType>
 class UniformBufferRHIImpl : public rive::gpu::BufferRing
 {
 public:
-    UniformBufferRHIImpl(size_t in_sizeInBytes): BufferRing(in_sizeInBytes)
+    UniformBufferRHIImpl(size_t InSizeInBytes): BufferRing(InSizeInBytes)
     {
-        //m_buffer =  TUniformBufferRef<UniformBufferType>::CreateEmptyUniformBufferImmediate( UniformBuffer_MultiFrame);
     }
 
-    void Sync(FRHICommandList& commandList, int offset)
+    void Sync(FRHICommandList& commandList, size_t offset)
     {
         UniformBufferType* Buffer = reinterpret_cast<UniformBufferType*>(shadowBuffer() + offset);
         m_buffer = TUniformBufferRef<UniformBufferType>::CreateUniformBufferImmediate( *Buffer,UniformBuffer_SingleFrame);
