@@ -54,10 +54,8 @@ void SRiveWidget::OnArrangeChildren(const FGeometry& AllottedGeometry, FArranged
 	if (PreviousSize != CurrentSize)
 	{
 		PreviousSize = CurrentSize;
-
-		UWorld* World = GetWorld();
-
-		if (World)
+		
+		if (UWorld* World = GetWorld())
 		{
 			World->GetTimerManager().ClearTimer(TimerHandle);
 			World->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateSP(this, &SRiveWidget::OnResize), 0.025f, false);
