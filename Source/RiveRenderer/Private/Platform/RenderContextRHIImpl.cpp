@@ -198,9 +198,9 @@ void BufferRingRHIImpl::onUnmapAndSubmitBuffer(int bufferIdx, size_t mapSizeInBy
 }
 
 StructuredBufferRingRHIImpl::StructuredBufferRingRHIImpl(EBufferUsageFlags flags,
-    size_t InSizeInBytes,
-    size_t elementSize) : BufferRing(InSizeInBytes),  m_flags(flags),
-    m_elementSize(elementSize), m_lastMapSizeInBytes(InSizeInBytes)
+    size_t inSizeInBytes,
+    size_t elementSize) : BufferRing(inSizeInBytes),  m_flags(flags),
+    m_elementSize(elementSize), m_lastMapSizeInBytes(inSizeInBytes)
 {
     FRHIAsyncCommandList commandList;
     FRHIResourceCreateInfo Info(TEXT("BufferRingRHIImpl_"));
@@ -231,14 +231,14 @@ FShaderResourceViewRHIRef StructuredBufferRingRHIImpl::srv() const
 
 
 RenderBufferRHIImpl::RenderBufferRHIImpl(RenderBufferType InType,
-                                         RenderBufferFlags InFlags, size_t InSizeInBytes, size_t stride) :
-    lite_rtti_override(InType, InFlags, InSizeInBytes),
-    m_buffer(InType == RenderBufferType::vertex ? EBufferUsageFlags::VertexBuffer : EBufferUsageFlags::IndexBuffer, InSizeInBytes, stride),
+                                         RenderBufferFlags InFlags, size_t inSizeInBytes, size_t stride) :
+    lite_rtti_override(InType, InFlags, inSizeInBytes),
+    m_buffer(InType == RenderBufferType::vertex ? EBufferUsageFlags::VertexBuffer : EBufferUsageFlags::IndexBuffer, inSizeInBytes, stride),
     m_mappedBuffer(nullptr)
 {
     if(InFlags & RenderBufferFlags::mappedOnceAtInitialization)
     {
-        m_mappedBuffer = m_buffer.mapBuffer(InSizeInBytes);
+        m_mappedBuffer = m_buffer.mapBuffer(inSizeInBytes);
     }
 }
 
@@ -443,7 +443,7 @@ rcp<Texture> RenderContextRHIImpl::decodeImageTexture(Span<const uint8_t> encode
 
     EImageFormat format = EImageFormat::Invalid;
 
-    // we do have enough size to be anything
+    // we do not have enough size to be anything
     if(encodedBytes.size() < sizeof(PNG_FINGERPRINT))
     {
         return nullptr;
