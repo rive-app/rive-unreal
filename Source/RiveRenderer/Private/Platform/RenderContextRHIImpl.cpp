@@ -773,7 +773,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         check(m_contourBuffer);
         m_contourBuffer->Sync<ContourData>(CommandList,  desc.firstContour, desc.contourCount);
     }
-    
+
+    //TODO: only snyc on first flush of frame
     if(m_triangleBuffer)m_triangleBuffer->Sync(CommandList);
 
     FGraphicsPipelineStateInitializer GraphicsPSOInit;

@@ -44,7 +44,7 @@ private:
 };
 
 class StructuredBufferRingRHIImpl;
-// TODO: Make this use structured buffer
+// TODO: Make this use staging buffer
 class BufferRingRHIImpl final : public rive::gpu::BufferRing
 {
 public:
