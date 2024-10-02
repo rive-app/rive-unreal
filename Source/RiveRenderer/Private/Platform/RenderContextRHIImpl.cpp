@@ -230,13 +230,13 @@ FShaderResourceViewRHIRef StructuredBufferRingRHIImpl::srv() const
 }
 
 
-RenderBufferRHIImpl::RenderBufferRHIImpl(RenderBufferType InType,
-                                         RenderBufferFlags InFlags, size_t inSizeInBytes, size_t stride) :
-    lite_rtti_override(InType, InFlags, inSizeInBytes),
-    m_buffer(InType == RenderBufferType::vertex ? EBufferUsageFlags::VertexBuffer : EBufferUsageFlags::IndexBuffer, inSizeInBytes, stride),
+RenderBufferRHIImpl::RenderBufferRHIImpl(RenderBufferType inType,
+                                         RenderBufferFlags inFlags, size_t inSizeInBytes, size_t stride) :
+    lite_rtti_override(inType, inFlags, inSizeInBytes),
+    m_buffer(inType == RenderBufferType::vertex ? EBufferUsageFlags::VertexBuffer : EBufferUsageFlags::IndexBuffer, inSizeInBytes, stride),
     m_mappedBuffer(nullptr)
 {
-    if(InFlags & RenderBufferFlags::mappedOnceAtInitialization)
+    if(inFlags & RenderBufferFlags::mappedOnceAtInitialization)
     {
         m_mappedBuffer = m_buffer.mapBuffer(inSizeInBytes);
     }
