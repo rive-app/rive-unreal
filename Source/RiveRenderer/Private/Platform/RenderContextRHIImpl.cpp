@@ -884,6 +884,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         CommandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::RTV, ERHIAccess::SRVGraphics));
     }
 
+    bool needsBarrierBeforeNextDraw = false;
+    if(desc.interlockMode == InterlockMode::atomics)
+    {
+        needsBarrierBeforeNextDraw = true;
+    }
+    
     ERenderTargetActions loadAction = ERenderTargetActions::Load_Store;
     bool shouldPreserveRenderTarget = true;
     switch (desc.colorLoadAction)
@@ -932,7 +938,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
      GraphicsPSOInit.RasterizerState = GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
      CommandList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
-    bool needsBarrierBeforeNextDraw = true;
     
      for (const DrawBatch& batch : *desc.drawList)
      {
@@ -1159,7 +1164,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                  RIVE_UNREACHABLE();
          }
 
-         needsBarrierBeforeNextDraw = batch.needsBarrier;
+         needsBarrierBeforeNextDraw = desc.interlockMode == gpu::InterlockMode::atomics && batch.needsBarrier;
      }
     
     CommandList.EndRenderPass();
