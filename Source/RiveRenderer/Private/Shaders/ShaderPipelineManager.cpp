@@ -7,7 +7,7 @@
 
 #include "CommonRenderResources.h"
 #include "ResolveShader.h"
-#include "Platform/pls_render_context_rhi_impl.hpp"
+#include "Platform/RenderContextRHIImpl.hpp"
 #include "ShaderCompilerCore.h"
 
 THIRD_PARTY_INCLUDES_START

@@ -1,4 +1,4 @@
-#include "pls_render_context_rhi_impl.hpp"
+#include "RenderContextRHIImpl.hpp"
 
 #include "CommonRenderResources.h"
 #include "IImageWrapperModule.h"
@@ -930,6 +930,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
      GraphicsPSOInit.RasterizerState = GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
      CommandList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
+    bool needsBarrierBeforeNextDraw = true;
+    
      for (const DrawBatch& batch : *desc.drawList)
      {
          if (batch.elementCount == 0)
@@ -941,13 +943,16 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
          AtomicVertexPermutationDomain VertexPermutationDomain;
 
          GetPermutationForFeatures(desc.combinedShaderFeatures, PixelPermutationDomain, VertexPermutationDomain);
-         
-         CommandList.Transition(FRHITransitionInfo(renderTarget->coverageUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
-         if(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_CLIPPING)
-            CommandList.Transition(FRHITransitionInfo(renderTarget->clipUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
-         if(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_ADVANCED_BLEND)
-            CommandList.Transition(FRHITransitionInfo(renderTarget->targetUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
 
+         if(needsBarrierBeforeNextDraw)
+         {
+             CommandList.Transition(FRHITransitionInfo(renderTarget->coverageUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
+             if(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_CLIPPING)
+                 CommandList.Transition(FRHITransitionInfo(renderTarget->clipUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
+             if(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_ADVANCED_BLEND)
+                 CommandList.Transition(FRHITransitionInfo(renderTarget->targetUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
+         }
+         
          switch (batch.drawType)
          {
              case DrawType::midpointFanPatches:
@@ -1071,9 +1076,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                  GraphicsPSOInit.RasterizerState = RASTER_STATE(FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClamp);
                  GraphicsPSOInit.PrimitiveType = PT_TriangleList;
                      
-                 LITE_RTTI_CAST_OR_RETURN(IndexBuffer,const RenderBufferRHIImpl*, batch.indexBuffer);
-                 LITE_RTTI_CAST_OR_RETURN(VertexBuffer,const RenderBufferRHIImpl*, batch.vertexBuffer);
-                 LITE_RTTI_CAST_OR_RETURN(UVBuffer,const RenderBufferRHIImpl*, batch.uvBuffer);
+                 LITE_RTTI_CAST_OR_BREAK(IndexBuffer,const RenderBufferRHIImpl*, batch.indexBuffer);
+                 LITE_RTTI_CAST_OR_BREAK(VertexBuffer,const RenderBufferRHIImpl*, batch.vertexBuffer);
+                 LITE_RTTI_CAST_OR_BREAK(UVBuffer,const RenderBufferRHIImpl*, batch.uvBuffer);
              
                  auto imageTexture = static_cast<const PLSTextureRHIImpl*>(batch.imageTexture);
              
@@ -1151,6 +1156,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
              case DrawType::stencilClipReset:
                  RIVE_UNREACHABLE();
          }
+
+         needsBarrierBeforeNextDraw = batch.needsBarrier;
      }
     
     CommandList.EndRenderPass();
