@@ -49,7 +49,7 @@ class BufferRingRHIImpl final : public rive::gpu::BufferRing
 {
 public:
     BufferRingRHIImpl(EBufferUsageFlags flags, size_t InSizeInBytes, size_t stride);
-    void Sync(FRHICommandList& commandList) const;
+    void Sync(FRHICommandList& commandList, size_t offsetInBytes = 0) const;
     FBufferRHIRef contents()const;
     
 protected:

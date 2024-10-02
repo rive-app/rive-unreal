@@ -175,11 +175,11 @@ size_t inSizeInBytes, size_t stride) : BufferRing(inSizeInBytes), m_flags(flags)
         flags, stride, ERHIAccess::WriteOnlyMask, Info);
 }
 
-void BufferRingRHIImpl::Sync(FRHICommandList& commandList) const
+void BufferRingRHIImpl::Sync(FRHICommandList& commandList, size_t offsetInBytes) const
 {
     // for DX12 we should use RLM_WriteOnly_NoOverwrite but RLM_WriteOnly works everywhere so we use it for now
-    auto buffer = commandList.LockBuffer(m_buffer, 0, capacityInBytes(), RLM_WriteOnly);
-    memcpy(buffer, shadowBuffer(), capacityInBytes());
+    auto buffer = commandList.LockBuffer(m_buffer, 0, capacityInBytes()-offsetInBytes, RLM_WriteOnly);
+    memcpy(buffer, shadowBuffer()+offsetInBytes, capacityInBytes()-offsetInBytes);
     commandList.UnlockBuffer(m_buffer);
 }
 
@@ -774,9 +774,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         m_contourBuffer->Sync<ContourData>(CommandList,  desc.firstContour, desc.contourCount);
     }
     
-    m_gradSpanBuffer->Sync(CommandList);
-    m_tessSpanBuffer->Sync(CommandList);
-    m_triangleBuffer->Sync(CommandList);
+    if(m_triangleBuffer)m_triangleBuffer->Sync(CommandList);
 
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
     GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
@@ -794,6 +792,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     if (desc.complexGradSpanCount > 0)
     {
         check(m_gradiantTexture);
+        check(m_gradSpanBuffer);
+        m_gradSpanBuffer->Sync(CommandList, desc.firstComplexGradSpan * sizeof(GradientSpan));
         CommandList.Transition(FRHITransitionInfo(m_gradiantTexture, ERHIAccess::Unknown, ERHIAccess::RTV));
         GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
         
@@ -818,7 +818,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         SetParameters(CommandList, BatchedShaderParameters, VertexShader,VertexParameters);
         SetParameters(CommandList, BatchedShaderParameters, PixelShader,PixelParameters);
         
-        CommandList.SetStreamSource(0, m_gradSpanBuffer->contents(), desc.firstComplexGradSpan * sizeof(GradientSpan));
+        CommandList.SetStreamSource(0, m_gradSpanBuffer->contents(), 0);
         
         CommandList.DrawPrimitive(0, 2, desc.complexGradSpanCount);
         
@@ -843,6 +843,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     if (desc.tessVertexSpanCount > 0)
     {
         check(m_tesselationTexture)
+        check(m_tessSpanBuffer)
+        m_tessSpanBuffer->Sync(CommandList, desc.firstTessVertexSpan * sizeof(TessVertexSpan));
         CommandList.Transition(FRHITransitionInfo(m_tesselationTexture, ERHIAccess::Unknown, ERHIAccess::RTV));
 
         FRHIRenderPassInfo Info(m_tesselationTexture, ERenderTargetActions::DontLoad_Store);
@@ -858,7 +860,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         BindShaders(CommandList, GraphicsPSOInit, VertexShader,
             PixelShader, VertexDeclarations[static_cast<int32>(EVertexDeclarations::Tessellation)]);
         
-        CommandList.SetStreamSource(0, m_tessSpanBuffer->contents(), desc.firstTessVertexSpan * sizeof(TessVertexSpan));
+        CommandList.SetStreamSource(0, m_tessSpanBuffer->contents(), 0);
         
         FRiveTessPixelShader::FParameters PixelParameters;
         FRiveTessVertexShader::FParameters VertexParameters;
