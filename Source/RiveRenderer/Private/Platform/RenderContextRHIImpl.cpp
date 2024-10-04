@@ -20,7 +20,7 @@
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
-#include "rive/shaders/out/generated/shaders/constants.glsl.hpp"
+#include "rive/generated/shaders/constants.glsl.hpp"
 THIRD_PARTY_INCLUDES_END
 
 
@@ -753,7 +753,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     
     FRHICommandList& CommandList = GRHICommandList.GetImmediateCommandList();
     auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
-
+    
     check(m_flushUniformBuffer);
     m_flushUniformBuffer->Sync(CommandList, desc.flushUniformDataOffsetInBytes);
     
@@ -789,6 +789,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     {
         CommandList.ClearUAVUint(renderTarget->clipUAV(), FUintVector4(0));
     }
+
     
     if (desc.complexGradSpanCount > 0)
     {
@@ -1129,7 +1130,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                      1);
              }
                 break;
-         case DrawType::gpuAtomicResolve:
+             case DrawType::atomicResolve:
              {
                  GraphicsPSOInit.RasterizerState = RASTER_STATE(FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClamp);
                  GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
@@ -1159,7 +1160,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                  CommandList.DrawPrimitive(0, 2, 1);
              }
                  break;
-             case DrawType::gpuAtomicInitialize:
+             case DrawType::atomicInitialize:
              case DrawType::stencilClipReset:
                  RIVE_UNREACHABLE();
          }

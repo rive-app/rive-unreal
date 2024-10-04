@@ -22,7 +22,7 @@ ATTR(4, uint, _EXPORTED_a_args_b);
 ATTR(5, uint, _EXPORTED_a_args_c);
 ATTR(6, uint, _EXPORTED_a_args_d);
 #else
-ATTR(3, uint4, _EXPORTED_a_args);            // [x0x1, reflectionX0X1, segmentCounts, contourIDWithFlags]
+ATTR(3, uint4, _EXPORTED_a_args); // [x0x1, reflectionX0X1, segmentCounts, contourIDWithFlags]
 #endif
 ATTR_BLOCK_END
 #endif
@@ -68,18 +68,15 @@ VERTEX_MAIN(_EXPORTED_tessellateVertexMain, Attrs, attrs, _vertexID, _instanceID
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_p0p1_, float4);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_p2p3_, float4);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_joinTan_and_ys, float4);
-    
 #ifdef SPLIT_UINT4_ATTRIBUTES
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_args_a, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_args_b, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_args_c, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_args_d, uint);
-    
+
     uint4 _EXPORTED_a_args = uint4(_EXPORTED_a_args_a, _EXPORTED_a_args_b, _EXPORTED_a_args_c, _EXPORTED_a_args_d);
-    
 #else
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_args, uint4);
-    
 #endif
 
     VARYING_INIT(v_p0p1, float4);
