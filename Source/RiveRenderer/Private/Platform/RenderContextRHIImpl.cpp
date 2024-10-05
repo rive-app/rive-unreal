@@ -707,9 +707,12 @@ rcp<RenderBuffer> RenderContextRHIImpl::makeRenderBuffer(RenderBufferType type,
 void RenderContextRHIImpl::resizeGradientTexture(uint32_t width, uint32_t height)
 {
     check(IsInRenderingThread());
-    
-    width = std::max(width, 1u);
-    height = std::max(height, 1u);
+
+    if(height == 0)
+    {
+        m_gradiantTexture = nullptr;
+        return;
+    }
     
     FRHIAsyncCommandList commandList;
     FRHITextureCreateDesc Desc = FRHITextureCreateDesc::Create2D(TEXT("riveGradientTexture"),
@@ -724,8 +727,11 @@ void RenderContextRHIImpl::resizeTessellationTexture(uint32_t width, uint32_t he
 {
     check(IsInRenderingThread());
     
-    width = std::max(width, 1u);
-    height = std::max(height, 1u);
+    if(height == 0)
+    {
+        m_tesselationTexture = nullptr;
+        return;
+    }
     
     FRHIAsyncCommandList commandList;
     FRHITextureCreateDesc Desc = FRHITextureCreateDesc::Create2D(TEXT("riveTessTexture"),
@@ -774,7 +780,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         m_contourBuffer->Sync<ContourData>(CommandList,  desc.firstContour, desc.contourCount);
     }
 
-    //TODO: only snyc on first flush of frame
+    //TODO: only sync on first flush of frame
     if(m_triangleBuffer)m_triangleBuffer->Sync(CommandList);
 
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -789,7 +795,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     {
         CommandList.ClearUAVUint(renderTarget->clipUAV(), FUintVector4(0));
     }
-
     
     if (desc.complexGradSpanCount > 0)
     {
