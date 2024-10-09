@@ -1,5 +1,5 @@
 #include "RiveRendererRHI.h"
-#include "pls_render_context_rhi_impl.hpp"
+#include "RenderContextRHIImpl.hpp"
 #include "RiveRenderTargetRHI.h"
 
 TSharedPtr<IRiveRenderTarget> FRiveRendererRHI::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)

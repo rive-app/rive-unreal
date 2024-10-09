@@ -1,5 +1,5 @@
 #pragma once
-#include "pls_render_context_rhi_impl.hpp"
+#include "RenderContextRHIImpl.hpp"
 #include "RiveRenderTarget.h"
 
 class FRiveRendererRHI;

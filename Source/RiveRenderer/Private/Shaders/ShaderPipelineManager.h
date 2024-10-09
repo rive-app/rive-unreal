@@ -5,7 +5,7 @@
 #include "GlobalShader.h"
 
 #include "HLSLTypeAliases.h"
-#include "rive/shaders/out/generated/shaders/rhi.exports.h"
+#include "rive/generated/shaders/rhi.exports.h"
 
 namespace rive::gpu
 {

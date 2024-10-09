@@ -865,6 +865,12 @@ void URiveArtboard::PopulateReportedEvents()
 void URiveArtboard::Initialize_Internal(const rive::Artboard* InNativeArtboard)
 {
 	NativeArtboardPtr = InNativeArtboard->instance();
+    if(!NativeArtboardPtr)
+    {
+        UE_LOG(LogRive, Error, TEXT("URiveArtboard::Initialize_Internal InNativeArtboard->instance() is null !"));
+        return;
+    }
+    
 	ArtboardName = FString{NativeArtboardPtr->name().c_str()};
 	NativeArtboardPtr->advance(0);
 

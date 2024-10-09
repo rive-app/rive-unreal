@@ -10,11 +10,6 @@ const char common[] = R"===(/*
  */
 
 // Common functions shared by multiple shaders.
-
-#ifdef USE_GENERATED_UNIFORMS
-#include "/Engine/Generated/GeneratedUniformBuffers.ush"
-#endif
-
 #define PI  float(3.141592653589793238)
 
 #ifndef _EXPORTED_USING_DEPTH_STENCIL
@@ -150,7 +145,7 @@ INLINE float manhattan_width(float2 x) { return abs(x.x) + abs(x.y); }
 
 #ifdef _EXPORTED_VERTEX
 
-#ifndef _EXPORTED_USE_GENERATED_UNIFORMS 
+#ifndef _EXPORTED_USE_GENERATED_UNIFORMS
 UNIFORM_BLOCK_BEGIN(FLUSH_UNIFORM_BUFFER_IDX, _EXPORTED_FlushUniforms)
 float gradInverseViewportY;
 float tessInverseViewportY;
@@ -232,7 +227,7 @@ INLINE void set_clip_rect_plane_distances(float2x2 clipRectInverseMatrix,
 #endif // VERTEX
 
 #ifdef _EXPORTED_DRAW_IMAGE
-#ifndef _EXPORTED_USE_GENERATED_UNIFORMS 
+#ifndef _EXPORTED_USE_GENERATED_UNIFORMS
 UNIFORM_BLOCK_BEGIN(IMAGE_DRAW_UNIFORM_BUFFER_IDX, _EXPORTED_ImageDrawUniforms)
 float4 viewMatrix;
 float2 translate;

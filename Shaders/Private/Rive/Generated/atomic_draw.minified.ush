@@ -720,15 +720,12 @@ ATOMIC_PLS_MAIN(_EXPORTED_drawFragmentMain)
                                      clipData,
                                      false);
 #ifdef COALESCED_PLS_RESOLVE_AND_TRANSFER
-    //color = make_half4(1.0,0.0,0.0,1.0);
     _fragColor = do_pls_blend(color, paintData PLS_CONTEXT_UNPACK);
     EMIT_PLS_AND_FRAG_COLOR
 #else
 #ifdef FIXED_FUNCTION_COLOR_BLEND
-    //color = make_half4(0.0,1.0,0.0,1.0);
     _fragColor = premultiply(color);
 #else
-    //color = make_half4(0.0,0.0,1.0,1.0);
     write_pls_blend(color, paintData PLS_CONTEXT_UNPACK);
 #endif // FIXED_FUNCTION_COLOR_BLEND
     EMIT_ATOMIC_PLS

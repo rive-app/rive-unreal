@@ -37,17 +37,14 @@ half4 unpackColorInt(uint color)
 
 VERTEX_MAIN(_EXPORTED_colorRampVertexMain, Attrs, attrs, _vertexID, _instanceID)
 {
-    
 #ifdef SPLIT_UINT4_ATTRIBUTES
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_span_a, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_span_b, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_span_c, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_span_d, uint);
-    uint4 _EXPORTED_a_span = uint4( _EXPORTED_a_span_a, _EXPORTED_a_span_b, _EXPORTED_a_span_c, _EXPORTED_a_span_d);
-    
+    uint4 _EXPORTED_a_span = uint4(_EXPORTED_a_span_a, _EXPORTED_a_span_b, _EXPORTED_a_span_c, _EXPORTED_a_span_d);
 #else
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_span, uint4);
-    
 #endif
     VARYING_INIT(v_rampColor, half4);
 

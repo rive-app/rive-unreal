@@ -1,4 +1,11 @@
-/*
+#pragma once
+
+#include "rhi.exports.h"
+
+namespace rive {
+namespace gpu {
+namespace glsl {
+const char rhi[] = R"===(/*
  * Copyright 2023 Rive
  */
 
@@ -48,7 +55,7 @@
 
 typedef float3 packed_float3;
 
-#ifdef ENABLE_MIN_16_PRECISION
+#ifdef _EXPORTED_ENABLE_MIN_16_PRECISION
 
 typedef min16uint ushort;
 
@@ -73,7 +80,7 @@ typedef uint ushort;
 #define ATTR_LOAD(T, A, N, I)
 #define ATTR_UNPACK(ID, attrs, NAME, TYPE)  TYPE NAME = attrs.NAME
 
-#define UNIFORM_BUFFER_REGISTER(IDX)  register(SPLAT(b,IDX))
+#define UNIFORM_BUFFER_REGISTER(IDX)  register(SPLAT(b, IDX))
 
 #define UNIFORM_BLOCK_BEGIN(IDX, NAME)                                                              \
     cbuffer NAME : UNIFORM_BUFFER_REGISTER(IDX)                                                   \
@@ -91,9 +98,9 @@ typedef uint ushort;
     {
 
 #define NO_PERSPECTIVE  noperspective
-#define OPTIONALLY_FLAT  nointerpolation
+#define _EXPORTED_OPTIONALLY_FLAT  nointerpolation
 #define FLAT  nointerpolation
-#define VARYING(IDX, TYPE, NAME)  TYPE NAME : SPLAT(TEXCOORD,IDX)
+#define VARYING(IDX, TYPE, NAME)  TYPE NAME : SPLAT(TEXCOORD, IDX)
 
 #define VARYING_BLOCK_END                                                                           \
     float4 _pos : SV_Position;                                                                    \
@@ -104,23 +111,24 @@ typedef uint ushort;
 #define VARYING_PACK(NAME)  _varyings.NAME = NAME
 #define VARYING_UNPACK(NAME, TYPE)  TYPE NAME = _varyings.NAME
 
-#ifdef VERTEX
+#ifdef _EXPORTED_VERTEX
 #define VERTEX_TEXTURE_BLOCK_BEGIN
 #define VERTEX_TEXTURE_BLOCK_END
 #endif
 
-#ifdef FRAGMENT
+#ifdef _EXPORTED_FRAGMENT
 #define FRAG_TEXTURE_BLOCK_BEGIN
 #define FRAG_TEXTURE_BLOCK_END
 #endif
 
-#define TEXTURE_RGBA32UI(SET, IDX, NAME)  uniform Texture2D<uint4> NAME : register(SPLAT(t,IDX))
-#define TEXTURE_RGBA32F(SET, IDX, NAME)  uniform Texture2D<float4> NAME : register(SPLAT(t,IDX))
-#define TEXTURE_RGBA8(SET, IDX, NAME)  uniform Texture2D<unorm float4> NAME : register(SPLAT(t,IDX))
+#define TEXTURE_RGBA32UI(SET, IDX, NAME)  uniform Texture2D<uint4> NAME : register(SPLAT(t, IDX))
+#define TEXTURE_RGBA32F(SET, IDX, NAME)  uniform Texture2D<float4> NAME : register(SPLAT(t, IDX))
+#define TEXTURE_RGBA8(SET, IDX, NAME)                                                               \
+    uniform Texture2D<unorm float4> NAME : register(SPLAT(t, IDX))
 
 // SAMPLER_LINEAR and SAMPLER_MIPMAP are the same because in d3d11, sampler parameters are defined
 // at the API level.
-#define SAMPLER(TEXTURE_IDX, NAME)  SamplerState NAME : register(SPLAT(s,TEXTURE_IDX));
+#define SAMPLER(TEXTURE_IDX, NAME)  SamplerState NAME : register(SPLAT(s, TEXTURE_IDX));
 #define SAMPLER_LINEAR  SAMPLER
 #define SAMPLER_MIPMAP  SAMPLER
 
@@ -134,31 +142,31 @@ typedef uint ushort;
 #define PLS_INTERLOCK_BEGIN
 #define PLS_INTERLOCK_END
 
-#ifdef ENABLE_RASTERIZER_ORDERED_VIEWS
+#ifdef _EXPORTED_ENABLE_RASTERIZER_ORDERED_VIEWS
 #define PLS_TEX2D  RasterizerOrderedTexture2D
 #else
 #define PLS_TEX2D  RWTexture2D
 #endif
 
 #define PLS_BLOCK_BEGIN
-#ifdef ENABLE_TYPED_UAV_LOAD_STORE
-#define PLS_DECL4F(IDX, NAME)  uniform PLS_TEX2D<unorm half4> NAME : register(SPLAT(u,IDX))
+#ifdef _EXPORTED_ENABLE_TYPED_UAV_LOAD_STORE
+#define PLS_DECL4F(IDX, NAME)  uniform PLS_TEX2D<unorm half4> NAME : register(SPLAT(u, IDX))
 #else
-#define PLS_DECL4F(IDX, NAME)  uniform PLS_TEX2D<uint> NAME : register(SPLAT(u,IDX))
+#define PLS_DECL4F(IDX, NAME)  uniform PLS_TEX2D<uint> NAME : register(SPLAT(u, IDX))
 #endif
-#define PLS_DECLUI(IDX, NAME)  uniform PLS_TEX2D<uint> NAME : register(SPLAT(u,IDX))
+#define PLS_DECLUI(IDX, NAME)  uniform PLS_TEX2D<uint> NAME : register(SPLAT(u, IDX))
 #define PLS_DECLUI_ATOMIC  PLS_DECLUI
 #define PLS_LOADUI_ATOMIC  PLS_LOADUI
 #define PLS_STOREUI_ATOMIC  PLS_STOREUI
 #define PLS_BLOCK_END
 
-#ifdef ENABLE_TYPED_UAV_LOAD_STORE
+#ifdef _EXPORTED_ENABLE_TYPED_UAV_LOAD_STORE
 #define PLS_LOAD4F(PLANE)  PLANE[_plsCoord]
 #else
 #define PLS_LOAD4F(PLANE)  unpackUnorm4x8(PLANE[_plsCoord])
 #endif
 #define PLS_LOADUI(PLANE)  PLANE[_plsCoord]
-#ifdef ENABLE_TYPED_UAV_LOAD_STORE
+#ifdef _EXPORTED_ENABLE_TYPED_UAV_LOAD_STORE
 #define PLS_STORE4F(PLANE, VALUE)  PLANE[_plsCoord] = (VALUE)
 #else
 #define PLS_STORE4F(PLANE, VALUE)  PLANE[_plsCoord] = packUnorm4x8(VALUE)
@@ -190,14 +198,14 @@ INLINE uint pls_atomic_add(PLS_TEX2D<uint> plane, int2 _plsCoord, uint x)
 #define VERTEX_CONTEXT_UNPACK
 
 #define VERTEX_MAIN(NAME, Attrs, attrs, _vertexID, _instanceID)                                     \
-                                                                                              \
-    uint baseInstance;                                                                         \
-                                                                                         \
+                                                                                                   \
+    uint baseInstance;                                                                            \
+                                                                                                   \
     Varyings NAME(Attrs attrs, uint _vertexID                                                      \
                   : SV_VertexID, uint _instanceIDWithoutBase                                      \
                   : SV_InstanceID)                                                                \
     {                                                                                              \
-        uint _instanceID = _instanceIDWithoutBase + baseInstance;                                  \
+        uint _instanceID = _instanceIDWithoutBase + baseInstance;                                 \
         Varyings _varyings;
 
 #define IMAGE_RECT_VERTEX_MAIN(NAME, Attrs, attrs, _vertexID, _instanceID)                          \
@@ -272,11 +280,11 @@ INLINE uint pls_atomic_add(PLS_TEX2D<uint> plane, int2 _plsCoord, uint x)
 #define FRAG_STORAGE_BUFFER_BLOCK_END
 
 #define STORAGE_BUFFER_U32x2(IDX, GLSL_STRUCT_NAME, NAME)                                           \
-    StructuredBuffer<uint2> NAME : register(SPLAT(t,IDX))
+    StructuredBuffer<uint2> NAME : register(SPLAT(t, IDX))
 #define STORAGE_BUFFER_U32x4(IDX, GLSL_STRUCT_NAME, NAME)                                           \
-    StructuredBuffer<uint4> NAME : register(SPLAT(t,IDX))
+    StructuredBuffer<uint4> NAME : register(SPLAT(t, IDX))
 #define STORAGE_BUFFER_F32x4(IDX, GLSL_STRUCT_NAME, NAME)                                           \
-    StructuredBuffer<float4> NAME : register(SPLAT(t,IDX))
+    StructuredBuffer<float4> NAME : register(SPLAT(t, IDX))
 
 #define STORAGE_BUFFER_LOAD4(NAME, I)  NAME[I]
 #define STORAGE_BUFFER_LOAD2(NAME, I)  NAME[I]
@@ -352,3 +360,7 @@ INLINE float3 rive_sqrt(float3 x) { return sqrt(x); }
 INLINE float4 rive_sqrt(float4 x) { return sqrt(x); }
 
 #define sqrt  rive_sqrt
+)===";
+} // namespace glsl
+} // namespace gpu
+} // namespace rive

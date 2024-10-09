@@ -59,7 +59,7 @@
 #extension GL_KHR_blend_equation_advanced : require
 #endif
 
-#if defined(USING_DEPTH_STENCIL) && defined(ENABLE_CLIP_RECT)
+#if defined(USING_DEPTH_STENCIL) && defined(ENABLE_CLIP_RECT) && defined(GL_ES)
 #ifdef GL_EXT_clip_cull_distance
 #extension GL_EXT_clip_cull_distance : require
 #elif defined(GL_ANGLE_clip_cull_distance)
@@ -433,9 +433,14 @@
 
 #ifdef USING_PLS_STORAGE_TEXTURES
 
+#ifdef TARGET_VULKAN
 #define PLS_DECLUI_ATOMIC(IDX, NAME)                                                                \
     layout(set = PLS_TEXTURE_BINDINGS_SET, binding = IDX, r32ui)                                   \
         uniform highp coherent uimage2D NAME
+#else
+#define PLS_DECLUI_ATOMIC(IDX, NAME)                                                                \
+    layout(binding = IDX, r32ui) uniform highp coherent uimage2D NAME
+#endif
 #define PLS_LOADUI_ATOMIC(PLANE)  imageLoad(PLANE, _plsCoord).x
 #define PLS_STOREUI_ATOMIC(PLANE, VALUE)  imageStore(PLANE, _plsCoord, uvec4(VALUE))
 #define PLS_ATOMIC_MAX(PLANE, X)  imageAtomicMax(PLANE, _plsCoord, X)

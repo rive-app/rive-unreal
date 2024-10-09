@@ -1,4 +1,11 @@
-/*
+#pragma once
+
+#include "tessellate.exports.h"
+
+namespace rive {
+namespace gpu {
+namespace glsl {
+const char tessellate[] = R"===(/*
  * Copyright 2020 Google LLC.
  *
  * Use of this source code is governed by a BSD-style license that can be
@@ -11,7 +18,7 @@
 
 #define MAX_PARAMETRIC_SEGMENTS_LOG2  10 // Max 1024 segments.
 
-#ifdef VERTEX
+#ifdef _EXPORTED_VERTEX
 ATTR_BLOCK_BEGIN(Attrs)
 ATTR(0, float4, _EXPORTED_a_p0p1_); // End in '_' because D3D interprets the '1' as a semantic index.
 ATTR(1, float4, _EXPORTED_a_p2p3_);
@@ -22,7 +29,7 @@ ATTR(4, uint, _EXPORTED_a_args_b);
 ATTR(5, uint, _EXPORTED_a_args_c);
 ATTR(6, uint, _EXPORTED_a_args_d);
 #else
-ATTR(3, uint4, _EXPORTED_a_args);            // [x0x1, reflectionX0X1, segmentCounts, contourIDWithFlags]
+ATTR(3, uint4, _EXPORTED_a_args); // [x0x1, reflectionX0X1, segmentCounts, contourIDWithFlags]
 #endif
 ATTR_BLOCK_END
 #endif
@@ -45,7 +52,7 @@ INLINE float2x2 find_tangents(float2 p0, float2 p1, float2 p2, float2 p3)
     return t;
 }
 
-#ifdef VERTEX
+#ifdef _EXPORTED_VERTEX
 VERTEX_TEXTURE_BLOCK_BEGIN
 VERTEX_TEXTURE_BLOCK_END
 
@@ -68,18 +75,15 @@ VERTEX_MAIN(_EXPORTED_tessellateVertexMain, Attrs, attrs, _vertexID, _instanceID
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_p0p1_, float4);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_p2p3_, float4);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_joinTan_and_ys, float4);
-    
 #ifdef SPLIT_UINT4_ATTRIBUTES
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_args_a, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_args_b, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_args_c, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_args_d, uint);
-    
+
     uint4 _EXPORTED_a_args = uint4(_EXPORTED_a_args_a, _EXPORTED_a_args_b, _EXPORTED_a_args_c, _EXPORTED_a_args_d);
-    
 #else
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_args, uint4);
-    
 #endif
 
     VARYING_INIT(v_p0p1, float4);
@@ -203,7 +207,7 @@ VERTEX_MAIN(_EXPORTED_tessellateVertexMain, Attrs, attrs, _vertexID, _instanceID
 }
 #endif
 
-#ifdef FRAGMENT
+#ifdef _EXPORTED_FRAGMENT
 FRAG_DATA_MAIN(uint4, _EXPORTED_tessellateFragmentMain)
 {
     VARYING_UNPACK(v_p0p1, float4);
@@ -423,3 +427,7 @@ FRAG_DATA_MAIN(uint4, _EXPORTED_tessellateFragmentMain)
     EMIT_FRAG_DATA(uint4(floatBitsToUint(float3(tessCoord, theta)), contourIDWithFlags));
 }
 #endif
+)===";
+} // namespace glsl
+} // namespace gpu
+} // namespace rive

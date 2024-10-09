@@ -22,15 +22,22 @@ targets = [
     'zlib'
 ]
 
+should_build_test = False
+
 def get_base_command(rive_runtime_path, release):
     return (
         f"premake5 --scripts=\"{os.path.join(rive_runtime_path, 'build')}\" "
-        f"--with_rive_text --with_rive_audio=external {'--config=release' if release else '--config=debug'}"
+        f"--with_rive_text --raw_shaders --with_rive_audio=external --for_unreal {'--config=release' if release else '--config=debug'}"
     )
 
 @click.command()
 @click.argument('rive_runtime_path')
-def main(rive_runtime_path):
+@click.option('--build_tests', is_flag=True)
+def main(rive_runtime_path, build_tests):
+    global should_build_test
+    should_build_test= build_tests
+    rive_runtime_path = os.path.abspath(rive_runtime_path)
+    
     if sys.platform.startswith('darwin'):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
         # determine a sane build environment
@@ -53,16 +60,16 @@ def main(rive_runtime_path):
         
         # apply android patch before android
         os.chdir(rive_runtime_path)
-        patch_output = subprocess.check_output(['git', 'apply', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
-        print(patch_output)
+        #patch_output = subprocess.check_output(['git', 'apply', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
+        #print(patch_output)
         android_succeeded = True
         if not do_android(rive_runtime_path, True) or not do_android(rive_runtime_path, False):
            android_succeeded = False
 
         # unapply android patch after
         os.chdir(rive_runtime_path)
-        patch_output = subprocess.check_output(['git', 'apply', '-R', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
-        print(patch_output)
+        #patch_output = subprocess.check_output(['git', 'apply', '-R', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
+        #print(patch_output)
 
         if not android_succeeded:
             return
@@ -118,8 +125,10 @@ def do_android(rive_runtime_path, release):
 def do_windows(rive_runtime_path, release):
     try:
         out_dir = os.path.join('..', 'out', 'windows', 'release' if release else 'debug')
+
         os.chdir(os.path.join(rive_runtime_path, 'renderer'))
-        command = f'{get_base_command(rive_runtime_path, release)} --windows_runtime=dynamic --os=windows --out="{out_dir}" vs2022'
+        
+        command = f'{get_base_command(rive_runtime_path, release)} --os=windows --out="{out_dir}" vs2022'
         execute_command(command)
 
         # build
@@ -277,14 +286,36 @@ def copy_includes(rive_runtime_path):
     print_green('Copying rive includes...')
     rive_includes_path = os.path.join(rive_runtime_path, 'include')
     rive_pls_includes_path = os.path.join(rive_runtime_path, 'renderer', 'include')
+    rive_shaders_includes_path = os.path.join(rive_runtime_path, 'out', 'windows', 'release', "include")
+    rive_shader_source_path = os.path.join(rive_runtime_path, 'renderer', 'src', 'shaders', "unreal")
     rive_decoders_includes_path = os.path.join(rive_runtime_path, 'decoders', 'include')
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')
+    shaders_target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes', "rive")
+    rive_shader_source_target_path = os.path.join(script_directory, '..', '..', 'Shaders', 'Private', 'Rive')
+    generated_shader_path = os.path.join(script_directory, '..', '..', 'Shaders', 'Private', 'Rive', 'Generated')
+    generated_shader_ush_path = os.path.join(rive_shaders_includes_path, "generated", "shaders")
+
     if os.path.exists(target_path):
         shutil.rmtree(target_path)
+
+    if os.path.exists(generated_shader_path):
+        shutil.rmtree(generated_shader_path)
+
+    # delete and re create generated shader path to clear it
+    os.mkdir(generated_shader_path)
 
     shutil.copytree(rive_includes_path, target_path, dirs_exist_ok=True)
     shutil.copytree(rive_pls_includes_path, target_path, dirs_exist_ok=True)
     shutil.copytree(rive_decoders_includes_path, target_path, dirs_exist_ok=True)
+    shutil.copytree(rive_shader_source_path, rive_shader_source_target_path, dirs_exist_ok=True)
+
+    shutil.copytree(rive_shaders_includes_path, shaders_target_path, ignore=shutil.ignore_patterns('*.ush'),dirs_exist_ok=True)
+    for basename in os.listdir(generated_shader_ush_path):
+        if basename.endswith('.ush'):
+            pathname = os.path.join(generated_shader_ush_path, basename)
+            if os.path.isfile(pathname):
+                shutil.copy(pathname, generated_shader_path)
+    
 
 
 def execute_command(cmd):

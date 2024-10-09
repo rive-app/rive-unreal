@@ -1,0 +1,1 @@
+make -C C:/Git/rive/packages/runtime/renderer/src/shaders -j22 OUT=C:/Git/rive/packages/runtime/out/windows/release/include/generated/shaders FLAGS="--human-readable --minified-extension=ush" 

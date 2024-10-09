@@ -1,11 +1,18 @@
-/*
+#pragma once
+
+#include "color_ramp.exports.h"
+
+namespace rive {
+namespace gpu {
+namespace glsl {
+const char color_ramp[] = R"===(/*
  * Copyright 2022 Rive
  */
 
 // This shader draws horizontal color ramps into a gradient texture, which will later be sampled by
 // the renderer for drawing gradients.
 
-#ifdef VERTEX
+#ifdef _EXPORTED_VERTEX
 ATTR_BLOCK_BEGIN(Attrs)
 #ifdef SPLIT_UINT4_ATTRIBUTES
 ATTR(0, uint, _EXPORTED_a_span_a);
@@ -22,7 +29,7 @@ VARYING_BLOCK_BEGIN
 NO_PERSPECTIVE VARYING(0, half4, v_rampColor);
 VARYING_BLOCK_END
 
-#ifdef VERTEX
+#ifdef _EXPORTED_VERTEX
 VERTEX_TEXTURE_BLOCK_BEGIN
 VERTEX_TEXTURE_BLOCK_END
 
@@ -37,17 +44,14 @@ half4 unpackColorInt(uint color)
 
 VERTEX_MAIN(_EXPORTED_colorRampVertexMain, Attrs, attrs, _vertexID, _instanceID)
 {
-    
 #ifdef SPLIT_UINT4_ATTRIBUTES
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_span_a, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_span_b, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_span_c, uint);
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_span_d, uint);
-    uint4 _EXPORTED_a_span = uint4( _EXPORTED_a_span_a, _EXPORTED_a_span_b, _EXPORTED_a_span_c, _EXPORTED_a_span_d);
-    
+    uint4 _EXPORTED_a_span = uint4(_EXPORTED_a_span_a, _EXPORTED_a_span_b, _EXPORTED_a_span_c, _EXPORTED_a_span_d);
 #else
     ATTR_UNPACK(_instanceID, attrs, _EXPORTED_a_span, uint4);
-    
 #endif
     VARYING_INIT(v_rampColor, half4);
 
@@ -71,10 +75,14 @@ VERTEX_MAIN(_EXPORTED_colorRampVertexMain, Attrs, attrs, _vertexID, _instanceID)
 }
 #endif
 
-#ifdef FRAGMENT
+#ifdef _EXPORTED_FRAGMENT
 FRAG_DATA_MAIN(half4, _EXPORTED_colorRampFragmentMain)
 {
     VARYING_UNPACK(v_rampColor, half4);
     EMIT_FRAG_DATA(v_rampColor);
 }
 #endif
+)===";
+} // namespace glsl
+} // namespace gpu
+} // namespace rive
