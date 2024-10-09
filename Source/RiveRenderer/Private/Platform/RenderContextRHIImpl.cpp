@@ -950,6 +950,19 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         Info.ResolveRect = FResolveRect(0, 0, renderTarget->width(), renderTarget->height());
         CommandList.Transition(FRHITransitionInfo(DestTexture, shouldPreserveRenderTarget ? ERHIAccess::UAVGraphics : ERHIAccess::Unknown, ERHIAccess::UAVGraphics));
     }
+
+    TArray<FRHITransitionInfo> TransitionInfos = {
+        FRHITransitionInfo(renderTarget->coverageUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics)
+    };
+             
+    if(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_ADVANCED_BLEND)
+        TransitionInfos.Add(FRHITransitionInfo(renderTarget->targetUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
+    else
+        TransitionInfos.Add(FRHITransitionInfo(DestTexture, ERHIAccess::RTV, ERHIAccess::RTV));
+
+    if(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_CLIPPING)
+        TransitionInfos.Add(FRHITransitionInfo(renderTarget->clipUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
+             
     
      CommandList.BeginRenderPass(Info, TEXT("Rive_Render_Flush"));
      CommandList.SetViewport(0, 0, 0, renderTarget->width(), renderTarget->height(), 1.0);
@@ -979,11 +992,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
          if(needsBarrierBeforeNextDraw)
          {
-             CommandList.Transition(FRHITransitionInfo(renderTarget->coverageUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
-             if(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_CLIPPING)
-                 CommandList.Transition(FRHITransitionInfo(renderTarget->clipUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
-             if(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_ADVANCED_BLEND)
-                 CommandList.Transition(FRHITransitionInfo(renderTarget->targetUAV(), ERHIAccess::UAVGraphics, ERHIAccess::UAVGraphics));
+             
+             CommandList.Transition(TransitionInfos);
          }
          
          switch (batch.drawType)
