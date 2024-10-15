@@ -310,4 +310,11 @@ void URiveWidget::Setup()
 	RiveTextureObject->Initialize(RiveDescriptor);
 }
 
+void URiveWidget::SetRiveDescriptor(const FRiveDescriptor& newDescriptor)
+{
+	RiveDescriptor = newDescriptor;
+
+	Setup();
+}
+
 #undef LOCTEXT_NAMESPACE
