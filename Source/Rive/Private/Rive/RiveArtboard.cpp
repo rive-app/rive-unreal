@@ -671,6 +671,17 @@ void URiveArtboard::Reinitialize(bool InSuccess)
 	}
 }
 
+void URiveArtboard::SetStateMachineName(const FString& NewStateMachineName)
+{
+	if (StateMachineName != NewStateMachineName)
+	{
+		StateMachineName = NewStateMachineName;
+
+		StateMachinePtr = MakeUnique<FRiveStateMachine>(NativeArtboardPtr.get(), StateMachineName);
+
+	}
+}
+
 void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
 {
 	if (AudioEngine == nullptr)
