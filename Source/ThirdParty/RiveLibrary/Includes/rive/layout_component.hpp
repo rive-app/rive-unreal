@@ -76,6 +76,8 @@ private:
     float m_heightOverride = NAN;
     int m_heightUnitValueOverride = -1;
     bool m_parentIsRow = true;
+    bool m_widthIntrinsicallySizeOverride = false;
+    bool m_heightIntrinsicallySizeOverride = false;
 
 #ifdef WITH_RIVE_LAYOUT
 protected:
@@ -116,6 +118,8 @@ public:
     // width/height and unit values.
     void widthOverride(float width, int unitValue = 1, bool isRow = true);
     void heightOverride(float height, int unitValue = 1, bool isRow = true);
+    void widthIntrinsicallySizeOverride(bool intrinsic);
+    void heightIntrinsicallySizeOverride(bool intrinsic);
     virtual bool canHaveOverrides() { return false; }
     bool mainAxisIsRow();
     bool mainAxisIsColumn();
@@ -146,6 +150,7 @@ public:
                                    KeyFrameInterpolator* inheritedInterpolator,
                                    float inheritedInterpolationTime);
     void clearInheritedInterpolation();
+    bool isLeaf();
 #else
     LayoutComponent() : m_layoutData(std::unique_ptr<LayoutData>(new LayoutData())), m_proxy(this)
     {}

@@ -109,11 +109,15 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 	{
 		RiveTextureObject = NewObject<URiveTextureObject>();
 		RiveTextureObject->Size = FIntPoint::ZeroValue;  // Setting to zero value here will make the rive texture use the artboard size initially
-		TimerHandle.Invalidate();
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
+
+		if (UWorld* World = GetWorld())
 		{
-			Setup();
-		}, 0.05f, false);
+			World->GetTimerManager().ClearTimer(TimerHandle);
+			World->GetTimerManager().SetTimer(TimerHandle, [this]()
+			{
+				Setup();
+			}, 0.05f, false);
+		}
 	}
 	
 	return RiveWidget.ToSharedRef();
@@ -304,6 +308,13 @@ void URiveWidget::Setup()
 	RiveTextureObject->bRenderInEditor = true;
 #endif
 	RiveTextureObject->Initialize(RiveDescriptor);
+}
+
+void URiveWidget::SetRiveDescriptor(const FRiveDescriptor& newDescriptor)
+{
+	RiveDescriptor = newDescriptor;
+
+	Setup();
 }
 
 #undef LOCTEXT_NAMESPACE

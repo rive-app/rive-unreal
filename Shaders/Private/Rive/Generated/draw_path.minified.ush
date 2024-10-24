@@ -433,8 +433,7 @@ PLS_MAIN(_EXPORTED_drawFragmentMain)
                 // check exact equality of the clipID.
                 half2 clipData = unpackHalf2x16(PLS_LOADUI(clipBuffer));
                 half clipContentID = clipData.y;
-                half clipCoverage = clipContentID == v_clipID ? clipData.x : make_half(.0);
-                coverage = min(coverage, clipCoverage);
+                coverage = (clipContentID == v_clipID) ? min(clipData.x, coverage) : make_half(.0);
             }
             PLS_PRESERVE_UI(clipBuffer);
         }

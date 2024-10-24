@@ -671,6 +671,17 @@ void URiveArtboard::Reinitialize(bool InSuccess)
 	}
 }
 
+void URiveArtboard::SetStateMachineName(const FString& NewStateMachineName)
+{
+	if (StateMachineName != NewStateMachineName)
+	{
+		StateMachineName = NewStateMachineName;
+
+		StateMachinePtr = MakeUnique<FRiveStateMachine>(NativeArtboardPtr.get(), StateMachineName);
+
+	}
+}
+
 void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
 {
 	if (AudioEngine == nullptr)
@@ -865,6 +876,12 @@ void URiveArtboard::PopulateReportedEvents()
 void URiveArtboard::Initialize_Internal(const rive::Artboard* InNativeArtboard)
 {
 	NativeArtboardPtr = InNativeArtboard->instance();
+    if(!NativeArtboardPtr)
+    {
+        UE_LOG(LogRive, Error, TEXT("URiveArtboard::Initialize_Internal InNativeArtboard->instance() is null !"));
+        return;
+    }
+    
 	ArtboardName = FString{NativeArtboardPtr->name().c_str()};
 	NativeArtboardPtr->advance(0);
 

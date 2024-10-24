@@ -114,6 +114,20 @@ public:
 		return nullptr;
 	}
 	
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	URiveAsset* GetRiveAssetByName(FString InName) const
+	{
+		for (const TTuple<unsigned int, TObjectPtr<URiveAsset>>& x : Assets)
+		{
+			if (x.Value->Name.Equals(InName))
+			{
+					return x.Value;
+			}
+		}
+
+		return nullptr;
+	}
+
 	rive::Span<const uint8> RiveNativeFileSpan;
 	rive::Span<const uint8>& GetNativeFileSpan()
 	{

@@ -44,33 +44,31 @@ private:
 };
 
 class StructuredBufferRingRHIImpl;
-
+// TODO: Make this use staging buffer
 class BufferRingRHIImpl final : public rive::gpu::BufferRing
 {
 public:
-    BufferRingRHIImpl(EBufferUsageFlags flags, size_t in_sizeInBytes, size_t stride);
-    void Sync(FRHICommandList& commandList) const;
-    FBufferRHIRef contents()const;
+    BufferRingRHIImpl(EBufferUsageFlags flags, size_t InSizeInBytes, size_t stride);
+    FBufferRHIRef Sync(FRHICommandList& commandList, size_t offsetInBytes = 0) const;
     
 protected:
     virtual void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override;
     virtual void onUnmapAndSubmitBuffer(int bufferIdx, size_t mapSizeInBytes) override;
     
 private:
-    FBufferRHIRef m_buffer;
     EBufferUsageFlags m_flags;
+    size_t m_stride;
 };
 
 template<typename UniformBufferType>
 class UniformBufferRHIImpl : public rive::gpu::BufferRing
 {
 public:
-    UniformBufferRHIImpl(size_t in_sizeInBytes): BufferRing(in_sizeInBytes)
+    UniformBufferRHIImpl(size_t InSizeInBytes): BufferRing(InSizeInBytes)
     {
-        //m_buffer =  TUniformBufferRef<UniformBufferType>::CreateEmptyUniformBufferImmediate( UniformBuffer_MultiFrame);
     }
 
-    void Sync(FRHICommandList& commandList, int offset)
+    void Sync(FRHICommandList& commandList, size_t offset)
     {
         UniformBufferType* Buffer = reinterpret_cast<UniformBufferType*>(shadowBuffer() + offset);
         m_buffer = TUniformBufferRef<UniformBufferType>::CreateUniformBufferImmediate( *Buffer,UniformBuffer_SingleFrame);
@@ -98,10 +96,9 @@ private:
 class RenderBufferRHIImpl final: public rive::lite_rtti_override<rive::RenderBuffer, RenderBufferRHIImpl>
 {
 public:
-    RenderBufferRHIImpl(rive::RenderBufferType in_type,
-                        rive::RenderBufferFlags in_flags, size_t in_sizeInBytes, size_t stride);
-    void Sync(FRHICommandList& commandList) const;
-    FBufferRHIRef contents()const;
+    RenderBufferRHIImpl(rive::RenderBufferType inType,
+                        rive::RenderBufferFlags inFlags, size_t inSizeInBytes, size_t stride);
+    FBufferRHIRef Sync(FRHICommandList& commandList) const;
     
 protected:
     virtual void* onMap()override;
@@ -116,7 +113,7 @@ private:
 class StructuredBufferRingRHIImpl final : public rive::gpu::BufferRing
 {
 public:
-    StructuredBufferRingRHIImpl(EBufferUsageFlags flags, size_t in_sizeInBytes, size_t elementSize);
+    StructuredBufferRingRHIImpl(EBufferUsageFlags flags, size_t inSizeInBytes, size_t elementSize);
     template<typename HighLevelStruct>
     void Sync(FRHICommandList& commandList, size_t elementOffset, size_t elementCount)
     {
@@ -138,6 +135,27 @@ private:
     FShaderResourceViewRHIRef m_srv;
     size_t m_elementSize;
     size_t m_lastMapSizeInBytes;
+};
+
+class DelayLoadedTexture
+{
+public:
+    DelayLoadedTexture(){}
+    void UpdateTexture(const FRHITextureCreateDesc& inDesc, bool inNeedsSRV = false);
+    void Sync(FRHICommandList& RHICmdList);
+    
+    FTextureRHIRef Contents()const
+    {return texture;}
+    
+    FShaderResourceViewRHIRef SRV()const
+    {return sRV;}
+    
+private:
+    FTextureRHIRef texture;
+    FShaderResourceViewRHIRef sRV;
+    FRHITextureCreateDesc desc;
+    bool isDirty = false;
+    bool needsSRV = false;
 };
 
 enum class EVertexDeclarations : int32
@@ -209,16 +227,14 @@ public:
     virtual void flush(const rive::gpu::FlushDescriptor&)override;
     
 private:
-    FTextureRHIRef m_gradiantTexture;
-    FTextureRHIRef m_tesselationTexture;
+    DelayLoadedTexture m_gradiantTexture;
+    DelayLoadedTexture m_tesselationTexture;
 
     FBufferRHIRef m_patchVertexBuffer;
     FBufferRHIRef m_patchIndexBuffer;
     FBufferRHIRef m_imageRectVertexBuffer;
     FBufferRHIRef m_imageRectIndexBuffer;
     FBufferRHIRef m_tessSpanIndexBuffer;
-
-    FShaderResourceViewRHIRef m_tessSRV;
     
     FSamplerStateRHIRef m_linearSampler;
     FSamplerStateRHIRef m_mipmapSampler;

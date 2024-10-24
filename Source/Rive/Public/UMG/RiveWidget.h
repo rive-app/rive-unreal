@@ -64,8 +64,11 @@ public:
     UPROPERTY(BlueprintAssignable, Category = Rive)
     FRiveReadyDelegate OnRiveReady;
     
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive)
+    UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Rive)
     FRiveDescriptor RiveDescriptor;
+
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    void SetRiveDescriptor(const FRiveDescriptor& newDescriptor);
 
 #if WITH_EDITOR
     virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;

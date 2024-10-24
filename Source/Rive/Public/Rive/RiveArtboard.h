@@ -35,9 +35,12 @@ public:
 	
 	virtual void BeginDestroy() override;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Rive, meta=(GetOptions="GetStateMachineNamesForDropdown"))
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Rive, meta=(GetOptions="GetStateMachineNamesForDropdown"))
 	FString StateMachineName;
 	
+	UFUNCTION(BlueprintCallable, Category = Rive)
+	void SetStateMachineName(const FString& NewStateMachineName);
+
 	UPROPERTY(BlueprintReadWrite, Category = Rive)
 	FRiveTickDelegate OnArtboardTick_Render;
 
