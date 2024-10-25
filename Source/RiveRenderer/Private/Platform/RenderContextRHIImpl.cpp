@@ -1038,7 +1038,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                  CommandList.SetStreamSource(0, m_patchVertexBuffer, 0);
                  CommandList.DrawIndexedPrimitive(m_patchIndexBuffer, 0,
                      batch.baseElement, kPatchVertexBufferCount,
-                     batch.baseElement, kPatchVertexBufferCount,
                      PatchBaseIndex(batch.drawType), 
                      PatchIndexCount(batch.drawType) / 3,
                      batch.elementCount);
