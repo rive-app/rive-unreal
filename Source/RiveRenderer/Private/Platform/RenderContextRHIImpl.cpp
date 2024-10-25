@@ -928,8 +928,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             {
                 float clearColor4f[4]; 
                 UnpackColorToRGBA32FPremul(desc.clearColor, clearColor4f);
-                float clearColor4f[4]; 
-                UnpackColorToRGBA32FPremul(desc.clearColor, clearColor4f);
                 CommandList.ClearUAVFloat(renderTarget->targetUAV(),
                     FVector4f(clearColor4f[0], clearColor4f[1], clearColor4f[2], clearColor4f[3]));
             }
