@@ -11,19 +11,22 @@
  */
 class RIVERENDERER_API FRiveRendererMetal : public FRiveRenderer
 {
-	/**
-	 * Structor(s)
-	 */
+    /**
+     * Structor(s)
+     */
 
 public:
-	//~ BEGIN : IRiveRenderer Interface
+    //~ BEGIN : IRiveRenderer Interface
 
 public:
-	virtual TSharedPtr<IRiveRenderTarget> CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override;
+    virtual TSharedPtr<IRiveRenderTarget> CreateTextureTarget_GameThread(
+        const FName& InRiveName,
+        UTexture2DDynamic* InRenderTarget) override;
 
-	virtual void CreateRenderContext_RenderThread(FRHICommandListImmediate& RHICmdList) override;
+    virtual void CreateRenderContext_RenderThread(
+        FRHICommandListImmediate& RHICmdList) override;
 
-	//~ END : IRiveRenderer Interface
+    //~ END : IRiveRenderer Interface
 };
 
 #endif // PLATFORM_APPLE

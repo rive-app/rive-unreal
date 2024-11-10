@@ -17,45 +17,50 @@ THIRD_PARTY_INCLUDES_END
 UENUM(BlueprintType)
 enum class ERiveAssetType : uint8
 {
-	None = 0,
-	FileBase,
-	Image,
-	Font,
-	Audio
+    None = 0,
+    FileBase,
+    Image,
+    Font,
+    Audio
 };
 
 /**
- * 
+ *
  */
 UCLASS(BlueprintType)
 class RIVE_API URiveAsset : public UObject
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	virtual void PostLoad() override;
-	virtual bool LoadNativeAssetBytes(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes) { return false; }
-	
-	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
-	uint32 Id;
-	
-	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
-	ERiveAssetType Type;
-	
-	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
-	FString Name;
+    virtual void PostLoad() override;
+    virtual bool LoadNativeAssetBytes(rive::FileAsset& InAsset,
+                                      rive::Factory* InRiveFactory,
+                                      const rive::Span<const uint8>& AssetBytes)
+    {
+        return false;
+    }
 
-	UPROPERTY(VisibleAnywhere, Category=Rive, meta=(NoResetToDefault))
-	bool bIsInBand;
+    UPROPERTY(VisibleAnywhere, Category = Rive, meta = (NoResetToDefault))
+    uint32 Id;
 
-	UPROPERTY()
-	uint64 ByteSize;
+    UPROPERTY(VisibleAnywhere, Category = Rive, meta = (NoResetToDefault))
+    ERiveAssetType Type;
 
-	UPROPERTY()
-	FString AssetPath;
-	
-	UPROPERTY()
-	TArray<uint8> NativeAssetBytes;
-	
-	rive::Asset* NativeAsset;
+    UPROPERTY(VisibleAnywhere, Category = Rive, meta = (NoResetToDefault))
+    FString Name;
+
+    UPROPERTY(VisibleAnywhere, Category = Rive, meta = (NoResetToDefault))
+    bool bIsInBand;
+
+    UPROPERTY()
+    uint64 ByteSize;
+
+    UPROPERTY()
+    FString AssetPath;
+
+    UPROPERTY()
+    TArray<uint8> NativeAssetBytes;
+
+    rive::Asset* NativeAsset;
 };

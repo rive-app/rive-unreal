@@ -8,21 +8,23 @@
 
 class UFontFace;
 /**
- * 
+ *
  */
 UCLASS()
 class RIVE_API URiveFontAsset : public URiveAsset
 {
-	GENERATED_BODY()
-	
-	URiveFontAsset();
-	
-	UFUNCTION(BlueprintCallable, Category=Rive)
-	void LoadFontFace(UFontFace* InFont);
+    GENERATED_BODY()
 
-	UFUNCTION(BlueprintCallable, Category=Rive)
-	void LoadFontBytes(const TArray<uint8>& InBytes);
+    URiveFontAsset();
 
-	virtual bool LoadNativeAssetBytes(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes) override;
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    void LoadFontFace(UFontFace* InFont);
 
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    void LoadFontBytes(const TArray<uint8>& InBytes);
+
+    virtual bool LoadNativeAssetBytes(
+        rive::FileAsset& InAsset,
+        rive::Factory* InRiveFactory,
+        const rive::Span<const uint8>& AssetBytes) override;
 };

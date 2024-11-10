@@ -12,79 +12,82 @@ THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
 /**
- * Represents a Rive State Machine from an Artboard. A State Machine contains Inputs.
+ * Represents a Rive State Machine from an Artboard. A State Machine contains
+ * Inputs.
  */
 class RIVE_API FRiveStateMachine
 {
-	/**
-	 * Structor(s)
-	 */
+    /**
+     * Structor(s)
+     */
 
 public:
-	FRiveStateMachine() = default;
+    FRiveStateMachine() = default;
 
-	~FRiveStateMachine() = default;
+    ~FRiveStateMachine() = default;
 
-	const std::unique_ptr<rive::StateMachineInstance>& GetNativeStateMachinePtr() const { return NativeStateMachinePtr; }
+    const std::unique_ptr<rive::StateMachineInstance>&
+    GetNativeStateMachinePtr() const
+    {
+        return NativeStateMachinePtr;
+    }
 
-	bool IsValid() const
-	{
-		return NativeStateMachinePtr != nullptr;
-	}
+    bool IsValid() const { return NativeStateMachinePtr != nullptr; }
 #if WITH_RIVE
 
-	explicit FRiveStateMachine(rive::ArtboardInstance* InNativeArtboardInst, const FString& InStateMachineName);
+    explicit FRiveStateMachine(rive::ArtboardInstance* InNativeArtboardInst,
+                               const FString& InStateMachineName);
 
-	/**
-	 * Implementation(s)
-	 */
+    /**
+     * Implementation(s)
+     */
 
 public:
-	bool Advance(float InSeconds);
+    bool Advance(float InSeconds);
 
-	uint32 GetInputCount() const;
+    uint32 GetInputCount() const;
 
-	rive::SMIInput* GetInput(uint32 AtIndex) const;
+    rive::SMIInput* GetInput(uint32 AtIndex) const;
 
-	void FireTrigger(const FString& InPropertyName) const;
+    void FireTrigger(const FString& InPropertyName) const;
 
-	bool GetBoolValue(const FString& InPropertyName) const;
+    bool GetBoolValue(const FString& InPropertyName) const;
 
-	float GetNumberValue(const FString& InPropertyName) const;
+    float GetNumberValue(const FString& InPropertyName) const;
 
-	void SetBoolValue(const FString& InPropertyName, bool bNewValue);
+    void SetBoolValue(const FString& InPropertyName, bool bNewValue);
 
-	void SetNumberValue(const FString& InPropertyName, float NewValue);
+    void SetNumberValue(const FString& InPropertyName, float NewValue);
 
-	bool PointerDown(const FVector2f& NewPosition);
+    bool PointerDown(const FVector2f& NewPosition);
 
-	bool PointerMove(const FVector2f& NewPosition);
+    bool PointerMove(const FVector2f& NewPosition);
 
-	bool PointerUp(const FVector2f& NewPosition);
+    bool PointerUp(const FVector2f& NewPosition);
 
-	bool PointerExit(const FVector2f& NewPosition);
+    bool PointerExit(const FVector2f& NewPosition);
 
-	const rive::EventReport GetReportedEvent(int32 AtIndex) const;
+    const rive::EventReport GetReportedEvent(int32 AtIndex) const;
 
-	int32 GetReportedEventsCount() const;
+    int32 GetReportedEventsCount() const;
 
-	bool HasAnyReportedEvents() const;
+    bool HasAnyReportedEvents() const;
 
-	/**
-	 * Attribute(s)
-	 */
-	const FString& GetStateMachineName() const { return StateMachineName; }
+    /**
+     * Attribute(s)
+     */
+    const FString& GetStateMachineName() const { return StateMachineName; }
 
-	TArray<FString> BoolInputNames;
-	TArray<FString> NumberInputNames;
-	TArray<FString> TriggerInputNames;
-	
+    TArray<FString> BoolInputNames;
+    TArray<FString> NumberInputNames;
+    TArray<FString> TriggerInputNames;
+
 private:
-	FString StateMachineName;
+    FString StateMachineName;
 
-	std::unique_ptr<rive::StateMachineInstance> NativeStateMachinePtr = nullptr;
+    std::unique_ptr<rive::StateMachineInstance> NativeStateMachinePtr = nullptr;
 
-	static rive::EventReport NullEvent;
+    static rive::EventReport NullEvent;
 
 #endif // WITH_RIVE
 };

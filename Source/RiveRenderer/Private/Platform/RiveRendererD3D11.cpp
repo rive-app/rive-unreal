@@ -19,84 +19,98 @@ THIRD_PARTY_INCLUDES_END
 
 // ------------- FRiveRendererD3D11GPUAdapter -------------
 #if WITH_RIVE
-void FRiveRendererD3D11GPUAdapter::Initialize(rive::gpu::RenderContextD3DImpl::ContextOptions& OutContextOptions)
+void FRiveRendererD3D11GPUAdapter::Initialize(
+    rive::gpu::RenderContextD3DImpl::ContextOptions& OutContextOptions)
 {
-	check(IsInRenderingThread());
+    check(IsInRenderingThread());
 
-	D3D11RHI = GetID3D11DynamicRHI();
-	D3D11DevicePtr = D3D11RHI->RHIGetDevice();
-	D3D11DeviceContext = nullptr;
-	D3D11DevicePtr->GetImmediateContext(&D3D11DeviceContext);
+    D3D11RHI = GetID3D11DynamicRHI();
+    D3D11DevicePtr = D3D11RHI->RHIGetDevice();
+    D3D11DeviceContext = nullptr;
+    D3D11DevicePtr->GetImmediateContext(&D3D11DeviceContext);
 
-	if (SUCCEEDED(D3D11DevicePtr->QueryInterface(__uuidof(IDXGIDevice), (void**)DXGIDevice.GetInitReference())))
-	{
-		TRefCountPtr<IDXGIAdapter> DXGIAdapter;
-		if (SUCCEEDED(DXGIDevice->GetAdapter(DXGIAdapter.GetInitReference())))
-		{
-			DXGI_ADAPTER_DESC AdapterDesc;
-			DXGIAdapter->GetDesc(&AdapterDesc);
+    if (SUCCEEDED(D3D11DevicePtr->QueryInterface(
+            __uuidof(IDXGIDevice),
+            (void**)DXGIDevice.GetInitReference())))
+    {
+        TRefCountPtr<IDXGIAdapter> DXGIAdapter;
+        if (SUCCEEDED(DXGIDevice->GetAdapter(DXGIAdapter.GetInitReference())))
+        {
+            DXGI_ADAPTER_DESC AdapterDesc;
+            DXGIAdapter->GetDesc(&AdapterDesc);
 
-			OutContextOptions.isIntel = AdapterDesc.VendorId == 0x163C ||
-				AdapterDesc.VendorId == 0x8086 || AdapterDesc.VendorId == 0x8087;
-		}
-	}
+            OutContextOptions.isIntel = AdapterDesc.VendorId == 0x163C ||
+                                        AdapterDesc.VendorId == 0x8086 ||
+                                        AdapterDesc.VendorId == 0x8087;
+        }
+    }
 }
 #endif // WITH_RIVE
 
 void FRiveRendererD3D11GPUAdapter::ResetDXState()
 {
-	// Clear the internal state kept by UE and reset DX
-	FD3D11DynamicRHI* DynRHI = static_cast<FD3D11DynamicRHI*>(D3D11RHI);
-	if (ensure(DynRHI))
-	{
-		DynRHI->ClearState();
-	}
+    // Clear the internal state kept by UE and reset DX
+    FD3D11DynamicRHI* DynRHI = static_cast<FD3D11DynamicRHI*>(D3D11RHI);
+    if (ensure(DynRHI))
+    {
+        DynRHI->ClearState();
+    }
 }
 
 // ------------- FRiveRendererD3D11 -------------
 
-TSharedPtr<IRiveRenderTarget> FRiveRendererD3D11::CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget)
+TSharedPtr<IRiveRenderTarget> FRiveRendererD3D11::
+    CreateTextureTarget_GameThread(const FName& InRiveName,
+                                   UTexture2DDynamic* InRenderTarget)
 {
-	check(IsInGameThread());
+    check(IsInGameThread());
 
-	FScopeLock Lock(&ThreadDataCS);
+    FScopeLock Lock(&ThreadDataCS);
 
-	const TSharedPtr<FRiveRenderTargetD3D11> RiveRenderTarget = MakeShared<FRiveRenderTargetD3D11>(SharedThis(this), InRiveName, InRenderTarget);
+    const TSharedPtr<FRiveRenderTargetD3D11> RiveRenderTarget =
+        MakeShared<FRiveRenderTargetD3D11>(SharedThis(this),
+                                           InRiveName,
+                                           InRenderTarget);
 
-	RenderTargets.Add(InRiveName, RiveRenderTarget);
+    RenderTargets.Add(InRiveName, RiveRenderTarget);
 
-	return RiveRenderTarget;
+    return RiveRenderTarget;
 }
 
-DECLARE_GPU_STAT_NAMED(CreateRenderContext, TEXT("CreateRenderContext_RenderThread"));
-void FRiveRendererD3D11::CreateRenderContext_RenderThread(FRHICommandListImmediate& RHICmdList)
+DECLARE_GPU_STAT_NAMED(CreateRenderContext,
+                       TEXT("CreateRenderContext_RenderThread"));
+void FRiveRendererD3D11::CreateRenderContext_RenderThread(
+    FRHICommandListImmediate& RHICmdList)
 {
-	check(IsInRenderingThread());
+    check(IsInRenderingThread());
 
-	FScopeLock Lock(&ThreadDataCS);
+    FScopeLock Lock(&ThreadDataCS);
 
-	SCOPED_GPU_STAT(RHICmdList, CreateRenderContext);
+    SCOPED_GPU_STAT(RHICmdList, CreateRenderContext);
 
-	if (IsRHID3D11())
-	{
+    if (IsRHID3D11())
+    {
 #if WITH_RIVE
-		rive::gpu::RenderContextD3DImpl::ContextOptions ContextOptions;
+        rive::gpu::RenderContextD3DImpl::ContextOptions ContextOptions;
 
-		D3D11GPUAdapter = MakeUnique<FRiveRendererD3D11GPUAdapter>();
-		D3D11GPUAdapter->Initialize(ContextOptions);
-		
-		RenderContext = rive::gpu::RenderContextD3DImpl::MakeContext(D3D11GPUAdapter->GetD3D11DevicePtr(), D3D11GPUAdapter->GetD3D11DeviceContext(), ContextOptions);
+        D3D11GPUAdapter = MakeUnique<FRiveRendererD3D11GPUAdapter>();
+        D3D11GPUAdapter->Initialize(ContextOptions);
+
+        RenderContext = rive::gpu::RenderContextD3DImpl::MakeContext(
+            D3D11GPUAdapter->GetD3D11DevicePtr(),
+            D3D11GPUAdapter->GetD3D11DeviceContext(),
+            ContextOptions);
 #endif // WITH_RIVE
-	}
+    }
 }
 
 void FRiveRendererD3D11::ResetDXState() const
 {
-	check(IsInRenderingThread());
-	check(D3D11GPUAdapter.IsValid());
+    check(IsInRenderingThread());
+    check(D3D11GPUAdapter.IsValid());
 
-	FScopeLock Lock(&ThreadDataCS);
-	D3D11GPUAdapter->ResetDXState();
+    FScopeLock Lock(&ThreadDataCS);
+    D3D11GPUAdapter->ResetDXState();
 }
 
 #endif // PLATFORM_WINDOWS

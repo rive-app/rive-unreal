@@ -12,43 +12,50 @@
 // Sets default values
 ARiveWidgetActor::ARiveWidgetActor()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+    // Set this actor to call Tick() every frame.  You can turn this off to
+    // improve performance if you don't need it.
+    PrimaryActorTick.bCanEverTick = true;
 
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent0"));	
-	check(RootComponent);
-	
-	AudioEngine = CreateDefaultSubobject<URiveAudioEngine>(TEXT("RiveAudioEngine"));
+    RootComponent =
+        CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent0"));
+    check(RootComponent);
+
+    AudioEngine =
+        CreateDefaultSubobject<URiveAudioEngine>(TEXT("RiveAudioEngine"));
 }
 
 void ARiveWidgetActor::BeginPlay()
 {
-	Super::BeginPlay();
-	
-	UWorld* ActorWorld = GetWorld();
-	ScreenUserWidget = CreateWidget(ActorWorld, RiveWidgetClass);
-	if (!ScreenUserWidget)
-	{
-		return;
-	}
+    Super::BeginPlay();
 
-	ScreenUserWidget->AddToViewport();
+    UWorld* ActorWorld = GetWorld();
+    ScreenUserWidget = CreateWidget(ActorWorld, RiveWidgetClass);
+    if (!ScreenUserWidget)
+    {
+        return;
+    }
 
-	if (UCanvasPanel* CanvasPanel = Cast<UCanvasPanel>(ScreenUserWidget->WidgetTree->RootWidget))
-	{
-		RiveWidget = Cast<URiveWidget>(CanvasPanel->GetChildAt(0));
-		if (RiveWidget)
-		{
-			RiveWidget->OnRiveReady.AddDynamic(this, &ARiveWidgetActor::OnRiveWidgetReady);
-		}
-	}
+    ScreenUserWidget->AddToViewport();
+
+    if (UCanvasPanel* CanvasPanel =
+            Cast<UCanvasPanel>(ScreenUserWidget->WidgetTree->RootWidget))
+    {
+        RiveWidget = Cast<URiveWidget>(CanvasPanel->GetChildAt(0));
+        if (RiveWidget)
+        {
+            RiveWidget->OnRiveReady.AddDynamic(
+                this,
+                &ARiveWidgetActor::OnRiveWidgetReady);
+        }
+    }
 }
 
 void ARiveWidgetActor::OnRiveWidgetReady()
 {
-	if (RiveWidget) {
-		RiveWidget->SetAudioEngine(AudioEngine);
-	}
+    if (RiveWidget)
+    {
+        RiveWidget->SetAudioEngine(AudioEngine);
+    }
 }
 
 #undef LOCTEXT_NAMESPACE

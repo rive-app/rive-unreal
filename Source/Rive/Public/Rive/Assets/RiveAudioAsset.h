@@ -7,13 +7,16 @@
 #include "RiveAudioAsset.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class RIVE_API URiveAudioAsset : public URiveAsset
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-	URiveAudioAsset();
-	virtual bool LoadNativeAssetBytes(rive::FileAsset& InAsset, rive::Factory* InRiveFactory, const rive::Span<const uint8>& AssetBytes) override;
+    URiveAudioAsset();
+    virtual bool LoadNativeAssetBytes(
+        rive::FileAsset& InAsset,
+        rive::Factory* InRiveFactory,
+        const rive::Span<const uint8>& AssetBytes) override;
 };

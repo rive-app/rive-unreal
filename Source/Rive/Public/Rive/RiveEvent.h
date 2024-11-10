@@ -15,7 +15,6 @@ THIRD_PARTY_INCLUDES_END
 
 #include "RiveEvent.generated.h"
 
-
 USTRUCT(Blueprintable)
 struct FRiveEventProperty
 {
@@ -23,10 +22,7 @@ struct FRiveEventProperty
 
     FRiveEventProperty() = default;
 
-    explicit FRiveEventProperty(const FString& InName)
-        : PropertyName(InName)
-    {
-    }
+    explicit FRiveEventProperty(const FString& InName) : PropertyName(InName) {}
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
     FString PropertyName = "None";
@@ -39,11 +35,9 @@ struct FRiveEventBoolProperty : public FRiveEventProperty
 
     FRiveEventBoolProperty() = default;
 
-    explicit FRiveEventBoolProperty(const FString& InName, bool InProperty)
-        : FRiveEventProperty(InName)
-        , BoolProperty(InProperty)
-    {
-    }
+    explicit FRiveEventBoolProperty(const FString& InName, bool InProperty) :
+        FRiveEventProperty(InName), BoolProperty(InProperty)
+    {}
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
     bool BoolProperty = false;
@@ -56,11 +50,9 @@ struct FRiveEventNumberProperty : public FRiveEventProperty
 
     FRiveEventNumberProperty() = default;
 
-    explicit FRiveEventNumberProperty(const FString& InName, float InProperty)
-        : FRiveEventProperty(InName)
-        , NumberProperty(InProperty)
-    {
-    }
+    explicit FRiveEventNumberProperty(const FString& InName, float InProperty) :
+        FRiveEventProperty(InName), NumberProperty(InProperty)
+    {}
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
     float NumberProperty = 0.f;
@@ -73,16 +65,13 @@ struct FRiveEventStringProperty : public FRiveEventProperty
 
     FRiveEventStringProperty() = default;
 
-    FRiveEventStringProperty(const FString& InName, const FString& InProperty)
-        : FRiveEventProperty(InName)
-        , StringProperty(InProperty)
-    {
-    }
+    FRiveEventStringProperty(const FString& InName, const FString& InProperty) :
+        FRiveEventProperty(InName), StringProperty(InProperty)
+    {}
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
     FString StringProperty = "None";
 };
-
 
 USTRUCT(Blueprintable, Meta = (DisplayName = "Rive Event"))
 struct RIVE_API FRiveEvent
@@ -100,14 +89,12 @@ struct RIVE_API FRiveEvent
     friend uint32 GetTypeHash(const FRiveEvent& InRiveFile);
 
 private:
-
     template <typename TPropertyType>
     void ParseProperties(const TPair<FString, TPropertyType>& InPropertyPair);
 
     /**
      * Attribute(s)
      */
-
 
 public:
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rive | Events")
@@ -132,16 +119,18 @@ private:
     static constexpr int32 NumberProperty = 127;
     static constexpr int32 BooleanProperty = 129;
     static constexpr int32 StringProperty = 130;
-    
+
     FGuid Id = FGuid::NewGuid();
 };
 
-#define PARSE_PROPERTIES(Type, TPropertyType, InPropertyPair) \
-FRiveEvent##Type##Property NewRiveEvent(InPropertyPair.Key, InPropertyPair.Value); \
-RiveEvent##Type##Properties.Add(NewRiveEvent); \
+#define PARSE_PROPERTIES(Type, TPropertyType, InPropertyPair)                  \
+    FRiveEvent##Type##Property NewRiveEvent(InPropertyPair.Key,                \
+                                            InPropertyPair.Value);             \
+    RiveEvent##Type##Properties.Add(NewRiveEvent);
 
-template<typename TPropertyType>
-inline void FRiveEvent::ParseProperties(const TPair<FString, TPropertyType>& InPropertyPair)
+template <typename TPropertyType>
+inline void FRiveEvent::ParseProperties(
+    const TPair<FString, TPropertyType>& InPropertyPair)
 {
     if constexpr (std::is_same_v<TPropertyType, bool>)
     {

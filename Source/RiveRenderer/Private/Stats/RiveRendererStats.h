@@ -4,4 +4,6 @@
 
 #include "Stats/Stats.h"
 
-DECLARE_STATS_GROUP(TEXT("RiveRenderer"), STATGROUP_RiveRenderer, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("RiveRenderer"),
+                    STATGROUP_RiveRenderer,
+                    STATCAT_Advanced);

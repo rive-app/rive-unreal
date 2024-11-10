@@ -14,44 +14,55 @@ class URiveTextureObject;
 UCLASS()
 class RIVE_API ARiveWidgetActor : public AActor
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-	/**
-	 * Structor(s)
-	 */
-
-public:
-
-	ARiveWidgetActor();
-
-	//~ BEGIN : AActor Interface
+    /**
+     * Structor(s)
+     */
 
 public:
-	virtual void BeginPlay() override;
-	
-	//~ END : AActor Interface
+    ARiveWidgetActor();
 
-	/**
-	 * Attribute(s)
-	 */
+    //~ BEGIN : AActor Interface
 
 public:
-	void SetWidgetClass(TSubclassOf<UUserWidget> InUserWidget) { RiveWidgetClass = InUserWidget; }
-	TSubclassOf<UUserWidget> GetWidgetClass() { return RiveWidgetClass; }
+    virtual void BeginPlay() override;
+
+    //~ END : AActor Interface
+
+    /**
+     * Attribute(s)
+     */
+
+public:
+    void SetWidgetClass(TSubclassOf<UUserWidget> InUserWidget)
+    {
+        RiveWidgetClass = InUserWidget;
+    }
+    TSubclassOf<UUserWidget> GetWidgetClass() { return RiveWidgetClass; }
+
 protected:
-	/** Settings for Rive Rendering */
-	UPROPERTY(EditAnywhere, Category = "Rive", meta = (ShowOnlyInnerProperties))
-	TSubclassOf<UUserWidget> RiveWidgetClass;
-	
-	/** Settings for Rive Rendering */
-	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "User Interface", meta = (ShowOnlyInnerProperties))
-	TObjectPtr<UUserWidget> ScreenUserWidget;
+    /** Settings for Rive Rendering */
+    UPROPERTY(EditAnywhere, Category = "Rive", meta = (ShowOnlyInnerProperties))
+    TSubclassOf<UUserWidget> RiveWidgetClass;
 
-	UPROPERTY(VisibleAnywhere, Instanced, NoClear, Category = "Audio", meta = (ShowOnlyInnerProperties))
-	TObjectPtr<URiveAudioEngine> AudioEngine;
+    /** Settings for Rive Rendering */
+    UPROPERTY(VisibleAnywhere,
+              Instanced,
+              NoClear,
+              Category = "User Interface",
+              meta = (ShowOnlyInnerProperties))
+    TObjectPtr<UUserWidget> ScreenUserWidget;
 
-	TObjectPtr<URiveWidget> RiveWidget;
-	
-	UFUNCTION()
-	void OnRiveWidgetReady();
+    UPROPERTY(VisibleAnywhere,
+              Instanced,
+              NoClear,
+              Category = "Audio",
+              meta = (ShowOnlyInnerProperties))
+    TObjectPtr<URiveAudioEngine> AudioEngine;
+
+    TObjectPtr<URiveWidget> RiveWidget;
+
+    UFUNCTION()
+    void OnRiveWidgetReady();
 };

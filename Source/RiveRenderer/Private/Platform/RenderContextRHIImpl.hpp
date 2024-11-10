@@ -13,24 +13,23 @@ THIRD_PARTY_INCLUDES_END
 class RIVERENDERER_API RenderTargetRHI : public rive::gpu::RenderTarget
 {
 public:
-    RenderTargetRHI(FRHICommandList& RHICmdList, const FTexture2DRHIRef& InTextureTarget);
+    RenderTargetRHI(FRHICommandList& RHICmdList,
+                    const FTexture2DRHIRef& InTextureTarget);
     virtual ~RenderTargetRHI() override {}
-    
-    FTexture2DRHIRef texture()const
-    {return m_textureTarget;}
 
-    FUnorderedAccessViewRHIRef targetUAV()const
-    {return m_targetUAV;}
+    FTexture2DRHIRef texture() const { return m_textureTarget; }
 
-    FUnorderedAccessViewRHIRef coverageUAV()const
-    {return m_coverageUAV;}
+    FUnorderedAccessViewRHIRef targetUAV() const { return m_targetUAV; }
 
-    FUnorderedAccessViewRHIRef clipUAV()const
-    {return m_clipUAV;}
+    FUnorderedAccessViewRHIRef coverageUAV() const { return m_coverageUAV; }
 
-    FUnorderedAccessViewRHIRef scratchColorUAV()const
-    {return m_scratchColorUAV;}
-    
+    FUnorderedAccessViewRHIRef clipUAV() const { return m_clipUAV; }
+
+    FUnorderedAccessViewRHIRef scratchColorUAV() const
+    {
+        return m_scratchColorUAV;
+    }
+
 private:
     FTexture2DRHIRef m_scratchColorTexture;
     FTexture2DRHIRef m_textureTarget;
@@ -48,36 +47,39 @@ class StructuredBufferRingRHIImpl;
 class BufferRingRHIImpl final : public rive::gpu::BufferRing
 {
 public:
-    BufferRingRHIImpl(EBufferUsageFlags flags, size_t InSizeInBytes, size_t stride);
-    FBufferRHIRef Sync(FRHICommandList& commandList, size_t offsetInBytes = 0) const;
-    
+    BufferRingRHIImpl(EBufferUsageFlags flags,
+                      size_t InSizeInBytes,
+                      size_t stride);
+    FBufferRHIRef Sync(FRHICommandList& commandList,
+                       size_t offsetInBytes = 0) const;
+
 protected:
     virtual void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override;
-    virtual void onUnmapAndSubmitBuffer(int bufferIdx, size_t mapSizeInBytes) override;
-    
+    virtual void onUnmapAndSubmitBuffer(int bufferIdx,
+                                        size_t mapSizeInBytes) override;
+
 private:
     EBufferUsageFlags m_flags;
     size_t m_stride;
 };
 
-template<typename UniformBufferType>
+template <typename UniformBufferType>
 class UniformBufferRHIImpl : public rive::gpu::BufferRing
 {
 public:
-    UniformBufferRHIImpl(size_t InSizeInBytes): BufferRing(InSizeInBytes)
-    {
-    }
+    UniformBufferRHIImpl(size_t InSizeInBytes) : BufferRing(InSizeInBytes) {}
 
     void Sync(FRHICommandList& commandList, size_t offset)
     {
-        UniformBufferType* Buffer = reinterpret_cast<UniformBufferType*>(shadowBuffer() + offset);
-        m_buffer = TUniformBufferRef<UniformBufferType>::CreateUniformBufferImmediate( *Buffer,UniformBuffer_SingleFrame);
+        UniformBufferType* Buffer =
+            reinterpret_cast<UniformBufferType*>(shadowBuffer() + offset);
+        m_buffer =
+            TUniformBufferRef<UniformBufferType>::CreateUniformBufferImmediate(
+                *Buffer,
+                UniformBuffer_SingleFrame);
     }
 
-    TUniformBufferRef<UniformBufferType> contents() const
-    {
-        return m_buffer;
-    }
+    TUniformBufferRef<UniformBufferType> contents() const { return m_buffer; }
 
 protected:
     virtual void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override
@@ -85,26 +87,28 @@ protected:
         return shadowBuffer();
     }
 
-    virtual void onUnmapAndSubmitBuffer(int bufferIdx, size_t mapSizeInBytes) override
-    {
-    }
+    virtual void onUnmapAndSubmitBuffer(int bufferIdx,
+                                        size_t mapSizeInBytes) override
+    {}
 
 private:
     TUniformBufferRef<UniformBufferType> m_buffer;
 };
 
-class RenderBufferRHIImpl final: public rive::lite_rtti_override<rive::RenderBuffer, RenderBufferRHIImpl>
+class RenderBufferRHIImpl final
+    : public rive::LITE_RTTI_OVERRIDE(rive::RenderBuffer, RenderBufferRHIImpl)
 {
 public:
     RenderBufferRHIImpl(rive::RenderBufferType inType,
-                        rive::RenderBufferFlags inFlags, size_t inSizeInBytes, size_t stride);
+                        rive::RenderBufferFlags inFlags,
+                        size_t inSizeInBytes,
+                        size_t stride);
     FBufferRHIRef Sync(FRHICommandList& commandList) const;
-    
+
 protected:
-    virtual void* onMap()override;
-    virtual void onUnmap()override;
-  
-    
+    virtual void* onMap() override;
+    virtual void onUnmap() override;
+
 private:
     BufferRingRHIImpl m_buffer;
     void* m_mappedBuffer;
@@ -113,22 +117,34 @@ private:
 class StructuredBufferRingRHIImpl final : public rive::gpu::BufferRing
 {
 public:
-    StructuredBufferRingRHIImpl(EBufferUsageFlags flags, size_t inSizeInBytes, size_t elementSize);
-    template<typename HighLevelStruct>
-    void Sync(FRHICommandList& commandList, size_t elementOffset, size_t elementCount)
+    StructuredBufferRingRHIImpl(EBufferUsageFlags flags,
+                                size_t inSizeInBytes,
+                                size_t elementSize);
+    template <typename HighLevelStruct>
+    void Sync(FRHICommandList& commandList,
+              size_t elementOffset,
+              size_t elementCount)
     {
-        // for DX12 we should use RLM_WriteOnly_NoOverwrite but RLM_WriteOnly works everywhere so we use it for now
-        auto data = commandList.LockBuffer(m_buffer, 0, elementCount * sizeof(HighLevelStruct), RLM_WriteOnly);
-        memcpy(data, shadowBuffer() + (elementOffset * sizeof(HighLevelStruct)), elementCount * sizeof(HighLevelStruct));
+        // for DX12 we should use RLM_WriteOnly_NoOverwrite but RLM_WriteOnly
+        // works everywhere so we use it for now
+        auto data =
+            commandList.LockBuffer(m_buffer,
+                                   0,
+                                   elementCount * sizeof(HighLevelStruct),
+                                   RLM_WriteOnly);
+        memcpy(data,
+               shadowBuffer() + (elementOffset * sizeof(HighLevelStruct)),
+               elementCount * sizeof(HighLevelStruct));
         commandList.UnlockBuffer(m_buffer);
     }
-    FBufferRHIRef contents()const;
+    FBufferRHIRef contents() const;
     FShaderResourceViewRHIRef srv() const;
 
 protected:
     virtual void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override;
-    virtual void onUnmapAndSubmitBuffer(int bufferIdx, size_t mapSizeInBytes) override;
-    
+    virtual void onUnmapAndSubmitBuffer(int bufferIdx,
+                                        size_t mapSizeInBytes) override;
+
 private:
     FBufferRHIRef m_buffer;
     EBufferUsageFlags m_flags;
@@ -140,16 +156,15 @@ private:
 class DelayLoadedTexture
 {
 public:
-    DelayLoadedTexture(){}
-    void UpdateTexture(const FRHITextureCreateDesc& inDesc, bool inNeedsSRV = false);
+    DelayLoadedTexture() {}
+    void UpdateTexture(const FRHITextureCreateDesc& inDesc,
+                       bool inNeedsSRV = false);
     void Sync(FRHICommandList& RHICmdList);
-    
-    FTextureRHIRef Contents()const
-    {return texture;}
-    
-    FShaderResourceViewRHIRef SRV()const
-    {return sRV;}
-    
+
+    FTextureRHIRef Contents() const { return texture; }
+
+    FShaderResourceViewRHIRef SRV() const { return sRV; }
+
 private:
     FTextureRHIRef texture;
     FShaderResourceViewRHIRef sRV;
@@ -169,15 +184,19 @@ enum class EVertexDeclarations : int32
     Resolve,
     NumVertexDeclarations
 };
-    
-class RIVERENDERER_API RenderContextRHIImpl : public rive::gpu::RenderContextImpl
+
+class RIVERENDERER_API RenderContextRHIImpl
+    : public rive::gpu::RenderContextImpl
 {
 public:
-    static std::unique_ptr<rive::gpu::RenderContext> MakeContext(FRHICommandListImmediate& CommandListImmediate);
-    
+    static std::unique_ptr<rive::gpu::RenderContext> MakeContext(
+        FRHICommandListImmediate& CommandListImmediate);
+
     RenderContextRHIImpl(FRHICommandListImmediate& CommandListImmediate);
 
-    rive::rcp<RenderTargetRHI> makeRenderTarget(FRHICommandListImmediate& RHICmdList, const FTexture2DRHIRef& InTargetTexture);
+    rive::rcp<RenderTargetRHI> makeRenderTarget(
+        FRHICommandListImmediate& RHICmdList,
+        const FTexture2DRHIRef& InTargetTexture);
 
     virtual double secondsNow() const override
     {
@@ -185,14 +204,21 @@ public:
         return std::chrono::duration<double>(elapsed).count();
     }
 
-    virtual rive::rcp<rive::gpu::Texture> decodeImageTexture(rive::Span<const uint8_t> encodedBytes) override;
+    virtual rive::rcp<rive::gpu::Texture> decodeImageTexture(
+        rive::Span<const uint8_t> encodedBytes) override;
 
     virtual void resizeFlushUniformBuffer(size_t sizeInBytes) override;
     virtual void resizeImageDrawUniformBuffer(size_t sizeInBytes) override;
-    virtual void resizePathBuffer(size_t sizeInBytes, rive::gpu::StorageBufferStructure) override;
-    virtual void resizePaintBuffer(size_t sizeInBytes, rive::gpu::StorageBufferStructure) override;
-    virtual void resizePaintAuxBuffer(size_t sizeInBytes, rive::gpu::StorageBufferStructure) override;
-    virtual void resizeContourBuffer(size_t sizeInBytes, rive::gpu::StorageBufferStructure) override;
+    virtual void resizePathBuffer(size_t sizeInBytes,
+                                  rive::gpu::StorageBufferStructure) override;
+    virtual void resizePaintBuffer(size_t sizeInBytes,
+                                   rive::gpu::StorageBufferStructure) override;
+    virtual void resizePaintAuxBuffer(
+        size_t sizeInBytes,
+        rive::gpu::StorageBufferStructure) override;
+    virtual void resizeContourBuffer(
+        size_t sizeInBytes,
+        rive::gpu::StorageBufferStructure) override;
     virtual void resizeSimpleColorRampsBuffer(size_t sizeInBytes) override;
     virtual void resizeGradSpanBuffer(size_t sizeInBytes) override;
     virtual void resizeTessVertexSpanBuffer(size_t sizeInBytes) override;
@@ -219,13 +245,18 @@ public:
     virtual void unmapGradSpanBuffer() override;
     virtual void unmapTessVertexSpanBuffer() override;
     virtual void unmapTriangleVertexBuffer() override;
-    
-    virtual rive::rcp<rive::RenderBuffer> makeRenderBuffer(rive::RenderBufferType, rive::RenderBufferFlags, size_t) override;
-    virtual void resizeGradientTexture(uint32_t width, uint32_t height) override;
-    virtual void resizeTessellationTexture(uint32_t width, uint32_t height) override;
-    
-    virtual void flush(const rive::gpu::FlushDescriptor&)override;
-    
+
+    virtual rive::rcp<rive::RenderBuffer> makeRenderBuffer(
+        rive::RenderBufferType,
+        rive::RenderBufferFlags,
+        size_t) override;
+    virtual void resizeGradientTexture(uint32_t width,
+                                       uint32_t height) override;
+    virtual void resizeTessellationTexture(uint32_t width,
+                                           uint32_t height) override;
+
+    virtual void flush(const rive::gpu::FlushDescriptor&) override;
+
 private:
     DelayLoadedTexture m_gradiantTexture;
     DelayLoadedTexture m_tesselationTexture;
@@ -235,22 +266,25 @@ private:
     FBufferRHIRef m_imageRectVertexBuffer;
     FBufferRHIRef m_imageRectIndexBuffer;
     FBufferRHIRef m_tessSpanIndexBuffer;
-    
+
     FSamplerStateRHIRef m_linearSampler;
     FSamplerStateRHIRef m_mipmapSampler;
 
-    FRHIVertexDeclaration* VertexDeclarations[static_cast<int32>(EVertexDeclarations::NumVertexDeclarations)];
-    
+    FRHIVertexDeclaration* VertexDeclarations[static_cast<int32>(
+        EVertexDeclarations::NumVertexDeclarations)];
+
     std::unique_ptr<UniformBufferRHIImpl<FFlushUniforms>> m_flushUniformBuffer;
-    std::unique_ptr<UniformBufferRHIImpl<FImageDrawUniforms>> m_imageDrawUniformBuffer;
+    std::unique_ptr<UniformBufferRHIImpl<FImageDrawUniforms>>
+        m_imageDrawUniformBuffer;
     std::unique_ptr<StructuredBufferRingRHIImpl> m_pathBuffer;
     std::unique_ptr<StructuredBufferRingRHIImpl> m_paintBuffer;
     std::unique_ptr<StructuredBufferRingRHIImpl> m_paintAuxBuffer;
     std::unique_ptr<StructuredBufferRingRHIImpl> m_contourBuffer;
-    std::unique_ptr<rive::gpu::HeapBufferRing>    m_simpleColorRampsBuffer;
+    std::unique_ptr<rive::gpu::HeapBufferRing> m_simpleColorRampsBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_tessSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_triangleBuffer;
-    
-    std::chrono::steady_clock::time_point m_localEpoch = std::chrono::steady_clock::now();
+
+    std::chrono::steady_clock::time_point m_localEpoch =
+        std::chrono::steady_clock::now();
 };

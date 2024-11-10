@@ -1,13 +1,42 @@
 import os
 import shutil
-import click
+import argparse
 import subprocess
 import sys
+from pathlib import Path
 
-# install requirements via pip install -r requirements.txt
-# running: python3 build-rive.py <path-to-rive-renderer-root>
+#requires vswhere for now that may be removed later
+
+parser = argparse.ArgumentParser(description="""
+Build and copy rive C++ runtime library and copy it and it headers into the correct location for unreal
+
+The following steps are performed:
+On Windows:
+    * Build Rive Windows Binary debug and release
+    * Copy binaries to Plugins/Rive/Source/ThirdParty/RiveLibrary/Libraries/Win64
+    * Build Android Binary debug and release
+    * Copy binaries to Plugins/Rive/Source/ThirdParty/RiveLibrary/Libraries/Android
+On Mac:
+    * Build Rive Mac Binary debug and release
+    * Copy binaries to Plugins/Rive/Source/ThirdParty/RiveLibrary/Libraries/Mac
+    * Build iOS Binary debug and release
+    * Copy binaries to Plugins/Rive/Source/ThirdParty/RiveLibrary/Libraries/iOS
+Finally on all platforms:
+    * Copy includes from rive_runtime_path/include to Plugins/Rive/Source/ThirdParty/RiveLibrary/Includes
+    * Copy includes from rive_runtime_path/renderer/include to Plugins/Rive/Source/ThirdParty/RiveLibrary/Includes
+    * Copy generated exports from build_path/include/generated/shaders from to Plugins/Rive/Source/ThirdParty/RiveLibrary/Includes
+    * Copy generated shaders build_path/include/generated/shaders from to Plugins/Rive/Shaders/Private/Rive/Generated
+    * Copy unreal static shaders from rive_runtime_path/renderer/src/unreal to Plugins/Rive/Shaders/Private/Rive
+""")
+
+parser.add_argument("-p", "--rive_runtime_path", type=str, help="path to rive runtime root folder, if not specified default path is used")
+parser.add_argument("-t", "--build_rive_tests", action='store_true',  default=False, help="If set, gms, goldens and player will be built and copied as well")
+parser.add_argument("-r", "--raw_shaders", action='store_true', default=False, help="If set, --raw_shaders will be passed to the premake file for building")
+
+args = parser.parse_args()
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
+gms_directory = os.path.abspath(os.path.join(script_directory, "../../../GM"))
 
 targets = [
     'rive',
@@ -22,57 +51,46 @@ targets = [
     'zlib'
 ]
 
-should_build_test = False
+test_targets = [
+    'gms',
+    "goldens",
+    'tools_common'
+]
 
 def get_base_command(rive_runtime_path, release):
     return (
-        f"premake5 --scripts=\"{os.path.join(rive_runtime_path, 'build')}\" "
-        f"--with_rive_text --raw_shaders --with_rive_audio=external --for_unreal {'--config=release' if release else '--config=debug'}"
+        f'premake5 --scripts=\"{os.path.join(rive_runtime_path, "build")}\"  --file=./premake5.lua '
+        f'--with_rive_text {"--raw_shaders" if args.raw_shaders else ""} --with_rive_audio=external --for_unreal {"--config=release" if release else "--config=debug"}'
     )
 
-@click.command()
-@click.argument('rive_runtime_path')
-@click.option('--build_tests', is_flag=True)
-def main(rive_runtime_path, build_tests):
-    global should_build_test
-    should_build_test= build_tests
-    rive_runtime_path = os.path.abspath(rive_runtime_path)
+def main(rive_runtime_path):
+    print_green(f"using runtime location {rive_runtime_path}")
     
     if sys.platform.startswith('darwin'):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
         # determine a sane build environment
         output = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], universal_newlines=True)
         sdk_path = output.strip()
-        if "MacOSX13" not in sdk_path:
-            print_red(f"SDK Path {sdk_path} didn't point to an SDK matching version 12, exiting..")
-            return
-        else:
-            print_green(f"Using SDK at: {output}")
+        print_green(f"Using SDK at: {output}")
     
         if not do_mac(rive_runtime_path, True) or not do_mac(rive_runtime_path, False):
             return
         
         if not do_ios(rive_runtime_path, True) or not do_ios(rive_runtime_path, False):
             return
+        
     elif sys.platform.startswith('win32'):
         if not do_windows(rive_runtime_path, True) or not do_windows(rive_runtime_path, False):
             return
         
-        # apply android patch before android
         os.chdir(rive_runtime_path)
-        #patch_output = subprocess.check_output(['git', 'apply', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
-        #print(patch_output)
-        android_succeeded = True
+
         if not do_android(rive_runtime_path, True) or not do_android(rive_runtime_path, False):
-           android_succeeded = False
-
-        # unapply android patch after
+           return
+        
         os.chdir(rive_runtime_path)
-        #patch_output = subprocess.check_output(['git', 'apply', '-R', f'{os.path.join(script_directory, "patches", "android.patch")}'], universal_newlines=True)
-        #print(patch_output)
 
-        if not android_succeeded:
-            return
+        
     else:
         print_red("Unsupported platform")
         return
@@ -83,11 +101,17 @@ def get_msbuild():
     msbuild_path = ''
     import vswhere
 
-    msbuilds = vswhere.find('MSBuild')
-    if len(msbuilds) == 0:
-        raise Exception('Could not find msbuild')
+    installPaths = vswhere.find('MSBuild')
+    vs2022Path = None
+    for path in installPaths:
+        if '2022' in path:
+            vs2022Path = path
+            break
+
+    if vs2022Path is None or len(vs2022Path) == 0:
+        raise Exception('visual studio 2022 required to build rive !')
     
-    msbuild_path = os.path.join(msbuilds[-1:][0], 'Current', 'Bin', 'MSBuild.exe')
+    msbuild_path = os.path.join(vs2022Path, 'Current', 'Bin', 'MSBuild.exe')
     if not os.path.exists(msbuild_path):
         raise Exception(f'Invalid MSBuild path {msbuild_path}')
     return msbuild_path
@@ -123,10 +147,11 @@ def do_android(rive_runtime_path, release):
 
 
 def do_windows(rive_runtime_path, release):
+    should_build_tests = args.build_rive_tests and release
     try:
         out_dir = os.path.join('..', 'out', 'windows', 'release' if release else 'debug')
 
-        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
+        os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
         
         command = f'{get_base_command(rive_runtime_path, release)} --os=windows --out="{out_dir}" vs2022'
         execute_command(command)
@@ -135,8 +160,11 @@ def do_windows(rive_runtime_path, release):
         msbuild_path = get_msbuild()
             
         os.chdir(out_dir)
-        execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
-        
+        if(should_build_tests):
+            execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets + test_targets)}')
+        else:
+            execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
+
         print_green(f'Built in {os.getcwd()}')
         # end build
 
@@ -144,6 +172,10 @@ def do_windows(rive_runtime_path, release):
 
         print_green('Copying Windows')
         copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Win64'), ".lib", release)
+        if should_build_tests:
+            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "x64", "Release")
+            copy_files(os.getcwd(), gm_libraries_path, ".lib", True, False, test_targets)
+
     except Exception as e:
         print_red("Exiting due to errors...")
         print_red(e)
@@ -151,10 +183,10 @@ def do_windows(rive_runtime_path, release):
     
     return True
 
-
 def do_ios(rive_runtime_path, release):
+    should_build_tests = args.build_rive_tests and release
     try:
-        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
+        os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
         command = f'{get_base_command(rive_runtime_path, release)} gmake2 --os=ios'
         build_dirs = {}
 
@@ -165,15 +197,21 @@ def do_ios(rive_runtime_path, release):
         build_dirs['ios'] = os.getcwd()
         for target in targets:
             execute_command(f'make {target}')
+        if should_build_tests:
+           for target in test_targets:
+                execute_command(f'make {target}') 
 
         print_green('Building iOS Simulator')
         out_dir = os.path.join('..', 'out', 'ios_sim', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
+        os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
         execute_command(f'{command} --variant=emulator --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['ios_sim'] = os.getcwd()
         for target in targets:
             execute_command(f'make {target}')
+        if should_build_tests:
+           for target in test_targets:
+                execute_command(f'make {target}') 
         
         # clear old .sim.a files
         for root, dirs, files in os.walk(build_dirs['ios_sim']):
@@ -202,6 +240,11 @@ def do_ios(rive_runtime_path, release):
         print_green('Copying iOS and iOS simulator')
         copy_files(build_dirs['ios'], os.path.join(rive_libraries_path, 'IOS'), ".a", release)
         copy_files(build_dirs['ios_sim'], os.path.join(rive_libraries_path, 'IOS'), ".sim.a", release)
+        if should_build_tests:
+            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "iOS")
+            copy_files(build_dirs['ios'], gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+            copy_files(build_dirs['ios_sim'], gm_libraries_path, ".sim.a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+
     except Exception as e:
         print_red("Exiting due to errors...")
         print_red(e)
@@ -211,6 +254,7 @@ def do_ios(rive_runtime_path, release):
 
 
 def do_mac(rive_runtime_path, release):
+    should_build_tests = args.build_rive_tests and release
     try:
         command = f'{get_base_command(rive_runtime_path, release)} --os=macosx gmake2'
         build_dirs = {}
@@ -227,21 +271,27 @@ def do_mac(rive_runtime_path, release):
 
         print_green('Building macOS x64')
         out_dir = os.path.join('..', 'out', 'mac', 'x64', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
+        os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
         execute_command(f'{command} --arch=x64 --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['mac_x64'] = os.getcwd()
         for target in targets:
             execute_command(f'make {target}')
+        if should_build_tests:
+           for target in test_targets:
+                execute_command(f'make {target}') 
 
         print_green('Building macOS arm64')
         out_dir = os.path.join('..', 'out', 'mac', 'arm64', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
+        os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
         execute_command(f'{command} --arch=arm64 --out="{out_dir}"')
         os.chdir(out_dir)
         build_dirs['mac_arm64'] = os.getcwd()
         for target in targets:
             execute_command(f'make {target}')
+        if should_build_tests:
+           for target in test_targets:
+                execute_command(f'make {target}') 
 
         os.chdir(rive_runtime_path)
         print_green(f'Built in {build_dirs}')
@@ -251,6 +301,11 @@ def do_mac(rive_runtime_path, release):
         print_green('Copying macOS x64')
         copy_files(build_dirs['mac_x64'], os.path.join(rive_libraries_path, 'Mac', 'Intel'), ".a", release)
         copy_files(build_dirs['mac_arm64'], os.path.join(rive_libraries_path, 'Mac', 'Mac'), ".a", release)
+        if should_build_tests:
+            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Mac")
+            copy_files(build_dirs['mac_arm64'], os.path.join(gm_libraries_path, "arm"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+            copy_files(build_dirs['mac_x64'], os.path.join(gm_libraries_path, "x64"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+
     except Exception as e:
         print_red("Exiting due to errors...")
         print_red(e)
@@ -259,34 +314,39 @@ def do_mac(rive_runtime_path, release):
     return True
 
 
-def copy_files(src, dst, extension, is_release):
+def copy_files(src, dst, extension, is_release, should_rename = True, files_to_copy = None):
      # Ensure the source directory exists
     if not os.path.exists(src):
         print_red(f"The source directory {src} does not exist.")
         return
+    
+    dst = os.path.abspath(dst)
+    src = os.path.abspath(src)
 
     os.makedirs(dst, exist_ok=True)
 
-    for root, dirs, files in os.walk(src):
+    files = os.listdir(src)
+
+    if files_to_copy is not None:
+        files_to_copy = [f + extension for f in files_to_copy]
+    else:
         files_to_copy = [f for f in files if f.endswith(extension)]
-        for file_name in files_to_copy:
-            src_path = os.path.join(root, file_name)
+    for file_name in files_to_copy:
+        src_path = os.path.join(src, file_name)
+        # ensure all libs are prefixed with "rive_" on non-darwin / apple platforms
+        if not sys.platform.startswith("darwin") and not file_name.startswith("rive") and not 'Android' in dst and should_rename:
+            file_name = f'rive_{file_name}'
 
-            # ensure all libs are prefixed with "rive_" on non-darwin / apple platforms
-            if not sys.platform.startswith("darwin") and not file_name.startswith("rive") and not 'Android' in dst:
-                file_name = f'rive_{file_name}'
-
-            relative_path = os.path.relpath(root, src)
-            dest_path = os.path.join(dst, file_name if is_release else file_name.replace(extension, f'_d{extension}'))
-            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-            shutil.copy2(src_path, dest_path)
+        dest_path = os.path.join(dst, file_name if is_release else file_name.replace(extension, f'_d{extension}'))
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        shutil.copy2(src_path, dest_path)
 
 
 def copy_includes(rive_runtime_path):
     print_green('Copying rive includes...')
     rive_includes_path = os.path.join(rive_runtime_path, 'include')
     rive_pls_includes_path = os.path.join(rive_runtime_path, 'renderer', 'include')
-    rive_shaders_includes_path = os.path.join(rive_runtime_path, 'out', 'windows', 'release', "include")
+    rive_shaders_includes_path = os.path.join(rive_runtime_path, 'out', 'windows' if sys.platform.startswith('win32') else 'mac/x64', 'release', "include")
     rive_shader_source_path = os.path.join(rive_runtime_path, 'renderer', 'src', 'shaders', "unreal")
     rive_decoders_includes_path = os.path.join(rive_runtime_path, 'decoders', 'include')
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')
@@ -302,19 +362,21 @@ def copy_includes(rive_runtime_path):
         shutil.rmtree(generated_shader_path)
 
     # delete and re create generated shader path to clear it
-    os.mkdir(generated_shader_path)
+    os.makedirs(generated_shader_path)
 
     shutil.copytree(rive_includes_path, target_path, dirs_exist_ok=True)
     shutil.copytree(rive_pls_includes_path, target_path, dirs_exist_ok=True)
     shutil.copytree(rive_decoders_includes_path, target_path, dirs_exist_ok=True)
     shutil.copytree(rive_shader_source_path, rive_shader_source_target_path, dirs_exist_ok=True)
 
-    shutil.copytree(rive_shaders_includes_path, shaders_target_path, ignore=shutil.ignore_patterns('*.ush'),dirs_exist_ok=True)
+    shutil.copytree(rive_shaders_includes_path, shaders_target_path, ignore=shutil.ignore_patterns('*.minified.*'),dirs_exist_ok=True)
     for basename in os.listdir(generated_shader_ush_path):
-        if basename.endswith('.ush'):
+        if 'minified' in basename:
             pathname = os.path.join(generated_shader_ush_path, basename)
             if os.path.isfile(pathname):
-                shutil.copy(pathname, generated_shader_path)
+                ush_basename = os.path.splitext(basename)[0] + '.ush'
+                ush_path = os.path.join(generated_shader_path, ush_basename)
+                shutil.copyfile(pathname, ush_path)
     
 
 
@@ -362,6 +424,10 @@ def print_green(text):
 def print_red(text):
     print(f'\033[91m{text}\033[0m')
 
-
 if __name__ == '__main__':
-    main()
+    if args.rive_runtime_path:
+        main(Path(args.rive_runtime_path).absolute().resolve())
+    else:
+        mono_runtime_directory = Path(__file__)
+        mono_runtime_directory = mono_runtime_directory.joinpath("../../../../../../runtime").absolute().resolve()
+        main(str(mono_runtime_directory))

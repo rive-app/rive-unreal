@@ -11,9 +11,9 @@
 
 namespace rive::gpu
 {
-	class Renderer;
-	class RenderContext;
-}
+class Renderer;
+class RenderContext;
+} // namespace rive::gpu
 
 #endif // WITH_RIVE
 
@@ -21,55 +21,68 @@ class FRiveRenderTarget;
 
 class FRiveRenderer : public IRiveRenderer
 {
-	/**
-	 * Structor(s)
-	 */
+    /**
+     * Structor(s)
+     */
 
 public:
-	FRiveRenderer();
+    FRiveRenderer();
 
-	virtual ~FRiveRenderer() override;
+    virtual ~FRiveRenderer() override;
 
-	//~ BEGIN : IRiveRenderer Interface
+    //~ BEGIN : IRiveRenderer Interface
 
 public:
-	virtual void Initialize() override;
+    virtual void Initialize() override;
 
-	virtual bool IsInitialized() const override { return InitializationState == ERiveInitState::Initialized; }
+    virtual bool IsInitialized() const override
+    {
+        return InitializationState == ERiveInitState::Initialized;
+    }
 
-	virtual TSharedPtr<IRiveRenderTarget> CreateTextureTarget_GameThread(const FName& InRiveName, UTexture2DDynamic* InRenderTarget) override { return nullptr; }
+    virtual TSharedPtr<IRiveRenderTarget> CreateTextureTarget_GameThread(
+        const FName& InRiveName,
+        UTexture2DDynamic* InRenderTarget) override
+    {
+        return nullptr;
+    }
 
-	virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(FIntPoint InTargetSize) override;
+    virtual UTextureRenderTarget2D* CreateDefaultRenderTarget(
+        FIntPoint InTargetSize) override;
 
-	virtual FCriticalSection& GetThreadDataCS() override { return ThreadDataCS; }
+    virtual FCriticalSection& GetThreadDataCS() override
+    {
+        return ThreadDataCS;
+    }
 
-	virtual void CallOrRegister_OnInitialized(FOnRendererInitialized::FDelegate&& Delegate) override;
+    virtual void CallOrRegister_OnInitialized(
+        FOnRendererInitialized::FDelegate&& Delegate) override;
 
 #if WITH_RIVE
 
-	virtual rive::gpu::RenderContext* GetRenderContext() override;
+    virtual rive::gpu::RenderContext* GetRenderContext() override;
 
 #endif // WITH_RIVE
 
-	//~ END : IRiveRenderer Interface
+    //~ END : IRiveRenderer Interface
 
-	/**
-	 * Attribute(s)
-	 */
+    /**
+     * Attribute(s)
+     */
 
 protected:
 #if WITH_RIVE
 
-	std::unique_ptr<rive::gpu::RenderContext> RenderContext;
+    std::unique_ptr<rive::gpu::RenderContext> RenderContext;
 
 #endif // WITH_RIVE
 
-	TMap<FName, TSharedPtr<FRiveRenderTarget>> RenderTargets;
+    TMap<FName, TSharedPtr<FRiveRenderTarget>> RenderTargets;
 
 protected:
-	mutable FCriticalSection ThreadDataCS;
+    mutable FCriticalSection ThreadDataCS;
 
 protected:
-	ERiveInitState InitializationState = ERiveInitState::Uninitialized;
-	FOnRendererInitialized OnInitializedDelegate;
+    ERiveInitState InitializationState = ERiveInitState::Uninitialized;
+    FOnRendererInitialized OnInitializedDelegate;
 };

@@ -11,10 +11,7 @@
 
 // #include "rive/renderer/render_context.hpp"
 
-FRiveRenderer::FRiveRenderer()
-{
-    RIVE_DEBUG_FUNCTION_INDENT;
-}
+FRiveRenderer::FRiveRenderer() { RIVE_DEBUG_FUNCTION_INDENT; }
 
 FRiveRenderer::~FRiveRenderer()
 {
@@ -37,20 +34,18 @@ FRiveRenderer::~FRiveRenderer()
 void FRiveRenderer::Initialize()
 {
     check(IsInGameThread());
-    
+
     FScopeLock Lock(&ThreadDataCS);
     if (InitializationState != ERiveInitState::Uninitialized)
     {
         return;
     }
     InitializationState = ERiveInitState::Initializing;
-    
-    ENQUEUE_RENDER_COMMAND(FRiveRenderer_Initialize)(
-    [this](FRHICommandListImmediate& RHICmdList)
-    {
+
+    ENQUEUE_RENDER_COMMAND(FRiveRenderer_Initialize)
+    ([this](FRHICommandListImmediate& RHICmdList) {
         CreateRenderContext_RenderThread(RHICmdList);
-        AsyncTask(ENamedThreads::GameThread, [this]()
-        {
+        AsyncTask(ENamedThreads::GameThread, [this]() {
             {
                 FScopeLock Lock(&ThreadDataCS);
                 InitializationState = ERiveInitState::Initialized;
@@ -62,12 +57,13 @@ void FRiveRenderer::Initialize()
 
 #if WITH_RIVE
 
-void FRiveRenderer::CallOrRegister_OnInitialized(FOnRendererInitialized::FDelegate&& Delegate)
+void FRiveRenderer::CallOrRegister_OnInitialized(
+    FOnRendererInitialized::FDelegate&& Delegate)
 {
     ThreadDataCS.Lock();
     const bool bIsInitialized = IsInitialized();
     ThreadDataCS.Unlock();
-    
+
     if (bIsInitialized)
     {
         Delegate.Execute(this);
@@ -82,19 +78,22 @@ rive::gpu::RenderContext* FRiveRenderer::GetRenderContext()
 {
     if (!RenderContext)
     {
-        UE_LOG(LogRiveRenderer, Error, TEXT("Rive Render Context is uninitialized."));
+        UE_LOG(LogRiveRenderer,
+               Error,
+               TEXT("Rive Render Context is uninitialized."));
         return nullptr;
     }
 
     return RenderContext.get();
 }
 
-
 #endif // WITH_RIVE
 
-UTextureRenderTarget2D* FRiveRenderer::CreateDefaultRenderTarget(FIntPoint InTargetSize)
+UTextureRenderTarget2D* FRiveRenderer::CreateDefaultRenderTarget(
+    FIntPoint InTargetSize)
 {
-    UTextureRenderTarget2D* const RenderTarget = NewObject<UTextureRenderTarget2D>(GetTransientPackage());
+    UTextureRenderTarget2D* const RenderTarget =
+        NewObject<UTextureRenderTarget2D>(GetTransientPackage());
 
     RenderTarget->OverrideFormat = EPixelFormat::PF_R8G8B8A8;
     RenderTarget->bCanCreateUAV = true;

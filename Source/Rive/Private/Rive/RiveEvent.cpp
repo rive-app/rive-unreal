@@ -20,95 +20,112 @@ THIRD_PARTY_INCLUDES_END
 void FRiveEvent::Initialize(const rive::EventReport& InEventReport)
 {
     IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-	if (!RiveRenderer)
-	{
-		UE_LOG(LogRive, Error, TEXT("Failed to Initialize the RiveEvent as we do not have a valid renderer."));
-		return;
-	}
-	
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("Failed to Initialize the RiveEvent as we do not have a "
+                    "valid renderer."));
+        return;
+    }
+
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-    
-	DelayInSeconds = InEventReport.secondsDelay();
 
-	RiveEventBoolProperties.Reset();
+    DelayInSeconds = InEventReport.secondsDelay();
 
-	RiveEventNumberProperties.Reset();
+    RiveEventBoolProperties.Reset();
 
-	RiveEventStringProperties.Reset();
+    RiveEventNumberProperties.Reset();
 
-	if (rive::Event* NativeEvent = InEventReport.event())
-	{
-		Name = NativeEvent->name().c_str();
+    RiveEventStringProperties.Reset();
 
-		Type = NativeEvent->coreType();
+    if (rive::Event* NativeEvent = InEventReport.event())
+    {
+        Name = NativeEvent->name().c_str();
 
-		const size_t NumProperties = NativeEvent->children().size();
+        Type = NativeEvent->coreType();
 
-		if (NumProperties != 0)
-		{
-			for (size_t PropertyIndex = 0; PropertyIndex < NumProperties; ++PropertyIndex)
-			{
-				if (rive::Component* Child = NativeEvent->children().at(PropertyIndex))
-				{
-					if (!Child->is<rive::CustomProperty>())
-					{
-						continue;
-					}
+        const size_t NumProperties = NativeEvent->children().size();
 
-					if (rive::CustomProperty* Property = Child->as<rive::CustomProperty>())
-					{
-						FString PropertyName = Property->name().c_str();
+        if (NumProperties != 0)
+        {
+            for (size_t PropertyIndex = 0; PropertyIndex < NumProperties;
+                 ++PropertyIndex)
+            {
+                if (rive::Component* Child =
+                        NativeEvent->children().at(PropertyIndex))
+                {
+                    if (!Child->is<rive::CustomProperty>())
+                    {
+                        continue;
+                    }
 
-						switch (Property->coreType())
-						{
-							case NumberProperty: // Number Property
-							{
-								if (rive::CustomPropertyNumber* NumProperty = Property->as<rive::CustomPropertyNumber>())
-								{
-									ParseProperties<float>(TPair<FString, float>(PropertyName, NumProperty->propertyValue()));
-								}
+                    if (rive::CustomProperty* Property =
+                            Child->as<rive::CustomProperty>())
+                    {
+                        FString PropertyName = Property->name().c_str();
 
-								break;
-							}
-							case BooleanProperty: // Boolean Property
-							{
-								if (rive::CustomPropertyBoolean* BoolProperty = Property->as<rive::CustomPropertyBoolean>())
-								{
-									ParseProperties<bool>(TPair<FString, bool>(PropertyName, BoolProperty->propertyValue()));
-								}
+                        switch (Property->coreType())
+                        {
+                            case NumberProperty: // Number Property
+                            {
+                                if (rive::CustomPropertyNumber* NumProperty =
+                                        Property
+                                            ->as<rive::CustomPropertyNumber>())
+                                {
+                                    ParseProperties<float>(
+                                        TPair<FString, float>(
+                                            PropertyName,
+                                            NumProperty->propertyValue()));
+                                }
 
-								break;
-							}
-							case StringProperty: // String Property
-							{
-								if (rive::CustomPropertyString* StrProperty = Property->as<rive::CustomPropertyString>())
-								{
-									ParseProperties<FString>(TPair<FString, FString>(PropertyName, StrProperty->propertyValue().c_str()));
-								}
+                                break;
+                            }
+                            case BooleanProperty: // Boolean Property
+                            {
+                                if (rive::CustomPropertyBoolean* BoolProperty =
+                                        Property
+                                            ->as<rive::CustomPropertyBoolean>())
+                                {
+                                    ParseProperties<bool>(TPair<FString, bool>(
+                                        PropertyName,
+                                        BoolProperty->propertyValue()));
+                                }
 
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+                                break;
+                            }
+                            case StringProperty: // String Property
+                            {
+                                if (rive::CustomPropertyString* StrProperty =
+                                        Property
+                                            ->as<rive::CustomPropertyString>())
+                                {
+                                    ParseProperties<FString>(TPair<FString,
+                                                                   FString>(
+                                        PropertyName,
+                                        StrProperty->propertyValue().c_str()));
+                                }
+
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 bool FRiveEvent::operator==(const FRiveEvent& InRiveFile) const
 {
-	return Id == InRiveFile.Id;
+    return Id == InRiveFile.Id;
 }
 
-bool FRiveEvent::operator==(FGuid InEntityId) const
-{
-	return Id == InEntityId;
-}
+bool FRiveEvent::operator==(FGuid InEntityId) const { return Id == InEntityId; }
 
 uint32 GetTypeHash(const FRiveEvent& InRiveFile)
 {
-	return GetTypeHash(InRiveFile.Id);
+    return GetTypeHash(InRiveFile.Id);
 }
 
 #endif // WITH_RIVE

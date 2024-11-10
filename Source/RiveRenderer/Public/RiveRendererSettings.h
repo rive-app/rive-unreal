@@ -7,20 +7,26 @@
 #include "RiveRendererSettings.generated.h"
 
 /**
- * 
+ *
  */
-UCLASS(Config=Engine, DefaultConfig)
+UCLASS(Config = Engine, DefaultConfig)
 class RIVERENDERER_API URiveRendererSettings : public UDeveloperSettings
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 public:
-	/**
-	 * 
-	 */
-	URiveRendererSettings();
-	
-	UPROPERTY(EditAnywhere, config, Category = "Rive Experimental Settings", DisplayName="Enable RHI Technical Preview")
-	bool bEnableRHITechPreview;
+    /**
+     *
+     */
+    URiveRendererSettings();
 
-	virtual FName GetCategoryName() const override { return FName(TEXT("Rive")); }
+    UPROPERTY(EditAnywhere,
+              config,
+              Category = "Rive Experimental Settings",
+              DisplayName = "Enable RHI Technical Preview")
+    bool bEnableRHITechPreview;
+
+    virtual FName GetCategoryName() const override
+    {
+        return FName(TEXT("Rive"));
+    }
 };

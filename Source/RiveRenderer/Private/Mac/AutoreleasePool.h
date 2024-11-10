@@ -1,7 +1,8 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #pragma once
-class AutoreleasePool {
+class AutoreleasePool
+{
 public:
 #if PLATFORM_APPLE
     AutoreleasePool() : Pool([NSAutoreleasePool new]) {}

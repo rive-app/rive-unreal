@@ -15,49 +15,61 @@ class FRiveTextureResource;
 #define RIVE_STANDARD_TEX_RESOLUTION 3840
 
 /**
- * 
+ *
  */
 UCLASS(BlueprintType, Blueprintable)
 class RIVE_API URiveTexture : public UTexture2DDynamic
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnResourceInitializedOnRenderThread, FRHICommandListImmediate& /*RHICmdList*/, FTextureRHIRef& /*NewResource*/)
-	
+    DECLARE_MULTICAST_DELEGATE_TwoParams(
+        FOnResourceInitializedOnRenderThread,
+        FRHICommandListImmediate& /*RHICmdList*/,
+        FTextureRHIRef& /*NewResource*/)
+
+        public : URiveTexture();
+
+    //~ BEGIN : UTexture Interface
+    virtual FTextureResource* CreateResource() override;
+    //~ END : UTexture UTexture
+
+    //~ BEGIN : UTexture Interface
+    virtual void PostLoad() override;
+    //~ END : UTexture UTexture
+
 public:
-	URiveTexture();
-	
-	//~ BEGIN : UTexture Interface
-	virtual FTextureResource* CreateResource() override;
-	//~ END : UTexture UTexture
+    /** UI representation of Texture Size */
+    UPROPERTY(BlueprintReadWrite,
+              EditAnywhere,
+              Category = Rive,
+              meta = (ClampMin = 1,
+                      UIMin = 1,
+                      ClampMax = 3840,
+                      UIMax = 3840,
+                      NoResetToDefault))
+    FIntPoint Size;
 
-	//~ BEGIN : UTexture Interface
-	virtual void PostLoad() override;
-	//~ END : UTexture UTexture
+    /**
+     * Resize render resources
+     */
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    virtual void ResizeRenderTargets(FIntPoint InNewSize);
+    virtual void ResizeRenderTargets(const FVector2f InNewSize);
 
-public:
-	/** UI representation of Texture Size */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive, meta = (ClampMin = 1, UIMin = 1, ClampMax = 3840, UIMax = 3840, NoResetToDefault))
-	FIntPoint Size;
-	
-	/**
-	 * Resize render resources
-	 */
-	UFUNCTION(BlueprintCallable, Category = Rive)
-	virtual void ResizeRenderTargets(FIntPoint InNewSize);
-	virtual void ResizeRenderTargets(const FVector2f InNewSize);
-	
-	FVector2f GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard, const FVector2f& InPosition, const FBox2f& InExtents) const;
-	
-	FOnResourceInitializedOnRenderThread OnResourceInitializedOnRenderThread;
+    FVector2f GetLocalCoordinatesFromExtents(URiveArtboard* InArtboard,
+                                             const FVector2f& InPosition,
+                                             const FBox2f& InExtents) const;
+
+    FOnResourceInitializedOnRenderThread OnResourceInitializedOnRenderThread;
+
 protected:
-	/**
-	 * Create Texture Rendering resource on RHI Thread
-	 */
-	void InitializeResources() const;
-	
-	/**
-	 * Rendering resource for Rive File
-	 */
-	FRiveTextureResource* CurrentResource = nullptr;
+    /**
+     * Create Texture Rendering resource on RHI Thread
+     */
+    void InitializeResources() const;
+
+    /**
+     * Rendering resource for Rive File
+     */
+    FRiveTextureResource* CurrentResource = nullptr;
 };

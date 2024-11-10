@@ -6,51 +6,48 @@
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
-FRiveFileAssetTypeActions::FRiveFileAssetTypeActions(EAssetTypeCategories::Type InAssetCategory)
-	: AssetCategory(InAssetCategory)
-{
-}
+FRiveFileAssetTypeActions::FRiveFileAssetTypeActions(
+    EAssetTypeCategories::Type InAssetCategory) :
+    AssetCategory(InAssetCategory)
+{}
 
 FText FRiveFileAssetTypeActions::GetName() const
 {
-	return LOCTEXT("FRiveFileAssetTypeActionsName", "Rive File");
+    return LOCTEXT("FRiveFileAssetTypeActionsName", "Rive File");
 }
 
-FColor FRiveFileAssetTypeActions::GetTypeColor() const
-{
-	return FColor::Red;
-}
+FColor FRiveFileAssetTypeActions::GetTypeColor() const { return FColor::Red; }
 
 UClass* FRiveFileAssetTypeActions::GetSupportedClass() const
 {
-	return URiveFile::StaticClass();
+    return URiveFile::StaticClass();
 }
 
-FText FRiveFileAssetTypeActions::GetAssetDescription(const FAssetData& AssetData) const
+FText FRiveFileAssetTypeActions::GetAssetDescription(
+    const FAssetData& AssetData) const
 {
-	return FAssetTypeActions_Base::GetAssetDescription(AssetData);
+    return FAssetTypeActions_Base::GetAssetDescription(AssetData);
 }
 
-bool FRiveFileAssetTypeActions::IsImportedAsset() const
+bool FRiveFileAssetTypeActions::IsImportedAsset() const { return true; }
+
+void FRiveFileAssetTypeActions::OpenAssetEditor(
+    const TArray<UObject*>& InObjects,
+    TSharedPtr<IToolkitHost> EditWithinLevelEditor)
 {
-	return true;
+    for (UObject* Obj : InObjects)
+    {
+        if (URiveFile* RiveFile = Cast<URiveFile>(Obj))
+        {
+            const TSharedRef<FRiveFileEditor> EditorToolkit =
+                MakeShared<FRiveFileEditor>();
+            EditorToolkit->Initialize(RiveFile,
+                                      EToolkitMode::Standalone,
+                                      EditWithinLevelEditor);
+        }
+    }
 }
 
-void FRiveFileAssetTypeActions::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor)
-{
-	for (UObject* Obj : InObjects)
-	{
-		if (URiveFile* RiveFile = Cast<URiveFile>(Obj))
-		{
-			const TSharedRef<FRiveFileEditor> EditorToolkit = MakeShared<FRiveFileEditor>();
-			EditorToolkit->Initialize(RiveFile, EToolkitMode::Standalone, EditWithinLevelEditor);
-		}
-	}
-}
-
-uint32 FRiveFileAssetTypeActions::GetCategories()
-{
-	return AssetCategory;
-}
+uint32 FRiveFileAssetTypeActions::GetCategories() { return AssetCategory; }
 
 #undef LOCTEXT_NAMESPACE
