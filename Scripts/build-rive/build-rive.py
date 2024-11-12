@@ -4,8 +4,7 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
-
-#requires vswhere for now that may be removed later
+from enum import Enum
 
 parser = argparse.ArgumentParser(description="""
 Build and copy rive C++ runtime library and copy it and it headers into the correct location for unreal
@@ -57,21 +56,125 @@ test_targets = [
     'tools_common'
 ]
 
-def get_base_command(rive_runtime_path, release):
-    return (
-        f'premake5 --scripts=\"{os.path.join(rive_runtime_path, "build")}\"  --file=./premake5.lua '
-        f'--with_rive_text {"--raw_shaders" if args.raw_shaders else ""} --with_rive_audio=external --for_unreal {"--config=release" if release else "--config=debug"}'
+class CompileResult(Enum):
+    SUCCESS=1 # compile finished succesfully
+    FAILED=2 # compile failed because of some error
+    NEEDS_CLEAN=3 # compile failed because premake arguments did not match, we should try again with clean
+    NOT_STARTED=4 # no compile attempted
+
+class CompilePass(object):
+    """ 
+    Represents something that needs to be compiled 
+    @rive_runtime_path, the absolute path to the dir containing the rive-runtime repo
+    @root_dir the dir to compile from, should contain a premake5.lua file
+    @out_dir the directory we want the output to go
+    @is_release if this is a release build
+    @build_type this is how the projects get compiled, like ios, android etc..
+    @kwargs and extra arguments to pass to build_rive.sh
+    """
+    def __init__(self, rive_runtime_path:str, root_dir:str, out_dir:str, is_release:bool, build_type:str, targets:list, **kwargs):
+        # for debugging, basically adds a var for each key passed in
+        self.__dict__.update(kwargs)
+        self.out_dir = out_dir
+        self.root_dir = root_dir
+        # this does not need to be a member var, it is for ease of debugging
+        self.targets = targets
+        # used to check if this compile was succesful
+        self.success = CompileResult.NOT_STARTED
+        # extra args passed in to be passed to build_script
+        aux_command_args = ["--"+str(key)  + "=" + str(value) for key, value in kwargs.items()]
+        # build script path generation
+        build_script = os.path.join(rive_runtime_path, "build", "build_rive")
+        if sys.platform.startswith('win32'):
+            build_script = f"powershell -File {build_script}.ps1"
+        else:
+            build_script = f"{build_script}.sh"
+        # default command to use, build_rive.sh includes --with_rive_layout and --with_rive_text automatically
+        if build_type != '' and build_type is not None:
+            command_args = build_type.split() + ["\"--with_rive_audio=external\"", "\"--for_unreal\""]
+        else:
+            command_args = ["\"--with_rive_audio=external\"", "\"--for_unreal\""]
+        if is_release:
+            command_args.append("release")
+        if args.raw_shaders:
+            command_args.append("\"--raw_shaders\"")
+        command_args.extend(aux_command_args)
+
+        if self.targets is not None:
+            # if we have targets, append them to the command. otherwise it just builds everything
+            command_args.append("\"--\"")
+            command_args.extend(self.targets)
+
+        self.command = build_script.split(" ") + command_args
+        # command used when passing clean to build_rive
+        self.clean_command = build_script.split(" ") + ["clean"] + command_args
+
+    def try_build(self) -> bool:
+        """Attempt to build, if fails, tries to build again with clean. returns true if succesful, false otherwise"""
+        # move to our root build dir
+        os.chdir(self.root_dir)
+        #set RIVE_OUT otherwise the ouput dir won't match
+        os.environ["RIVE_OUT"]=self.out_dir
+        command = self.command
+        # do we have an out dir? if so make sure '.rive_premake_args' exsits. If not delete the out dir
+        if os.path.exists(self.out_dir):
+            if not os.path.exists(os.path.join(self.out_dir, ".rive_premake_args")):
+                shutil.rmtree(self.out_dir)
+
+        # try the command
+        self.success = execute_command(command)
+
+        if self.success == CompileResult.NEEDS_CLEAN:
+            # try again with clean
+            self.success = execute_command(self.clean_command)
+
+        return self.success
+
+def execute_command(cmd) -> bool:
+    """attempt to run cmd in another process, piping output to this process stdout. returns a CompileResult"""
+    if sys.platform.startswith('darwin'):
+        cmd = " ".join(cmd)
+    print_green(f'Executing {cmd}')
+    process = subprocess.Popen(cmd,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        universal_newlines=True
     )
+
+    ret = CompileResult.SUCCESS
+
+    for output in iter(process.stdout.readline, ""):
+        if output:
+            if 'error: premake5 arguments for current build do not match previous arguments' in output or "If you wish to overwrite the existing build, please use 'clean'" in output:
+                ret = CompileResult.NEEDS_CLEAN
+            elif ('error:' in output.lower() or 'error :' in output.lower()) and 'Structured output' not in output and '0 Error' not in output:
+                print_red(f'{output.strip()}')
+                if ret == CompileResult.SUCCESS:
+                    # always prefer clean, so only set failed if we have not set clean
+                    ret = CompileResult.FAILED
+            else:
+                print(output.strip())
+
+    process.wait()
+    return ret
+
+
+def print_green(text):
+    print(f'\033[32m{text}\033[0m')
+
+
+def print_red(text):
+    print(f'\033[91m{text}\033[0m')
+        
 
 def main(rive_runtime_path):
     print_green(f"using runtime location {rive_runtime_path}")
     
     if sys.platform.startswith('darwin'):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
-        # determine a sane build environment
-        output = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], universal_newlines=True)
-        sdk_path = output.strip()
-        print_green(f"Using SDK at: {output}")
     
         if not do_mac(rive_runtime_path, True) or not do_mac(rive_runtime_path, False):
             return
@@ -80,6 +183,10 @@ def main(rive_runtime_path):
             return
         
     elif sys.platform.startswith('win32'):
+        # add rive build dir to path if it's not already there
+        build_path = os.path.join(rive_runtime_path, "build")
+        if build_path not in os.environ["PATH"]:
+            os.environ["PATH"] = os.environ["PATH"] + ";" + build_path
         if not do_windows(rive_runtime_path, True) or not do_windows(rive_runtime_path, False):
             return
         
@@ -97,219 +204,159 @@ def main(rive_runtime_path):
 
     copy_includes(rive_runtime_path)
 
-def get_msbuild():
-    msbuild_path = ''
-    import vswhere
-
-    installPaths = vswhere.find('MSBuild')
-    vs2022Path = None
-    for path in installPaths:
-        if '2022' in path:
-            vs2022Path = path
-            break
-
-    if vs2022Path is None or len(vs2022Path) == 0:
-        raise Exception('visual studio 2022 required to build rive !')
-    
-    msbuild_path = os.path.join(vs2022Path, 'Current', 'Bin', 'MSBuild.exe')
-    if not os.path.exists(msbuild_path):
-        raise Exception(f'Invalid MSBuild path {msbuild_path}')
-    return msbuild_path
-
 def do_android(rive_runtime_path, release):
-    try:
-        out_dir = os.path.join('..', 'out', 'android', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'renderer'))
+    should_build_tests = args.build_rive_tests and release
 
-        if 'NDK_ROOT' in os.environ and 'NDK_PATH' not in os.environ:
-            os.environ['NDK_PATH'] = os.environ['NDK_ROOT']
+    out_dir = os.path.join('..', 'out', 'android', 'release' if release else 'debug')
+    root_dir = os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' )
 
-        command = f'{get_base_command(rive_runtime_path, release)} --os=android --arch=arm64 --out="{out_dir}" vs2022'
-        execute_command(command)
-
-        msbuild_path = get_msbuild()
-        
-        os.chdir(out_dir)
-        execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
-
-        print_green(f'Built in {os.getcwd()}')
-
-        os.chdir(os.path.join('ARM64', 'default'))
-        rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
-
-        print_green('Copying Android libs')
-        copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Android'), ".a", release)
-    except Exception as e:
-        print_red(f"Exiting due to errors... {e}")
+    # arch=arm64 is chosen for you in build_rive.sh because type is android
+    android_pass = CompilePass(rive_runtime_path, root_dir, out_dir, release, "ninja android", targets + test_targets if should_build_tests else targets)
+    if not android_pass.try_build():
+        print_red("Exiting due to errors...")
         return False
     
+    os.chdir(out_dir)
+    print_green(f'Built in {os.getcwd()}')
+        
+    rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
+
+    print_green('Copying Android libs')
+    copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Android'), ".a", release)
+    if should_build_tests:
+        gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Android")
+        copy_files(os.getcwd(), gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
     return True
 
 
 def do_windows(rive_runtime_path, release):
+
     should_build_tests = args.build_rive_tests and release
-    try:
-        out_dir = os.path.join('..', 'out', 'windows', 'release' if release else 'debug')
 
-        os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
-        
-        command = f'{get_base_command(rive_runtime_path, release)} --os=windows --out="{out_dir}" vs2022'
-        execute_command(command)
+    out_dir = os.path.join('..', 'out', 'windows', 'release' if release else 'debug')
 
-        # build
-        msbuild_path = get_msbuild()
-            
-        os.chdir(out_dir)
-        if(should_build_tests):
-            execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets + test_targets)}')
-        else:
-            execute_command(f'"{msbuild_path}" ./rive.sln /t:{";".join(targets)}')
-
-        print_green(f'Built in {os.getcwd()}')
-        # end build
-
-        rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
-
-        print_green('Copying Windows')
-        copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Win64'), ".lib", release)
-        if should_build_tests:
-            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "x64", "Release")
-            copy_files(os.getcwd(), gm_libraries_path, ".lib", True, False, test_targets)
-
-    except Exception as e:
+    root_dir = os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' )
+    
+    windows_pass = CompilePass(rive_runtime_path, root_dir, out_dir, release, "", targets + test_targets if should_build_tests else targets, os="windows")
+    if not windows_pass.try_build():
         print_red("Exiting due to errors...")
-        print_red(e)
         return False
+    os.chdir(out_dir)
+    print_green(f'Built in {os.getcwd()}')
+    # end build
+
+    rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
+
+    print_green('Copying Windows')
+    copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Win64'), ".lib", release)
+    if should_build_tests:
+        gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "x64", "Release")
+        copy_files(os.getcwd(), gm_libraries_path, ".lib", True, False, ['gms', 'goldens', 'tools_common'])
     
     return True
 
 def do_ios(rive_runtime_path, release):
     should_build_tests = args.build_rive_tests and release
-    try:
-        os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
-        command = f'{get_base_command(rive_runtime_path, release)} gmake2 --os=ios'
-        build_dirs = {}
 
-        print_green('Building iOS')
-        out_dir = os.path.join('..', 'out', 'ios', 'release' if release else 'debug')
-        execute_command(f'{command} --variant=system --out="{out_dir}"')
-        os.chdir(out_dir)
-        build_dirs['ios'] = os.getcwd()
-        for target in targets:
-            execute_command(f'make {target}')
-        if should_build_tests:
-           for target in test_targets:
-                execute_command(f'make {target}') 
+    root_dir = os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' )
+    build_dirs = {}
 
-        print_green('Building iOS Simulator')
-        out_dir = os.path.join('..', 'out', 'ios_sim', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
-        execute_command(f'{command} --variant=emulator --out="{out_dir}"')
-        os.chdir(out_dir)
-        build_dirs['ios_sim'] = os.getcwd()
-        for target in targets:
-            execute_command(f'make {target}')
-        if should_build_tests:
-           for target in test_targets:
-                execute_command(f'make {target}') 
-        
-        # clear old .sim.a files
-        for root, dirs, files in os.walk(build_dirs['ios_sim']):
-            for file in files:
-                if file.endswith('.sim.a'):
-                    os.unlink(os.path.join(root, file))
+    print_green('Building iOS')
+    out_dir = os.path.join('..', 'out', 'ios', 'release' if release else 'debug')
+    system_pass = CompilePass(rive_runtime_path, root_dir, out_dir, release, "ios", targets + test_targets if should_build_tests else targets, variant="system")
+    if not system_pass.try_build():
+        print_red("Exiting due to errors...")
+        return False
 
-        # we need to rename all ios simulator to .sim.a
-        for root, dirs, files in os.walk(build_dirs['ios_sim']):
-            for file in files:
-                if file.endswith('.a'):
-                    old_file = os.path.join(root, file)
-                    new_file = f'{file[:-2]}.sim.a'
-                    new_file = os.path.join(root, new_file)
-                    try:
-                        os.unlink(new_file) # just in case an existing .sim.a exists
-                    except:
-                        pass
+    os.chdir(out_dir)
+    build_dirs['ios'] = os.getcwd()
+
+    print_green('Building iOS Simulator')
+    out_dir = os.path.join('..', 'out', 'ios_sim', 'release' if release else 'debug')
+    os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
+    emulator_pass = CompilePass(rive_runtime_path, root_dir, out_dir, release, "ios", targets + test_targets if should_build_tests else targets, variant="emulator")
+    if not emulator_pass.try_build():
+        print_red("Exiting due to errors...")
+        return False
+
+    os.chdir(out_dir)
+    build_dirs['ios_sim'] = os.getcwd()
+
+    # we need to rename all ios simulator to .sim.a
+    for root, _, files in os.walk(build_dirs['ios_sim']):
+        for file in files:
+            if file.endswith('.a') and not '.sim.' in file:
+                old_file = os.path.join(root, file)
+                new_file = f'{file[:-2]}.sim.a'
+                new_file = os.path.join(root, new_file)
+                if os.path.exists(new_file):
+                    os.replace(old_file, new_file)
+                else:
                     os.rename(old_file, new_file)
 
-        os.chdir(rive_runtime_path)
-        print_green(f'Built in {build_dirs}')
+    os.chdir(rive_runtime_path)
+    print_green(f'Built in {build_dirs}')
 
-        rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
+    rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
-        print_green('Copying iOS and iOS simulator')
-        copy_files(build_dirs['ios'], os.path.join(rive_libraries_path, 'IOS'), ".a", release)
-        copy_files(build_dirs['ios_sim'], os.path.join(rive_libraries_path, 'IOS'), ".sim.a", release)
-        if should_build_tests:
-            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "iOS")
-            copy_files(build_dirs['ios'], gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
-            copy_files(build_dirs['ios_sim'], gm_libraries_path, ".sim.a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
-
-    except Exception as e:
-        print_red("Exiting due to errors...")
-        print_red(e)
-        return False
+    print_green('Copying iOS and iOS simulator')
+    copy_files(build_dirs['ios'], os.path.join(rive_libraries_path, 'IOS'), ".a", release)
+    copy_files(build_dirs['ios_sim'], os.path.join(rive_libraries_path, 'IOS'), ".sim.a", release)
+    if should_build_tests:
+        gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "iOS")
+        copy_files(build_dirs['ios'], gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+        copy_files(build_dirs['ios_sim'], gm_libraries_path, ".sim.a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
     
     return True
 
 
 def do_mac(rive_runtime_path, release):
     should_build_tests = args.build_rive_tests and release
-    try:
-        command = f'{get_base_command(rive_runtime_path, release)} --os=macosx gmake2'
-        build_dirs = {}
 
-        # we currently don't use fat libs, otherwise we could use this for macOS
-        # build_fat = False
-        # if build_fat:
-        #     execute_command(f'{command} --arch=universal --out=out/universal')
-        #     os.chdir(os.path.join('..', 'out', 'universal'))
-        #     build_dirs['universal'] = os.getcwd()
-        #     execute_command('make')
-        # else:
+    build_dirs = {}
+
+    # we currently don't use fat libs, otherwise we could use this for macOS
+    # build_fat = False
+    # if build_fat:
+    #     execute_command(f'{command} --arch=universal --out=out/universal')
+    #     os.chdir(os.path.join('..', 'out', 'universal'))
+    #     build_dirs['universal'] = os.getcwd()
+    #     execute_command('make')
+    # else:
 
 
-        print_green('Building macOS x64')
-        out_dir = os.path.join('..', 'out', 'mac', 'x64', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
-        execute_command(f'{command} --arch=x64 --out="{out_dir}"')
-        os.chdir(out_dir)
-        build_dirs['mac_x64'] = os.getcwd()
-        for target in targets:
-            execute_command(f'make {target}')
-        if should_build_tests:
-           for target in test_targets:
-                execute_command(f'make {target}') 
-
-        print_green('Building macOS arm64')
-        out_dir = os.path.join('..', 'out', 'mac', 'arm64', 'release' if release else 'debug')
-        os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
-        execute_command(f'{command} --arch=arm64 --out="{out_dir}"')
-        os.chdir(out_dir)
-        build_dirs['mac_arm64'] = os.getcwd()
-        for target in targets:
-            execute_command(f'make {target}')
-        if should_build_tests:
-           for target in test_targets:
-                execute_command(f'make {target}') 
-
-        os.chdir(rive_runtime_path)
-        print_green(f'Built in {build_dirs}')
-
-        rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
-
-        print_green('Copying macOS x64')
-        copy_files(build_dirs['mac_x64'], os.path.join(rive_libraries_path, 'Mac', 'Intel'), ".a", release)
-        copy_files(build_dirs['mac_arm64'], os.path.join(rive_libraries_path, 'Mac', 'Mac'), ".a", release)
-        if should_build_tests:
-            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Mac")
-            copy_files(build_dirs['mac_arm64'], os.path.join(gm_libraries_path, "arm"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
-            copy_files(build_dirs['mac_x64'], os.path.join(gm_libraries_path, "x64"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
-
-    except Exception as e:
+    print_green('Building macOS x64')
+    out_dir = os.path.join('..', 'out', 'mac', 'x64', 'release' if release else 'debug')
+    root_dir = os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' )
+    x64_pass = CompilePass(rive_runtime_path, root_dir, out_dir, release, "", targets + test_targets if should_build_tests else targets, os="macosx", arch="x64")
+    if not x64_pass.try_build():
         print_red("Exiting due to errors...")
-        print_red(e)
         return False
+    os.chdir(out_dir)
+    build_dirs['mac_x64'] = os.getcwd()
+    print_green('Building macOS arm64')
+
+    out_dir = os.path.join('..', 'out', 'mac', 'arm64', 'release' if release else 'debug')
+    os.chdir(os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' ))
+    arm64_pass = CompilePass(rive_runtime_path, root_dir, out_dir, release, "", targets + test_targets if should_build_tests else targets, os="macosx", arch="arm64")
+    if not arm64_pass.try_build():
+        print_red("Exiting due to errors...")
+        return False
+    os.chdir(out_dir)
+    build_dirs['mac_arm64'] = os.getcwd()
+
+    os.chdir(rive_runtime_path)
+    print_green(f'Built in {build_dirs}')
+
+    rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
+
+    print_green('Copying macOS x64')
+    copy_files(build_dirs['mac_x64'], os.path.join(rive_libraries_path, 'Mac', 'Intel'), ".a", release)
+    copy_files(build_dirs['mac_arm64'], os.path.join(rive_libraries_path, 'Mac', 'Mac'), ".a", release)
+    if should_build_tests:
+        gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Mac")
+        copy_files(build_dirs['mac_arm64'], os.path.join(gm_libraries_path, "arm"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+        copy_files(build_dirs['mac_x64'], os.path.join(gm_libraries_path, "x64"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
     
     return True
 
@@ -378,51 +425,6 @@ def copy_includes(rive_runtime_path):
                 ush_path = os.path.join(generated_shader_path, ush_basename)
                 shutil.copyfile(pathname, ush_path)
     
-
-
-def execute_command(cmd):
-    had_errors = False
-    print_green(f'Executing {cmd}')
-    process = subprocess.Popen(
-        cmd,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,
-        universal_newlines=True
-    )
-
-    while True:
-        output = process.stdout.readline()
-        if output == '' and process.poll() is not None:
-            break
-        if output:
-            if ' error' in output.lower() and 'Structured output' not in output and '0 Error' not in output:
-                print_red(f'{output.strip()}')
-                had_errors = True
-            else:
-                print(output.strip())
-
-    if sys.platform.startswith('darwin'):
-        stdout, stderr = process.communicate()
-        if stderr:
-            if not "pnglibconf.h: Permission denied" in stderr and not "has no symbols" in stderr:
-                print_red(stderr.strip())
-                had_errors = True
-
-    process.wait()
-
-    if had_errors:
-        raise Exception('execute_command had errors')
-
-
-def print_green(text):
-    print(f'\033[32m{text}\033[0m')
-
-
-def print_red(text):
-    print(f'\033[91m{text}\033[0m')
 
 if __name__ == '__main__':
     if args.rive_runtime_path:

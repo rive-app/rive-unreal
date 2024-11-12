@@ -18,13 +18,19 @@
 		{
 			"Name": "Rive",
 			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
+		},
+		{
+			"Name": "RiveShaders",
+			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
 			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
 		},
 		{
 			"Name": "RiveRenderer",
 			"Type": "RuntimeNoCommandlet",
-			"LoadingPhase": "Default",
+			"LoadingPhase": "PreDefault",
 			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
 		},
 		{

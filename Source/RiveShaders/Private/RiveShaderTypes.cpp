@@ -1,25 +1,36 @@
-#include "ShaderPipelineManager.h"
+#include "RiveShaderTypes.h"
 
 #include <filesystem>
 
 #include <CoreMinimal.h>
 #include "GlobalShader.h"
 
-#include "CommonRenderResources.h"
-#include "ResolveShader.h"
-#include "Platform/RenderContextRHIImpl.hpp"
+#include "DataDrivenShaderPlatformInfo.h"
 #include "ShaderCompilerCore.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/generated/shaders/constants.glsl.hpp"
 THIRD_PARTY_INCLUDES_END
 
+void CheckTypedUAVs(const FShaderPermutationParameters& Params,
+                    FShaderCompilerEnvironment& Environment)
+{
+    // We can't use RHICapabilities.bSupportsTypedUAVLoads here because the
+    // platform we are checking against is the currently compiled for platform.
+    // Which may not be the maximum possible platform which is what
+    // RHICapabilities checks against
+    if (RHISupports4ComponentUAVReadWrite(Params.Platform))
+    {
+        Environment.SetDefine(TEXT(GLSL_ENABLE_TYPED_UAV_LOAD_STORE), 1);
+        Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    }
+}
+
 void FRiveGradientPixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveGradientVertexShader::ModifyCompilationEnvironment(
@@ -27,7 +38,6 @@ void FRiveGradientVertexShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveTessPixelShader::ModifyCompilationEnvironment(
@@ -35,7 +45,6 @@ void FRiveTessPixelShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveTessVertexShader::ModifyCompilationEnvironment(
@@ -43,7 +52,6 @@ void FRiveTessVertexShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRivePathPixelShader::ModifyCompilationEnvironment(
@@ -51,7 +59,7 @@ void FRivePathPixelShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    CheckTypedUAVs(Params, Environment);
 }
 
 void FRivePathVertexShader::ModifyCompilationEnvironment(
@@ -59,7 +67,6 @@ void FRivePathVertexShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveInteriorTrianglesPixelShader::ModifyCompilationEnvironment(
@@ -67,7 +74,7 @@ void FRiveInteriorTrianglesPixelShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    CheckTypedUAVs(Params, Environment);
 }
 
 void FRiveInteriorTrianglesVertexShader::ModifyCompilationEnvironment(
@@ -75,7 +82,6 @@ void FRiveInteriorTrianglesVertexShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveImageRectPixelShader::ModifyCompilationEnvironment(
@@ -83,7 +89,7 @@ void FRiveImageRectPixelShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    CheckTypedUAVs(Params, Environment);
 }
 
 void FRiveImageRectVertexShader::ModifyCompilationEnvironment(
@@ -91,7 +97,6 @@ void FRiveImageRectVertexShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 void FRiveImageMeshPixelShader::ModifyCompilationEnvironment(
@@ -99,7 +104,7 @@ void FRiveImageMeshPixelShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    CheckTypedUAVs(Params, Environment);
 }
 
 void FRiveImageMeshVertexShader::ModifyCompilationEnvironment(
@@ -107,23 +112,21 @@ void FRiveImageMeshVertexShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
-void FRiveAtomiResolvePixelShader::ModifyCompilationEnvironment(
+void FRiveAtomicResolvePixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    CheckTypedUAVs(Params, Environment);
 }
 
-void FRiveAtomiResolveVertexShader::ModifyCompilationEnvironment(
+void FRiveAtomicResolveVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
 }
 
 IMPLEMENT_GLOBAL_SHADER(FRiveGradientPixelShader,
@@ -182,11 +185,11 @@ IMPLEMENT_GLOBAL_SHADER(FRiveImageMeshVertexShader,
                         GLSL_drawVertexMain,
                         SF_Vertex);
 
-IMPLEMENT_GLOBAL_SHADER(FRiveAtomiResolvePixelShader,
+IMPLEMENT_GLOBAL_SHADER(FRiveAtomicResolvePixelShader,
                         "/Plugin/Rive/Private/Rive/atomic_resolve_pls.usf",
                         GLSL_drawFragmentMain,
                         SF_Pixel);
-IMPLEMENT_GLOBAL_SHADER(FRiveAtomiResolveVertexShader,
+IMPLEMENT_GLOBAL_SHADER(FRiveAtomicResolveVertexShader,
                         "/Plugin/Rive/Private/Rive/atomic_resolve_pls.usf",
                         GLSL_drawVertexMain,
                         SF_Vertex);

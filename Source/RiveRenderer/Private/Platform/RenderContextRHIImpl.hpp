@@ -1,7 +1,8 @@
 #pragma once
 #include <chrono>
 
-#include "Shaders/ShaderPipelineManager.h"
+#include "RiveShaders/Public/RiveShaderTypes.h"
+#include "RiveShaders/Public/RiveShadersModule.h"
 
 THIRD_PARTY_INCLUDES_START
 #undef PI
@@ -10,10 +11,20 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/buffer_ring.hpp"
 THIRD_PARTY_INCLUDES_END
 
+struct RHICapabilities
+{
+    RHICapabilities();
+
+    bool bSupportsPixelShaderUAVs = false;
+    bool bSupportsTypedUAVLoads = false;
+    bool bSupportsRasterOrderViews = false;
+};
+
 class RIVERENDERER_API RenderTargetRHI : public rive::gpu::RenderTarget
 {
 public:
     RenderTargetRHI(FRHICommandList& RHICmdList,
+                    const RHICapabilities& Capabilities,
                     const FTexture2DRHIRef& InTextureTarget);
     virtual ~RenderTargetRHI() override {}
 
@@ -30,6 +41,8 @@ public:
         return m_scratchColorUAV;
     }
 
+    bool TargetTextureSupportsUAV() const { return m_targetTextureSupportsUAV; }
+
 private:
     FTexture2DRHIRef m_scratchColorTexture;
     FTexture2DRHIRef m_textureTarget;
@@ -40,6 +53,8 @@ private:
     FUnorderedAccessViewRHIRef m_clipUAV;
     FUnorderedAccessViewRHIRef m_scratchColorUAV;
     FUnorderedAccessViewRHIRef m_targetUAV;
+
+    bool m_targetTextureSupportsUAV;
 };
 
 class StructuredBufferRingRHIImpl;
@@ -287,4 +302,6 @@ private:
 
     std::chrono::steady_clock::time_point m_localEpoch =
         std::chrono::steady_clock::now();
+
+    RHICapabilities m_capabilities;
 };

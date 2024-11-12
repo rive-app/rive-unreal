@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreMinimal.h"
 #include "ShaderParameterStruct.h"
 #include "RenderResource.h"
 #include "RHI.h"
@@ -12,6 +13,10 @@ namespace rive::gpu
 struct DrawBatch;
 struct FlushDescriptor;
 } // namespace rive::gpu
+
+#ifndef RIVESHADERS_API
+#define RIVESHADERS_API
+#endif
 
 // shader permutation params
 // Whole
@@ -45,7 +50,7 @@ typedef TShaderPermutationDomain<FEnableClip,
 #define USE_ATOMIC_VERTEX_PERMUTATIONS                                         \
     using FPermutationDomain = AtomicVertexPermutationDomain;
 
-BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FFlushUniforms, )
+BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FFlushUniforms, RIVESHADERS_API)
 SHADER_PARAMETER(float, gradInverseViewportY)
 SHADER_PARAMETER(float, tessInverseViewportY)
 SHADER_PARAMETER(float, renderTargetInverseViewportX)
@@ -67,7 +72,7 @@ SHADER_PARAMETER(UE::HLSL::uint,
 SHADER_PARAMETER(float, vertexDiscardValue)
 END_GLOBAL_SHADER_PARAMETER_STRUCT();
 
-BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FImageDrawUniforms, )
+BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FImageDrawUniforms, RIVESHADERS_API)
 SHADER_PARAMETER(UE::HLSL::float4, viewMatrix)
 SHADER_PARAMETER(UE::HLSL::float2, translate)
 SHADER_PARAMETER(float, opacity)
@@ -82,7 +87,7 @@ END_GLOBAL_SHADER_PARAMETER_STRUCT()
 class FRiveGradientPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveGradientPixelShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveGradientPixelShader, RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveGradientPixelShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
@@ -97,7 +102,7 @@ public:
 class FRiveGradientVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveGradientVertexShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveGradientVertexShader, RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveGradientVertexShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
@@ -112,7 +117,7 @@ public:
 class FRiveTessPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveTessPixelShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveTessPixelShader, RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveTessPixelShader, FGlobalShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
@@ -126,7 +131,7 @@ public:
 class FRiveTessVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveTessVertexShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveTessVertexShader, RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveTessVertexShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
@@ -143,7 +148,7 @@ public:
 class FRivePathPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRivePathPixelShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRivePathPixelShader, RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRivePathPixelShader, FGlobalShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
@@ -172,7 +177,7 @@ public:
 class FRivePathVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRivePathVertexShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRivePathVertexShader, RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRivePathVertexShader, FGlobalShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
@@ -192,14 +197,15 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return true;
+        return GRHISupportsPixelShaderUAVs;
     }
 };
 
 class FRiveInteriorTrianglesPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveInteriorTrianglesPixelShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveInteriorTrianglesPixelShader,
+                                   RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveInteriorTrianglesPixelShader,
                                 FGlobalShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
@@ -225,14 +231,15 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return true;
+        return GRHISupportsPixelShaderUAVs;
     }
 };
 
 class FRiveInteriorTrianglesVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveInteriorTrianglesVertexShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveInteriorTrianglesVertexShader,
+                                   RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveInteriorTrianglesVertexShader,
                                 FGlobalShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
@@ -248,14 +255,14 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return true;
+        return GRHISupportsPixelShaderUAVs;
     }
 };
 
 class FRiveImageRectPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveImageRectPixelShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveImageRectPixelShader, RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveImageRectPixelShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
@@ -283,14 +290,14 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return true;
+        return GRHISupportsPixelShaderUAVs;
     }
 };
 
 class FRiveImageRectVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveImageRectVertexShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveImageRectVertexShader, RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveImageRectVertexShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
@@ -306,14 +313,14 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return true;
+        return GRHISupportsPixelShaderUAVs;
     }
 };
 
 class FRiveImageMeshPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveImageMeshPixelShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveImageMeshPixelShader, RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveImageMeshPixelShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
@@ -342,14 +349,14 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return true;
+        return GRHISupportsPixelShaderUAVs;
     }
 };
 
 class FRiveImageMeshVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveImageMeshVertexShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveImageMeshVertexShader, RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveImageMeshVertexShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
@@ -365,15 +372,16 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return true;
+        return GRHISupportsPixelShaderUAVs;
     }
 };
 
-class FRiveAtomiResolvePixelShader : public FGlobalShader
+class FRiveAtomicResolvePixelShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveAtomiResolvePixelShader);
-    SHADER_USE_PARAMETER_STRUCT(FRiveAtomiResolvePixelShader, FGlobalShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveAtomicResolvePixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveAtomicResolvePixelShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 
@@ -391,13 +399,19 @@ public:
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,
         FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return GRHISupportsPixelShaderUAVs;
+    }
 };
 
-class FRiveAtomiResolveVertexShader : public FGlobalShader
+class FRiveAtomicResolveVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_GLOBAL_SHADER(FRiveAtomiResolveVertexShader);
-    SHADER_USE_PARAMETER_STRUCT(FRiveAtomiResolveVertexShader, FGlobalShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveAtomicResolveVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveAtomicResolveVertexShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
@@ -411,6 +425,6 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return true;
+        return GRHISupportsPixelShaderUAVs;
     }
 };

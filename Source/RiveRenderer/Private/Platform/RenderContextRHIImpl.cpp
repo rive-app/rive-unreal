@@ -1,6 +1,7 @@
 #include "RenderContextRHIImpl.hpp"
 
 #include "CommonRenderResources.h"
+#include "DataDrivenShaderPlatformInfo.h"
 #include "IImageWrapperModule.h"
 #include "IImageWrapper.h"
 #include "RenderGraphBuilder.h"
@@ -15,8 +16,6 @@
 
 #include "RHICommandList.h"
 #include "rive/decoders/bitmap_decoder.hpp"
-
-#include "Shaders/ShaderPipelineManager.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
@@ -155,6 +154,7 @@ TStaticResourceData<uint16_t, kPatchIndexBufferCount> GPatchIndices;
 
 void GetPermutationForFeatures(
     const ShaderFeatures features,
+    const RHICapabilities& Capabilities,
     AtomicPixelPermutationDomain& PixelPermutationDomain,
     AtomicVertexPermutationDomain& VertexPermutationDomain)
 {
@@ -179,6 +179,18 @@ void GetPermutationForFeatures(
                                                ShaderFeatures::ENABLE_EVEN_ODD);
     PixelPermutationDomain.Set<FEnableHSLBlendMode>(
         features & ShaderFeatures::ENABLE_HSL_BLEND_MODES);
+}
+
+RHICapabilities::RHICapabilities()
+{
+    bSupportsPixelShaderUAVs = GRHISupportsPixelShaderUAVs;
+    bSupportsRasterOrderViews = GRHISupportsRasterOrderViews;
+    bSupportsTypedUAVLoads =
+        UE::PixelFormat::HasCapabilities(PF_R8G8B8A8,
+                                         EPixelFormatCapabilities::UAV) &&
+        UE::PixelFormat::HasCapabilities(PF_B8G8R8A8,
+                                         EPixelFormatCapabilities::UAV) &&
+        RHISupports4ComponentUAVReadWrite(GMaxRHIShaderPlatform);
 }
 
 template <typename DataType>
@@ -365,6 +377,7 @@ private:
 };
 
 RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
+                                 const RHICapabilities& Capabilities,
                                  const FTexture2DRHIRef& InTextureTarget) :
     RenderTarget(InTextureTarget->GetSizeX(), InTextureTarget->GetSizeY()),
     m_textureTarget(InTextureTarget)
@@ -394,8 +407,21 @@ RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
     clipDesc.AddFlags(ETextureCreateFlags::UAV);
     m_clipTexture = CREATE_TEXTURE(RHICmdList, clipDesc);
 
+    m_targetTextureSupportsUAV = static_cast<bool>(
+        m_textureTarget->GetDesc().Flags & ETextureCreateFlags::UAV);
+
+    // Rive is not currently supported without UAVs.
+    assert(Capabilities.bSupportsPixelShaderUAVs);
+
     // TODO: Lazy Load these
-    m_targetUAV = RHICmdList.CreateUnorderedAccessView(m_textureTarget);
+    if (Capabilities.bSupportsTypedUAVLoads)
+        m_targetUAV = RHICmdList.CreateUnorderedAccessView(m_textureTarget);
+    else
+        m_targetUAV = RHICmdList.CreateUnorderedAccessView(
+            m_textureTarget,
+            0,
+            static_cast<uint8>(EPixelFormat::PF_R32_UINT));
+
     m_coverageUAV =
         RHICmdList.CreateUnorderedAccessView(m_atomicCoverageTexture);
     m_clipUAV = RHICmdList.CreateUnorderedAccessView(m_clipTexture);
@@ -439,9 +465,11 @@ std::unique_ptr<RenderContext> RenderContextRHIImpl::MakeContext(
 RenderContextRHIImpl::RenderContextRHIImpl(
     FRHICommandListImmediate& CommandListImmediate)
 {
-    m_platformFeatures.supportsFragmentShaderAtomics = true;
+    m_platformFeatures.supportsFragmentShaderAtomics =
+        m_capabilities.bSupportsPixelShaderUAVs;
     m_platformFeatures.supportsClipPlanes = true;
-    m_platformFeatures.supportsRasterOrdering = false;
+    m_platformFeatures.supportsRasterOrdering =
+        false; // m_capabilities.bSupportsRasterOrderViews;
     m_platformFeatures.invertOffscreenY = true;
 
     auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
@@ -587,7 +615,9 @@ rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(
     FRHICommandListImmediate& RHICmdList,
     const FTexture2DRHIRef& InTargetTexture)
 {
-    return make_rcp<RenderTargetRHI>(RHICmdList, InTargetTexture);
+    return make_rcp<RenderTargetRHI>(RHICmdList,
+                                     m_capabilities,
+                                     InTargetTexture);
 }
 
 rcp<Texture> RenderContextRHIImpl::decodeImageTexture(
@@ -1190,57 +1220,88 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                                   ERHIAccess::SRVGraphics));
     }
 
+    bool renderDirectToRasterPipeline =
+        desc.interlockMode == InterlockMode::atomics &&
+        (!renderTarget->TargetTextureSupportsUAV() ||
+         !(desc.combinedShaderFeatures &
+           ShaderFeatures::ENABLE_ADVANCED_BLEND));
+
     bool needsBarrierBeforeNextDraw = false;
-    if (desc.interlockMode == InterlockMode::atomics)
+    if (desc.interlockMode == InterlockMode::atomics &&
+        !m_capabilities.bSupportsRasterOrderViews)
     {
         needsBarrierBeforeNextDraw = true;
     }
 
-    ERenderTargetActions loadAction = ERenderTargetActions::Load_Store;
-    bool shouldPreserveRenderTarget = true;
-    switch (desc.colorLoadAction)
+    // we never choose ERenderTargetActions::Clear_Store because we can not
+    // change the clear color without re-creating the texture. So instead we use
+    // a render graph to draw a clear color directly to it or clear it as a uav,
+    // depending on if it supports uavs or not
+    ERenderTargetActions loadAction =
+        desc.colorLoadAction == LoadAction::dontCare
+            ? ERenderTargetActions::DontLoad_Store
+            : ERenderTargetActions::Load_Store;
+    bool shouldPreserveRenderTarget =
+        desc.colorLoadAction != LoadAction::dontCare;
+
+    CommandList.Transition(FRHITransitionInfo(
+        DestTexture,
+        shouldPreserveRenderTarget ? ERHIAccess::UAVGraphics
+                                   : ERHIAccess::Unknown,
+        renderDirectToRasterPipeline ? ERHIAccess::RTV
+                                     : ERHIAccess::UAVGraphics));
+
+    if (desc.colorLoadAction == LoadAction::clear)
     {
-        case LoadAction::clear:
+        if (renderDirectToRasterPipeline)
         {
+            // this will all be moved out and used everywhere once RDG is setup
+            // correctly this has to be done because we have no way to update
+            // the bound clear color without creating a new texture
             float clearColor4f[4];
             UnpackColorToRGBA32FPremul(desc.clearColor, clearColor4f);
-            CommandList.ClearUAVFloat(renderTarget->targetUAV(),
-                                      FVector4f(clearColor4f[0],
-                                                clearColor4f[1],
-                                                clearColor4f[2],
-                                                clearColor4f[3]));
+            FRDGBuilder ClearPassBuilder(CommandList.GetAsImmediate());
+            auto DestRDGTexture = ClearPassBuilder.RegisterExternalTexture(
+                CreateRenderTarget(DestTexture, TEXT("RDG Clear Pass")));
+            AddClearRenderTargetPass(ClearPassBuilder,
+                                     DestRDGTexture,
+                                     FLinearColor(clearColor4f[0],
+                                                  clearColor4f[1],
+                                                  clearColor4f[2],
+                                                  clearColor4f[3]));
+            ClearPassBuilder.Execute();
         }
-            loadAction = ERenderTargetActions::Load_Store;
-            break;
-        case LoadAction::preserveRenderTarget:
-            loadAction = ERenderTargetActions::Load_Store;
-            break;
-        case LoadAction::dontCare:
-            loadAction = ERenderTargetActions::DontLoad_Store;
-            shouldPreserveRenderTarget = false;
-            break;
+        else
+        {
+            if (m_capabilities.bSupportsTypedUAVLoads)
+            {
+                float clearColor4f[4];
+                UnpackColorToRGBA32FPremul(desc.clearColor, clearColor4f);
+                CommandList.ClearUAVFloat(renderTarget->targetUAV(),
+                                          FVector4f(clearColor4f[0],
+                                                    clearColor4f[1],
+                                                    clearColor4f[2],
+                                                    clearColor4f[3]));
+            }
+            else
+            {
+                auto Color = gpu::SwizzleRiveColorToRGBAPremul(desc.clearColor);
+                CommandList.ClearUAVUint(renderTarget->targetUAV(),
+                                         FUintVector4(Color));
+            }
+        }
     }
 
     FRHIRenderPassInfo Info;
-    if (!(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_ADVANCED_BLEND))
+    if (renderDirectToRasterPipeline)
     {
         Info.ColorRenderTargets[0].RenderTarget = DestTexture;
         Info.ColorRenderTargets[0].Action = loadAction;
-        CommandList.Transition(FRHITransitionInfo(DestTexture,
-                                                  shouldPreserveRenderTarget
-                                                      ? ERHIAccess::UAVGraphics
-                                                      : ERHIAccess::Unknown,
-                                                  ERHIAccess::RTV));
     }
     else
     {
         Info.ResolveRect =
             FResolveRect(0, 0, renderTarget->width(), renderTarget->height());
-        CommandList.Transition(FRHITransitionInfo(DestTexture,
-                                                  shouldPreserveRenderTarget
-                                                      ? ERHIAccess::UAVGraphics
-                                                      : ERHIAccess::Unknown,
-                                                  ERHIAccess::UAVGraphics));
     }
 
     TArray<FRHITransitionInfo> TransitionInfos = {
@@ -1248,13 +1309,13 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                            ERHIAccess::UAVGraphics,
                            ERHIAccess::UAVGraphics)};
 
-    if (desc.combinedShaderFeatures & ShaderFeatures::ENABLE_ADVANCED_BLEND)
+    if (renderDirectToRasterPipeline)
+        TransitionInfos.Add(
+            FRHITransitionInfo(DestTexture, ERHIAccess::RTV, ERHIAccess::RTV));
+    else
         TransitionInfos.Add(FRHITransitionInfo(renderTarget->targetUAV(),
                                                ERHIAccess::UAVGraphics,
                                                ERHIAccess::UAVGraphics));
-    else
-        TransitionInfos.Add(
-            FRHITransitionInfo(DestTexture, ERHIAccess::RTV, ERHIAccess::RTV));
 
     if (desc.combinedShaderFeatures & ShaderFeatures::ENABLE_CLIPPING)
         TransitionInfos.Add(FRHITransitionInfo(renderTarget->clipUAV(),
@@ -1269,8 +1330,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                             renderTarget->height(),
                             1.0);
 
-    // FIXED_FUNCTION_OUTPUT
-    if (!(desc.combinedShaderFeatures & ShaderFeatures::ENABLE_ADVANCED_BLEND))
+    if (renderDirectToRasterPipeline)
         GraphicsPSOInit.BlendState =
             TStaticBlendState<CW_RGBA,
                               BO_Add,
@@ -1297,7 +1357,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         AtomicPixelPermutationDomain PixelPermutationDomain;
         AtomicVertexPermutationDomain VertexPermutationDomain;
 
-        GetPermutationForFeatures(desc.combinedShaderFeatures,
+        auto ShaderFeatures = desc.interlockMode == InterlockMode::atomics
+                                  ? desc.combinedShaderFeatures
+                                  : batch.shaderFeatures;
+
+        GetPermutationForFeatures(ShaderFeatures,
+                                  m_capabilities,
                                   PixelPermutationDomain,
                                   VertexPermutationDomain);
 
@@ -1601,10 +1666,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                  ERasterizerDepthClipMode::DepthClamp);
                 GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
 
-                TShaderMapRef<FRiveAtomiResolveVertexShader> VertexShader(
+                TShaderMapRef<FRiveAtomicResolveVertexShader> VertexShader(
                     ShaderMap,
                     VertexPermutationDomain);
-                TShaderMapRef<FRiveAtomiResolvePixelShader> PixelShader(
+                TShaderMapRef<FRiveAtomicResolvePixelShader> PixelShader(
                     ShaderMap,
                     PixelPermutationDomain);
 
@@ -1615,8 +1680,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                             VertexDeclarations[static_cast<int32>(
                                 EVertexDeclarations::Resolve)]);
 
-                FRiveAtomiResolveVertexShader::FParameters VertexParameters;
-                FRiveAtomiResolvePixelShader::FParameters PixelParameters;
+                FRiveAtomicResolveVertexShader::FParameters VertexParameters;
+                FRiveAtomicResolvePixelShader::FParameters PixelParameters;
 
                 PixelParameters.GLSL_gradTexture_raw = gradiantTexture;
                 PixelParameters.gradSampler = m_linearSampler;
@@ -1654,17 +1719,19 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     }
 
     CommandList.EndRenderPass();
-    if (desc.combinedShaderFeatures & ShaderFeatures::ENABLE_ADVANCED_BLEND)
+    // According to Ryan at GeoTech, Unreal expects us to give the texture back
+    // in UAVGraphics
+    // TODO: Check that this is true
+    if (renderDirectToRasterPipeline)
     {
         CommandList.Transition(FRHITransitionInfo(DestTexture,
-                                                  ERHIAccess::UAVGraphics,
+                                                  ERHIAccess::RTV,
                                                   ERHIAccess::UAVGraphics));
     }
     else
     {
-        // needed for fixed function output mode
         CommandList.Transition(FRHITransitionInfo(DestTexture,
-                                                  ERHIAccess::RTV,
+                                                  ERHIAccess::UAVGraphics,
                                                   ERHIAccess::UAVGraphics));
     }
 }

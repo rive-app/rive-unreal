@@ -4,17 +4,38 @@ using EpicGames.Core;
 #else
 using Tools.DotNETCommon;
 #endif
+using System.Collections.Generic;
 using System.IO;
 using UnrealBuildTool;
 
 public class RiveLibrary : ModuleRules
 {
+    // Added for multi Arch build support
+    public struct NativeLibraryDetails
+    {
+        public string Extension;
+        public string LibSuffix;
+        public string LibPrefix;
+        public string LibDirectory;
+
+		public NativeLibraryDetails(string extension, string libSuffix, string libPrefix, string libDirectory)
+		{
+			Extension = extension;
+			LibSuffix = libSuffix;
+			LibPrefix = libPrefix;
+			LibDirectory = libDirectory;
+		}
+
+        public string GetLibPath(string baseName)
+        {
+            return Path.Combine(LibDirectory, LibPrefix + baseName + LibSuffix + Extension);
+        }
+    }
     public RiveLibrary(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
-
-        bool bIsPlatformAdded = false;
-
+        CppStandard = CppStandardVersion.Cpp17;
+		
         PrivateDependencyModuleNames.Add("Vulkan");
 
         AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
@@ -32,116 +53,127 @@ public class RiveLibrary : ModuleRules
         bool bDebug = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT);
 
         string libSuffix = bDebug ? "_d" : "";
-        string libDirectory = "";
-        string extension = "";
-        string libPrefix = "";
 
+        var details = new List<NativeLibraryDetails>();
+        
         if (Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
         {
-            extension = ".lib";
             AddEngineThirdPartyPrivateStaticDependencies(Target, "DX9");
             AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
             // AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 
             PublicSystemLibraries.Add("d3dcompiler.lib");
-
-            libDirectory = Path.Combine(rootDir, "Libraries", "Win64");
-
-            bIsPlatformAdded = true;
+            
+            details.Add(new NativeLibraryDetails(".lib",libSuffix,"",Path.Combine(rootDir, "Libraries", "Win64")));
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
-            libPrefix = "lib";
-            extension = ".a";
-            libDirectory = Path.Combine(rootDir, "Libraries", "Mac");
-#if UE_5_0_OR_LATER
+#if UE_5_4_OR_LATER
+			if (Target.Architectures.Contains(UnrealArch.Arm64))
+#elif UE_5_0_OR_LATER
             if (Target.Architecture == UnrealArch.Arm64)
 #else
             if (Target.Architecture.Contains("arm64"))
 #endif
             {
-                libDirectory = Path.Combine(libDirectory, "Mac");
+                string libDirectory = Path.Combine(rootDir, "Libraries", "Mac", "Mac");
                 PublicDefinitions.Add("WITH_RIVE_MAC_ARM64 = 1");
+				details.Add(new NativeLibraryDetails(".a", libSuffix,"lib", libDirectory));
             }
-            else
+#if UE_5_4_OR_LATER
+			if(Target.Architectures.Contains(UnrealArch.X64))
+#else 
+			else
+#endif
             {
-                libDirectory = Path.Combine(libDirectory, "Intel");
+                string libDirectory = Path.Combine(rootDir, "Libraries", "Mac", "Intel");
                 PublicDefinitions.Add("WITH_RIVE_MAC_INTEL = 1");
+				details.Add(new NativeLibraryDetails(".a", libSuffix,"lib", libDirectory));
             }
-
-            bIsPlatformAdded = true;
         }
         else if (Target.Platform == UnrealTargetPlatform.IOS)
         {
-            libPrefix = "lib";
-            libDirectory = Path.Combine(rootDir, "Libraries", "IOS");
-#if UE_5_0_OR_LATER
-            extension = (Target.Architecture == UnrealArch.IOSSimulator) ? ".sim.a" : ".a";
+			PublicFrameworks.Add("CoreText");
+
+#if UE_5_4_OR_LATER
+            if (Target.Architectures.Contains( UnrealArch.IOSSimulator))
+#elif UE_5_0_OR_LATER
+            if (Target.Architecture == UnrealArch.IOSSimulator)
 #else
-            extension = (Target.Architecture.Contains("sim")) ? ".sim.a" : ".a";
+            if (Target.Architecture.Contains("sim"))
 #endif
-            bIsPlatformAdded = true;
+			{
+				details.Add(new NativeLibraryDetails(".sim.a", libSuffix,"lib", Path.Combine(rootDir, "Libraries", "IOS")));
+			}
+#if UE_5_4_OR_LATER
+            if (!Target.Architectures.Contains( UnrealArch.IOSSimulator))
+#elif UE_5_0_OR_LATER
+            if (!(Target.Architecture == UnrealArch.IOSSimulator))
+#else
+            if (!Target.Architecture.Contains("sim"))
+#endif
+			{
+				details.Add(new NativeLibraryDetails(".a", libSuffix, "lib", Path.Combine(rootDir, "Libraries", "IOS")));
+			}
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {
             PrivateDependencyModuleNames.Add("OpenGLDrv");
             AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
 
-            libDirectory = Path.Combine(rootDir, "Libraries", "Android");
-            extension = ".a";
-
+            string libDirectory = Path.Combine(rootDir, "Libraries", "Android");
             PublicRuntimeLibraryPaths.Add(libDirectory);
+			details.Add(new NativeLibraryDetails(".a",libSuffix,"lib", libDirectory));
 
             PrecompileForTargets = PrecompileTargetsType.None;
-            bIsPlatformAdded = true;
-
             string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
             AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "RiveLibrary_APL.xml"));
+			
         }
         else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
         {
-            libDirectory = Path.Combine(rootDir, "Libraries", "Unix");
-            extension = ".a";
+            //libDirectory = Path.Combine(rootDir, "Libraries", "Unix");
+            //extension = ".a";
             // NOTE : Link Unix Libraries
 
-            bIsPlatformAdded = true;
         }
 
-        if (bIsPlatformAdded)
-        {
-            if (Target.IsInPlatformGroup(UnrealPlatformGroup.Apple))
-            {
-                PublicAdditionalLibraries.AddRange(new string[]
-               {
-                        Path.Combine(libDirectory, libPrefix+ "libwebp" + libSuffix +  extension),
-                        Path.Combine(libDirectory, libPrefix+ "libpng" + libSuffix + extension),
-                        Path.Combine(libDirectory, libPrefix+ "libjpeg" + libSuffix + extension),
-               });
+		foreach (var detail in details)
+		{
+	        if (Target.IsInPlatformGroup(UnrealPlatformGroup.Apple) || Target.IsInPlatformGroup(UnrealPlatformGroup.Android))
+	        {
+	            PublicAdditionalLibraries.AddRange(new string[]
+	           {
+	                    detail.GetLibPath("libwebp"),
+	                    detail.GetLibPath("libpng"),
+	                    detail.GetLibPath("libjpeg"),
+	           });
 
-            }
-            else
-            {
-                PublicAdditionalLibraries.AddRange(new string[]
-               {
-                        Path.Combine(libDirectory, libPrefix+ "rive_libwebp" + libSuffix +  extension),
-                        Path.Combine(libDirectory, libPrefix+ "rive_libpng" + libSuffix + extension),
-                        Path.Combine(libDirectory, libPrefix+ "rive_libjpeg" + libSuffix + extension),
-               });
-            }
+	        }
+	        else
+	        {
+	            PublicAdditionalLibraries.AddRange(new string[]
+	           {
+	                    detail.GetLibPath("rive_libwebp"),
+	                    detail.GetLibPath("rive_libpng"),
+	                    detail.GetLibPath("rive_libjpeg"),
+	           });
+	        }
 
-            PublicAdditionalLibraries.AddRange(new string[]
-            {
-                Path.Combine(libDirectory, libPrefix+ "rive_sheenbidi" + libSuffix + extension),
-                Path.Combine(libDirectory, libPrefix+ "rive_harfbuzz" + libSuffix + extension),
-                Path.Combine(libDirectory, libPrefix+ "rive_decoders" + libSuffix + extension),
-                Path.Combine(libDirectory, libPrefix+ "rive_pls_renderer" + libSuffix + extension),
-                Path.Combine(libDirectory, libPrefix+ "rive_yoga" + libSuffix + extension),
-                Path.Combine(libDirectory, libPrefix+ "rive" + libSuffix + extension),
-            });
+	        PublicAdditionalLibraries.AddRange(new string[]
+	        {
+	            detail.GetLibPath("rive_sheenbidi"),
+	            detail.GetLibPath("rive_harfbuzz"),
+	            detail.GetLibPath("rive_decoders"),
+	            detail.GetLibPath("rive_pls_renderer"),
+	            detail.GetLibPath("rive_yoga"),
+	            detail.GetLibPath("rive"),
+	        });
+		}
 
-            PublicDefinitions.Add("WITH_RIVE=1");
-            PublicDefinitions.Add("WITH_RIVE_AUDIO=1");
-            PublicDefinitions.Add("EXTERNAL_RIVE_AUDIO_ENGINE=1");
-        }
+        PublicDefinitions.Add("WITH_RIVE=1");
+        PublicDefinitions.Add("WITH_RIVE_AUDIO=1");
+        PublicDefinitions.Add("EXTERNAL_RIVE_AUDIO_ENGINE=1");
+        
     }
 }

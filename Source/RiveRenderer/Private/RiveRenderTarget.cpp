@@ -191,9 +191,9 @@ void FRiveRenderTarget::RegisterRenderCommand(RiveRenderFunction RenderFunction)
 
 std::unique_ptr<rive::RiveRenderer> FRiveRenderTarget::BeginFrame()
 {
-    rive::gpu::RenderContext* PLSRenderContextPtr =
+    rive::gpu::RenderContext* RenderContextPtr =
         RiveRenderer->GetRenderContext();
-    if (PLSRenderContextPtr == nullptr)
+    if (RenderContextPtr == nullptr)
     {
         return nullptr;
     }
@@ -216,13 +216,8 @@ std::unique_ptr<rive::RiveRenderer> FRiveRenderTarget::BeginFrame()
         bIsCleared = true;
     }
 
-#if PLATFORM_ANDROID
-    RIVE_DEBUG_VERBOSE("FRiveRenderTargetOpenGL RenderContext->beginFrame %p",
-                       RenderContext);
-#endif
-
-    PLSRenderContextPtr->beginFrame(std::move(FrameDescriptor));
-    return std::make_unique<rive::RiveRenderer>(PLSRenderContextPtr);
+    RenderContextPtr->beginFrame(std::move(FrameDescriptor));
+    return std::make_unique<rive::RiveRenderer>(RenderContextPtr);
 }
 
 void FRiveRenderTarget::EndFrame() const
