@@ -136,8 +136,8 @@ public:
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    SHADER_PARAMETER_SRV(Buffer<float>, GLSL_pathBuffer_raw)
-    SHADER_PARAMETER_SRV(Buffer<float>, GLSL_contourBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
     static void ModifyCompilationEnvironment(
@@ -158,8 +158,8 @@ public:
     SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 
-    SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
-    SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<float4>, GLSL_paintAuxBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
@@ -183,8 +183,8 @@ public:
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
 
     SHADER_PARAMETER_SRV(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
-    SHADER_PARAMETER_SRV(Buffer<uint4>, GLSL_pathBuffer_raw)
-    SHADER_PARAMETER_SRV(Buffer<uint4>, GLSL_contourBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
     SHADER_PARAMETER(unsigned int, baseInstance)
 
     END_SHADER_PARAMETER_STRUCT()
@@ -218,8 +218,8 @@ public:
 
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 
-    SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
-    SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<float4>, GLSL_paintAuxBuffer_raw)
 
     END_SHADER_PARAMETER_STRUCT()
 
@@ -244,7 +244,7 @@ public:
                                 FGlobalShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    SHADER_PARAMETER_SRV(Buffer<uint4>, GLSL_pathBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
@@ -278,8 +278,8 @@ public:
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
     SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
 
-    SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
-    SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<float4>, GLSL_paintAuxBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
@@ -337,8 +337,8 @@ public:
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
     SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
 
-    SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
-    SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<float4>, GLSL_paintAuxBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
@@ -387,8 +387,8 @@ public:
 
     SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
-    SHADER_PARAMETER_SRV(Buffer<uint2>, GLSL_paintBuffer_raw)
-    SHADER_PARAMETER_SRV(Buffer<float4>, GLSL_paintAuxBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_SRV(StructuredBuffer<float4>, GLSL_paintAuxBuffer_raw)
     SHADER_PARAMETER_UAV(Texture2D<uint>, coverageAtomicBuffer)
     SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
     SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
@@ -427,4 +427,67 @@ public:
     {
         return GRHISupportsPixelShaderUAVs;
     }
+};
+
+/*
+ * The shader will convert a PF_R32 texture to PF_R8G8B8A8 in order to visualize
+ * it. It does so by writing SourceTexture to the current rendertarget color
+ * float4(value, 0, 0, 1)
+ */
+class FRiveBltU32AsF4PixelShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveBltU32AsF4PixelShader, RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveBltU32AsF4PixelShader, FGlobalShader);
+
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_TEXTURE(Texture2D, SourceTexture)
+    RENDER_TARGET_BINDING_SLOTS()
+    END_SHADER_PARAMETER_STRUCT()
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+/*
+ * The shader will convert a PF_R32G32B32A32_UINT texture to PF_R8G8B8A8 in
+ * order to visualize it. It does so by writing SourceTexture to the current
+ * rendertarget color float4( float(val.r), float(val.g), float(val.b), 1.0 );
+ */
+class FRiveBltU324AsF4PixelShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveBltU324AsF4PixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveBltU324AsF4PixelShader, FGlobalShader);
+
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_TEXTURE(Texture2D, SourceTexture)
+    RENDER_TARGET_BINDING_SLOTS()
+    END_SHADER_PARAMETER_STRUCT()
+};
+
+/*
+ * The shader will convert a uint2 buffer to PF_R8G8B8A8 in order to visualize
+ * it. it does so in a slightly more intelligent way by passing the values of
+ * buffer through sin and cos when writing it to the bound render target
+ */
+class FRiveVisualizeBufferPixelShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveVisualizeBufferPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveVisualizeBufferPixelShader, FGlobalShader);
+
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_SRV(Buffer<uint2>, SourceBuffer)
+    SHADER_PARAMETER(UE::HLSL::uint2, ViewSize)
+    SHADER_PARAMETER(UE::HLSL::uint, BufferSize)
+    RENDER_TARGET_BINDING_SLOTS()
+    END_SHADER_PARAMETER_STRUCT()
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
 };

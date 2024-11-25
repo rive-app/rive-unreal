@@ -129,6 +129,16 @@ void FRiveAtomicResolveVertexShader::ModifyCompilationEnvironment(
     Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
 }
 
+void FRiveBltU32AsF4PixelShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{}
+
+void FRiveVisualizeBufferPixelShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{}
+
 IMPLEMENT_GLOBAL_SHADER(FRiveGradientPixelShader,
                         "/Plugin/Rive/Private/Rive/color_ramp.usf",
                         GLSL_colorRampFragmentMain,
@@ -193,6 +203,21 @@ IMPLEMENT_GLOBAL_SHADER(FRiveAtomicResolveVertexShader,
                         "/Plugin/Rive/Private/Rive/atomic_resolve_pls.usf",
                         GLSL_drawVertexMain,
                         SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveBltU32AsF4PixelShader,
+                        "/Plugin/Rive/Private/Rive/blt_u32_as_f4.usf",
+                        "FragmentMain",
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveBltU324AsF4PixelShader,
+                        "/Plugin/Rive/Private/Rive/blt_u324_to_f4.usf",
+                        "FragmentMain",
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveVisualizeBufferPixelShader,
+                        "/Plugin/Rive/Private/Rive/visualize_buffer.usf",
+                        "FragmentMain",
+                        SF_Pixel);
 
 IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FFlushUniforms, "uniforms");
 IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FImageDrawUniforms,

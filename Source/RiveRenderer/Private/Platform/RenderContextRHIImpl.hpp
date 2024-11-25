@@ -1,8 +1,8 @@
 #pragma once
 #include <chrono>
 
+#include "Logs/RiveRendererLog.h"
 #include "RiveShaders/Public/RiveShaderTypes.h"
-#include "RiveShaders/Public/RiveShadersModule.h"
 
 THIRD_PARTY_INCLUDES_START
 #undef PI
@@ -29,6 +29,10 @@ public:
     virtual ~RenderTargetRHI() override {}
 
     FTexture2DRHIRef texture() const { return m_textureTarget; }
+
+    FTexture2DRHIRef clipTexture() const { return m_clipTexture; }
+
+    FTexture2DRHIRef coverageTexture() const { return m_atomicCoverageTexture; }
 
     FUnorderedAccessViewRHIRef targetUAV() const { return m_targetUAV; }
 
@@ -57,7 +61,6 @@ private:
     bool m_targetTextureSupportsUAV;
 };
 
-class StructuredBufferRingRHIImpl;
 // TODO: Make this use staging buffer
 class BufferRingRHIImpl final : public rive::gpu::BufferRing
 {
@@ -129,43 +132,91 @@ private:
     void* m_mappedBuffer;
 };
 
-class StructuredBufferRingRHIImpl final : public rive::gpu::BufferRing
+template <typename HighLevelStruct> class StructuredBufferRHIImpl final
 {
 public:
-    StructuredBufferRingRHIImpl(EBufferUsageFlags flags,
-                                size_t inSizeInBytes,
-                                size_t elementSize);
-    template <typename HighLevelStruct>
-    void Sync(FRHICommandList& commandList,
-              size_t elementOffset,
-              size_t elementCount)
-    {
-        // for DX12 we should use RLM_WriteOnly_NoOverwrite but RLM_WriteOnly
-        // works everywhere so we use it for now
-        auto data =
-            commandList.LockBuffer(m_buffer,
-                                   0,
-                                   elementCount * sizeof(HighLevelStruct),
-                                   RLM_WriteOnly);
-        memcpy(data,
-               shadowBuffer() + (elementOffset * sizeof(HighLevelStruct)),
-               elementCount * sizeof(HighLevelStruct));
-        commandList.UnlockBuffer(m_buffer);
-    }
-    FBufferRHIRef contents() const;
-    FShaderResourceViewRHIRef srv() const;
+    StructuredBufferRHIImpl(EBufferUsageFlags flags) :
+        m_flags(flags), m_sizeInBytes(0), m_lastMapSizeInBytes(0), m_data(true)
+    {}
 
-protected:
-    virtual void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override;
-    virtual void onUnmapAndSubmitBuffer(int bufferIdx,
-                                        size_t mapSizeInBytes) override;
+    StructuredBufferRHIImpl() :
+        m_flags(EBufferUsageFlags::ShaderResource),
+        m_sizeInBytes(0),
+        m_lastMapSizeInBytes(0),
+        m_data(true)
+    {}
+
+    void Resize(size_t newSizeInBytes, size_t gpuStride)
+    {
+        check(m_gpuStride == gpuStride)
+            m_data.SetNumUninitialized(newSizeInBytes / m_cpuStride);
+        m_sizeInBytes = newSizeInBytes;
+    }
+
+    FBufferRHIRef Sync(FRHICommandList& commandList)
+    {
+        if (m_sizeInBytes == 0)
+            return nullptr;
+
+        FRHIResourceCreateInfo Info(TEXT("StructuredBufferRHIImpl"), &m_data);
+        return commandList.CreateStructuredBuffer(
+            m_gpuStride,
+            m_data.GetResourceDataSize(),
+            m_flags | EBufferUsageFlags::Volatile,
+            Info);
+    }
+
+    FShaderResourceViewRHIRef SyncSRV(FRHICommandList& commandList,
+                                      size_t elementOffset,
+                                      size_t elementCount)
+    {
+        if (auto buffer = Sync(commandList))
+        {
+            return commandList.CreateShaderResourceView(
+                buffer,
+                FRHIViewDesc::CreateBufferSRV()
+                    .SetType(FRHIViewDesc::EBufferType::Structured)
+                    .SetOffsetInBytes(elementOffset * m_cpuStride)
+                    .SetNumElements(elementCount *
+                                    (m_cpuStride / m_gpuStride)));
+        }
+
+        return nullptr;
+    }
+
+    FShaderResourceViewRHIRef SyncSRV(FRHICommandList& commandList)
+    {
+        auto buffer = Sync(commandList);
+        return commandList.CreateShaderResourceView(
+            buffer,
+            FRHIViewDesc::CreateBufferSRV().SetType(
+                FRHIViewDesc::EBufferType::Structured));
+    }
+
+    void* Map(size_t mapSizeInBytes)
+    {
+        // we cant be 0 size
+        check(m_sizeInBytes);
+        // our map size must be less than or equal to our actual size
+        check(mapSizeInBytes <= m_sizeInBytes);
+        // our stride must be a factor of our map size
+        check(mapSizeInBytes % m_gpuStride == 0);
+        m_lastMapSizeInBytes = mapSizeInBytes;
+        return m_data.GetData();
+    }
+
+    size_t GPUSize() const { return m_sizeInBytes / m_gpuStride; }
 
 private:
-    FBufferRHIRef m_buffer;
     EBufferUsageFlags m_flags;
-    FShaderResourceViewRHIRef m_srv;
-    size_t m_elementSize;
+    size_t m_sizeInBytes;
     size_t m_lastMapSizeInBytes;
+    TResourceArray<HighLevelStruct> m_data;
+
+    static constexpr size_t m_cpuStride = sizeof(HighLevelStruct);
+    static constexpr size_t m_gpuStride =
+        rive::gpu::StorageBufferElementSizeInBytes(
+            HighLevelStruct::kBufferStructure);
 };
 
 class DelayLoadedTexture
@@ -176,16 +227,16 @@ public:
                        bool inNeedsSRV = false);
     void Sync(FRHICommandList& RHICmdList);
 
-    FTextureRHIRef Contents() const { return texture; }
+    FTextureRHIRef Contents() const { return m_texture; }
 
-    FShaderResourceViewRHIRef SRV() const { return sRV; }
+    FShaderResourceViewRHIRef SRV() const { return m_srv; }
 
 private:
-    FTextureRHIRef texture;
-    FShaderResourceViewRHIRef sRV;
-    FRHITextureCreateDesc desc;
-    bool isDirty = false;
-    bool needsSRV = false;
+    FTextureRHIRef m_texture;
+    FShaderResourceViewRHIRef m_srv;
+    FRHITextureCreateDesc m_desc;
+    bool m_isDirty = false;
+    bool m_needsSRV = false;
 };
 
 enum class EVertexDeclarations : int32
@@ -291,10 +342,10 @@ private:
     std::unique_ptr<UniformBufferRHIImpl<FFlushUniforms>> m_flushUniformBuffer;
     std::unique_ptr<UniformBufferRHIImpl<FImageDrawUniforms>>
         m_imageDrawUniformBuffer;
-    std::unique_ptr<StructuredBufferRingRHIImpl> m_pathBuffer;
-    std::unique_ptr<StructuredBufferRingRHIImpl> m_paintBuffer;
-    std::unique_ptr<StructuredBufferRingRHIImpl> m_paintAuxBuffer;
-    std::unique_ptr<StructuredBufferRingRHIImpl> m_contourBuffer;
+    StructuredBufferRHIImpl<rive::gpu::PathData> m_pathBuffer;
+    StructuredBufferRHIImpl<rive::gpu::PaintData> m_paintBuffer;
+    StructuredBufferRHIImpl<rive::gpu::PaintAuxData> m_paintAuxBuffer;
+    StructuredBufferRHIImpl<rive::gpu::ContourData> m_contourBuffer;
     std::unique_ptr<rive::gpu::HeapBufferRing> m_simpleColorRampsBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_tessSpanBuffer;

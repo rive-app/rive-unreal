@@ -4,6 +4,7 @@
 #include "DataDrivenShaderPlatformInfo.h"
 #include "IImageWrapperModule.h"
 #include "IImageWrapper.h"
+#include "PixelShaderUtils.h"
 #include "RenderGraphBuilder.h"
 #include "RHIResourceUpdates.h"
 #include "RenderGraphUtils.h"
@@ -112,6 +113,7 @@ struct TStaticExternalResourceData : public FResourceArrayInterface
 
 public:
     TStaticExternalResourceData(const DataType (&Data)[size]) : Data(Data) {}
+
     /**
      * @return A pointer to the resource data.
      */
@@ -151,6 +153,18 @@ TStaticExternalResourceData GTessSpanIndices(kTessSpanIndices);
 
 TStaticResourceData<PatchVertex, kPatchVertexBufferCount> GPatchVertices;
 TStaticResourceData<uint16_t, kPatchIndexBufferCount> GPatchIndices;
+// clang format does weird things to this so turn it off
+// clang-format off
+static TAutoConsoleVariable<int32> CVarShouldVisualizeRive(
+    TEXT("r.rive.vis"),
+    0,
+    TEXT("If non 0, visualize one of many textures / buffers rive uses in "
+         "rendering\n") TEXT("<=0: off\n") TEXT("  1: visualize clip\n")
+        TEXT("  2: visualize coverage texture\n")
+        TEXT("  3: visualize tessalation texture\n")
+        TEXT("  4: visuzlize paint data buffer\n"),
+    ECVF_Scalability | ECVF_RenderThreadSafe);
+// clang-format on
 
 void GetPermutationForFeatures(
     const ShaderFeatures features,
@@ -179,6 +193,113 @@ void GetPermutationForFeatures(
                                                ShaderFeatures::ENABLE_EVEN_ODD);
     PixelPermutationDomain.Set<FEnableHSLBlendMode>(
         features & ShaderFeatures::ENABLE_HSL_BLEND_MODES);
+}
+
+/*
+ * Convenience function for adding a PF_R32 Texture visualization pass, used for
+ * debuging
+ */
+void AddBltU32ToF4Pass(FRHICommandList& CommandList,
+                       const FGlobalShaderMap* ShaderMap,
+                       FTextureRHIRef SourceTexture,
+                       FTextureRHIRef DestTexture,
+                       FIntPoint Size)
+{
+    // DEBUG STUFF
+    FRDGBuilder DebugBuilder(CommandList.GetAsImmediate());
+
+    auto DebugTexture = DebugBuilder.RegisterExternalTexture(
+        CreateRenderTarget(DestTexture, TEXT("DebugRenderTarget")));
+
+    TShaderMapRef<FRiveBltU32AsF4PixelShader> PixelShader(ShaderMap);
+
+    FRiveBltU32AsF4PixelShader::FParameters* BltU32ToF4Parameters =
+        DebugBuilder.AllocParameters<FRiveBltU32AsF4PixelShader::FParameters>();
+
+    BltU32ToF4Parameters->SourceTexture = SourceTexture;
+    BltU32ToF4Parameters->RenderTargets[0] =
+        FRenderTargetBinding(DebugTexture, ERenderTargetLoadAction::EClear);
+
+    FPixelShaderUtils::AddFullscreenPass(DebugBuilder,
+                                         ShaderMap,
+                                         RDG_EVENT_NAME("U32ToF4"),
+                                         PixelShader,
+                                         BltU32ToF4Parameters,
+                                         FIntRect(0, 0, Size.X, Size.Y));
+    DebugBuilder.Execute();
+}
+
+/*
+ * Convenience function for adding a PF_R32G32B32A32_UINT Texture visualization
+ * pass, used for debuging
+ */
+void AddBltU324ToF4Pass(FRHICommandList& CommandList,
+                        const FGlobalShaderMap* ShaderMap,
+                        FTextureRHIRef SourceTexture,
+                        FTextureRHIRef DestTexture,
+                        FIntPoint Size)
+{
+    // DEBUG STUFF
+    FRDGBuilder DebugBuilder(CommandList.GetAsImmediate());
+
+    auto DebugTexture = DebugBuilder.RegisterExternalTexture(
+        CreateRenderTarget(DestTexture, TEXT("DebugRenderTarget")));
+
+    TShaderMapRef<FRiveBltU324AsF4PixelShader> PixelShader(ShaderMap);
+
+    FRiveBltU324AsF4PixelShader::FParameters* BltU324ToF4Parameters =
+        DebugBuilder
+            .AllocParameters<FRiveBltU324AsF4PixelShader::FParameters>();
+
+    BltU324ToF4Parameters->SourceTexture = SourceTexture;
+    BltU324ToF4Parameters->RenderTargets[0] =
+        FRenderTargetBinding(DebugTexture, ERenderTargetLoadAction::EClear);
+
+    FPixelShaderUtils::AddFullscreenPass(DebugBuilder,
+                                         ShaderMap,
+                                         RDG_EVENT_NAME("U324ToF4"),
+                                         PixelShader,
+                                         BltU324ToF4Parameters,
+                                         FIntRect(0, 0, Size.X, Size.Y));
+    DebugBuilder.Execute();
+}
+
+/*
+ * Convenience function for adding a PF_R32G32_UINT Buffer visualization pass,
+ * used for debuging
+ */
+void AddVisualizeBufferPass(FRHICommandList& CommandList,
+                            const FGlobalShaderMap* ShaderMap,
+                            int32 BufferSize,
+                            FShaderResourceViewRHIRef SourceBuffer,
+                            FTextureRHIRef DestTexture,
+                            FIntPoint Size)
+{
+    // DEBUG STUFF
+    FRDGBuilder DebugBuilder(CommandList.GetAsImmediate());
+
+    auto DebugTexture = DebugBuilder.RegisterExternalTexture(
+        CreateRenderTarget(DestTexture, TEXT("DebugRenderTarget")));
+
+    TShaderMapRef<FRiveVisualizeBufferPixelShader> PixelShader(ShaderMap);
+
+    FRiveVisualizeBufferPixelShader::FParameters* VisBufferParameters =
+        DebugBuilder
+            .AllocParameters<FRiveVisualizeBufferPixelShader::FParameters>();
+    VisBufferParameters->ViewSize = FUintVector2(Size.X, Size.Y);
+    VisBufferParameters->BufferSize = BufferSize;
+
+    VisBufferParameters->SourceBuffer = SourceBuffer;
+    VisBufferParameters->RenderTargets[0] =
+        FRenderTargetBinding(DebugTexture, ERenderTargetLoadAction::EClear);
+
+    FPixelShaderUtils::AddFullscreenPass(DebugBuilder,
+                                         ShaderMap,
+                                         RDG_EVENT_NAME("VisBuffer"),
+                                         PixelShader,
+                                         VisBufferParameters,
+                                         FIntRect(0, 0, Size.X, Size.Y));
+    DebugBuilder.Execute();
 }
 
 RHICapabilities::RHICapabilities()
@@ -244,43 +365,6 @@ void* BufferRingRHIImpl::onMapBuffer(int bufferIdx, size_t mapSizeInBytes)
 void BufferRingRHIImpl::onUnmapAndSubmitBuffer(int bufferIdx,
                                                size_t mapSizeInBytes)
 {}
-
-StructuredBufferRingRHIImpl::StructuredBufferRingRHIImpl(
-    EBufferUsageFlags flags,
-    size_t inSizeInBytes,
-    size_t elementSize) :
-    BufferRing(inSizeInBytes),
-    m_flags(flags),
-    m_elementSize(elementSize),
-    m_lastMapSizeInBytes(inSizeInBytes)
-{
-    FRHIAsyncCommandList commandList;
-    FRHIResourceCreateInfo Info(TEXT("BufferRingRHIImpl_"));
-    m_buffer = commandList->CreateStructuredBuffer(m_elementSize,
-                                                   capacityInBytes(),
-                                                   m_flags,
-                                                   ERHIAccess::WriteOnlyMask,
-                                                   Info);
-    m_srv = commandList->CreateShaderResourceView(m_buffer);
-}
-
-FBufferRHIRef StructuredBufferRingRHIImpl::contents() const { return m_buffer; }
-
-void* StructuredBufferRingRHIImpl::onMapBuffer(int bufferIdx,
-                                               size_t mapSizeInBytes)
-{
-    m_lastMapSizeInBytes = mapSizeInBytes;
-    return shadowBuffer();
-}
-
-void StructuredBufferRingRHIImpl::onUnmapAndSubmitBuffer(int bufferIdx,
-                                                         size_t mapSizeInBytes)
-{}
-
-FShaderResourceViewRHIRef StructuredBufferRingRHIImpl::srv() const
-{
-    return m_srv;
-}
 
 RenderBufferRHIImpl::RenderBufferRHIImpl(RenderBufferType inType,
                                          RenderBufferFlags inFlags,
@@ -432,24 +516,22 @@ RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
 void DelayLoadedTexture::UpdateTexture(const FRHITextureCreateDesc& inDesc,
                                        bool inNeedsSRV)
 {
-    isDirty = true;
-    needsSRV = inNeedsSRV;
-    desc = inDesc;
+    m_isDirty = true;
+    m_needsSRV = inNeedsSRV;
+    m_desc = inDesc;
 }
 
 void DelayLoadedTexture::Sync(FRHICommandList& RHICmdList)
 {
-    if (isDirty)
+    if (m_isDirty)
     {
-        texture = CREATE_TEXTURE(RHICmdList, desc);
-        if (needsSRV)
+        m_texture = CREATE_TEXTURE(RHICmdList, m_desc);
+        check(m_texture);
+        if (m_needsSRV)
         {
-            FRHITextureSRVCreateInfo Info(0,
-                                          1,
-                                          0,
-                                          1,
-                                          EPixelFormat::PF_R32G32B32A32_UINT);
-            sRV = RHICmdList.CreateShaderResourceView(texture, Info);
+            FRHITextureSRVCreateInfo Info(0, 1, 0, 1, m_texture->GetFormat());
+            m_srv = RHICmdList.CreateShaderResourceView(m_texture, Info);
+            check(m_srv);
         }
     }
 }
@@ -479,35 +561,30 @@ RenderContextRHIImpl::RenderContextRHIImpl(
 
     FVertexDeclarationElementList pathElementList;
     pathElementList.Add(FVertexElement(
-        FVertexElement(0, 0, VET_Float4, 0, sizeof(PathData), false)));
+        FVertexElement(0, 0, VET_Float4, 0, sizeof(PatchVertex), false)));
     pathElementList.Add(FVertexElement(FVertexElement(0,
                                                       sizeof(float4),
                                                       VET_Float4,
                                                       1,
-                                                      sizeof(PathData),
+                                                      sizeof(PatchVertex),
                                                       false)));
-    auto PathVertexDeclaration =
-        PipelineStateCache::GetOrCreateVertexDeclaration(pathElementList);
     VertexDeclarations[static_cast<int32>(EVertexDeclarations::Paths)] =
-        PathVertexDeclaration;
+        PipelineStateCache::GetOrCreateVertexDeclaration(pathElementList);
 
     FVertexDeclarationElementList trianglesElementList;
     trianglesElementList.Add(
         FVertexElement(0, 0, VET_Float3, 0, sizeof(TriangleVertex), false));
-    auto TrianglesVertexDeclaration =
-        PipelineStateCache::GetOrCreateVertexDeclaration(trianglesElementList);
     VertexDeclarations[static_cast<int32>(
-        EVertexDeclarations::InteriorTriangles)] = TrianglesVertexDeclaration;
+        EVertexDeclarations::InteriorTriangles)] =
+        PipelineStateCache::GetOrCreateVertexDeclaration(trianglesElementList);
 
     FVertexDeclarationElementList ImageMeshElementList;
     ImageMeshElementList.Add(
         FVertexElement(0, 0, VET_Float2, 0, sizeof(Vec2D), false));
     ImageMeshElementList.Add(
         FVertexElement(1, 0, VET_Float2, 1, sizeof(Vec2D), false));
-    auto ImageMeshVertexDeclaration =
-        PipelineStateCache::GetOrCreateVertexDeclaration(ImageMeshElementList);
     VertexDeclarations[static_cast<int32>(EVertexDeclarations::ImageMesh)] =
-        ImageMeshVertexDeclaration;
+        PipelineStateCache::GetOrCreateVertexDeclaration(ImageMeshElementList);
 
     FVertexDeclarationElementList SpanElementList;
     SpanElementList.Add(
@@ -518,10 +595,8 @@ RenderContextRHIImpl::RenderContextRHIImpl(
         FVertexElement(0, 8, VET_UInt, 2, sizeof(GradientSpan), true));
     SpanElementList.Add(
         FVertexElement(0, 12, VET_UInt, 3, sizeof(GradientSpan), true));
-    auto SpanVertexDeclaration =
-        PipelineStateCache::GetOrCreateVertexDeclaration(SpanElementList);
     VertexDeclarations[static_cast<int32>(EVertexDeclarations::Gradient)] =
-        SpanVertexDeclaration;
+        PipelineStateCache::GetOrCreateVertexDeclaration(SpanElementList);
 
     FVertexDeclarationElementList TessElementList;
     size_t tessOffset = 0;
@@ -548,10 +623,8 @@ RenderContextRHIImpl::RenderContextRHIImpl(
         FVertexElement(0, tessOffset, VET_UInt, 6, tessStride, true));
     check(tessOffset + 4 == sizeof(TessVertexSpan));
 
-    auto TessVertexDeclaration =
-        PipelineStateCache::GetOrCreateVertexDeclaration(TessElementList);
     VertexDeclarations[static_cast<int32>(EVertexDeclarations::Tessellation)] =
-        TessVertexDeclaration;
+        PipelineStateCache::GetOrCreateVertexDeclaration(TessElementList);
 
     FVertexDeclarationElementList ImageRectVertexElementList;
     ImageRectVertexElementList.Add(
@@ -730,58 +803,30 @@ void RenderContextRHIImpl::resizeImageDrawUniformBuffer(size_t sizeInBytes)
 void RenderContextRHIImpl::resizePathBuffer(size_t sizeInBytes,
                                             StorageBufferStructure structure)
 {
-    m_pathBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_pathBuffer = std::make_unique<StructuredBufferRingRHIImpl>(
-            EBufferUsageFlags::StructuredBuffer |
-                EBufferUsageFlags::ShaderResource,
-            sizeInBytes,
-            StorageBufferElementSizeInBytes(structure));
-    }
+    m_pathBuffer.Resize(sizeInBytes,
+                        StorageBufferElementSizeInBytes(structure));
 }
 
 void RenderContextRHIImpl::resizePaintBuffer(size_t sizeInBytes,
                                              StorageBufferStructure structure)
 {
-    m_paintBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_paintBuffer = std::make_unique<StructuredBufferRingRHIImpl>(
-            EBufferUsageFlags::StructuredBuffer |
-                EBufferUsageFlags::ShaderResource,
-            sizeInBytes,
-            StorageBufferElementSizeInBytes(structure));
-    }
+    m_paintBuffer.Resize(sizeInBytes,
+                         StorageBufferElementSizeInBytes(structure));
 }
 
 void RenderContextRHIImpl::resizePaintAuxBuffer(
     size_t sizeInBytes,
     StorageBufferStructure structure)
 {
-    m_paintAuxBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_paintAuxBuffer = std::make_unique<StructuredBufferRingRHIImpl>(
-            EBufferUsageFlags::StructuredBuffer |
-                EBufferUsageFlags::ShaderResource,
-            sizeInBytes,
-            StorageBufferElementSizeInBytes(structure));
-    }
+    m_paintAuxBuffer.Resize(sizeInBytes,
+                            StorageBufferElementSizeInBytes(structure));
 }
 
 void RenderContextRHIImpl::resizeContourBuffer(size_t sizeInBytes,
                                                StorageBufferStructure structure)
 {
-    m_contourBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_contourBuffer = std::make_unique<StructuredBufferRingRHIImpl>(
-            EBufferUsageFlags::StructuredBuffer |
-                EBufferUsageFlags::ShaderResource,
-            sizeInBytes,
-            StorageBufferElementSizeInBytes(structure));
-    }
+    m_contourBuffer.Resize(sizeInBytes,
+                           StorageBufferElementSizeInBytes(structure));
 }
 
 void RenderContextRHIImpl::resizeSimpleColorRampsBuffer(size_t sizeInBytes)
@@ -842,22 +887,22 @@ void* RenderContextRHIImpl::mapImageDrawUniformBuffer(size_t mapSizeInBytes)
 
 void* RenderContextRHIImpl::mapPathBuffer(size_t mapSizeInBytes)
 {
-    return m_pathBuffer->mapBuffer(mapSizeInBytes);
+    return m_pathBuffer.Map(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapPaintBuffer(size_t mapSizeInBytes)
 {
-    return m_paintBuffer->mapBuffer(mapSizeInBytes);
+    return m_paintBuffer.Map(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapPaintAuxBuffer(size_t mapSizeInBytes)
 {
-    return m_paintAuxBuffer->mapBuffer(mapSizeInBytes);
+    return m_paintAuxBuffer.Map(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapContourBuffer(size_t mapSizeInBytes)
 {
-    return m_contourBuffer->mapBuffer(mapSizeInBytes);
+    return m_contourBuffer.Map(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapSimpleColorRampsBuffer(size_t mapSizeInBytes)
@@ -890,25 +935,13 @@ void RenderContextRHIImpl::unmapImageDrawUniformBuffer()
     m_imageDrawUniformBuffer->unmapAndSubmitBuffer();
 }
 
-void RenderContextRHIImpl::unmapPathBuffer()
-{
-    m_pathBuffer->unmapAndSubmitBuffer();
-}
+void RenderContextRHIImpl::unmapPathBuffer() {}
 
-void RenderContextRHIImpl::unmapPaintBuffer()
-{
-    m_paintBuffer->unmapAndSubmitBuffer();
-}
+void RenderContextRHIImpl::unmapPaintBuffer() {}
 
-void RenderContextRHIImpl::unmapPaintAuxBuffer()
-{
-    m_paintAuxBuffer->unmapAndSubmitBuffer();
-}
+void RenderContextRHIImpl::unmapPaintAuxBuffer() {}
 
-void RenderContextRHIImpl::unmapContourBuffer()
-{
-    m_contourBuffer->unmapAndSubmitBuffer();
-}
+void RenderContextRHIImpl::unmapContourBuffer() {}
 
 void RenderContextRHIImpl::unmapSimpleColorRampsBuffer()
 {
@@ -1015,29 +1048,27 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     auto tessSRV = m_tesselationTexture.SRV();
     check(tessSRV.IsValid());
 
+    FShaderResourceViewRHIRef pathSRV;
+    FShaderResourceViewRHIRef paintSRV;
+    FShaderResourceViewRHIRef paintAuxSRV;
+    FShaderResourceViewRHIRef contourSRV;
+
     if (desc.pathCount > 0)
     {
-        check(m_pathBuffer);
-        check(m_paintBuffer);
-        check(m_paintAuxBuffer);
-
-        m_pathBuffer->Sync<PathData>(CommandList,
-                                     desc.firstPath,
-                                     desc.pathCount);
-        m_paintBuffer->Sync<PaintData>(CommandList,
-                                       desc.firstPaint,
-                                       desc.pathCount);
-        m_paintAuxBuffer->Sync<PaintAuxData>(CommandList,
-                                             desc.firstPaintAux,
-                                             desc.pathCount);
+        pathSRV =
+            m_pathBuffer.SyncSRV(CommandList, desc.firstPath, desc.pathCount);
+        paintSRV =
+            m_paintBuffer.SyncSRV(CommandList, desc.firstPaint, desc.pathCount);
+        paintAuxSRV = m_paintAuxBuffer.SyncSRV(CommandList,
+                                               desc.firstPaintAux,
+                                               desc.pathCount);
     }
 
     if (desc.contourCount > 0)
     {
-        check(m_contourBuffer);
-        m_contourBuffer->Sync<ContourData>(CommandList,
-                                           desc.firstContour,
-                                           desc.contourCount);
+        contourSRV = m_contourBuffer.SyncSRV(CommandList,
+                                             desc.firstContour,
+                                             desc.contourCount);
     }
 
     FBufferRHIRef triangleBuffer;
@@ -1153,9 +1184,11 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
     if (desc.tessVertexSpanCount > 0)
     {
-        check(m_tessSpanBuffer) auto tessSpanBuffer = m_tessSpanBuffer->Sync(
-            CommandList,
-            desc.firstTessVertexSpan * sizeof(TessVertexSpan));
+        check(m_tessSpanBuffer) check(pathSRV.IsValid())
+            check(contourSRV.IsValid()) auto tessSpanBuffer =
+                m_tessSpanBuffer->Sync(CommandList,
+                                       desc.firstTessVertexSpan *
+                                           sizeof(TessVertexSpan));
         CommandList.Transition(FRHITransitionInfo(tesselationTexture,
                                                   ERHIAccess::Unknown,
                                                   ERHIAccess::RTV));
@@ -1188,8 +1221,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         PixelParameters.FlushUniforms = m_flushUniformBuffer->contents();
         VertexParameters.FlushUniforms = m_flushUniformBuffer->contents();
-        VertexParameters.GLSL_pathBuffer_raw = m_pathBuffer->srv();
-        VertexParameters.GLSL_contourBuffer_raw = m_contourBuffer->srv();
+        VertexParameters.GLSL_pathBuffer_raw = pathSRV;
+        VertexParameters.GLSL_contourBuffer_raw = contourSRV;
 
         SetParameters(CommandList,
                       BatchedShaderParameters,
@@ -1368,7 +1401,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         if (needsBarrierBeforeNextDraw)
         {
-
             CommandList.Transition(TransitionInfos);
         }
 
@@ -1377,7 +1409,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             case DrawType::midpointFanPatches:
             case DrawType::outerCurvePatches:
             {
-                GraphicsPSOInit.RasterizerState =
+                check(pathSRV.IsValid()) check(paintSRV.IsValid())
+                    check(paintAuxSRV.IsValid()) check(contourSRV.IsValid())
+
+                        GraphicsPSOInit.RasterizerState =
                     GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
                 GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
@@ -1405,17 +1440,15 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
                 PixelParameters.gradSampler = m_linearSampler;
                 PixelParameters.GLSL_gradTexture_raw = gradiantTexture;
-                PixelParameters.GLSL_paintAuxBuffer_raw =
-                    m_paintAuxBuffer->srv();
-                PixelParameters.GLSL_paintBuffer_raw = m_paintBuffer->srv();
+                PixelParameters.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+                PixelParameters.GLSL_paintBuffer_raw = paintSRV;
                 PixelParameters.coverageAtomicBuffer =
                     renderTarget->coverageUAV();
                 PixelParameters.clipBuffer = renderTarget->clipUAV();
                 PixelParameters.colorBuffer = renderTarget->targetUAV();
                 VertexParameters.GLSL_tessVertexTexture_raw = tessSRV;
-                VertexParameters.GLSL_pathBuffer_raw = m_pathBuffer->srv();
-                VertexParameters.GLSL_contourBuffer_raw =
-                    m_contourBuffer->srv();
+                VertexParameters.GLSL_pathBuffer_raw = pathSRV;
+                VertexParameters.GLSL_contourBuffer_raw = contourSRV;
                 VertexParameters.baseInstance = batch.baseElement;
 
                 SetParameters(CommandList,
@@ -1441,8 +1474,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             case DrawType::interiorTriangulation:
             {
                 check(triangleBuffer.IsValid());
+                check(pathSRV.IsValid()) check(paintSRV.IsValid())
+                    check(paintAuxSRV.IsValid())
 
-                GraphicsPSOInit.RasterizerState =
+                        GraphicsPSOInit.RasterizerState =
                     GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
                 GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
@@ -1471,14 +1506,13 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
                 PixelParameters.gradSampler = m_linearSampler;
                 PixelParameters.GLSL_gradTexture_raw = gradiantTexture;
-                PixelParameters.GLSL_paintAuxBuffer_raw =
-                    m_paintAuxBuffer->srv();
-                PixelParameters.GLSL_paintBuffer_raw = m_paintBuffer->srv();
+                PixelParameters.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+                PixelParameters.GLSL_paintBuffer_raw = paintSRV;
                 PixelParameters.coverageAtomicBuffer =
                     renderTarget->coverageUAV();
                 PixelParameters.clipBuffer = renderTarget->clipUAV();
                 PixelParameters.colorBuffer = renderTarget->targetUAV();
-                VertexParameters.GLSL_pathBuffer_raw = m_pathBuffer->srv();
+                VertexParameters.GLSL_pathBuffer_raw = pathSRV;
 
                 SetParameters(CommandList,
                               BatchedShaderParameters,
@@ -1499,7 +1533,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 m_imageDrawUniformBuffer->Sync(CommandList,
                                                batch.imageDrawDataOffset);
                 {
-                    GraphicsPSOInit.RasterizerState =
+                    check(paintSRV.IsValid()) check(paintAuxSRV.IsValid())
+
+                        GraphicsPSOInit.RasterizerState =
                         RASTER_STATE(FM_Solid,
                                      CM_None,
                                      ERasterizerDepthClipMode::DepthClamp);
@@ -1541,9 +1577,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         imageTexture->contents();
                     PixelParameters.gradSampler = m_linearSampler;
                     PixelParameters.imageSampler = m_mipmapSampler;
-                    PixelParameters.GLSL_paintAuxBuffer_raw =
-                        m_paintAuxBuffer->srv();
-                    PixelParameters.GLSL_paintBuffer_raw = m_paintBuffer->srv();
+                    PixelParameters.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+                    PixelParameters.GLSL_paintBuffer_raw = paintSRV;
                     PixelParameters.coverageAtomicBuffer =
                         renderTarget->coverageUAV();
                     PixelParameters.clipBuffer = renderTarget->clipUAV();
@@ -1571,8 +1606,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 break;
             case DrawType::imageMesh:
             {
-                m_imageDrawUniformBuffer->Sync(CommandList,
-                                               batch.imageDrawDataOffset);
+                check(paintSRV.IsValid()) check(paintAuxSRV.IsValid())
+
+                    m_imageDrawUniformBuffer->Sync(CommandList,
+                                                   batch.imageDrawDataOffset);
                 GraphicsPSOInit.RasterizerState =
                     RASTER_STATE(FM_Solid,
                                  CM_None,
@@ -1631,9 +1668,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     imageTexture->contents();
                 PixelParameters.gradSampler = m_linearSampler;
                 PixelParameters.imageSampler = m_mipmapSampler;
-                PixelParameters.GLSL_paintAuxBuffer_raw =
-                    m_paintAuxBuffer->srv();
-                PixelParameters.GLSL_paintBuffer_raw = m_paintBuffer->srv();
+                PixelParameters.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+                PixelParameters.GLSL_paintBuffer_raw = paintSRV;
                 PixelParameters.coverageAtomicBuffer =
                     renderTarget->coverageUAV();
                 PixelParameters.clipBuffer = renderTarget->clipUAV();
@@ -1660,7 +1696,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             break;
             case DrawType::atomicResolve:
             {
-                GraphicsPSOInit.RasterizerState =
+                check(paintSRV.IsValid()) check(paintAuxSRV.IsValid())
+
+                    GraphicsPSOInit.RasterizerState =
                     RASTER_STATE(FM_Solid,
                                  CM_None,
                                  ERasterizerDepthClipMode::DepthClamp);
@@ -1685,9 +1723,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
                 PixelParameters.GLSL_gradTexture_raw = gradiantTexture;
                 PixelParameters.gradSampler = m_linearSampler;
-                PixelParameters.GLSL_paintAuxBuffer_raw =
-                    m_paintAuxBuffer->srv();
-                PixelParameters.GLSL_paintBuffer_raw = m_paintBuffer->srv();
+                PixelParameters.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+                PixelParameters.GLSL_paintBuffer_raw = paintSRV;
                 PixelParameters.coverageAtomicBuffer =
                     renderTarget->coverageUAV();
                 PixelParameters.clipBuffer = renderTarget->clipUAV();
@@ -1719,6 +1756,48 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     }
 
     CommandList.EndRenderPass();
+
+    static const auto CVarVisualize =
+        IConsoleManager::Get().FindConsoleVariable(TEXT("r.rive.vis"));
+    switch (CVarVisualize->GetInt())
+    {
+        case 1:
+            AddBltU32ToF4Pass(
+                CommandList,
+                ShaderMap,
+                renderTarget->clipTexture(),
+                DestTexture,
+                FIntPoint(renderTarget->width(), renderTarget->height()));
+            break;
+        case 2:
+            AddBltU32ToF4Pass(
+                CommandList,
+                ShaderMap,
+                renderTarget->coverageTexture(),
+                DestTexture,
+                FIntPoint(renderTarget->width(), renderTarget->height()));
+            break;
+        case 3:
+            AddBltU324ToF4Pass(
+                CommandList,
+                ShaderMap,
+                tesselationTexture,
+                DestTexture,
+                FIntPoint(renderTarget->width(), renderTarget->height()));
+            break;
+        case 4:
+            AddVisualizeBufferPass(
+                CommandList,
+                ShaderMap,
+                desc.pathCount,
+                paintSRV,
+                DestTexture,
+                FIntPoint(renderTarget->width(), renderTarget->height()));
+            break;
+        default:
+            break;
+    }
+
     // According to Ryan at GeoTech, Unreal expects us to give the texture back
     // in UAVGraphics
     // TODO: Check that this is true
