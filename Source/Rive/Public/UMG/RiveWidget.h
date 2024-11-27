@@ -61,6 +61,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = Rive)
     URiveArtboard* GetArtboard() const;
 
+    UFUNCTION()
+    void OnSWidgetSizeChanged(const FVector2D& NewSize);
+
+    UFUNCTION()
+    void CheckArtboardSize();
+
     /**
      * Attribute(s)
      */
@@ -99,4 +105,7 @@ private:
 
     TSharedPtr<SRiveWidget> RiveWidget;
     FTimerHandle TimerHandle;
+
+    FVector2f InitialArtboardSize;
+    bool IsChangingFromLayout = false;
 };

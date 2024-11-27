@@ -13,9 +13,12 @@ class URiveTexture;
 /**
  *
  */
+
 class RIVE_API SRiveWidget : public SCompoundWidget
 {
 public:
+    DECLARE_DELEGATE_OneParam(FOnSizeChanged, const FVector2D&);
+
     SLATE_BEGIN_ARGS(SRiveWidget)
 #if WITH_EDITOR
         :
@@ -25,6 +28,7 @@ public:
 #if WITH_EDITOR
     SLATE_ARGUMENT(bool, bDrawCheckerboardInEditor)
 #endif
+    SLATE_EVENT(FOnSizeChanged, OnSizeChanged)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs);
@@ -33,6 +37,7 @@ public:
         FArrangedChildren& ArrangedChildren) const override;
 
     void SetRiveTexture(URiveTexture* InRiveTexture);
+    FVector2D GetSize();
 
 private:
     UWorld* GetWorld() const;
@@ -47,6 +52,8 @@ private:
     double LastSizeChangeTime = 0;
     mutable FTimerHandle TimerHandle;
     mutable FVector2D PreviousSize;
+
+    FOnSizeChanged OnSizeChangedDelegate;
 
 #if WITH_EDITOR // Implementation of Checkerboard textures, as per
                 // FTextureEditorViewportClient::ModifyCheckerboardTextureColors

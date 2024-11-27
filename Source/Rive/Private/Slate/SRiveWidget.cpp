@@ -25,6 +25,9 @@ FSlateBrush* CreateTransparentBrush()
 
 void SRiveWidget::Construct(const FArguments& InArgs)
 {
+    OnSizeChangedDelegate = InArgs._OnSizeChanged;
+    PreviousSize = FVector2D(0, 0);
+
 #if WITH_EDITOR
     ModifyCheckerboardTextureColors();
 #endif
@@ -103,7 +106,14 @@ void SRiveWidget::OnResize() const
         RiveTexture->ResizeRenderTargets(
             FIntPoint(PreviousSize.X, PreviousSize.Y));
     }
+    if (OnSizeChangedDelegate.IsBound())
+    {
+        // PreviousSize was set in the caller.
+        OnSizeChangedDelegate.Execute(PreviousSize);
+    }
 }
+
+FVector2D SRiveWidget::GetSize() { return PreviousSize; }
 
 UWorld* SRiveWidget::GetWorld() const
 {

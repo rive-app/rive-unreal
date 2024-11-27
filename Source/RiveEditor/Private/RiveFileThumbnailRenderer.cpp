@@ -47,7 +47,7 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object,
         if (!Initialized)
         {
             Initialized = true;
-            RiveTexture = NewObject<URiveTexture>(),
+            RiveTexture = NewObject<URiveTexture>();
             RiveRenderTarget =
                 RiveRenderer->CreateTextureTarget_GameThread(GetFName(),
                                                              RiveTexture);
@@ -75,7 +75,9 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object,
         if (Artboard != nullptr)
         {
             RiveRenderTarget->Save();
-            Artboard->Align(ERiveFitType::ScaleDown, ERiveAlignment::Center);
+            Artboard->Align(ERiveFitType::ScaleDown,
+                            ERiveAlignment::Center,
+                            1.0);
             Artboard->Tick(FApp::GetDeltaTime());
             RiveRenderTarget->Restore();
             RiveRenderTarget->SubmitAndClear();

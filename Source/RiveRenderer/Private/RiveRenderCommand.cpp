@@ -18,7 +18,8 @@ Mat2D FRiveRenderCommand::GetSaved2DTransform() const
             return computeAlignment(static_cast<Fit>(FitType),
                                     Alignment(X, Y),
                                     AABB(TX, TY, X2, Y2),
-                                    NativeArtboard->bounds());
+                                    NativeArtboard->bounds(),
+                                    ScaleFactor);
         case ERiveRenderCommandType::Translate:
             return Mat2D(1.f, 0.f, 0.f, 1.f, TX, TY);
         default:

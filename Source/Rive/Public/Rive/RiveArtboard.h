@@ -78,6 +78,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = Rive)
     FVector2f GetSize() const;
 
+    UFUNCTION()
+    FVector2f GetOriginalSize() const;
+
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    void SetSize(FVector2f InVector);
+
     UFUNCTION(BlueprintCallable, Category = Rive)
     void AdvanceStateMachine(float InDeltaSeconds);
 
@@ -92,9 +98,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = Rive)
     void Align(const FBox2f InBox,
                ERiveFitType InFitType,
-               ERiveAlignment InAlignment);
+               ERiveAlignment InAlignment,
+               float InScaleFactor);
 
-    void Align(ERiveFitType InFitType, ERiveAlignment InAlignment);
+    void Align(ERiveFitType InFitType,
+               ERiveAlignment InAlignment,
+               float InScaleFactor);
 
     /** Returns the transformation Matrix from the start of the Render Queue up
      * to now */

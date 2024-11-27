@@ -41,4 +41,7 @@ public:
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
     ERiveAlignment Alignment = ERiveAlignment::Center;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+    float ScaleFactor = 1.0f;
 };

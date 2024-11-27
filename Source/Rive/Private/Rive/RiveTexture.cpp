@@ -68,14 +68,6 @@ void URiveTexture::ResizeRenderTargets(FIntPoint InNewSize)
                      FMath::Clamp(InNewSize.Y,
                                   RIVE_MIN_TEX_RESOLUTION,
                                   RIVE_MAX_TEX_RESOLUTION)};
-        UE_LOG(LogRive,
-               Warning,
-               TEXT("Wrong Rive Texture Size {X:%d, Y:%d} being changed to "
-                    "{X:%d, Y:%d}"),
-               OldNewSize.X,
-               OldNewSize.Y,
-               InNewSize.X,
-               InNewSize.Y);
     }
 
     if (CurrentResource && InNewSize.X == Size.X && InNewSize.Y == Size.Y)
@@ -86,8 +78,8 @@ void URiveTexture::ResizeRenderTargets(FIntPoint InNewSize)
         return;
     }
 
-    // we need to make sure we are not drawing anything with the old size, so we
-    // ensure all the commands are sent before going further
+    // we need to make sure we are not drawing anything with the old size,
+    // so we ensure all the commands are sent before going further
     FlushRenderingCommands();
 
     SizeX = Size.X = InNewSize.X;
@@ -166,7 +158,7 @@ void URiveTexture::InitializeResources() const
                           ETextureCreateFlags::RenderTargetable |
                           ETextureCreateFlags::SRGB);
 
-#if !(PLATFORM_IOS || PLATFORM_MAC) // SRGB could hvae been manually overriden
+#if !(PLATFORM_IOS || PLATFORM_MAC) // SRGB could have been manually overriden
         if (SRGB)
         {
             RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::SRGB);
@@ -179,8 +171,8 @@ void URiveTexture::InitializeResources() const
 
         RHIUpdateTextureReference(TextureReference.TextureReferenceRHI,
                                   CurrentResource->TextureRHI);
-        // When the resource change, we need to tell the RiveFile otherwise we
-        // will keep on drawing on an outdated RT
+        // When the resource change, we need to tell the RiveFile otherwise
+        // we will keep on drawing on an outdated RT
         OnResourceInitializedOnRenderThread.Broadcast(
             RHICmdList,
             CurrentResource->TextureRHI);

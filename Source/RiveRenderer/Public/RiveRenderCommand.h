@@ -34,27 +34,49 @@ public:
     GENERATED_BODY()
 
     FRiveRenderCommand() :
-        Type(), FitType(), X(0), Y(0), X2(0), Y2(0), TX(0), TY(0)
+        Type(),
+        FitType(),
+        ScaleFactor(1.0f),
+        X(0),
+        Y(0),
+        X2(0),
+        Y2(0),
+        TX(0),
+        TY(0)
     {}
 
     explicit FRiveRenderCommand(ERiveRenderCommandType InType) :
-        Type(InType), FitType(), X(0), Y(0), X2(0), Y2(0), TX(0), TY(0){};
+        Type(InType),
+        FitType(),
+        ScaleFactor(1.0f),
+        X(0),
+        Y(0),
+        X2(0),
+        Y2(0),
+        TX(0),
+        TY(0)
+    {}
 
     explicit FRiveRenderCommand(const rive::Mat2D& Matrix) :
         Type(ERiveRenderCommandType::Transform),
         FitType(),
+        ScaleFactor(1.0f),
         X(Matrix.xx()),
         Y(Matrix.xy()),
         X2(Matrix.yx()),
         Y2(Matrix.yy()),
         TX(Matrix.tx()),
-        TY(Matrix.ty()){};
+        TY(Matrix.ty())
+    {}
 
     UPROPERTY(BlueprintReadWrite, Category = Rive)
     ERiveRenderCommandType Type;
 
     UPROPERTY(BlueprintReadWrite, Category = Rive)
     ERiveFitType FitType;
+
+    UPROPERTY(BlueprintReadWrite, Category = Rive)
+    float ScaleFactor;
 
     // UPROPERTY(BlueprintReadWrite)
     rive::Artboard* NativeArtboard = nullptr;

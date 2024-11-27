@@ -71,9 +71,11 @@ public:
     virtual void Align(const FBox2f& InBox,
                        ERiveFitType InFit,
                        const FVector2f& InAlignment,
+                       float InScaleFactor,
                        rive::Artboard* InArtboard) override;
     virtual void Align(ERiveFitType InFit,
                        const FVector2f& InAlignment,
+                       float InScaleFactor,
                        rive::Artboard* InArtboard) override;
     virtual FMatrix GetTransformMatrix() const override;
     virtual void RegisterRenderCommand(

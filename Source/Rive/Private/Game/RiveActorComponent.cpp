@@ -398,7 +398,8 @@ void URiveActorComponent::OnDefaultArtboardTickRender(float DeltaTime,
                                                       URiveArtboard* InArtboard)
 {
     InArtboard->Align(DefaultRiveDescriptor.FitType,
-                      DefaultRiveDescriptor.Alignment);
+                      DefaultRiveDescriptor.Alignment,
+                      DefaultRiveDescriptor.ScaleFactor);
     InArtboard->Draw();
 }
 

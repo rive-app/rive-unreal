@@ -40,6 +40,7 @@ void FRiveRenderTarget::Initialize()
 
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
     FTextureResource* RenderTargetResource = RenderTarget->GetResource();
+    check(RenderTargetResource);
     ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)
     ([RenderTargetResource, this](FRHICommandListImmediate& RHICmdList) {
         CacheTextureTarget_RenderThread(
@@ -115,12 +116,18 @@ void FRiveRenderTarget::Draw(rive::Artboard* InArtboard)
 void FRiveRenderTarget::Align(const FBox2f& InBox,
                               ERiveFitType InFit,
                               const FVector2f& InAlignment,
+                              float InScaleFactor,
                               rive::Artboard* InArtboard)
 {
     FRiveRenderCommand RenderCommand(ERiveRenderCommandType::AlignArtboard);
     RenderCommand.FitType = InFit;
     RenderCommand.X = InAlignment.X;
     RenderCommand.Y = InAlignment.Y;
+
+    if (InFit == ERiveFitType::Layout)
+        RenderCommand.ScaleFactor = InScaleFactor;
+    else
+        RenderCommand.ScaleFactor = 1;
 
     RenderCommand.TX = InBox.Min.X;
     RenderCommand.TY = InBox.Min.Y;
@@ -133,11 +140,13 @@ void FRiveRenderTarget::Align(const FBox2f& InBox,
 
 void FRiveRenderTarget::Align(ERiveFitType InFit,
                               const FVector2f& InAlignment,
+                              float InScaleFactor,
                               rive::Artboard* InArtboard)
 {
     Align(FBox2f(FVector2f{0.f, 0.f}, FVector2f(GetWidth(), GetHeight())),
           InFit,
           InAlignment,
+          InScaleFactor,
           InArtboard);
 }
 

@@ -71,7 +71,8 @@ void URiveArtboard::Translate(const FVector2f& InVector)
 
 void URiveArtboard::Align(const FBox2f InBox,
                           ERiveFitType InFitType,
-                          ERiveAlignment InAlignment)
+                          ERiveAlignment InAlignment,
+                          float InScaleFactor)
 {
     if (!RiveRenderTarget)
     {
@@ -80,10 +81,13 @@ void URiveArtboard::Align(const FBox2f InBox,
     RiveRenderTarget->Align(InBox,
                             InFitType,
                             FRiveAlignment::GetAlignment(InAlignment),
+                            InScaleFactor,
                             GetNativeArtboard());
 }
 
-void URiveArtboard::Align(ERiveFitType InFitType, ERiveAlignment InAlignment)
+void URiveArtboard::Align(ERiveFitType InFitType,
+                          ERiveAlignment InAlignment,
+                          float InScaleFactor)
 {
     if (!RiveRenderTarget)
     {
@@ -91,6 +95,7 @@ void URiveArtboard::Align(ERiveFitType InFitType, ERiveAlignment InAlignment)
     }
     RiveRenderTarget->Align(InFitType,
                             FRiveAlignment::GetAlignment(InAlignment),
+                            InScaleFactor,
                             GetNativeArtboard());
 }
 
@@ -656,11 +661,11 @@ void URiveArtboard::PointerExit(const FVector2f& NewPosition)
 FVector2f URiveArtboard::GetLocalCoordinate(const FVector2f& InPosition,
                                             const FIntPoint& InTextureSize,
                                             ERiveAlignment InAlignment,
-                                            ERiveFitType InFit) const
+                                            ERiveFitType InFitType) const
 {
     FVector2f Alignment = FRiveAlignment::GetAlignment(InAlignment);
     rive::Mat2D Transform = rive::computeAlignment(
-        static_cast<rive::Fit>(InFit),
+        static_cast<rive::Fit>(InFitType),
         rive::Alignment(Alignment.X, Alignment.Y),
         rive::AABB(0.f, 0.f, InTextureSize.X, InTextureSize.Y),
         NativeArtboardPtr->bounds());
@@ -675,7 +680,7 @@ FVector2f URiveArtboard::GetLocalCoordinatesFromExtents(
     const FBox2f& InExtents,
     const FIntPoint& TextureSize,
     ERiveAlignment Alignment,
-    ERiveFitType FitType) const
+    ERiveFitType InFitType) const
 {
     const FVector2f RelativePosition = InPosition - InExtents.Min;
     const FVector2f Ratio{
@@ -687,7 +692,7 @@ FVector2f URiveArtboard::GetLocalCoordinatesFromExtents(
     return GetLocalCoordinate(TextureRelativePosition,
                               TextureSize,
                               Alignment,
-                              FitType);
+                              InFitType);
 }
 
 void URiveArtboard::Initialize(
@@ -991,6 +996,15 @@ rive::AABB URiveArtboard::GetBounds() const
     return NativeArtboardPtr->bounds();
 }
 
+FVector2f URiveArtboard::GetOriginalSize() const
+{
+    if (!NativeArtboardPtr)
+        return FVector2f::ZeroVector;
+
+    return FVector2f(NativeArtboardPtr->originalWidth(),
+                     NativeArtboardPtr->originalHeight());
+}
+
 FVector2f URiveArtboard::GetSize() const
 {
     IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
@@ -1016,6 +1030,36 @@ FVector2f URiveArtboard::GetSize() const
     }
 
     return {NativeArtboardPtr->width(), NativeArtboardPtr->height()};
+}
+
+void URiveArtboard::SetSize(FVector2f InVector)
+{
+    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    if (!RiveRenderer)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("Failed to SetSize for the Artboard as we do not have a "
+                    "valid renderer."));
+        return;
+    }
+
+    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
+
+    if (!NativeArtboardPtr)
+    {
+        UE_LOG(LogRive,
+               Warning,
+               TEXT("Could not set artboard size as we have detected an "
+                    "empty rive artboard."));
+
+        return;
+    }
+
+    NativeArtboardPtr->width(InVector.X);
+    NativeArtboardPtr->height(InVector.Y);
+
+    return;
 }
 
 FRiveStateMachine* URiveArtboard::GetStateMachine() const

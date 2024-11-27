@@ -331,7 +331,9 @@ void URiveTextureObject::PostEditChangeChainProperty(
 void URiveTextureObject::OnArtboardTickRender(float DeltaTime,
                                               URiveArtboard* InArtboard)
 {
-    InArtboard->Align(RiveDescriptor.FitType, RiveDescriptor.Alignment);
+    InArtboard->Align(RiveDescriptor.FitType,
+                      RiveDescriptor.Alignment,
+                      RiveDescriptor.ScaleFactor);
     InArtboard->Draw();
 }
 

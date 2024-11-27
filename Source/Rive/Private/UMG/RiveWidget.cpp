@@ -21,11 +21,15 @@ FVector2f CalculateLocalPointerCoordinatesFromViewport(
 FVector2f GetInputCoordinates(URiveTexture* InRiveTexture,
                               URiveArtboard* InRiveArtboard,
                               const FGeometry& MyGeometry,
-                              const FPointerEvent& MouseEvent)
+                              const FPointerEvent& MouseEvent,
+                              const float InScaleFactor = 1.0f)
 {
     // Convert absolute input position to viewport local position
     FDeprecateSlateVector2D LocalPosition =
         MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+
+    if (InScaleFactor != -1)
+        LocalPosition /= InScaleFactor;
 
     // Because our RiveTexture can be a different pixel size than our viewport,
     // we have to scale the x,y coords
@@ -124,7 +128,10 @@ void URiveWidget::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> URiveWidget::RebuildWidget()
 {
-    RiveWidget = SNew(SRiveWidget);
+    RiveWidget =
+        SNew(SRiveWidget)
+            .OnSizeChanged(BIND_UOBJECT_DELEGATE(SRiveWidget::FOnSizeChanged,
+                                                 OnSWidgetSizeChanged));
 
     if (!RiveTextureObject && RiveWidget.IsValid())
     {
@@ -270,11 +277,17 @@ FReply URiveWidget::OnInput(
     Artboard->BeginInput();
     if (FRiveStateMachine* StateMachine = Artboard->GetStateMachine())
     {
+        float ScaleFactor = -1.0f;
+
+        if (RiveDescriptor.FitType == ERiveFitType::Layout)
+            ScaleFactor = RiveDescriptor.ScaleFactor;
+
         FVector2f InputCoordinates =
             UE::Private::RiveWidget::GetInputCoordinates(RiveTextureObject,
                                                          Artboard,
                                                          MyGeometry,
-                                                         MouseEvent);
+                                                         MouseEvent,
+                                                         ScaleFactor);
         Result = InStateMachineInputCallback(InputCoordinates, StateMachine);
     }
     Artboard->EndInput();
@@ -368,13 +381,53 @@ void URiveWidget::Setup()
     RiveTextureObject->bRenderInEditor = true;
 #endif
     RiveTextureObject->Initialize(RiveDescriptor);
+    CheckArtboardSize();
 }
 
 void URiveWidget::SetRiveDescriptor(const FRiveDescriptor& newDescriptor)
 {
+    if (RiveDescriptor.FitType == ERiveFitType::Layout &&
+        newDescriptor.FitType != ERiveFitType::Layout)
+        IsChangingFromLayout = true;
+
     RiveDescriptor = newDescriptor;
 
     Setup();
 }
 
+void URiveWidget::CheckArtboardSize()
+{
+    URiveArtboard* Artboard = GetArtboard();
+
+    FVector2D WidgetSize = RiveWidget->GetSize();
+
+    if (Artboard != nullptr && Artboard->IsInitialized())
+    {
+        if (RiveDescriptor.FitType == ERiveFitType::Layout)
+        {
+            FVector2f NewSize = FVector2f(
+                static_cast<float>(WidgetSize.X) / RiveDescriptor.ScaleFactor,
+                static_cast<float>(WidgetSize.Y) / RiveDescriptor.ScaleFactor);
+
+            Artboard->SetSize(NewSize);
+        }
+        else
+        {
+            if (IsChangingFromLayout)
+            {
+                FVector2f NewSize = FVector2f(Artboard->GetOriginalSize().X,
+                                              Artboard->GetOriginalSize().Y);
+
+                Artboard->SetSize(NewSize);
+            }
+
+            IsChangingFromLayout = false;
+        }
+    }
+}
+
+void URiveWidget::OnSWidgetSizeChanged(const FVector2D& InNewSize)
+{
+    CheckArtboardSize();
+}
 #undef LOCTEXT_NAMESPACE

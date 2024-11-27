@@ -61,9 +61,11 @@ public:
     virtual void Align(const FBox2f& InBox,
                        ERiveFitType InFit,
                        const FVector2f& InAlignment,
+                       float InScaleFactor,
                        rive::Artboard* InArtboard) = 0;
     virtual void Align(ERiveFitType InFit,
                        const FVector2f& InAlignment,
+                       float InScaleFactor,
                        rive::Artboard* InArtboard) = 0;
     virtual void RegisterRenderCommand(RiveRenderFunction RenderFunction) = 0;
     /** Returns the transformation Matrix from the start of the Render Queue up
