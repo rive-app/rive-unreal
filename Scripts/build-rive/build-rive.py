@@ -32,6 +32,8 @@ parser.add_argument("-p", "--rive_runtime_path", type=str, help="path to rive ru
 parser.add_argument("-t", "--build_rive_tests", action='store_true',  default=False, help="If set, gms, goldens and player will be built and copied as well")
 parser.add_argument("-r", "--raw_shaders", action='store_true', default=False, help="If set, --raw_shaders will be passed to the premake file for building")
 
+PREFERED_MSVC = "14.38.33130"
+
 args = parser.parse_args()
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -98,6 +100,11 @@ class CompilePass(object):
             command_args.append("release")
         if args.raw_shaders:
             command_args.append("\"--raw_shaders\"")
+
+        tools_version = self.get_tools_version()
+        if tools_version is not None:
+            command_args.extend([f"--toolsversion={tools_version}"])
+
         command_args.extend(aux_command_args)
 
         if self.targets is not None:
@@ -108,6 +115,20 @@ class CompilePass(object):
         self.command = build_script.split(" ") + command_args
         # command used when passing clean to build_rive
         self.clean_command = build_script.split(" ") + ["clean"] + command_args
+
+    def get_tools_version(self) -> str:
+        if sys.platform.startswith('win32'):
+            # MSVC Tools are in subfolders with names that match the version they are. this will make a list of those folder names
+            msvc_root = os.environ['MSVC_ROOT'] if "MSVC_ROOT" in os.environ.keys() else "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC"
+            versions = os.listdir(msvc_root)
+            # if our prefered version is there, return that
+            if PREFERED_MSVC in versions:
+                return PREFERED_MSVC
+            # sort the folders to get the latest version first and return it
+            versions.sort()
+            return versions[0]
+        
+        return None
 
     def try_build(self) -> bool:
         """Attempt to build, if fails, tries to build again with clean. returns true if succesful, false otherwise"""
