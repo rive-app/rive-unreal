@@ -155,8 +155,7 @@ void URiveTexture::InitializeResources() const
                 .SetFlags(ETextureCreateFlags::UAV |
                           ETextureCreateFlags::Dynamic |
                           ETextureCreateFlags::ShaderResource |
-                          ETextureCreateFlags::RenderTargetable |
-                          ETextureCreateFlags::SRGB);
+                          ETextureCreateFlags::RenderTargetable);
 
 #if !(PLATFORM_IOS || PLATFORM_MAC) // SRGB could have been manually overriden
         if (SRGB)
