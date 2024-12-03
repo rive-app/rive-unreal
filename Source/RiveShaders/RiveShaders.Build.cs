@@ -22,7 +22,6 @@ public class RiveShaders : ModuleRules
 				"RHI",
 				"RenderCore",
 				"Renderer",
-				"RiveRenderer",
 				"Projects"
 			}
 		);
