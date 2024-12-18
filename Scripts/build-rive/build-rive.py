@@ -32,7 +32,7 @@ parser.add_argument("-p", "--rive_runtime_path", type=str, help="path to rive ru
 parser.add_argument("-t", "--build_rive_tests", action='store_true',  default=False, help="If set, gms, goldens and player will be built and copied as well")
 parser.add_argument("-r", "--raw_shaders", action='store_true', default=False, help="If set, --raw_shaders will be passed to the premake file for building")
 
-PREFERED_MSVC = "14.38.33130"
+PREFERED_MSVC = "14.38"
 
 args = parser.parse_args()
 
@@ -121,9 +121,11 @@ class CompilePass(object):
             # MSVC Tools are in subfolders with names that match the version they are. this will make a list of those folder names
             msvc_root = os.environ['MSVC_ROOT'] if "MSVC_ROOT" in os.environ.keys() else "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC"
             versions = os.listdir(msvc_root)
-            # if our prefered version is there, return that
-            if PREFERED_MSVC in versions:
-                return PREFERED_MSVC
+            prefered_versions = [version for version in versions if PREFERED_MSVC in version]
+            #  if we have versions that match our prefered major and minor version sort by revision and return highest
+            if len(prefered_versions) > 0:
+                sorted_versions = sorted(prefered_versions, key=lambda x:int(x.split('.')[-1]), reverse=True)
+                return sorted_versions[0]
             # sort the folders to get the latest version first and return it
             versions.sort()
             return versions[0]
