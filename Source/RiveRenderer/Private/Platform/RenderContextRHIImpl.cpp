@@ -305,7 +305,9 @@ void AddVisualizeBufferPass(FRHICommandList& CommandList,
 RHICapabilities::RHICapabilities()
 {
     bSupportsPixelShaderUAVs = GRHISupportsPixelShaderUAVs;
+#if defined(PLATFORM_WINDOWS) && defined(D3D12)
     bSupportsRasterOrderViews = GRHISupportsRasterOrderViews;
+#endif
     bSupportsTypedUAVLoads =
         UE::PixelFormat::HasCapabilities(PF_R8G8B8A8,
                                          EPixelFormatCapabilities::UAV) &&
