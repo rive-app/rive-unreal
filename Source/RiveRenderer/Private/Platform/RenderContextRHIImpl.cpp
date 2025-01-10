@@ -1123,7 +1123,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         CommandList.SetStreamSource(0, gradSpanBuffer, 0);
 
-        CommandList.DrawPrimitive(0, 2, desc.gradSpanCount);
+        CommandList.DrawPrimitive(0,
+                                  gpu::GRAD_SPAN_TRI_STRIP_VERTEX_COUNT - 2,
+                                  desc.gradSpanCount);
 
         CommandList.EndRenderPass();
 
