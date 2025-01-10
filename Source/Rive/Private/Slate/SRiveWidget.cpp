@@ -57,7 +57,16 @@ void SRiveWidget::OnArrangeChildren(const FGeometry& AllottedGeometry,
 {
     SCompoundWidget::OnArrangeChildren(AllottedGeometry, ArrangedChildren);
 
-    FVector2D CurrentSize = AllottedGeometry.GetLocalSize();
+    // This makes the texture resolution affected by the render scale under
+    // render transofrms in UMG. This was chosen because rive is a vector
+    // graphics utility and it makes the most sense to use this If we wanted to
+    // act more like UMG and not take this into account we would use
+    // AllottedGeometry.GetLocalSize() * AllottedGeometry.Scale instead
+    // RiveTexture.cpp will clamp this size to 3840x3840 so it may not
+    // reflect the actual size of the render target
+
+    // this also takes into account DPI.
+    FVector2D CurrentSize = AllottedGeometry.GetAbsoluteSize();
     if (PreviousSize != CurrentSize)
     {
         PreviousSize = CurrentSize;
