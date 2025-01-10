@@ -285,7 +285,6 @@ public:
     virtual void resizeContourBuffer(
         size_t sizeInBytes,
         rive::gpu::StorageBufferStructure) override;
-    virtual void resizeSimpleColorRampsBuffer(size_t sizeInBytes) override;
     virtual void resizeGradSpanBuffer(size_t sizeInBytes) override;
     virtual void resizeTessVertexSpanBuffer(size_t sizeInBytes) override;
     virtual void resizeTriangleVertexBuffer(size_t sizeInBytes) override;
@@ -296,7 +295,6 @@ public:
     virtual void* mapPaintBuffer(size_t mapSizeInBytes) override;
     virtual void* mapPaintAuxBuffer(size_t mapSizeInBytes) override;
     virtual void* mapContourBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapSimpleColorRampsBuffer(size_t mapSizeInBytes) override;
     virtual void* mapGradSpanBuffer(size_t mapSizeInBytes) override;
     virtual void* mapTessVertexSpanBuffer(size_t mapSizeInBytes) override;
     virtual void* mapTriangleVertexBuffer(size_t mapSizeInBytes) override;
@@ -307,7 +305,6 @@ public:
     virtual void unmapPaintBuffer() override;
     virtual void unmapPaintAuxBuffer() override;
     virtual void unmapContourBuffer() override;
-    virtual void unmapSimpleColorRampsBuffer() override;
     virtual void unmapGradSpanBuffer() override;
     virtual void unmapTessVertexSpanBuffer() override;
     virtual void unmapTriangleVertexBuffer() override;
@@ -346,7 +343,6 @@ private:
     StructuredBufferRHIImpl<rive::gpu::PaintData> m_paintBuffer;
     StructuredBufferRHIImpl<rive::gpu::PaintAuxData> m_paintAuxBuffer;
     StructuredBufferRHIImpl<rive::gpu::ContourData> m_contourBuffer;
-    std::unique_ptr<rive::gpu::HeapBufferRing> m_simpleColorRampsBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_tessSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_triangleBuffer;

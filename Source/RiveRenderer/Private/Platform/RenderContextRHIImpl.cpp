@@ -829,16 +829,6 @@ void RenderContextRHIImpl::resizeContourBuffer(size_t sizeInBytes,
                            StorageBufferElementSizeInBytes(structure));
 }
 
-void RenderContextRHIImpl::resizeSimpleColorRampsBuffer(size_t sizeInBytes)
-{
-    m_simpleColorRampsBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_simpleColorRampsBuffer =
-            std::make_unique<HeapBufferRing>(sizeInBytes);
-    }
-}
-
 void RenderContextRHIImpl::resizeGradSpanBuffer(size_t sizeInBytes)
 {
     m_gradSpanBuffer.reset();
@@ -905,11 +895,6 @@ void* RenderContextRHIImpl::mapContourBuffer(size_t mapSizeInBytes)
     return m_contourBuffer.Map(mapSizeInBytes);
 }
 
-void* RenderContextRHIImpl::mapSimpleColorRampsBuffer(size_t mapSizeInBytes)
-{
-    return m_simpleColorRampsBuffer->mapBuffer(mapSizeInBytes);
-}
-
 void* RenderContextRHIImpl::mapGradSpanBuffer(size_t mapSizeInBytes)
 {
     return m_gradSpanBuffer->mapBuffer(mapSizeInBytes);
@@ -942,11 +927,6 @@ void RenderContextRHIImpl::unmapPaintBuffer() {}
 void RenderContextRHIImpl::unmapPaintAuxBuffer() {}
 
 void RenderContextRHIImpl::unmapContourBuffer() {}
-
-void RenderContextRHIImpl::unmapSimpleColorRampsBuffer()
-{
-    m_simpleColorRampsBuffer->unmapAndSubmitBuffer();
-}
 
 void RenderContextRHIImpl::unmapGradSpanBuffer()
 {
@@ -1098,12 +1078,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         CommandList.ClearUAVUint(renderTarget->clipUAV(), FUintVector4(0));
     }
 
-    if (desc.complexGradSpanCount > 0)
+    if (desc.gradSpanCount > 0)
     {
         check(m_gradSpanBuffer);
-        auto gradSpanBuffer = m_gradSpanBuffer->Sync(CommandList,
-                                                     desc.firstComplexGradSpan *
-                                                         sizeof(GradientSpan));
+        auto gradSpanBuffer =
+            m_gradSpanBuffer->Sync(CommandList,
+                                   desc.firstGradSpan * sizeof(GradientSpan));
         CommandList.Transition(FRHITransitionInfo(gradiantTexture,
                                                   ERHIAccess::Unknown,
                                                   ERHIAccess::RTV));
@@ -1112,13 +1092,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         FRHIRenderPassInfo Info(gradiantTexture,
                                 ERenderTargetActions::Clear_Store);
         CommandList.BeginRenderPass(Info, TEXT("Rive_Render_Gradient"));
-        CommandList.SetViewport(0,
-                                desc.complexGradRowsTop,
-                                0,
-                                kGradTextureWidth,
-                                desc.complexGradRowsTop +
-                                    desc.complexGradRowsHeight,
-                                1.0);
+        CommandList
+            .SetViewport(0, 0, 0, kGradTextureWidth, desc.gradDataHeight, 1.0);
         CommandList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
         TShaderMapRef<FRiveGradientVertexShader> VertexShader(ShaderMap);
@@ -1148,37 +1123,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         CommandList.SetStreamSource(0, gradSpanBuffer, 0);
 
-        CommandList.DrawPrimitive(0, 2, desc.complexGradSpanCount);
+        CommandList.DrawPrimitive(0, 2, desc.gradSpanCount);
 
         CommandList.EndRenderPass();
-        if (desc.simpleGradTexelsHeight > 0)
-            CommandList.Transition(FRHITransitionInfo(gradiantTexture,
-                                                      ERHIAccess::RTV,
-                                                      ERHIAccess::CopyDest));
-        else
-            CommandList.Transition(FRHITransitionInfo(gradiantTexture,
-                                                      ERHIAccess::RTV,
-                                                      ERHIAccess::SRVGraphics));
-    }
 
-    if (desc.simpleGradTexelsHeight > 0)
-    {
-        assert(desc.simpleGradTexelsHeight * desc.simpleGradTexelsWidth * 4 <=
-               simpleColorRampsBufferRing()->capacityInBytes());
-
-        CommandList.UpdateTexture2D(gradiantTexture,
-                                    0,
-                                    {0,
-                                     0,
-                                     0,
-                                     0,
-                                     desc.simpleGradTexelsWidth,
-                                     desc.simpleGradTexelsHeight},
-                                    kGradTextureWidth * 4,
-                                    m_simpleColorRampsBuffer->contents() +
-                                        desc.simpleGradDataOffsetInBytes);
         CommandList.Transition(FRHITransitionInfo(gradiantTexture,
-                                                  ERHIAccess::CopyDest,
+                                                  ERHIAccess::RTV,
                                                   ERHIAccess::SRVGraphics));
     }
 
