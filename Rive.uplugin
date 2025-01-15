@@ -28,6 +28,12 @@
 			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
 		},
 		{
+			"Name": "RiveStats",
+			"Type": "Runtime",
+			"LoadingPhase": "PostConfigInit",
+			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
+		},
+		{
 			"Name": "RiveRenderer",
 			"Type": "RuntimeNoCommandlet",
 			"LoadingPhase": "PreDefault",

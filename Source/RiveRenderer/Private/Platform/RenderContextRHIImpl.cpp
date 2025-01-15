@@ -10,13 +10,17 @@
 #include "RenderGraphUtils.h"
 #include "Logs/RiveRendererLog.h"
 
-#include "Misc/EngineVersionComparison.h"
+#include "HAL/IConsoleManager.h"
+
 #include "Containers/ResourceArray.h"
 #include "RHIStaticStates.h"
 #include "Modules/ModuleManager.h"
 
+#include "RenderGraphHelpers/RivePassFunctions.h"
+
 #include "RHICommandList.h"
 #include "rive/decoders/bitmap_decoder.hpp"
+#include "Misc/EngineVersionComparison.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
@@ -35,37 +39,6 @@ THIRD_PARTY_INCLUDES_END
 #define RASTER_STATE(FillMode, CullMode, DepthClip)                            \
     TStaticRasterizerState<FillMode, CullMode, DepthClip, false>::GetRHI()
 #endif
-
-template <typename VShaderType, typename PShaderType>
-void BindShaders(FRHICommandList& CommandList,
-                 FGraphicsPipelineStateInitializer& GraphicsPSOInit,
-                 TShaderMapRef<VShaderType> VSShader,
-                 TShaderMapRef<PShaderType> PSShader,
-                 FRHIVertexDeclaration* VertexDeclaration)
-{
-    GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = VertexDeclaration;
-    GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
-        VSShader.GetVertexShader();
-    GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PSShader.GetPixelShader();
-    SetGraphicsPipelineState(CommandList,
-                             GraphicsPSOInit,
-                             0,
-                             EApplyRendertargetOption::CheckApply,
-                             true,
-                             EPSOPrecacheResult::Unknown);
-}
-
-template <typename ShaderType>
-void SetParameters(FRHICommandList& CommandList,
-                   FRHIBatchedShaderParameters& BatchedParameters,
-                   TShaderMapRef<ShaderType> Shader,
-                   typename ShaderType::FParameters& VParameters)
-{
-    ClearUnusedGraphResources(Shader, &VParameters);
-    SetShaderParameters(BatchedParameters, Shader, VParameters);
-    CommandList.SetBatchedShaderParameters(Shader.GetVertexShader(),
-                                           BatchedParameters);
-}
 
 template <typename DataType, size_t size>
 struct TStaticResourceData : public FResourceArrayInterface
@@ -193,125 +166,115 @@ void GetPermutationForFeatures(
                                                ShaderFeatures::ENABLE_EVEN_ODD);
     PixelPermutationDomain.Set<FEnableHSLBlendMode>(
         features & ShaderFeatures::ENABLE_HSL_BLEND_MODES);
+    PixelPermutationDomain.Set<FEnableTypedUAVLoads>(
+        Capabilities.bSupportsTypedUAVLoads);
 }
 
 /*
  * Convenience function for adding a PF_R32 Texture visualization pass, used for
  * debuging
  */
-void AddBltU32ToF4Pass(FRHICommandList& CommandList,
-                       const FGlobalShaderMap* ShaderMap,
-                       FTextureRHIRef SourceTexture,
-                       FTextureRHIRef DestTexture,
+void AddBltU32ToF4Pass(FRDGBuilder& GraphBuilder,
+                       FRDGTextureRef SourceTexture,
+                       FRDGTextureRef DestTexture,
                        FIntPoint Size)
 {
     // DEBUG STUFF
-    FRDGBuilder DebugBuilder(CommandList.GetAsImmediate());
+    auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
-    auto DebugTexture = DebugBuilder.RegisterExternalTexture(
-        CreateRenderTarget(DestTexture, TEXT("DebugRenderTarget")));
+    TShaderMapRef<FRiveRDGBltU32AsF4PixelShader> PixelShader(ShaderMap);
 
-    TShaderMapRef<FRiveBltU32AsF4PixelShader> PixelShader(ShaderMap);
-
-    FRiveBltU32AsF4PixelShader::FParameters* BltU32ToF4Parameters =
-        DebugBuilder.AllocParameters<FRiveBltU32AsF4PixelShader::FParameters>();
+    FRiveRDGBltU32AsF4PixelShader::FParameters* BltU32ToF4Parameters =
+        GraphBuilder
+            .AllocParameters<FRiveRDGBltU32AsF4PixelShader::FParameters>();
 
     BltU32ToF4Parameters->SourceTexture = SourceTexture;
     BltU32ToF4Parameters->RenderTargets[0] =
-        FRenderTargetBinding(DebugTexture, ERenderTargetLoadAction::EClear);
+        FRenderTargetBinding(DestTexture, ERenderTargetLoadAction::EClear);
 
-    FPixelShaderUtils::AddFullscreenPass(DebugBuilder,
+    FPixelShaderUtils::AddFullscreenPass(GraphBuilder,
                                          ShaderMap,
-                                         RDG_EVENT_NAME("U32ToF4"),
+                                         RDG_EVENT_NAME("riv.U32ToF4"),
                                          PixelShader,
                                          BltU32ToF4Parameters,
                                          FIntRect(0, 0, Size.X, Size.Y));
-    DebugBuilder.Execute();
 }
 
 /*
  * Convenience function for adding a PF_R32G32B32A32_UINT Texture visualization
  * pass, used for debuging
  */
-void AddBltU324ToF4Pass(FRHICommandList& CommandList,
-                        const FGlobalShaderMap* ShaderMap,
-                        FTextureRHIRef SourceTexture,
-                        FTextureRHIRef DestTexture,
-                        FIntPoint Size)
+void AddBltU324ToF4Pass(FRDGBuilder& GraphBuilder,
+                        FRDGTextureRef SourceTexture,
+                        FRDGTextureRef DestTexture,
+                        FIntRect Viewport)
 {
-    // DEBUG STUFF
-    FRDGBuilder DebugBuilder(CommandList.GetAsImmediate());
+    auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
-    auto DebugTexture = DebugBuilder.RegisterExternalTexture(
-        CreateRenderTarget(DestTexture, TEXT("DebugRenderTarget")));
+    TShaderMapRef<FRiveRDGBltU324AsF4PixelShader> PixelShader(ShaderMap);
 
-    TShaderMapRef<FRiveBltU324AsF4PixelShader> PixelShader(ShaderMap);
-
-    FRiveBltU324AsF4PixelShader::FParameters* BltU324ToF4Parameters =
-        DebugBuilder
-            .AllocParameters<FRiveBltU324AsF4PixelShader::FParameters>();
+    FRiveRDGBltU324AsF4PixelShader::FParameters* BltU324ToF4Parameters =
+        GraphBuilder
+            .AllocParameters<FRiveRDGBltU324AsF4PixelShader::FParameters>();
 
     BltU324ToF4Parameters->SourceTexture = SourceTexture;
     BltU324ToF4Parameters->RenderTargets[0] =
-        FRenderTargetBinding(DebugTexture, ERenderTargetLoadAction::EClear);
+        FRenderTargetBinding(DestTexture, ERenderTargetLoadAction::EClear);
 
-    FPixelShaderUtils::AddFullscreenPass(DebugBuilder,
+    FPixelShaderUtils::AddFullscreenPass(GraphBuilder,
                                          ShaderMap,
-                                         RDG_EVENT_NAME("U324ToF4"),
+                                         RDG_EVENT_NAME("riv.U324ToF4"),
                                          PixelShader,
                                          BltU324ToF4Parameters,
-                                         FIntRect(0, 0, Size.X, Size.Y));
-    DebugBuilder.Execute();
+                                         Viewport);
 }
 
 /*
  * Convenience function for adding a PF_R32G32_UINT Buffer visualization pass,
  * used for debuging
  */
-void AddVisualizeBufferPass(FRHICommandList& CommandList,
-                            const FGlobalShaderMap* ShaderMap,
+void AddVisualizeBufferPass(FRDGBuilder& GraphBuilder,
                             int32 BufferSize,
-                            FShaderResourceViewRHIRef SourceBuffer,
-                            FTextureRHIRef DestTexture,
+                            FRDGBufferSRVRef SourceBuffer,
+                            FRDGTextureRef DestTexture,
                             FIntPoint Size)
 {
-    // DEBUG STUFF
-    FRDGBuilder DebugBuilder(CommandList.GetAsImmediate());
+    auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
-    auto DebugTexture = DebugBuilder.RegisterExternalTexture(
-        CreateRenderTarget(DestTexture, TEXT("DebugRenderTarget")));
-
-    TShaderMapRef<FRiveVisualizeBufferPixelShader> PixelShader(ShaderMap);
-
-    FRiveVisualizeBufferPixelShader::FParameters* VisBufferParameters =
-        DebugBuilder
-            .AllocParameters<FRiveVisualizeBufferPixelShader::FParameters>();
+    TShaderMapRef<FRiveRDGVisualizeBufferPixelShader> PixelShader(ShaderMap);
+    FRiveRDGVisualizeBufferPixelShader::FParameters* VisBufferParameters =
+        GraphBuilder
+            .AllocParameters<FRiveRDGVisualizeBufferPixelShader::FParameters>();
     VisBufferParameters->ViewSize = FUintVector2(Size.X, Size.Y);
     VisBufferParameters->BufferSize = BufferSize;
 
     VisBufferParameters->SourceBuffer = SourceBuffer;
     VisBufferParameters->RenderTargets[0] =
-        FRenderTargetBinding(DebugTexture, ERenderTargetLoadAction::EClear);
+        FRenderTargetBinding(DestTexture, ERenderTargetLoadAction::EClear);
 
-    FPixelShaderUtils::AddFullscreenPass(DebugBuilder,
+    FPixelShaderUtils::AddFullscreenPass(GraphBuilder,
                                          ShaderMap,
-                                         RDG_EVENT_NAME("VisBuffer"),
+                                         RDG_EVENT_NAME("riv.VisBuffer"),
                                          PixelShader,
                                          VisBufferParameters,
                                          FIntRect(0, 0, Size.X, Size.Y));
-    DebugBuilder.Execute();
 }
 
 RHICapabilities::RHICapabilities()
 {
     bSupportsPixelShaderUAVs = GRHISupportsPixelShaderUAVs;
+    // right now this is required to run rhi.
+    check(bSupportsPixelShaderUAVs);
+    check(UE::PixelFormat::HasCapabilities(PF_R8G8B8A8,
+                                           EPixelFormatCapabilities::UAV));
+    check(UE::PixelFormat::HasCapabilities(PF_B8G8R8A8,
+                                           EPixelFormatCapabilities::UAV));
+
     bSupportsRasterOrderViews = GRHISupportsRasterOrderViews;
+    // it seems vulkan requires typed uav support.
     bSupportsTypedUAVLoads =
-        UE::PixelFormat::HasCapabilities(PF_R8G8B8A8,
-                                         EPixelFormatCapabilities::UAV) &&
-        UE::PixelFormat::HasCapabilities(PF_B8G8R8A8,
-                                         EPixelFormatCapabilities::UAV) &&
-        RHISupports4ComponentUAVReadWrite(GMaxRHIShaderPlatform);
+        RHISupports4ComponentUAVReadWrite(GMaxRHIShaderPlatform) ||
+        GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan;
 }
 
 template <typename DataType>
@@ -339,7 +302,7 @@ BufferRingRHIImpl::BufferRingRHIImpl(EBufferUsageFlags flags,
 FBufferRHIRef BufferRingRHIImpl::Sync(FRHICommandList& commandList,
                                       size_t offsetInBytes) const
 {
-    FRHIResourceCreateInfo Info(TEXT("BufferRingRHIImpl_"));
+    FRHIResourceCreateInfo Info(TEXT("rive.BufferRingRHIImpl_"));
 
     const size_t size = capacityInBytes() - offsetInBytes;
     auto buffer =
@@ -354,6 +317,23 @@ FBufferRHIRef BufferRingRHIImpl::Sync(FRHICommandList& commandList,
     memcpy(map, shadowBuffer() + offsetInBytes, size);
     commandList.UnlockBuffer(buffer);
 
+    return buffer;
+}
+
+FRDGBufferRef BufferRingRHIImpl::Sync(FRDGBuilder& RDGBuilder,
+                                      size_t offsetInBytes) const
+{
+    const size_t size = capacityInBytes() - offsetInBytes;
+    FRDGBufferDesc Desc(m_stride,
+                        size / m_stride,
+                        m_flags | EBufferUsageFlags::Volatile);
+    auto buffer = RDGBuilder.CreateBuffer(Desc,
+                                          TEXT("rive.BufferRingRHIImpl_"),
+                                          ERDGBufferFlags::None);
+    RDGBuilder.QueueBufferUpload(buffer,
+                                 shadowBuffer() + offsetInBytes,
+                                 size,
+                                 ERDGInitialDataFlags::NoCopy);
     return buffer;
 }
 
@@ -414,10 +394,11 @@ public:
         FRHIAsyncCommandList commandList;
         FRHICommandListScopedPipelineGuard Guard(*commandList);
 
-        auto Desc = FRHITextureCreateDesc::Create2D(TEXT("PLSTextureRHIImpl_"),
-                                                    m_width,
-                                                    m_height,
-                                                    PixelFormat);
+        auto Desc =
+            FRHITextureCreateDesc::Create2D(TEXT("rive.PLSTextureRHIImpl_"),
+                                            m_width,
+                                            m_height,
+                                            PixelFormat);
         Desc.SetNumMips(mipLevelCount);
         m_texture = CREATE_TEXTURE_ASYNC(commandList, Desc);
         commandList->UpdateTexture2D(
@@ -438,10 +419,11 @@ public:
         FRHIAsyncCommandList commandList;
         FRHICommandListScopedPipelineGuard Guard(*commandList);
         // TODO: Move to Staging Buffer
-        auto Desc = FRHITextureCreateDesc::Create2D(TEXT("PLSTextureRHIImpl_"),
-                                                    m_width,
-                                                    m_height,
-                                                    PixelFormat);
+        auto Desc =
+            FRHITextureCreateDesc::Create2D(TEXT("rive.PLSTextureRHIImpl_"),
+                                            m_width,
+                                            m_height,
+                                            PixelFormat);
         Desc.SetNumMips(mipLevelCount);
         m_texture = CREATE_TEXTURE_ASYNC(commandList, Desc);
         commandList->UpdateTexture2D(
@@ -452,6 +434,13 @@ public:
             imageData.GetData());
     }
 
+    FRDGTextureRef asRDGTexture(FRDGBuilder& Builder) const
+    {
+        check(m_texture);
+        return Builder.RegisterExternalTexture(
+            CreateRenderTarget(m_texture, TEXT("rive.PLSTextureRHIImpl_")));
+    }
+
     virtual ~TextureRHIImpl() override {}
 
     FTextureRHIRef contents() const { return m_texture; }
@@ -460,14 +449,25 @@ private:
     FTextureRHIRef m_texture;
 };
 
+FString RHICapabilities::AsString() const
+{
+    return FString::Printf(TEXT("{ bSupportsPixelShaderUAVs %i,"
+                                " bSupportsTypedUAVLoads %i, "
+                                "bSupportsRasterOrderViews %i}"),
+                           bSupportsPixelShaderUAVs,
+                           bSupportsTypedUAVLoads,
+                           bSupportsRasterOrderViews);
+}
+
 RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
                                  const RHICapabilities& Capabilities,
                                  const FTexture2DRHIRef& InTextureTarget) :
     RenderTarget(InTextureTarget->GetSizeX(), InTextureTarget->GetSizeY()),
-    m_textureTarget(InTextureTarget)
+    m_textureTarget(InTextureTarget),
+    m_capabilities(Capabilities)
 {
     FRHITextureCreateDesc coverageDesc =
-        FRHITextureCreateDesc::Create2D(TEXT("RiveAtomicCoverage"),
+        FRHITextureCreateDesc::Create2D(TEXT("rive.AtomicCoverage"),
                                         width(),
                                         height(),
                                         PF_R32_UINT);
@@ -475,15 +475,8 @@ RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
     coverageDesc.AddFlags(ETextureCreateFlags::UAV);
     m_atomicCoverageTexture = CREATE_TEXTURE(RHICmdList, coverageDesc);
 
-    // revisit this later, for now not needed
-    /*FRHITextureCreateDesc scratchColorDesc =
-    FRHITextureCreateDesc::Create2D(TEXT("RiveScratchColor"), width(), height(),
-    PF_R8G8B8A8); scratchColorDesc.SetNumMips(1);
-    scratchColorDesc.AddFlags(ETextureCreateFlags::UAV);
-    m_scratchColorTexture = CREATE_TEXTURE(RHICmdList, scratchColorDesc);*/
-
     FRHITextureCreateDesc clipDesc =
-        FRHITextureCreateDesc::Create2D(TEXT("RiveClip"),
+        FRHITextureCreateDesc::Create2D(TEXT("rive.Clip"),
                                         width(),
                                         height(),
                                         PF_R32_UINT);
@@ -495,44 +488,51 @@ RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
         m_textureTarget->GetDesc().Flags & ETextureCreateFlags::UAV);
 
     // Rive is not currently supported without UAVs.
-    assert(Capabilities.bSupportsPixelShaderUAVs);
-
-    // TODO: Lazy Load these
-    if (Capabilities.bSupportsTypedUAVLoads)
-        m_targetUAV = RHICmdList.CreateUnorderedAccessView(m_textureTarget);
-    else
-        m_targetUAV = RHICmdList.CreateUnorderedAccessView(
-            m_textureTarget,
-            0,
-            static_cast<uint8>(EPixelFormat::PF_R32_UINT));
-
-    m_coverageUAV =
-        RHICmdList.CreateUnorderedAccessView(m_atomicCoverageTexture);
-    m_clipUAV = RHICmdList.CreateUnorderedAccessView(m_clipTexture);
-    // m_scratchColorUAV =
-    // RHICmdList.CreateUnorderedAccessView(m_scratchColorTexture);
+    check(Capabilities.bSupportsPixelShaderUAVs);
 }
 
-void DelayLoadedTexture::UpdateTexture(const FRHITextureCreateDesc& inDesc,
+FRDGTextureRef RenderTargetRHI::targetTexture(FRDGBuilder& Builder)
+{
+    return Builder.RegisterExternalTexture(
+        CreateRenderTarget(m_textureTarget, TEXT("rive.TargetTexture")),
+        ERDGTextureFlags::MultiFrame);
+}
+
+FRDGTextureRef RenderTargetRHI::clipTexture(FRDGBuilder& Builder)
+{
+    return Builder.RegisterExternalTexture(
+        CreateRenderTarget(m_clipTexture, TEXT("rive.Clip")),
+        ERDGTextureFlags::MultiFrame);
+}
+
+FRDGTextureRef RenderTargetRHI::coverageTexture(FRDGBuilder& Builder)
+{
+    return Builder.RegisterExternalTexture(
+        CreateRenderTarget(m_atomicCoverageTexture,
+                           TEXT("rive.AtomicCoverage")),
+        ERDGTextureFlags::MultiFrame);
+}
+
+void DelayLoadedTexture::UpdateTexture(const FRDGTextureDesc& inDesc,
+                                       FString DebugName,
                                        bool inNeedsSRV)
 {
-    m_isDirty = true;
-    m_needsSRV = inNeedsSRV;
-    m_desc = inDesc;
+    m_rdgDesc = inDesc;
+    m_debugName = DebugName;
 }
 
-void DelayLoadedTexture::Sync(FRHICommandList& RHICmdList)
+void DelayLoadedTexture::Sync(FRDGBuilder& RDGBuilder,
+                              FRDGTextureRef* outTexture,
+                              FRDGTextureSRVRef* outSRV) const
 {
-    if (m_isDirty)
+    check(outTexture);
+
+    *outTexture = RDGBuilder.CreateTexture(m_rdgDesc, *m_debugName);
+
+    if (outSRV)
     {
-        m_texture = CREATE_TEXTURE(RHICmdList, m_desc);
-        check(m_texture);
-        if (m_needsSRV)
-        {
-            FRHITextureSRVCreateInfo Info(0, 1, 0, 1, m_texture->GetFormat());
-            m_srv = RHICmdList.CreateShaderResourceView(m_texture, Info);
-            check(m_srv);
-        }
+        FRDGTextureSRVDesc Desc = FRDGTextureSRVDesc::Create(*outTexture);
+        *outSRV = RDGBuilder.CreateSRV(Desc);
     }
 }
 
@@ -547,6 +547,12 @@ std::unique_ptr<RenderContext> RenderContextRHIImpl::MakeContext(
 RenderContextRHIImpl::RenderContextRHIImpl(
     FRHICommandListImmediate& CommandListImmediate)
 {
+    auto CapabilityString = m_capabilities.AsString();
+    UE_LOG(LogRiveRenderer,
+           Display,
+           TEXT("Running RHI with %s Capabilities"),
+           *CapabilityString);
+
     m_platformFeatures.supportsFragmentShaderAtomics =
         m_capabilities.bSupportsPixelShaderUAVs;
     m_platformFeatures.supportsClipPlanes = true;
@@ -639,30 +645,30 @@ RenderContextRHIImpl::RenderContextRHIImpl(
 
     m_patchVertexBuffer =
         makeSimpleImmutableBuffer<PatchVertex>(CommandListImmediate,
-                                               TEXT("RivePatchVertexBuffer"),
+                                               TEXT("rive.PatchVertexBuffer"),
                                                EBufferUsageFlags::VertexBuffer,
                                                GPatchVertices);
     m_patchIndexBuffer =
         makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
-                                            TEXT("RivePatchIndexBuffer"),
+                                            TEXT("rive.PatchIndexBuffer"),
                                             EBufferUsageFlags::IndexBuffer,
                                             GPatchIndices);
 
     m_tessSpanIndexBuffer =
         makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
-                                            TEXT("RiveTessIndexBuffer"),
+                                            TEXT("rive.TessIndexBuffer"),
                                             EBufferUsageFlags::IndexBuffer,
                                             GTessSpanIndices);
 
     m_imageRectVertexBuffer = makeSimpleImmutableBuffer<ImageRectVertex>(
         CommandListImmediate,
-        TEXT("ImageRectVertexBuffer"),
+        TEXT("rive.ImageRectVertexBuffer"),
         EBufferUsageFlags::VertexBuffer,
         GImageRectVertices);
 
     m_imageRectIndexBuffer =
         makeSimpleImmutableBuffer<uint16>(CommandListImmediate,
-                                          TEXT("ImageRectIndexBuffer"),
+                                          TEXT("rive.ImageRectIndexBuffer"),
                                           EBufferUsageFlags::IndexBuffer,
                                           GImageRectIndices);
 
@@ -682,6 +688,13 @@ RenderContextRHIImpl::RenderContextRHIImpl(
                                           1,
                                           0,
                                           SCF_Never>::GetRHI();
+
+    auto PlaceholderDesc =
+        FRHITextureCreateDesc::Create2D(TEXT("rive.Placeholder"),
+                                        FIntPoint(1, 1),
+                                        PF_R32_UINT);
+    PlaceholderDesc.AddFlags(ETextureCreateFlags::ShaderResource);
+    m_placeholderTexture = CommandListImmediate.CreateTexture(PlaceholderDesc);
 }
 
 rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(
@@ -965,16 +978,14 @@ void RenderContextRHIImpl::resizeGradientTexture(uint32_t width,
 
     height = std::max(1u, height);
 
-    FRHITextureCreateDesc Desc = FRHITextureCreateDesc::Create2D(
-        TEXT("riveGradientTexture"),
+    auto RDGDesc = FRDGTextureDesc::Create2D(
         {static_cast<int32_t>(width), static_cast<int32_t>(height)},
-        PF_R8G8B8A8);
-    Desc.AddFlags(ETextureCreateFlags::RenderTargetable |
-                  ETextureCreateFlags::ShaderResource);
-    Desc.SetClearValue(FClearValueBinding(FLinearColor::Red));
-    Desc.DetermineInititialState();
+        PF_R8G8B8A8,
+        FClearValueBinding(FLinearColor::Red),
+        ETextureCreateFlags::RenderTargetable |
+            ETextureCreateFlags::ShaderResource);
 
-    m_gradiantTexture.UpdateTexture(Desc);
+    m_gradiantTexture.UpdateTexture(RDGDesc, TEXT("rive.GradientTexture"));
 }
 
 void RenderContextRHIImpl::resizeTessellationTexture(uint32_t width,
@@ -984,18 +995,28 @@ void RenderContextRHIImpl::resizeTessellationTexture(uint32_t width,
 
     height = std::max(1u, height);
 
-    FRHIAsyncCommandList commandList;
-    FRHITextureCreateDesc Desc = FRHITextureCreateDesc::Create2D(
-        TEXT("riveTessTexture"),
+    auto RDGDesc = FRDGTextureDesc::Create2D(
         {static_cast<int32_t>(width), static_cast<int32_t>(height)},
-        PF_R32G32B32A32_UINT);
-    Desc.AddFlags(ETextureCreateFlags::RenderTargetable |
-                  ETextureCreateFlags::ShaderResource);
-    Desc.SetClearValue(FClearValueBinding::Black);
-    Desc.DetermineInititialState();
+        PF_R32G32B32A32_UINT,
+        FClearValueBinding::Black,
+        ETextureCreateFlags::RenderTargetable |
+            ETextureCreateFlags::ShaderResource);
 
-    m_tesselationTexture.UpdateTexture(Desc, true);
+    m_tesselationTexture.UpdateTexture(RDGDesc, TEXT("rive.TessTexture"), true);
 }
+
+DECLARE_GPU_STAT_NAMED(STAT_RiveFlush, TEXT("Rive Flush"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveBufferSync, TEXT("Rive Buffer Sync"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveClearCoverageClip,
+                       TEXT("Rive Clear Coverage and Clip"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_SimpleGradientCopy,
+                       TEXT("Rive Simple Gradient Copy"));
+
+DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveComplexGradient,
+                       TEXT("Rive Complex Gradient Draw"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveTess, TEXT("Rive Tess Draw"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveFlushRenderPass,
+                       TEXT("Rive Flush Render Pass"));
 
 void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 {
@@ -1004,765 +1025,595 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     auto renderTarget = static_cast<RenderTargetRHI*>(desc.renderTarget);
     check(renderTarget);
 
-    FTextureRHIRef DestTexture = renderTarget->texture();
-    check(DestTexture.IsValid());
-
     FRHICommandList& CommandList = GRHICommandList.GetImmediateCommandList();
     auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
-    // prevent vulkan from breaking in certain scenerios
-    // this comes for free with FRDGBuilder (Render Graph)
-    FRHICommandListScopedPipelineGuard Guard(CommandList);
-
-    check(m_flushUniformBuffer);
-    m_flushUniformBuffer->Sync(CommandList, desc.flushUniformDataOffsetInBytes);
-
-    m_gradiantTexture.Sync(CommandList);
-    auto gradiantTexture = m_gradiantTexture.Contents();
-    check(gradiantTexture.IsValid());
-
-    m_tesselationTexture.Sync(CommandList);
-    auto tesselationTexture = m_tesselationTexture.Contents();
-    check(tesselationTexture.IsValid());
-
-    auto tessSRV = m_tesselationTexture.SRV();
-    check(tessSRV.IsValid());
-
-    FShaderResourceViewRHIRef pathSRV;
-    FShaderResourceViewRHIRef paintSRV;
-    FShaderResourceViewRHIRef paintAuxSRV;
-    FShaderResourceViewRHIRef contourSRV;
-
-    if (desc.pathCount > 0)
+    FRDGBuilder GraphBuilder(CommandList.GetAsImmediate());
     {
-        pathSRV =
-            m_pathBuffer.SyncSRV(CommandList, desc.firstPath, desc.pathCount);
-        paintSRV =
-            m_paintBuffer.SyncSRV(CommandList, desc.firstPaint, desc.pathCount);
-        paintAuxSRV = m_paintAuxBuffer.SyncSRV(CommandList,
-                                               desc.firstPaintAux,
-                                               desc.pathCount);
-    }
+        RDG_GPU_STAT_SCOPE(GraphBuilder, STAT_RiveFlush);
 
-    if (desc.contourCount > 0)
-    {
-        contourSRV = m_contourBuffer.SyncSRV(CommandList,
-                                             desc.firstContour,
-                                             desc.contourCount);
-    }
+        auto targetTexture = renderTarget->targetTexture(GraphBuilder);
+        check(targetTexture);
+        auto clipTexture = renderTarget->clipTexture(GraphBuilder);
+        check(clipTexture);
+        auto coverageTexture = renderTarget->coverageTexture(GraphBuilder);
+        check(coverageTexture);
 
-    FBufferRHIRef triangleBuffer;
-    // TODO: only sync on first flush of frame
-    if (m_triangleBuffer)
-    {
-        triangleBuffer = m_triangleBuffer->Sync(CommandList);
-    }
+        check(renderTarget->TargetTextureSupportsUAV());
+        FRDGTextureUAVRef targetUAV = nullptr;
 
-    FGraphicsPipelineStateInitializer GraphicsPSOInit;
-    GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-    GraphicsPSOInit.RasterizerState =
-        RASTER_STATE(FM_Solid, CM_None, ERasterizerDepthClipMode::DepthClamp);
-    GraphicsPSOInit.DepthStencilState =
-        TStaticDepthStencilState<false, ECompareFunction::CF_Always>::GetRHI();
-    FRHIBatchedShaderParameters& BatchedShaderParameters =
-        CommandList.GetScratchShaderParameters();
-
-    check(renderTarget->coverageUAV());
-    CommandList.ClearUAVUint(renderTarget->coverageUAV(),
-                             FUintVector4(desc.coverageClearValue,
-                                          desc.coverageClearValue,
-                                          desc.coverageClearValue,
-                                          desc.coverageClearValue));
-    if (desc.combinedShaderFeatures & gpu::ShaderFeatures::ENABLE_CLIPPING)
-    {
-        CommandList.ClearUAVUint(renderTarget->clipUAV(), FUintVector4(0));
-    }
-
-    if (desc.gradSpanCount > 0)
-    {
-        check(m_gradSpanBuffer);
-        auto gradSpanBuffer =
-            m_gradSpanBuffer->Sync(CommandList,
-                                   desc.firstGradSpan * sizeof(GradientSpan));
-        CommandList.Transition(FRHITransitionInfo(gradiantTexture,
-                                                  ERHIAccess::Unknown,
-                                                  ERHIAccess::RTV));
-        GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
-
-        FRHIRenderPassInfo Info(gradiantTexture,
-                                ERenderTargetActions::Clear_Store);
-        CommandList.BeginRenderPass(Info, TEXT("Rive_Render_Gradient"));
-        CommandList
-            .SetViewport(0, 0, 0, kGradTextureWidth, desc.gradDataHeight, 1.0);
-        CommandList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-        TShaderMapRef<FRiveGradientVertexShader> VertexShader(ShaderMap);
-        TShaderMapRef<FRiveGradientPixelShader> PixelShader(ShaderMap);
-
-        BindShaders(CommandList,
-                    GraphicsPSOInit,
-                    VertexShader,
-                    PixelShader,
-                    VertexDeclarations[static_cast<int32>(
-                        EVertexDeclarations::Gradient)]);
-
-        FRiveGradientVertexShader::FParameters VertexParameters;
-        FRiveGradientPixelShader::FParameters PixelParameters;
-
-        VertexParameters.FlushUniforms = m_flushUniformBuffer->contents();
-        PixelParameters.FlushUniforms = m_flushUniformBuffer->contents();
-
-        SetParameters(CommandList,
-                      BatchedShaderParameters,
-                      VertexShader,
-                      VertexParameters);
-        SetParameters(CommandList,
-                      BatchedShaderParameters,
-                      PixelShader,
-                      PixelParameters);
-
-        CommandList.SetStreamSource(0, gradSpanBuffer, 0);
-
-        CommandList.DrawPrimitive(0,
-                                  gpu::GRAD_SPAN_TRI_STRIP_VERTEX_COUNT - 2,
-                                  desc.gradSpanCount);
-
-        CommandList.EndRenderPass();
-
-        CommandList.Transition(FRHITransitionInfo(gradiantTexture,
-                                                  ERHIAccess::RTV,
-                                                  ERHIAccess::SRVGraphics));
-    }
-
-    if (desc.tessVertexSpanCount > 0)
-    {
-        check(m_tessSpanBuffer) check(pathSRV.IsValid())
-            check(contourSRV.IsValid()) auto tessSpanBuffer =
-                m_tessSpanBuffer->Sync(CommandList,
-                                       desc.firstTessVertexSpan *
-                                           sizeof(TessVertexSpan));
-        CommandList.Transition(FRHITransitionInfo(tesselationTexture,
-                                                  ERHIAccess::Unknown,
-                                                  ERHIAccess::RTV));
-
-        FRHIRenderPassInfo Info(tesselationTexture,
-                                ERenderTargetActions::DontLoad_Store);
-        CommandList.BeginRenderPass(Info, TEXT("RiveTessUpdate"));
-        CommandList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-        GraphicsPSOInit.RasterizerState =
-            RASTER_STATE(FM_Solid,
-                         CM_CCW,
-                         ERasterizerDepthClipMode::DepthClamp);
-        GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
-        TShaderMapRef<FRiveTessVertexShader> VertexShader(ShaderMap);
-        TShaderMapRef<FRiveTessPixelShader> PixelShader(ShaderMap);
-
-        BindShaders(CommandList,
-                    GraphicsPSOInit,
-                    VertexShader,
-                    PixelShader,
-                    VertexDeclarations[static_cast<int32>(
-                        EVertexDeclarations::Tessellation)]);
-
-        CommandList.SetStreamSource(0, tessSpanBuffer, 0);
-
-        FRiveTessPixelShader::FParameters PixelParameters;
-        FRiveTessVertexShader::FParameters VertexParameters;
-
-        PixelParameters.FlushUniforms = m_flushUniformBuffer->contents();
-        VertexParameters.FlushUniforms = m_flushUniformBuffer->contents();
-        VertexParameters.GLSL_pathBuffer_raw = pathSRV;
-        VertexParameters.GLSL_contourBuffer_raw = contourSRV;
-
-        SetParameters(CommandList,
-                      BatchedShaderParameters,
-                      VertexShader,
-                      VertexParameters);
-        SetParameters(CommandList,
-                      BatchedShaderParameters,
-                      PixelShader,
-                      PixelParameters);
-
-        CommandList.SetViewport(0,
-                                0,
-                                0,
-                                static_cast<float>(kTessTextureWidth),
-                                static_cast<float>(desc.tessDataHeight),
-                                1);
-
-        CommandList.DrawIndexedPrimitive(m_tessSpanIndexBuffer,
-                                         0,
-                                         0,
-                                         8,
-                                         0,
-                                         std::size(kTessSpanIndices) / 3,
-                                         desc.tessVertexSpanCount);
-        CommandList.EndRenderPass();
-        CommandList.Transition(FRHITransitionInfo(tesselationTexture,
-                                                  ERHIAccess::RTV,
-                                                  ERHIAccess::SRVGraphics));
-    }
-
-    bool renderDirectToRasterPipeline =
-        desc.interlockMode == InterlockMode::atomics &&
-        (!renderTarget->TargetTextureSupportsUAV() ||
-         !(desc.combinedShaderFeatures &
-           ShaderFeatures::ENABLE_ADVANCED_BLEND));
-
-    bool needsBarrierBeforeNextDraw = false;
-    if (desc.interlockMode == InterlockMode::atomics &&
-        !m_capabilities.bSupportsRasterOrderViews)
-    {
-        needsBarrierBeforeNextDraw = true;
-    }
-
-    // we never choose ERenderTargetActions::Clear_Store because we can not
-    // change the clear color without re-creating the texture. So instead we use
-    // a render graph to draw a clear color directly to it or clear it as a uav,
-    // depending on if it supports uavs or not
-    ERenderTargetActions loadAction =
-        desc.colorLoadAction == LoadAction::dontCare
-            ? ERenderTargetActions::DontLoad_Store
-            : ERenderTargetActions::Load_Store;
-    bool shouldPreserveRenderTarget =
-        desc.colorLoadAction != LoadAction::dontCare;
-
-    CommandList.Transition(FRHITransitionInfo(
-        DestTexture,
-        shouldPreserveRenderTarget ? ERHIAccess::UAVGraphics
-                                   : ERHIAccess::Unknown,
-        renderDirectToRasterPipeline ? ERHIAccess::RTV
-                                     : ERHIAccess::UAVGraphics));
-
-    if (desc.colorLoadAction == LoadAction::clear)
-    {
-        if (renderDirectToRasterPipeline)
+        if (m_capabilities.bSupportsTypedUAVLoads)
         {
-            // this will all be moved out and used everywhere once RDG is setup
-            // correctly this has to be done because we have no way to update
-            // the bound clear color without creating a new texture
-            float clearColor4f[4];
-            UnpackColorToRGBA32FPremul(desc.clearColor, clearColor4f);
-            FRDGBuilder ClearPassBuilder(CommandList.GetAsImmediate());
-            auto DestRDGTexture = ClearPassBuilder.RegisterExternalTexture(
-                CreateRenderTarget(DestTexture, TEXT("RDG Clear Pass")));
-            AddClearRenderTargetPass(ClearPassBuilder,
-                                     DestRDGTexture,
-                                     FLinearColor(clearColor4f[0],
-                                                  clearColor4f[1],
-                                                  clearColor4f[2],
-                                                  clearColor4f[3]));
-            ClearPassBuilder.Execute();
+            targetUAV = GraphBuilder.CreateUAV(targetTexture);
         }
         else
         {
-            if (m_capabilities.bSupportsTypedUAVLoads)
+            targetUAV =
+                GraphBuilder.CreateUAV(targetTexture,
+                                       ERDGUnorderedAccessViewFlags::None,
+                                       PF_R32_UINT);
+        }
+
+        auto clipUAV =
+            GraphBuilder.CreateUAV(clipTexture,
+                                   ERDGUnorderedAccessViewFlags::None,
+                                   PF_R32_UINT);
+
+        auto coverageUAV =
+            GraphBuilder.CreateUAV(coverageTexture,
+                                   ERDGUnorderedAccessViewFlags::None,
+                                   PF_R32_UINT);
+
+        check(m_flushUniformBuffer);
+        auto flushUniforms =
+            m_flushUniformBuffer->Sync(GraphBuilder,
+                                       desc.flushUniformDataOffsetInBytes);
+
+        auto placeholderTexture = GraphBuilder.RegisterExternalTexture(
+            CreateRenderTarget(m_placeholderTexture, TEXT("RivePlaceholder")));
+        auto placeholderSRV = GraphBuilder.CreateSRV(placeholderTexture);
+
+        FRDGTextureRef gradiantTexture = placeholderTexture;
+        FRDGTextureRef tesselationTexture = placeholderTexture;
+        FRDGTextureSRVRef tessSRV = placeholderSRV;
+
+        FRDGBufferSRVRef pathSRV = nullptr;
+        FRDGBufferSRVRef paintSRV = nullptr;
+        FRDGBufferSRVRef paintAuxSRV = nullptr;
+        FRDGBufferSRVRef contourSRV = nullptr;
+
+        if (desc.pathCount > 0)
+        {
+            pathSRV = m_pathBuffer.SyncSRV(GraphBuilder,
+                                           desc.firstPath,
+                                           desc.pathCount);
+            paintSRV = m_paintBuffer.SyncSRV(GraphBuilder,
+                                             desc.firstPaint,
+                                             desc.pathCount);
+            paintAuxSRV = m_paintAuxBuffer.SyncSRV(GraphBuilder,
+                                                   desc.firstPaintAux,
+                                                   desc.pathCount);
+        }
+
+        if (desc.contourCount > 0)
+        {
+            contourSRV = m_contourBuffer.SyncSRV(GraphBuilder,
+                                                 desc.firstContour,
+                                                 desc.contourCount);
+        }
+
+        FBufferRHIRef triangleBuffer = nullptr;
+        // TODO: only sync on first flush of frame
+        if (m_triangleBuffer)
+        {
+            triangleBuffer = m_triangleBuffer->Sync(CommandList);
+        }
+
+        {
+            RDG_GPU_STAT_SCOPE(GraphBuilder,
+                               STAT_RiveFlush_RiveClearCoverageClip);
+            check(coverageUAV);
+            AddClearUAVPass(GraphBuilder,
+                            coverageUAV,
+                            FUintVector4(desc.coverageClearValue,
+                                         desc.coverageClearValue,
+                                         desc.coverageClearValue,
+                                         desc.coverageClearValue));
+
+            if (desc.combinedShaderFeatures &
+                gpu::ShaderFeatures::ENABLE_CLIPPING)
             {
+                AddClearUAVPass(GraphBuilder, clipUAV, FUintVector4(0));
+            }
+        }
+
+        if (desc.gradSpanCount > 0)
+        {
+            RDG_GPU_STAT_SCOPE(GraphBuilder,
+                               STAT_RiveFlush_RiveComplexGradient);
+            if (gradiantTexture == placeholderTexture)
+            {
+                m_gradiantTexture.Sync(GraphBuilder, &gradiantTexture);
+            }
+
+            check(gradiantTexture);
+            check(m_gradSpanBuffer);
+            auto gradSpanBuffer = m_gradSpanBuffer->Sync(
+                CommandList,
+                desc.firstGradSpan * sizeof(GradientSpan));
+            AddGradientPass(GraphBuilder,
+                            flushUniforms,
+                            VertexDeclarations[static_cast<int>(
+                                EVertexDeclarations::Gradient)],
+                            gradiantTexture,
+                            gradSpanBuffer,
+                            FUint32Rect({0, 0},
+                                        {
+                                            kGradTextureWidth,
+                                            desc.gradDataHeight,
+                                        }),
+                            desc.gradSpanCount);
+        }
+
+        if (desc.tessVertexSpanCount > 0)
+        {
+            RDG_GPU_STAT_SCOPE(GraphBuilder, STAT_RiveFlush_RiveTess);
+            m_tesselationTexture.Sync(GraphBuilder,
+                                      &tesselationTexture,
+                                      &tessSRV);
+
+            check(tesselationTexture);
+            check(tessSRV);
+            check(m_tessSpanBuffer);
+            check(pathSRV);
+            check(contourSRV);
+
+            auto tessSpanBuffer = m_tessSpanBuffer->Sync(
+                CommandList,
+                desc.firstTessVertexSpan * sizeof(TessVertexSpan));
+
+            auto TessPassParams =
+                GraphBuilder.AllocParameters<FRiveTesselationPassParameters>();
+            TessPassParams->FlushUniforms = flushUniforms;
+            TessPassParams->RenderTargets[0] =
+                FRenderTargetBinding(tesselationTexture,
+                                     ERenderTargetLoadAction::ENoAction);
+            TessPassParams->VS.GLSL_pathBuffer_raw = pathSRV;
+            TessPassParams->VS.GLSL_contourBuffer_raw = contourSRV;
+
+            AddTessellationPass(
+                GraphBuilder,
+                VertexDeclarations[static_cast<int>(
+                    EVertexDeclarations::Tessellation)],
+                tessSpanBuffer,
+                m_tessSpanIndexBuffer,
+                {{0, 0}, {kTessTextureWidth, desc.tessDataHeight}},
+                desc.tessVertexSpanCount,
+                TessPassParams);
+        }
+
+        bool renderDirectToRasterPipeline =
+            desc.interlockMode == InterlockMode::atomics &&
+            (!renderTarget->TargetTextureSupportsUAV() ||
+             !(desc.combinedShaderFeatures &
+               ShaderFeatures::ENABLE_ADVANCED_BLEND));
+
+        // always load because next the draw is split into multipl render
+        // passes.
+        ERenderTargetLoadAction loadAction = ERenderTargetLoadAction::ELoad;
+
+        if (desc.colorLoadAction == LoadAction::clear)
+        {
+            if (renderDirectToRasterPipeline)
+            {
+                // this will all be moved out and used everywhere once RDG is
+                // setup correctly this has to be done because we have no way to
+                // update the bound clear color without creating a new texture
                 float clearColor4f[4];
                 UnpackColorToRGBA32FPremul(desc.clearColor, clearColor4f);
-                CommandList.ClearUAVFloat(renderTarget->targetUAV(),
-                                          FVector4f(clearColor4f[0],
-                                                    clearColor4f[1],
-                                                    clearColor4f[2],
-                                                    clearColor4f[3]));
+                AddClearRenderTargetPass(GraphBuilder,
+                                         targetTexture,
+                                         FLinearColor(clearColor4f[0],
+                                                      clearColor4f[1],
+                                                      clearColor4f[2],
+                                                      clearColor4f[3]));
             }
             else
             {
-                auto Color = gpu::SwizzleRiveColorToRGBAPremul(desc.clearColor);
-                CommandList.ClearUAVUint(renderTarget->targetUAV(),
-                                         FUintVector4(Color));
-            }
-        }
-    }
-
-    FRHIRenderPassInfo Info;
-    if (renderDirectToRasterPipeline)
-    {
-        Info.ColorRenderTargets[0].RenderTarget = DestTexture;
-        Info.ColorRenderTargets[0].Action = loadAction;
-    }
-    else
-    {
-        Info.ResolveRect =
-            FResolveRect(0, 0, renderTarget->width(), renderTarget->height());
-    }
-
-    TArray<FRHITransitionInfo> TransitionInfos = {
-        FRHITransitionInfo(renderTarget->coverageUAV(),
-                           ERHIAccess::UAVGraphics,
-                           ERHIAccess::UAVGraphics)};
-
-    if (renderDirectToRasterPipeline)
-        TransitionInfos.Add(
-            FRHITransitionInfo(DestTexture, ERHIAccess::RTV, ERHIAccess::RTV));
-    else
-        TransitionInfos.Add(FRHITransitionInfo(renderTarget->targetUAV(),
-                                               ERHIAccess::UAVGraphics,
-                                               ERHIAccess::UAVGraphics));
-
-    if (desc.combinedShaderFeatures & ShaderFeatures::ENABLE_CLIPPING)
-        TransitionInfos.Add(FRHITransitionInfo(renderTarget->clipUAV(),
-                                               ERHIAccess::UAVGraphics,
-                                               ERHIAccess::UAVGraphics));
-
-    CommandList.BeginRenderPass(Info, TEXT("Rive_Render_Flush"));
-    CommandList.SetViewport(0,
-                            0,
-                            0,
-                            renderTarget->width(),
-                            renderTarget->height(),
-                            1.0);
-
-    if (renderDirectToRasterPipeline)
-        GraphicsPSOInit.BlendState =
-            TStaticBlendState<CW_RGBA,
-                              BO_Add,
-                              BF_One,
-                              BF_InverseSourceAlpha,
-                              BO_Add,
-                              BF_One,
-                              BF_InverseSourceAlpha>::GetRHI();
-    // otherwise no blend
-    else
-        GraphicsPSOInit.BlendState = TStaticBlendState<CW_NONE>::CreateRHI();
-
-    GraphicsPSOInit.RasterizerState =
-        GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
-    CommandList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-    for (const DrawBatch& batch : *desc.drawList)
-    {
-        if (batch.elementCount == 0)
-        {
-            continue;
-        }
-
-        AtomicPixelPermutationDomain PixelPermutationDomain;
-        AtomicVertexPermutationDomain VertexPermutationDomain;
-
-        auto ShaderFeatures = desc.interlockMode == InterlockMode::atomics
-                                  ? desc.combinedShaderFeatures
-                                  : batch.shaderFeatures;
-
-        GetPermutationForFeatures(ShaderFeatures,
-                                  m_capabilities,
-                                  PixelPermutationDomain,
-                                  VertexPermutationDomain);
-
-        if (needsBarrierBeforeNextDraw)
-        {
-            CommandList.Transition(TransitionInfos);
-        }
-
-        switch (batch.drawType)
-        {
-            case DrawType::midpointFanPatches:
-            case DrawType::outerCurvePatches:
-            {
-                check(pathSRV.IsValid()) check(paintSRV.IsValid())
-                    check(paintAuxSRV.IsValid()) check(contourSRV.IsValid())
-
-                        GraphicsPSOInit.RasterizerState =
-                    GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
-                GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
-
-                TShaderMapRef<FRivePathVertexShader> VertexShader(
-                    ShaderMap,
-                    VertexPermutationDomain);
-                TShaderMapRef<FRivePathPixelShader> PixelShader(
-                    ShaderMap,
-                    PixelPermutationDomain);
-
-                BindShaders(CommandList,
-                            GraphicsPSOInit,
-                            VertexShader,
-                            PixelShader,
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::Paths)]);
-
-                FRivePathPixelShader::FParameters PixelParameters;
-                FRivePathVertexShader::FParameters VertexParameters;
-
-                PixelParameters.FlushUniforms =
-                    m_flushUniformBuffer->contents();
-                VertexParameters.FlushUniforms =
-                    m_flushUniformBuffer->contents();
-
-                PixelParameters.gradSampler = m_linearSampler;
-                PixelParameters.GLSL_gradTexture_raw = gradiantTexture;
-                PixelParameters.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                PixelParameters.GLSL_paintBuffer_raw = paintSRV;
-                PixelParameters.coverageAtomicBuffer =
-                    renderTarget->coverageUAV();
-                PixelParameters.clipBuffer = renderTarget->clipUAV();
-                PixelParameters.colorBuffer = renderTarget->targetUAV();
-                VertexParameters.GLSL_tessVertexTexture_raw = tessSRV;
-                VertexParameters.GLSL_pathBuffer_raw = pathSRV;
-                VertexParameters.GLSL_contourBuffer_raw = contourSRV;
-                VertexParameters.baseInstance = batch.baseElement;
-
-                SetParameters(CommandList,
-                              BatchedShaderParameters,
-                              VertexShader,
-                              VertexParameters);
-                SetParameters(CommandList,
-                              BatchedShaderParameters,
-                              PixelShader,
-                              PixelParameters);
-
-                CommandList.SetStreamSource(0, m_patchVertexBuffer, 0);
-                CommandList.DrawIndexedPrimitive(
-                    m_patchIndexBuffer,
-                    0,
-                    batch.baseElement,
-                    kPatchVertexBufferCount,
-                    PatchBaseIndex(batch.drawType),
-                    PatchIndexCount(batch.drawType) / 3,
-                    batch.elementCount);
-            }
-            break;
-            case DrawType::interiorTriangulation:
-            {
-                check(triangleBuffer.IsValid());
-                check(pathSRV.IsValid()) check(paintSRV.IsValid())
-                    check(paintAuxSRV.IsValid())
-
-                        GraphicsPSOInit.RasterizerState =
-                    GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
-                GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
-
-                TShaderMapRef<FRiveInteriorTrianglesVertexShader> VertexShader(
-                    ShaderMap,
-                    VertexPermutationDomain);
-                TShaderMapRef<FRiveInteriorTrianglesPixelShader> PixelShader(
-                    ShaderMap,
-                    PixelPermutationDomain);
-
-                BindShaders(CommandList,
-                            GraphicsPSOInit,
-                            VertexShader,
-                            PixelShader,
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::InteriorTriangles)]);
-
-                FRiveInteriorTrianglesVertexShader::FParameters
-                    VertexParameters;
-                FRiveInteriorTrianglesPixelShader::FParameters PixelParameters;
-
-                PixelParameters.FlushUniforms =
-                    m_flushUniformBuffer->contents();
-                VertexParameters.FlushUniforms =
-                    m_flushUniformBuffer->contents();
-
-                PixelParameters.gradSampler = m_linearSampler;
-                PixelParameters.GLSL_gradTexture_raw = gradiantTexture;
-                PixelParameters.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                PixelParameters.GLSL_paintBuffer_raw = paintSRV;
-                PixelParameters.coverageAtomicBuffer =
-                    renderTarget->coverageUAV();
-                PixelParameters.clipBuffer = renderTarget->clipUAV();
-                PixelParameters.colorBuffer = renderTarget->targetUAV();
-                VertexParameters.GLSL_pathBuffer_raw = pathSRV;
-
-                SetParameters(CommandList,
-                              BatchedShaderParameters,
-                              VertexShader,
-                              VertexParameters);
-                SetParameters(CommandList,
-                              BatchedShaderParameters,
-                              PixelShader,
-                              PixelParameters);
-
-                CommandList.SetStreamSource(0, triangleBuffer, 0);
-                CommandList.DrawPrimitive(batch.baseElement,
-                                          batch.elementCount / 3,
-                                          1);
-            }
-            break;
-            case DrawType::imageRect:
-                m_imageDrawUniformBuffer->Sync(CommandList,
-                                               batch.imageDrawDataOffset);
+                if (m_capabilities.bSupportsTypedUAVLoads)
                 {
-                    check(paintSRV.IsValid()) check(paintAuxSRV.IsValid())
-
-                        GraphicsPSOInit.RasterizerState =
-                        RASTER_STATE(FM_Solid,
-                                     CM_None,
-                                     ERasterizerDepthClipMode::DepthClamp);
-                    GraphicsPSOInit.PrimitiveType =
-                        EPrimitiveType::PT_TriangleList;
-
-                    TShaderMapRef<FRiveImageRectVertexShader> VertexShader(
-                        ShaderMap,
-                        VertexPermutationDomain);
-                    TShaderMapRef<FRiveImageRectPixelShader> PixelShader(
-                        ShaderMap,
-                        PixelPermutationDomain);
-
-                    BindShaders(CommandList,
-                                GraphicsPSOInit,
-                                VertexShader,
-                                PixelShader,
-                                VertexDeclarations[static_cast<int32>(
-                                    EVertexDeclarations::ImageRect)]);
-
-                    auto imageTexture =
-                        static_cast<const TextureRHIImpl*>(batch.imageTexture);
-
-                    FRiveImageRectVertexShader::FParameters VertexParameters;
-                    FRiveImageRectPixelShader::FParameters PixelParameters;
-
-                    VertexParameters.FlushUniforms =
-                        m_flushUniformBuffer->contents();
-                    VertexParameters.ImageDrawUniforms =
-                        m_imageDrawUniformBuffer->contents();
-
-                    PixelParameters.FlushUniforms =
-                        m_flushUniformBuffer->contents();
-                    PixelParameters.ImageDrawUniforms =
-                        m_imageDrawUniformBuffer->contents();
-
-                    PixelParameters.GLSL_gradTexture_raw = gradiantTexture;
-                    PixelParameters.GLSL_imageTexture_raw =
-                        imageTexture->contents();
-                    PixelParameters.gradSampler = m_linearSampler;
-                    PixelParameters.imageSampler = m_mipmapSampler;
-                    PixelParameters.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                    PixelParameters.GLSL_paintBuffer_raw = paintSRV;
-                    PixelParameters.coverageAtomicBuffer =
-                        renderTarget->coverageUAV();
-                    PixelParameters.clipBuffer = renderTarget->clipUAV();
-                    PixelParameters.colorBuffer = renderTarget->targetUAV();
-
-                    SetParameters(CommandList,
-                                  BatchedShaderParameters,
-                                  VertexShader,
-                                  VertexParameters);
-                    SetParameters(CommandList,
-                                  BatchedShaderParameters,
-                                  PixelShader,
-                                  PixelParameters);
-
-                    CommandList.SetStreamSource(0, m_imageRectVertexBuffer, 0);
-                    CommandList.DrawIndexedPrimitive(
-                        m_imageRectIndexBuffer,
-                        0,
-                        0,
-                        std::size(kImageRectVertices),
-                        0,
-                        std::size(kImageRectIndices) / 3,
-                        1);
+                    float clearColor4f[4];
+                    UnpackColorToRGBA32FPremul(desc.clearColor, clearColor4f);
+                    AddClearUAVPass(GraphBuilder,
+                                    targetUAV,
+                                    FVector4f(clearColor4f[0],
+                                              clearColor4f[1],
+                                              clearColor4f[2],
+                                              clearColor4f[3]));
                 }
-                break;
-            case DrawType::imageMesh:
-            {
-                check(paintSRV.IsValid()) check(paintAuxSRV.IsValid())
-
-                    m_imageDrawUniformBuffer->Sync(CommandList,
-                                                   batch.imageDrawDataOffset);
-                GraphicsPSOInit.RasterizerState =
-                    RASTER_STATE(FM_Solid,
-                                 CM_None,
-                                 ERasterizerDepthClipMode::DepthClamp);
-                GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
-                LITE_RTTI_CAST_OR_BREAK(IndexBuffer,
-                                        const RenderBufferRHIImpl*,
-                                        batch.indexBuffer);
-                LITE_RTTI_CAST_OR_BREAK(VertexBuffer,
-                                        const RenderBufferRHIImpl*,
-                                        batch.vertexBuffer);
-                LITE_RTTI_CAST_OR_BREAK(UVBuffer,
-                                        const RenderBufferRHIImpl*,
-                                        batch.uvBuffer);
-
-                auto imageTexture =
-                    static_cast<const TextureRHIImpl*>(batch.imageTexture);
-
-                auto IndexBufferRHI = IndexBuffer->Sync(CommandList);
-                auto VertexBufferRHI = VertexBuffer->Sync(CommandList);
-                auto UVBufferRHI = UVBuffer->Sync(CommandList);
-
-                TShaderMapRef<FRiveImageMeshVertexShader> VertexShader(
-                    ShaderMap,
-                    VertexPermutationDomain);
-                TShaderMapRef<FRiveImageMeshPixelShader> PixelShader(
-                    ShaderMap,
-                    PixelPermutationDomain);
-
-                BindShaders(CommandList,
-                            GraphicsPSOInit,
-                            VertexShader,
-                            PixelShader,
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::ImageMesh)]);
-
-                CommandList.SetStreamSource(0, VertexBufferRHI, 0);
-                CommandList.SetStreamSource(1, UVBufferRHI, 0);
-
-                FRiveImageMeshVertexShader::FParameters VertexParameters;
-                FRiveImageMeshPixelShader::FParameters PixelParameters;
-
-                VertexParameters.FlushUniforms =
-                    m_flushUniformBuffer->contents();
-                VertexParameters.ImageDrawUniforms =
-                    m_imageDrawUniformBuffer->contents();
-
-                PixelParameters.FlushUniforms =
-                    m_flushUniformBuffer->contents();
-                PixelParameters.ImageDrawUniforms =
-                    m_imageDrawUniformBuffer->contents();
-
-                PixelParameters.GLSL_gradTexture_raw = gradiantTexture;
-                PixelParameters.GLSL_imageTexture_raw =
-                    imageTexture->contents();
-                PixelParameters.gradSampler = m_linearSampler;
-                PixelParameters.imageSampler = m_mipmapSampler;
-                PixelParameters.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                PixelParameters.GLSL_paintBuffer_raw = paintSRV;
-                PixelParameters.coverageAtomicBuffer =
-                    renderTarget->coverageUAV();
-                PixelParameters.clipBuffer = renderTarget->clipUAV();
-                PixelParameters.colorBuffer = renderTarget->targetUAV();
-
-                SetParameters(CommandList,
-                              BatchedShaderParameters,
-                              VertexShader,
-                              VertexParameters);
-                SetParameters(CommandList,
-                              BatchedShaderParameters,
-                              PixelShader,
-                              PixelParameters);
-
-                CommandList.DrawIndexedPrimitive(IndexBufferRHI,
-                                                 0,
-                                                 0,
-                                                 VertexBuffer->sizeInBytes() /
-                                                     sizeof(Vec2D),
-                                                 0,
-                                                 batch.elementCount / 3,
-                                                 1);
+                else
+                {
+                    auto Color =
+                        gpu::SwizzleRiveColorToRGBAPremul(desc.clearColor);
+                    AddClearUAVPass(GraphBuilder,
+                                    targetUAV,
+                                    FUintVector4(Color));
+                }
             }
-            break;
-            case DrawType::atomicResolve:
-            {
-                check(paintSRV.IsValid()) check(paintAuxSRV.IsValid())
-
-                    GraphicsPSOInit.RasterizerState =
-                    RASTER_STATE(FM_Solid,
-                                 CM_None,
-                                 ERasterizerDepthClipMode::DepthClamp);
-                GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
-
-                TShaderMapRef<FRiveAtomicResolveVertexShader> VertexShader(
-                    ShaderMap,
-                    VertexPermutationDomain);
-                TShaderMapRef<FRiveAtomicResolvePixelShader> PixelShader(
-                    ShaderMap,
-                    PixelPermutationDomain);
-
-                BindShaders(CommandList,
-                            GraphicsPSOInit,
-                            VertexShader,
-                            PixelShader,
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::Resolve)]);
-
-                FRiveAtomicResolveVertexShader::FParameters VertexParameters;
-                FRiveAtomicResolvePixelShader::FParameters PixelParameters;
-
-                PixelParameters.GLSL_gradTexture_raw = gradiantTexture;
-                PixelParameters.gradSampler = m_linearSampler;
-                PixelParameters.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                PixelParameters.GLSL_paintBuffer_raw = paintSRV;
-                PixelParameters.coverageAtomicBuffer =
-                    renderTarget->coverageUAV();
-                PixelParameters.clipBuffer = renderTarget->clipUAV();
-                PixelParameters.colorBuffer = renderTarget->targetUAV();
-
-                VertexParameters.FlushUniforms =
-                    m_flushUniformBuffer->contents();
-
-                SetParameters(CommandList,
-                              BatchedShaderParameters,
-                              VertexShader,
-                              VertexParameters);
-                SetParameters(CommandList,
-                              BatchedShaderParameters,
-                              PixelShader,
-                              PixelParameters);
-
-                CommandList.DrawPrimitive(0, 2, 1);
-            }
-            break;
-            case DrawType::atomicInitialize:
-            case DrawType::stencilClipReset:
-                RIVE_UNREACHABLE();
         }
 
-        needsBarrierBeforeNextDraw =
-            desc.interlockMode == gpu::InterlockMode::atomics &&
-            batch.needsBarrier;
-    }
+        {
+            RDG_GPU_STAT_SCOPE(GraphBuilder,
+                               STAT_RiveFlush_RiveFlushRenderPass);
+            for (const DrawBatch& batch : *desc.drawList)
+            {
+                if (batch.elementCount == 0)
+                {
+                    continue;
+                }
 
-    CommandList.EndRenderPass();
+                AtomicPixelPermutationDomain PixelPermutationDomain;
+                AtomicVertexPermutationDomain VertexPermutationDomain;
 
-    static const auto CVarVisualize =
-        IConsoleManager::Get().FindConsoleVariable(TEXT("r.rive.vis"));
-    switch (CVarVisualize->GetInt())
-    {
-        case 1:
-            AddBltU32ToF4Pass(
-                CommandList,
-                ShaderMap,
-                renderTarget->clipTexture(),
-                DestTexture,
-                FIntPoint(renderTarget->width(), renderTarget->height()));
-            break;
-        case 2:
-            AddBltU32ToF4Pass(
-                CommandList,
-                ShaderMap,
-                renderTarget->coverageTexture(),
-                DestTexture,
-                FIntPoint(renderTarget->width(), renderTarget->height()));
-            break;
-        case 3:
-            AddBltU324ToF4Pass(
-                CommandList,
-                ShaderMap,
-                tesselationTexture,
-                DestTexture,
-                FIntPoint(renderTarget->width(), renderTarget->height()));
-            break;
-        case 4:
-            AddVisualizeBufferPass(
-                CommandList,
-                ShaderMap,
-                desc.pathCount,
-                paintSRV,
-                DestTexture,
-                FIntPoint(renderTarget->width(), renderTarget->height()));
-            break;
-        default:
-            break;
-    }
+                auto ShaderFeatures =
+                    desc.interlockMode == InterlockMode::atomics
+                        ? desc.combinedShaderFeatures
+                        : batch.shaderFeatures;
 
-    // According to Ryan at GeoTech, Unreal expects us to give the texture back
-    // in UAVGraphics
-    // TODO: Check that this is true
-    if (renderDirectToRasterPipeline)
-    {
-        CommandList.Transition(FRHITransitionInfo(DestTexture,
-                                                  ERHIAccess::RTV,
-                                                  ERHIAccess::UAVGraphics));
-    }
-    else
-    {
-        CommandList.Transition(FRHITransitionInfo(DestTexture,
-                                                  ERHIAccess::UAVGraphics,
-                                                  ERHIAccess::UAVGraphics));
-    }
+                GetPermutationForFeatures(ShaderFeatures,
+                                          m_capabilities,
+                                          PixelPermutationDomain,
+                                          VertexPermutationDomain);
+
+                FRiveCommonPassParameters* CommonPassParameters =
+                    GraphBuilder.AllocObject<FRiveCommonPassParameters>(
+                        batch,
+                        ShaderMap);
+                CommonPassParameters->VertexPermutationDomain =
+                    VertexPermutationDomain;
+                CommonPassParameters->PixelPermutationDomain =
+                    PixelPermutationDomain;
+                CommonPassParameters->Viewport =
+                    FUintRect(0,
+                              0,
+                              renderTarget->width(),
+                              renderTarget->height());
+                CommonPassParameters->NeedsSourceBlending =
+                    renderDirectToRasterPipeline;
+
+                switch (batch.drawType)
+                {
+                    case DrawType::midpointFanPatches:
+                    case DrawType::outerCurvePatches:
+                    {
+                        check(pathSRV);
+                        check(paintSRV);
+                        check(paintAuxSRV);
+                        check(contourSRV);
+
+                        CommonPassParameters->VertexDeclarationRHI =
+                            VertexDeclarations[static_cast<int32>(
+                                EVertexDeclarations::Paths)];
+                        CommonPassParameters->VertexBuffers[0] =
+                            m_patchVertexBuffer;
+                        CommonPassParameters->IndexBuffer = m_patchIndexBuffer;
+
+                        FRivePatchPassParameters* PassParameters =
+                            GraphBuilder
+                                .AllocParameters<FRivePatchPassParameters>();
+
+                        PassParameters->FlushUniforms = flushUniforms;
+                        PassParameters->PS.gradSampler = m_linearSampler;
+                        PassParameters->PS.GLSL_gradTexture_raw =
+                            gradiantTexture;
+                        PassParameters->PS.GLSL_paintAuxBuffer_raw =
+                            paintAuxSRV;
+                        PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
+                        PassParameters->PS.coverageAtomicBuffer = coverageUAV;
+                        PassParameters->PS.clipBuffer = clipUAV;
+                        PassParameters->PS.colorBuffer = targetUAV;
+                        PassParameters->VS.GLSL_tessVertexTexture_raw = tessSRV;
+                        PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
+                        PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
+                        PassParameters->VS.baseInstance = batch.baseElement;
+
+                        if (renderDirectToRasterPipeline)
+                        {
+                            PassParameters->RenderTargets[0] =
+                                FRenderTargetBinding(targetTexture, loadAction);
+                        }
+                        else
+                        {
+                            PassParameters->RenderTargets.ResolveRect =
+                                FResolveRect(0,
+                                             0,
+                                             renderTarget->width(),
+                                             renderTarget->height());
+                        }
+
+                        AddDrawPatchesPass(GraphBuilder,
+                                           CommonPassParameters,
+                                           PassParameters);
+                    }
+                    break;
+                    case DrawType::interiorTriangulation:
+                    {
+                        check(triangleBuffer.IsValid());
+                        check(pathSRV);
+                        check(paintSRV);
+                        check(paintAuxSRV);
+
+                        CommonPassParameters->VertexDeclarationRHI =
+                            VertexDeclarations[static_cast<int32>(
+                                EVertexDeclarations::InteriorTriangles)];
+                        CommonPassParameters->VertexBuffers[0] = triangleBuffer;
+
+                        FRiveInteriorTrianglePassParameters* PassParameters =
+                            GraphBuilder.AllocParameters<
+                                FRiveInteriorTrianglePassParameters>();
+                        PassParameters->FlushUniforms = flushUniforms;
+                        PassParameters->PS.gradSampler = m_linearSampler;
+                        PassParameters->PS.GLSL_gradTexture_raw =
+                            gradiantTexture;
+                        PassParameters->PS.GLSL_paintAuxBuffer_raw =
+                            paintAuxSRV;
+                        PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
+                        PassParameters->PS.coverageAtomicBuffer = coverageUAV;
+                        PassParameters->PS.clipBuffer = clipUAV;
+                        PassParameters->PS.colorBuffer = targetUAV;
+                        PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
+
+                        if (renderDirectToRasterPipeline)
+                        {
+                            PassParameters->RenderTargets[0] =
+                                FRenderTargetBinding(targetTexture, loadAction);
+                        }
+                        else
+                        {
+                            PassParameters->RenderTargets.ResolveRect =
+                                FResolveRect(0,
+                                             0,
+                                             renderTarget->width(),
+                                             renderTarget->height());
+                        }
+
+                        AddDrawInteriorTrianglesPass(GraphBuilder,
+                                                     CommonPassParameters,
+                                                     PassParameters);
+                    }
+                    break;
+                    case DrawType::imageRect:
+                    {
+                        check(paintSRV);
+                        check(paintAuxSRV);
+                        check(m_imageDrawUniformBuffer);
+
+                        auto imageTexture = static_cast<const TextureRHIImpl*>(
+                            batch.imageTexture);
+
+                        auto PassParameters = GraphBuilder.AllocParameters<
+                            FRiveImageRectPassParameters>();
+
+                        auto imageDrawUniforms =
+                            PassParameters->VS.ImageDrawUniforms =
+                                m_imageDrawUniformBuffer->Sync(
+                                    GraphBuilder,
+                                    batch.imageDrawDataOffset);
+
+                        PassParameters->FlushUniforms = flushUniforms;
+                        PassParameters->VS.ImageDrawUniforms =
+                            imageDrawUniforms;
+                        PassParameters->PS.ImageDrawUniforms =
+                            imageDrawUniforms;
+
+                        PassParameters->PS.GLSL_gradTexture_raw =
+                            gradiantTexture;
+                        PassParameters->PS.GLSL_imageTexture_raw =
+                            imageTexture->asRDGTexture(GraphBuilder);
+                        PassParameters->PS.gradSampler = m_linearSampler;
+                        PassParameters->PS.imageSampler = m_mipmapSampler;
+                        PassParameters->PS.GLSL_paintAuxBuffer_raw =
+                            paintAuxSRV;
+                        PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
+                        PassParameters->PS.coverageAtomicBuffer = coverageUAV;
+                        PassParameters->PS.clipBuffer = clipUAV;
+                        PassParameters->PS.colorBuffer = targetUAV;
+
+                        CommonPassParameters->VertexDeclarationRHI =
+                            VertexDeclarations[static_cast<int32>(
+                                EVertexDeclarations::ImageRect)];
+                        CommonPassParameters->VertexBuffers[0] =
+                            m_imageRectVertexBuffer;
+                        CommonPassParameters->IndexBuffer =
+                            m_imageRectIndexBuffer;
+
+                        if (renderDirectToRasterPipeline)
+                        {
+                            PassParameters->RenderTargets[0] =
+                                FRenderTargetBinding(targetTexture, loadAction);
+                        }
+                        else
+                        {
+                            PassParameters->RenderTargets.ResolveRect =
+                                FResolveRect(0,
+                                             0,
+                                             renderTarget->width(),
+                                             renderTarget->height());
+                        }
+
+                        AddDrawImageRectPass(GraphBuilder,
+                                             CommonPassParameters,
+                                             PassParameters);
+                    }
+                    break;
+                    case DrawType::imageMesh:
+                    {
+                        check(paintSRV);
+                        check(paintAuxSRV);
+                        check(m_imageDrawUniformBuffer);
+
+                        LITE_RTTI_CAST_OR_BREAK(IndexBuffer,
+                                                const RenderBufferRHIImpl*,
+                                                batch.indexBuffer);
+                        LITE_RTTI_CAST_OR_BREAK(VertexBuffer,
+                                                const RenderBufferRHIImpl*,
+                                                batch.vertexBuffer);
+                        LITE_RTTI_CAST_OR_BREAK(UVBuffer,
+                                                const RenderBufferRHIImpl*,
+                                                batch.uvBuffer);
+
+                        auto imageTexture = static_cast<const TextureRHIImpl*>(
+                            batch.imageTexture);
+
+                        auto IndexBufferRHI = IndexBuffer->Sync(CommandList);
+                        auto VertexBufferRHI = VertexBuffer->Sync(CommandList);
+                        auto UVBufferRHI = UVBuffer->Sync(CommandList);
+
+                        auto PassParameters = GraphBuilder.AllocParameters<
+                            FRiveImageMeshPassParameters>();
+
+                        auto imageDrawUniforms =
+                            PassParameters->VS.ImageDrawUniforms =
+                                m_imageDrawUniformBuffer->Sync(
+                                    GraphBuilder,
+                                    batch.imageDrawDataOffset);
+
+                        PassParameters->FlushUniforms = flushUniforms;
+                        PassParameters->VS.ImageDrawUniforms =
+                            imageDrawUniforms;
+                        PassParameters->PS.ImageDrawUniforms =
+                            imageDrawUniforms;
+
+                        PassParameters->PS.GLSL_gradTexture_raw =
+                            gradiantTexture;
+                        PassParameters->PS.GLSL_imageTexture_raw =
+                            imageTexture->asRDGTexture(GraphBuilder);
+                        PassParameters->PS.gradSampler = m_linearSampler;
+                        PassParameters->PS.imageSampler = m_mipmapSampler;
+                        PassParameters->PS.GLSL_paintAuxBuffer_raw =
+                            paintAuxSRV;
+                        PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
+                        PassParameters->PS.coverageAtomicBuffer = coverageUAV;
+                        PassParameters->PS.clipBuffer = clipUAV;
+                        PassParameters->PS.colorBuffer = targetUAV;
+
+                        CommonPassParameters->VertexDeclarationRHI =
+                            VertexDeclarations[static_cast<int32>(
+                                EVertexDeclarations::ImageMesh)];
+                        CommonPassParameters->VertexBuffers[0] =
+                            VertexBufferRHI;
+                        CommonPassParameters->VertexBuffers[1] = UVBufferRHI;
+                        CommonPassParameters->IndexBuffer = IndexBufferRHI;
+
+                        if (renderDirectToRasterPipeline)
+                        {
+                            PassParameters->RenderTargets[0] =
+                                FRenderTargetBinding(targetTexture, loadAction);
+                        }
+                        else
+                        {
+                            PassParameters->RenderTargets.ResolveRect =
+                                FResolveRect(0,
+                                             0,
+                                             renderTarget->width(),
+                                             renderTarget->height());
+                        }
+
+                        AddDrawImageMeshPass(GraphBuilder,
+                                             VertexBuffer->sizeInBytes() /
+                                                 sizeof(Vec2D),
+                                             CommonPassParameters,
+                                             PassParameters);
+                    }
+                    break;
+                    case DrawType::atomicResolve:
+                    {
+                        check(paintSRV);
+                        check(paintAuxSRV);
+
+                        auto PassParameters = GraphBuilder.AllocParameters<
+                            FRiveAtomicResolvePassParameters>();
+
+                        PassParameters->FlushUniforms = flushUniforms;
+                        PassParameters->PS.GLSL_gradTexture_raw =
+                            gradiantTexture;
+                        PassParameters->PS.gradSampler = m_linearSampler;
+                        PassParameters->PS.GLSL_paintAuxBuffer_raw =
+                            paintAuxSRV;
+                        PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
+                        PassParameters->PS.coverageAtomicBuffer = coverageUAV;
+                        PassParameters->PS.clipBuffer = clipUAV;
+                        PassParameters->PS.colorBuffer = targetUAV;
+
+                        CommonPassParameters->VertexDeclarationRHI =
+                            VertexDeclarations[static_cast<int32>(
+                                EVertexDeclarations::Resolve)];
+
+                        if (renderDirectToRasterPipeline)
+                        {
+                            PassParameters->RenderTargets[0] =
+                                FRenderTargetBinding(targetTexture, loadAction);
+                        }
+                        else
+                        {
+                            PassParameters->RenderTargets.ResolveRect =
+                                FResolveRect(0,
+                                             0,
+                                             renderTarget->width(),
+                                             renderTarget->height());
+                        }
+
+                        AddAtomicResolvePass(GraphBuilder,
+                                             CommonPassParameters,
+                                             PassParameters);
+                    }
+                    break;
+                    case DrawType::atomicInitialize:
+                    case DrawType::stencilClipReset:
+                        RIVE_UNREACHABLE();
+                }
+            }
+        } // end flush render pass scope
+        static const auto CVarVisualize =
+            IConsoleManager::Get().FindConsoleVariable(TEXT("r.rive.vis"));
+        switch (CVarVisualize->GetInt())
+        {
+            case 1:
+                AddBltU32ToF4Pass(
+                    GraphBuilder,
+                    clipTexture,
+                    targetTexture,
+                    FIntPoint(renderTarget->width(), renderTarget->height()));
+                break;
+            case 2:
+                AddBltU32ToF4Pass(
+                    GraphBuilder,
+                    coverageTexture,
+                    targetTexture,
+                    FIntPoint(renderTarget->width(), renderTarget->height()));
+                break;
+            case 3:
+                AddBltU324ToF4Pass(
+                    GraphBuilder,
+                    tesselationTexture,
+                    targetTexture,
+                    {{0, 0},
+                     {kTessTextureWidth,
+                      static_cast<UE::Math::TIntPoint<int>::IntType>(
+                          desc.tessDataHeight)}});
+                break;
+            case 4:
+                AddVisualizeBufferPass(
+                    GraphBuilder,
+                    desc.pathCount,
+                    paintSRV,
+                    targetTexture,
+                    FIntPoint(renderTarget->width(), renderTarget->height()));
+                break;
+            default:
+                break;
+        }
+    } // End Flush Event Scope
+
+    GraphBuilder.Execute();
 }

@@ -1,8 +1,9 @@
 #pragma once
 #include <chrono>
 
+#include "RenderGraphBuilder.h"
 #include "Logs/RiveRendererLog.h"
-#include "RiveShaders/Public/RiveShaderTypes.h"
+#include <RiveShaders/Public/RiveShaderTypes.h>
 
 THIRD_PARTY_INCLUDES_START
 #undef PI
@@ -18,6 +19,8 @@ struct RHICapabilities
     bool bSupportsPixelShaderUAVs = false;
     bool bSupportsTypedUAVLoads = false;
     bool bSupportsRasterOrderViews = false;
+
+    FString AsString() const;
 };
 
 class RIVERENDERER_API RenderTargetRHI : public rive::gpu::RenderTarget
@@ -26,26 +29,22 @@ public:
     RenderTargetRHI(FRHICommandList& RHICmdList,
                     const RHICapabilities& Capabilities,
                     const FTexture2DRHIRef& InTextureTarget);
+
     virtual ~RenderTargetRHI() override {}
 
-    FTexture2DRHIRef texture() const { return m_textureTarget; }
+    // RDG Interface, RDG objects can not be cached so register the RHI textures
+    // as "external resources" instead and return that per logic flush / Graph
+    // Builder instance
 
-    FTexture2DRHIRef clipTexture() const { return m_clipTexture; }
+    FRDGTextureRef targetTexture(FRDGBuilder& Builder);
 
-    FTexture2DRHIRef coverageTexture() const { return m_atomicCoverageTexture; }
+    FRDGTextureRef clipTexture(FRDGBuilder& Builder);
 
-    FUnorderedAccessViewRHIRef targetUAV() const { return m_targetUAV; }
-
-    FUnorderedAccessViewRHIRef coverageUAV() const { return m_coverageUAV; }
-
-    FUnorderedAccessViewRHIRef clipUAV() const { return m_clipUAV; }
-
-    FUnorderedAccessViewRHIRef scratchColorUAV() const
-    {
-        return m_scratchColorUAV;
-    }
+    FRDGTextureRef coverageTexture(FRDGBuilder& Builder);
 
     bool TargetTextureSupportsUAV() const { return m_targetTextureSupportsUAV; }
+
+    FTexture2DRHIRef texture() const { return m_textureTarget; }
 
 private:
     FTexture2DRHIRef m_scratchColorTexture;
@@ -53,12 +52,9 @@ private:
     FTexture2DRHIRef m_atomicCoverageTexture;
     FTexture2DRHIRef m_clipTexture;
 
-    FUnorderedAccessViewRHIRef m_coverageUAV;
-    FUnorderedAccessViewRHIRef m_clipUAV;
-    FUnorderedAccessViewRHIRef m_scratchColorUAV;
-    FUnorderedAccessViewRHIRef m_targetUAV;
-
     bool m_targetTextureSupportsUAV;
+    // Reference held for convenience. May be better to just DI it everywhere.
+    const RHICapabilities& m_capabilities;
 };
 
 // TODO: Make this use staging buffer
@@ -68,8 +64,9 @@ public:
     BufferRingRHIImpl(EBufferUsageFlags flags,
                       size_t InSizeInBytes,
                       size_t stride);
-    FBufferRHIRef Sync(FRHICommandList& commandList,
-                       size_t offsetInBytes = 0) const;
+
+    FBufferRHIRef Sync(FRHICommandList&, size_t offsetInBytes = 0) const;
+    FRDGBufferRef Sync(FRDGBuilder&, size_t offsetInBytes = 0) const;
 
 protected:
     virtual void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override;
@@ -87,14 +84,12 @@ class UniformBufferRHIImpl : public rive::gpu::BufferRing
 public:
     UniformBufferRHIImpl(size_t InSizeInBytes) : BufferRing(InSizeInBytes) {}
 
-    void Sync(FRHICommandList& commandList, size_t offset)
+    TRDGUniformBufferRef<UniformBufferType> Sync(FRDGBuilder& Builder,
+                                                 size_t offset)
     {
         UniformBufferType* Buffer =
             reinterpret_cast<UniformBufferType*>(shadowBuffer() + offset);
-        m_buffer =
-            TUniformBufferRef<UniformBufferType>::CreateUniformBufferImmediate(
-                *Buffer,
-                UniformBuffer_SingleFrame);
+        return Builder.CreateUniformBuffer<UniformBufferType>(Buffer);
     }
 
     TUniformBufferRef<UniformBufferType> contents() const { return m_buffer; }
@@ -121,7 +116,7 @@ public:
                         rive::RenderBufferFlags inFlags,
                         size_t inSizeInBytes,
                         size_t stride);
-    FBufferRHIRef Sync(FRHICommandList& commandList) const;
+    FBufferRHIRef Sync(FRHICommandList&) const;
 
 protected:
     virtual void* onMap() override;
@@ -148,49 +143,35 @@ public:
 
     void Resize(size_t newSizeInBytes, size_t gpuStride)
     {
-        check(m_gpuStride == gpuStride)
-            m_data.SetNumUninitialized(newSizeInBytes / m_cpuStride);
+        check(m_gpuStride == gpuStride);
+        m_data.SetNumUninitialized(newSizeInBytes / m_cpuStride);
+        if (newSizeInBytes)
+        {
+            FMemory::Memset(&m_data[0], 0, newSizeInBytes);
+        }
         m_sizeInBytes = newSizeInBytes;
     }
 
-    FBufferRHIRef Sync(FRHICommandList& commandList)
+    FRDGBufferSRVRef SyncSRV(FRDGBuilder& Builder,
+                             size_t elementOffset,
+                             size_t elementCount)
     {
         if (m_sizeInBytes == 0)
             return nullptr;
 
-        FRHIResourceCreateInfo Info(TEXT("StructuredBufferRHIImpl"), &m_data);
-        return commandList.CreateStructuredBuffer(
-            m_gpuStride,
-            m_data.GetResourceDataSize(),
-            m_flags | EBufferUsageFlags::Volatile,
-            Info);
-    }
+        auto buffer = Builder.CreateBuffer(
+            FRDGBufferDesc::CreateStructuredDesc(
+                m_gpuStride,
+                elementCount * (m_cpuStride / m_gpuStride)),
+            TEXT("rive.StructuredBufferRHIImpl"),
+            ERDGBufferFlags::ForceImmediateFirstBarrier);
 
-    FShaderResourceViewRHIRef SyncSRV(FRHICommandList& commandList,
-                                      size_t elementOffset,
-                                      size_t elementCount)
-    {
-        if (auto buffer = Sync(commandList))
-        {
-            return commandList.CreateShaderResourceView(
-                buffer,
-                FRHIViewDesc::CreateBufferSRV()
-                    .SetType(FRHIViewDesc::EBufferType::Structured)
-                    .SetOffsetInBytes(elementOffset * m_cpuStride)
-                    .SetNumElements(elementCount *
-                                    (m_cpuStride / m_gpuStride)));
-        }
+        Builder.QueueBufferUpload(buffer,
+                                  &m_data[elementOffset],
+                                  m_cpuStride * elementCount,
+                                  ERDGInitialDataFlags::None);
 
-        return nullptr;
-    }
-
-    FShaderResourceViewRHIRef SyncSRV(FRHICommandList& commandList)
-    {
-        auto buffer = Sync(commandList);
-        return commandList.CreateShaderResourceView(
-            buffer,
-            FRHIViewDesc::CreateBufferSRV().SetType(
-                FRHIViewDesc::EBufferType::Structured));
+        return Builder.CreateSRV(FRDGBufferSRVDesc(buffer));
     }
 
     void* Map(size_t mapSizeInBytes)
@@ -223,20 +204,22 @@ class DelayLoadedTexture
 {
 public:
     DelayLoadedTexture() {}
-    void UpdateTexture(const FRHITextureCreateDesc& inDesc,
+    void UpdateTexture(const FRDGTextureDesc& inDesc,
+                       FString DebugName,
                        bool inNeedsSRV = false);
-    void Sync(FRHICommandList& RHICmdList);
 
-    FTextureRHIRef Contents() const { return m_texture; }
-
-    FShaderResourceViewRHIRef SRV() const { return m_srv; }
+    // We don't hold a reference to the RDGTexture because it must be created
+    // each frame so instead we provide a function that returns via params
+    // outTexture will always be set but outSRV will only be set if something
+    // other than null is passed
+    void Sync(FRDGBuilder& RDGBuilder,
+              FRDGTextureRef* outTexture,
+              FRDGTextureSRVRef* outSRV = nullptr) const;
 
 private:
-    FTextureRHIRef m_texture;
-    FShaderResourceViewRHIRef m_srv;
-    FRHITextureCreateDesc m_desc;
-    bool m_isDirty = false;
-    bool m_needsSRV = false;
+    // used for render graph interface
+    FRDGTextureDesc m_rdgDesc;
+    FString m_debugName;
 };
 
 enum class EVertexDeclarations : int32
@@ -324,6 +307,10 @@ private:
     DelayLoadedTexture m_gradiantTexture;
     DelayLoadedTexture m_tesselationTexture;
 
+    // This is used for unused bindings in Render Graph because it doesn't allow
+    // read inputs that aren't written to beforehand.
+    FTextureRHIRef m_placeholderTexture;
+
     FBufferRHIRef m_patchVertexBuffer;
     FBufferRHIRef m_patchIndexBuffer;
     FBufferRHIRef m_imageRectVertexBuffer;
@@ -333,7 +320,7 @@ private:
     FSamplerStateRHIRef m_linearSampler;
     FSamplerStateRHIRef m_mipmapSampler;
 
-    FRHIVertexDeclaration* VertexDeclarations[static_cast<int32>(
+    FVertexDeclarationRHIRef VertexDeclarations[static_cast<int32>(
         EVertexDeclarations::NumVertexDeclarations)];
 
     std::unique_ptr<UniformBufferRHIImpl<FFlushUniforms>> m_flushUniformBuffer;

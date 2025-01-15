@@ -4,19 +4,33 @@
 #include "RenderResource.h"
 #include "RHI.h"
 #include "GlobalShader.h"
+#include "DataDrivenShaderPlatformInfo.h"
+#include "ShaderCompilerCore.h"
 
 #include "HLSLTypeAliases.h"
 #include "rive/generated/shaders/rhi.exports.h"
+#include "Misc/EngineVersionComparison.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogRiveShaderCompiler, Display, All);
+
+#if UE_VERSION_OLDER_THAN(5, 4, 0)
+#define CREATE_TEXTURE_ASYNC(RHICmdList, Desc) RHICreateTexture(Desc)
+#define CREATE_TEXTURE(RHICmdList, Desc) RHICreateTexture(Desc)
+#define RASTER_STATE(FillMode, CullMode, DepthClip)                            \
+    TStaticRasterizerState<FillMode, CullMode, false, false, DepthClip>::      \
+        GetRHI()
+#else // UE_VERSION_NEWER_OR_EQUAL_TO (5, 4,0)
+#define CREATE_TEXTURE_ASYNC(RHICmdList, Desc) RHICmdList->CreateTexture(Desc)
+#define CREATE_TEXTURE(RHICmdList, Desc) RHICmdList.CreateTexture(Desc)
+#define RASTER_STATE(FillMode, CullMode, DepthClip)                            \
+    TStaticRasterizerState<FillMode, CullMode, DepthClip, false>::GetRHI()
+#endif
 
 namespace rive::gpu
 {
 struct DrawBatch;
 struct FlushDescriptor;
 } // namespace rive::gpu
-
-#ifndef RIVESHADERS_API
-#define RIVESHADERS_API
-#endif
 
 // shader permutation params
 // Whole
@@ -30,6 +44,8 @@ class FEnableFixedFunctionColorOutput
 class FEnableHSLBlendMode : SHADER_PERMUTATION_BOOL("ENABLE_HSL_BLEND_MODES");
 class FEnableNestedClip : SHADER_PERMUTATION_BOOL("ENABLE_NESTED_CLIPPING");
 class FEnableEvenOdd : SHADER_PERMUTATION_BOOL("ENABLE_EVEN_ODD");
+class FEnableTypedUAVLoads
+    : SHADER_PERMUTATION_BOOL("ENABLE_TYPED_UAV_LOAD_STORE");
 
 typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableClipRect,
@@ -37,7 +53,9 @@ typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableFixedFunctionColorOutput,
                                  FEnableAdvanceBlend,
                                  FEnableEvenOdd,
-                                 FEnableHSLBlendMode>
+                                 FEnableHSLBlendMode,
+                                 FEnableTypedUAVLoads>
+
     AtomicPixelPermutationDomain;
 typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableClipRect,
@@ -72,6 +90,9 @@ SHADER_PARAMETER(UE::HLSL::uint,
 SHADER_PARAMETER(float, vertexDiscardValue)
 END_GLOBAL_SHADER_PARAMETER_STRUCT();
 
+RIVESHADERS_API void BindStaticFlushUniforms(FRHICommandList&,
+                                             FUniformBufferRHIRef);
+
 BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FImageDrawUniforms, RIVESHADERS_API)
 SHADER_PARAMETER(UE::HLSL::float4, viewMatrix)
 SHADER_PARAMETER(UE::HLSL::float2, translate)
@@ -84,14 +105,80 @@ SHADER_PARAMETER(UE::HLSL::uint, blendMode)
 SHADER_PARAMETER(UE::HLSL::uint, zIndex)
 END_GLOBAL_SHADER_PARAMETER_STRUCT()
 
-class FRiveGradientPixelShader : public FGlobalShader
+template <typename VShaderType, typename PShaderType>
+void BindShaders(FRHICommandList& CommandList,
+                 FGraphicsPipelineStateInitializer& GraphicsPSOInit,
+                 TShaderMapRef<VShaderType> VSShader,
+                 TShaderMapRef<PShaderType> PSShader,
+                 FRHIVertexDeclaration* VertexDeclaration)
+{
+    GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = VertexDeclaration;
+    GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+        VSShader.GetVertexShader();
+    GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PSShader.GetPixelShader();
+    SetGraphicsPipelineState(CommandList,
+                             GraphicsPSOInit,
+                             0,
+                             EApplyRendertargetOption::CheckApply,
+                             true,
+                             EPSOPrecacheResult::Unknown);
+}
+
+template <typename ShaderType>
+void SetParameters(FRHICommandList& CommandList,
+                   FRHIBatchedShaderParameters& BatchedParameters,
+                   TShaderMapRef<ShaderType> Shader,
+                   typename ShaderType::FParameters& VParameters)
+{
+    ClearUnusedGraphResources(Shader, &VParameters);
+    SetShaderParameters(BatchedParameters, Shader, VParameters);
+    CommandList.SetBatchedShaderParameters(Shader.GetVertexShader(),
+                                           BatchedParameters);
+}
+
+class FRiveRDGGradientPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveGradientPixelShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveGradientPixelShader, FGlobalShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGGradientPixelShader,
+                                   RIVESHADERS_API);
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+class FRiveRDGGradientVertexShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGGradientVertexShader,
+                                   RIVESHADERS_API);
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+class FRiveRDGTessPixelShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGTessPixelShader, RIVESHADERS_API);
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+class FRiveRDGTessVertexShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGTessVertexShader, RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGTessVertexShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>,
+                                    GLSL_pathBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>,
+                                    GLSL_contourBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
     static void ModifyCompilationEnvironment(
@@ -99,67 +186,22 @@ public:
         FShaderCompilerEnvironment&);
 };
 
-class FRiveGradientVertexShader : public FGlobalShader
+class FRiveRDGPathPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveGradientVertexShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveGradientVertexShader, FGlobalShader);
-
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGPathPixelShader, RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGPathPixelShader, FGlobalShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    END_SHADER_PARAMETER_STRUCT()
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
-};
-
-class FRiveTessPixelShader : public FGlobalShader
-{
-public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveTessPixelShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveTessPixelShader, FGlobalShader);
-    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    END_SHADER_PARAMETER_STRUCT()
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
-};
-
-class FRiveTessVertexShader : public FGlobalShader
-{
-public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveTessVertexShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveTessVertexShader, FGlobalShader);
-
-    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    SHADER_PARAMETER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
-    SHADER_PARAMETER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
-    END_SHADER_PARAMETER_STRUCT()
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
-};
-
-class FRivePathPixelShader : public FGlobalShader
-{
-public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRivePathPixelShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRivePathPixelShader, FGlobalShader);
-    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
-    SHADER_PARAMETER_UAV(Texture2D<uint>, coverageAtomicBuffer)
-    SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
-    SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, clipBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 
-    SHADER_PARAMETER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
-    SHADER_PARAMETER_SRV(StructuredBuffer<float4>, GLSL_paintAuxBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>,
+                                    GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
+                                    GLSL_paintAuxBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
@@ -167,24 +209,59 @@ public:
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,
         FShaderCompilerEnvironment&);
+
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
+        FPermutationDomain PermutationVector(Parameters.PermutationId);
+
+        // don't compile typed UAV permutations if they aren't supported.
+        if (PermutationVector.Get<FEnableTypedUAVLoads>() &&
+            !(RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
+              GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+        {
+            UE_LOG(LogRiveShaderCompiler,
+                   Verbose,
+                   TEXT("Skipping Permutation %i for FRiveRDGPathPixelShader "
+                        "because typed uavs are not  supported"),
+                   Parameters.PermutationId);
+            return false;
+        }
+
+        // // only compile typed UAV permutations if they are supported
+        if (!PermutationVector.Get<FEnableTypedUAVLoads>() &&
+            (RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
+             GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+        {
+            UE_LOG(LogRiveShaderCompiler,
+                   Verbose,
+                   TEXT("Skipping Permutation %i for FRiveRDGPathPixelShader "
+                        "because typed uavs are supported"),
+                   Parameters.PermutationId);
+            return false;
+        }
+
+        UE_LOG(LogRiveShaderCompiler,
+               VeryVerbose,
+               TEXT("Building Permutation %i for FRiveRDGPathPixelShader"),
+               Parameters.PermutationId)
         return true;
     }
 };
 
-class FRivePathVertexShader : public FGlobalShader
+class FRiveRDGPathVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRivePathVertexShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRivePathVertexShader, FGlobalShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGPathVertexShader, RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGPathVertexShader, FGlobalShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
 
-    SHADER_PARAMETER_SRV(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
-    SHADER_PARAMETER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
-    SHADER_PARAMETER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
+    SHADER_PARAMETER_RDG_TEXTURE_SRV(Texture2D<uint4>,
+                                     GLSL_tessVertexTexture_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>,
+                                    GLSL_pathBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>,
+                                    GLSL_contourBuffer_raw)
     SHADER_PARAMETER(unsigned int, baseInstance)
 
     END_SHADER_PARAMETER_STRUCT()
@@ -194,32 +271,28 @@ public:
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,
         FShaderCompilerEnvironment&);
-    static bool ShouldCompilePermutation(
-        const FShaderPermutationParameters& Parameters)
-    {
-        return GRHISupportsPixelShaderUAVs;
-    }
 };
 
-class FRiveInteriorTrianglesPixelShader : public FGlobalShader
+class FRiveRDGInteriorTrianglesPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveInteriorTrianglesPixelShader,
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGInteriorTrianglesPixelShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveInteriorTrianglesPixelShader,
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGInteriorTrianglesPixelShader,
                                 FGlobalShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
 
-    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
-    SHADER_PARAMETER_UAV(Texture2D<uint>, coverageAtomicBuffer)
-    SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
-    SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, clipBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
 
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 
-    SHADER_PARAMETER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
-    SHADER_PARAMETER_SRV(StructuredBuffer<float4>, GLSL_paintAuxBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>,
+                                    GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
+                                    GLSL_paintAuxBuffer_raw)
 
     END_SHADER_PARAMETER_STRUCT()
 
@@ -231,20 +304,55 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return GRHISupportsPixelShaderUAVs;
+        FPermutationDomain PermutationVector(Parameters.PermutationId);
+
+        // don't compile typed UAV permutations if they aren't supported.
+        if (PermutationVector.Get<FEnableTypedUAVLoads>() &&
+            !(RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
+              GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+        {
+            UE_LOG(LogRiveShaderCompiler,
+                   Verbose,
+                   TEXT("Skipping Permutation %i for "
+                        "FRiveRDGInteriorTrianglesPixelShader because typed "
+                        "uavs are not supported"),
+                   Parameters.PermutationId);
+            return false;
+        }
+
+        // only compile typed UAV permutations if they are supported
+        if (!PermutationVector.Get<FEnableTypedUAVLoads>() &&
+            (RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
+             GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+        {
+            UE_LOG(LogRiveShaderCompiler,
+                   Verbose,
+                   TEXT("Skipping Permutation %i for "
+                        "FRiveRDGInteriorTrianglesPixelShader because typed "
+                        "uavs are supported"),
+                   Parameters.PermutationId);
+            return false;
+        }
+
+        UE_LOG(LogRiveShaderCompiler,
+               VeryVerbose,
+               TEXT("Building Permutation %i for "
+                    "FRiveRDGInteriorTrianglesPixelShader"),
+               Parameters.PermutationId)
+        return true;
     }
 };
 
-class FRiveInteriorTrianglesVertexShader : public FGlobalShader
+class FRiveRDGInteriorTrianglesVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveInteriorTrianglesVertexShader,
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGInteriorTrianglesVertexShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveInteriorTrianglesVertexShader,
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGInteriorTrianglesVertexShader,
                                 FGlobalShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    SHADER_PARAMETER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>,
+                                    GLSL_pathBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
@@ -252,93 +360,32 @@ public:
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,
         FShaderCompilerEnvironment&);
-    static bool ShouldCompilePermutation(
-        const FShaderPermutationParameters& Parameters)
-    {
-        return GRHISupportsPixelShaderUAVs;
-    }
 };
 
-class FRiveImageRectPixelShader : public FGlobalShader
+class FRiveRDGImageRectPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveImageRectPixelShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveImageRectPixelShader, FGlobalShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGImageRectPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageRectPixelShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
+    SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
 
-    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
-    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_imageTexture_raw)
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_imageTexture_raw)
 
-    SHADER_PARAMETER_UAV(Texture2D<uint>, coverageAtomicBuffer)
-    SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
-    SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
-    SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
-    SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
-
-    SHADER_PARAMETER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
-    SHADER_PARAMETER_SRV(StructuredBuffer<float4>, GLSL_paintAuxBuffer_raw)
-    END_SHADER_PARAMETER_STRUCT()
-
-    USE_ATOMIC_PIXEL_PERMUTATIONS
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
-    static bool ShouldCompilePermutation(
-        const FShaderPermutationParameters& Parameters)
-    {
-        return GRHISupportsPixelShaderUAVs;
-    }
-};
-
-class FRiveImageRectVertexShader : public FGlobalShader
-{
-public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveImageRectVertexShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveImageRectVertexShader, FGlobalShader);
-
-    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
-    END_SHADER_PARAMETER_STRUCT()
-
-    USE_ATOMIC_VERTEX_PERMUTATIONS
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
-    static bool ShouldCompilePermutation(
-        const FShaderPermutationParameters& Parameters)
-    {
-        return GRHISupportsPixelShaderUAVs;
-    }
-};
-
-class FRiveImageMeshPixelShader : public FGlobalShader
-{
-public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveImageMeshPixelShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveImageMeshPixelShader, FGlobalShader);
-
-    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
-
-    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
-    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_imageTexture_raw)
-
-    SHADER_PARAMETER_UAV(Texture2D<uint>, coverageAtomicBuffer)
-    SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
-    SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, clipBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
 
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
     SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
 
-    SHADER_PARAMETER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
-    SHADER_PARAMETER_SRV(StructuredBuffer<float4>, GLSL_paintAuxBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>,
+                                    GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
+                                    GLSL_paintAuxBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
@@ -349,19 +396,54 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return GRHISupportsPixelShaderUAVs;
+        FPermutationDomain PermutationVector(Parameters.PermutationId);
+
+        // don't compile typed UAV permutations if they aren't supported.
+        if (PermutationVector.Get<FEnableTypedUAVLoads>() &&
+            !(RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
+              GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+        {
+            UE_LOG(
+                LogRiveShaderCompiler,
+                Verbose,
+                TEXT(
+                    "Skipping Permutation %i  for FRiveRDGImageRectPixelShader "
+                    "because typed uavs are not supported"),
+                Parameters.PermutationId);
+            return false;
+        }
+
+        // only compile typed UAV permutations if they are supported
+        if (!PermutationVector.Get<FEnableTypedUAVLoads>() &&
+            (RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
+             GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+        {
+            UE_LOG(
+                LogRiveShaderCompiler,
+                Verbose,
+                TEXT("Skipping Permutation %i for FRiveRDGImageRectPixelShader "
+                     "because typed uavs are supported"),
+                Parameters.PermutationId);
+            return false;
+        }
+
+        UE_LOG(LogRiveShaderCompiler,
+               VeryVerbose,
+               TEXT("Building Permutation %i for FRiveRDGImageRectPixelShader"),
+               Parameters.PermutationId)
+        return true;
     }
 };
 
-class FRiveImageMeshVertexShader : public FGlobalShader
+class FRiveRDGImageRectVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveImageMeshVertexShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveImageMeshVertexShader, FGlobalShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGImageRectVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageRectVertexShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
-    SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
+    SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
@@ -369,29 +451,32 @@ public:
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,
         FShaderCompilerEnvironment&);
-    static bool ShouldCompilePermutation(
-        const FShaderPermutationParameters& Parameters)
-    {
-        return GRHISupportsPixelShaderUAVs;
-    }
 };
 
-class FRiveAtomicResolvePixelShader : public FGlobalShader
+class FRiveRDGImageMeshPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveAtomicResolvePixelShader,
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGImageMeshPixelShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveAtomicResolvePixelShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageMeshPixelShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
 
-    SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_imageTexture_raw)
+
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, clipBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
+
     SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
-    SHADER_PARAMETER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
-    SHADER_PARAMETER_SRV(StructuredBuffer<float4>, GLSL_paintAuxBuffer_raw)
-    SHADER_PARAMETER_UAV(Texture2D<uint>, coverageAtomicBuffer)
-    SHADER_PARAMETER_UAV(Texture2D, colorBuffer)
-    SHADER_PARAMETER_UAV(Texture2D<uint>, clipBuffer)
+    SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
+
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>,
+                                    GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
+                                    GLSL_paintAuxBuffer_raw)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
@@ -402,19 +487,54 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return GRHISupportsPixelShaderUAVs;
+        FPermutationDomain PermutationVector(Parameters.PermutationId);
+
+        // don't compile typed UAV permutations if they aren't supported.
+        if (PermutationVector.Get<FEnableTypedUAVLoads>() &&
+            !(RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
+              GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+        {
+            UE_LOG(
+                LogRiveShaderCompiler,
+                Verbose,
+                TEXT("Skipping Permutation %i for FRiveRDGImageMeshPixelShader "
+                     "because typed uavs are not supported"),
+                Parameters.PermutationId);
+            return false;
+        }
+
+        // only compile typed UAV permutations if they are supported
+        if (!PermutationVector.Get<FEnableTypedUAVLoads>() &&
+            (RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
+             GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+        {
+            UE_LOG(
+                LogRiveShaderCompiler,
+                Verbose,
+                TEXT(
+                    "Skipping Permutation  %i for FRiveRDGImageMeshPixelShader "
+                    "because typed uavs are supported"),
+                Parameters.PermutationId);
+            return false;
+        }
+
+        UE_LOG(LogRiveShaderCompiler,
+               VeryVerbose,
+               TEXT("Building Permutation %i for FRiveRDGImageMeshPixelShader"),
+               Parameters.PermutationId)
+        return true;
     }
 };
 
-class FRiveAtomicResolveVertexShader : public FGlobalShader
+class FRiveRDGImageMeshVertexShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveAtomicResolveVertexShader,
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGImageMeshVertexShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveAtomicResolveVertexShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageMeshVertexShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_STRUCT_REF(FFlushUniforms, FlushUniforms)
+    SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
     END_SHADER_PARAMETER_STRUCT()
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
@@ -422,11 +542,87 @@ public:
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,
         FShaderCompilerEnvironment&);
+};
+
+class FRiveRDGAtomicResolvePixelShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtomicResolvePixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtomicResolvePixelShader,
+                                FGlobalShader);
+
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+    SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>,
+                                    GLSL_paintBuffer_raw)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
+                                    GLSL_paintAuxBuffer_raw)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, clipBuffer)
+    END_SHADER_PARAMETER_STRUCT()
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return GRHISupportsPixelShaderUAVs;
+        FPermutationDomain PermutationVector(Parameters.PermutationId);
+
+        // don't compile typed UAV permutations if they aren't supported.
+        if (PermutationVector.Get<FEnableTypedUAVLoads>() &&
+            !(RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
+              GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+        {
+            UE_LOG(LogRiveShaderCompiler,
+                   Verbose,
+                   TEXT("Skipping Permutation %i for "
+                        "FRiveRDGAtomicResolvePixelShader because typed uavs "
+                        "are not supported"),
+                   Parameters.PermutationId);
+            return false;
+        }
+
+        // only compile typed UAV permutations if they are supported
+        if (!PermutationVector.Get<FEnableTypedUAVLoads>() &&
+            (RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
+             GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+        {
+            UE_LOG(LogRiveShaderCompiler,
+                   Verbose,
+                   TEXT("Skipping Permutation %i for "
+                        "FRiveRDGAtomicResolvePixelShader because typed uavs "
+                        "are supported"),
+                   Parameters.PermutationId);
+            return false;
+        }
+
+        UE_LOG(
+            LogRiveShaderCompiler,
+            VeryVerbose,
+            TEXT(
+                "Building Permutation %i for FRiveRDGAtomicResolvePixelShader"),
+            Parameters.PermutationId)
+        return true;
     }
+};
+
+class FRiveRDGAtomicResolveVertexShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtomicResolveVertexShader,
+                                   RIVESHADERS_API);
+    USE_ATOMIC_VERTEX_PERMUTATIONS
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
 };
 
 /*
@@ -434,20 +630,17 @@ public:
  * it. It does so by writing SourceTexture to the current rendertarget color
  * float4(value, 0, 0, 1)
  */
-class FRiveBltU32AsF4PixelShader : public FGlobalShader
+class FRiveRDGBltU32AsF4PixelShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveBltU32AsF4PixelShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveBltU32AsF4PixelShader, FGlobalShader);
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGBltU32AsF4PixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGBltU32AsF4PixelShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_TEXTURE(Texture2D, SourceTexture)
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SourceTexture)
     RENDER_TARGET_BINDING_SLOTS()
     END_SHADER_PARAMETER_STRUCT()
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
 /*
@@ -455,15 +648,15 @@ public:
  * order to visualize it. It does so by writing SourceTexture to the current
  * rendertarget color float4( float(val.r), float(val.g), float(val.b), 1.0 );
  */
-class FRiveBltU324AsF4PixelShader : public FGlobalShader
+class FRiveRDGBltU324AsF4PixelShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveBltU324AsF4PixelShader,
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGBltU324AsF4PixelShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveBltU324AsF4PixelShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGBltU324AsF4PixelShader, FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_TEXTURE(Texture2D, SourceTexture)
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SourceTexture)
     RENDER_TARGET_BINDING_SLOTS()
     END_SHADER_PARAMETER_STRUCT()
 };
@@ -473,21 +666,18 @@ public:
  * it. it does so in a slightly more intelligent way by passing the values of
  * buffer through sin and cos when writing it to the bound render target
  */
-class FRiveVisualizeBufferPixelShader : public FGlobalShader
+class FRiveRDGVisualizeBufferPixelShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveVisualizeBufferPixelShader,
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGVisualizeBufferPixelShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveVisualizeBufferPixelShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGVisualizeBufferPixelShader,
+                                FGlobalShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-    SHADER_PARAMETER_SRV(Buffer<uint2>, SourceBuffer)
+    SHADER_PARAMETER_RDG_BUFFER_SRV(Buffer<uint2>, SourceBuffer)
     SHADER_PARAMETER(UE::HLSL::uint2, ViewSize)
     SHADER_PARAMETER(UE::HLSL::uint, BufferSize)
     RENDER_TARGET_BINDING_SLOTS()
     END_SHADER_PARAMETER_STRUCT()
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
