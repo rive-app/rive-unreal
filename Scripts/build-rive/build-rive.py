@@ -151,7 +151,7 @@ class CompilePass(object):
             # try again with clean
             self.success = execute_command(self.clean_command)
 
-        return self.success
+        return self.success == CompileResult.SUCCESS
 
 def execute_command(cmd) -> bool:
     """attempt to run cmd in another process, piping output to this process stdout. returns a CompileResult"""
