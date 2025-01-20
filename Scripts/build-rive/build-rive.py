@@ -234,7 +234,7 @@ def do_android(rive_runtime_path, release):
     root_dir = os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' )
 
     # arch=arm64 is chosen for you in build_rive.sh because type is android
-    android_pass = CompilePass(rive_runtime_path, root_dir, out_dir, release, "ninja android", targets + test_targets if should_build_tests else targets)
+    android_pass = CompilePass(rive_runtime_path, root_dir, out_dir, release, "android", targets + test_targets if should_build_tests else targets, android_api="31")
     if not android_pass.try_build():
         print_red("Exiting due to errors...")
         return False
