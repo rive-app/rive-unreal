@@ -558,7 +558,8 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     m_platformFeatures.supportsClipPlanes = true;
     m_platformFeatures.supportsRasterOrdering =
         false; // m_capabilities.bSupportsRasterOrderViews;
-    m_platformFeatures.invertOffscreenY = true;
+    m_platformFeatures.clipSpaceBottomUp = true;
+    m_platformFeatures.framebufferBottomUp = false;
 
     auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
