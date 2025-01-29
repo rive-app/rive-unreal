@@ -3,6 +3,7 @@ import shutil
 import argparse
 import subprocess
 import sys
+import stat
 from pathlib import Path
 from enum import Enum
 
@@ -411,6 +412,9 @@ def copy_files(src, dst, extension, is_release, should_rename = True, files_to_c
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         shutil.copy2(src_path, dest_path)
 
+def remove_readonly(func, path, exc_info):
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
 def copy_includes(rive_runtime_path):
     print_green('Copying rive includes...')
@@ -426,10 +430,10 @@ def copy_includes(rive_runtime_path):
     generated_shader_ush_path = os.path.join(rive_shaders_includes_path, "generated", "shaders")
 
     if os.path.exists(target_path):
-        shutil.rmtree(target_path)
+        shutil.rmtree(target_path, onerror=remove_readonly)
 
     if os.path.exists(generated_shader_path):
-        shutil.rmtree(generated_shader_path)
+        shutil.rmtree(generated_shader_path, onerror=remove_readonly)
 
     # delete and re create generated shader path to clear it
     os.makedirs(generated_shader_path)
