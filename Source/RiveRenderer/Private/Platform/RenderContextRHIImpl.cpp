@@ -63,7 +63,7 @@ public:
     };
 
     /** Do nothing on discard because this is static const CPU data */
-    virtual void Discard() override{};
+    virtual void Discard() override {};
 
     virtual bool IsStatic() const override { return true; }
 
@@ -101,7 +101,7 @@ public:
     };
 
     /** Do nothing on discard because this is static const CPU data */
-    virtual void Discard() override{};
+    virtual void Discard() override {};
 
     virtual bool IsStatic() const override { return true; }
 
@@ -324,9 +324,11 @@ FRDGBufferRef BufferRingRHIImpl::Sync(FRDGBuilder& RDGBuilder,
                                       size_t offsetInBytes) const
 {
     const size_t size = capacityInBytes() - offsetInBytes;
-    FRDGBufferDesc Desc(m_stride,
-                        size / m_stride,
-                        m_flags | EBufferUsageFlags::Volatile);
+    // clang was trying to do a copy constructor here for some crazy reason on
+    // mac. This prevents that
+    FRDGBufferDesc Desc{static_cast<uint32>(m_stride),
+                        static_cast<uint32>(size / m_stride),
+                        m_flags | EBufferUsageFlags::Volatile};
     auto buffer = RDGBuilder.CreateBuffer(Desc,
                                           TEXT("rive.BufferRingRHIImpl_"),
                                           ERDGBufferFlags::None);

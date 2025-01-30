@@ -141,6 +141,9 @@ class FRiveRDGGradientPixelShader : public FGlobalShader
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGGradientPixelShader,
                                    RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGGradientPixelShader, FGlobalShader);
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    END_SHADER_PARAMETER_STRUCT();
 
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,
@@ -152,6 +155,9 @@ class FRiveRDGGradientVertexShader : public FGlobalShader
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGGradientVertexShader,
                                    RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGGradientVertexShader, FGlobalShader);
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    END_SHADER_PARAMETER_STRUCT();
 
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,
@@ -162,6 +168,9 @@ class FRiveRDGTessPixelShader : public FGlobalShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGTessPixelShader, RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGTessPixelShader, FGlobalShader);
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    END_SHADER_PARAMETER_STRUCT();
 
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,
@@ -618,8 +627,11 @@ class FRiveRDGAtomicResolveVertexShader : public FGlobalShader
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtomicResolveVertexShader,
                                    RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtomicResolveVertexShader,
+                                FGlobalShader);
     USE_ATOMIC_VERTEX_PERMUTATIONS
-
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    END_SHADER_PARAMETER_STRUCT()
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,
         FShaderCompilerEnvironment&);
