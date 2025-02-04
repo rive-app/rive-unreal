@@ -20,7 +20,7 @@ DECLARE_GPU_STAT_NAMED(
     TEXT("FRiveRenderTargetD3D11::CacheTextureTarget_RenderThread"));
 void FRiveRenderTargetRHI::CacheTextureTarget_RenderThread(
     FRHICommandListImmediate& RHICmdList,
-    const FTexture2DRHIRef& InTexture)
+    const FTextureRHIRef& InTexture)
 {
     check(IsInRenderingThread());
     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());

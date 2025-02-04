@@ -76,7 +76,7 @@ public:
 
     virtual void CacheTextureTarget_RenderThread(
         FRHICommandListImmediate& RHICmdList,
-        const FTexture2DRHIRef& InRHIResource) = 0;
+        const FTextureRHIRef& InRHIResource) = 0;
 
     virtual void SetClearColor(const FLinearColor& InColor) = 0;
     virtual uint32 GetWidth() const = 0;

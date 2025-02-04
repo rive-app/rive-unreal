@@ -28,7 +28,7 @@ class RIVERENDERER_API RenderTargetRHI : public rive::gpu::RenderTarget
 public:
     RenderTargetRHI(FRHICommandList& RHICmdList,
                     const RHICapabilities& Capabilities,
-                    const FTexture2DRHIRef& InTextureTarget);
+                    const FTextureRHIRef& InTextureTarget);
 
     virtual ~RenderTargetRHI() override {}
 
@@ -44,13 +44,13 @@ public:
 
     bool TargetTextureSupportsUAV() const { return m_targetTextureSupportsUAV; }
 
-    FTexture2DRHIRef texture() const { return m_textureTarget; }
+    FTextureRHIRef texture() const { return m_textureTarget; }
 
 private:
-    FTexture2DRHIRef m_scratchColorTexture;
-    FTexture2DRHIRef m_textureTarget;
-    FTexture2DRHIRef m_atomicCoverageTexture;
-    FTexture2DRHIRef m_clipTexture;
+    FTextureRHIRef m_scratchColorTexture;
+    FTextureRHIRef m_textureTarget;
+    FTextureRHIRef m_atomicCoverageTexture;
+    FTextureRHIRef m_clipTexture;
 
     bool m_targetTextureSupportsUAV;
     // Reference held for convenience. May be better to just DI it everywhere.
@@ -65,8 +65,9 @@ public:
                       size_t InSizeInBytes,
                       size_t stride);
 
-    FBufferRHIRef Sync(FRHICommandList&, size_t offsetInBytes = 0) const;
-    FRDGBufferRef Sync(FRDGBuilder&, size_t offsetInBytes = 0) const;
+    FBufferRHIRef Sync(FRHICommandList& commandList,
+                       size_t offsetInBytes = 0) const;
+    FRDGBufferRef Sync(FRDGBuilder& RDGBuilder, size_t offsetInBytes = 0) const;
 
 protected:
     virtual void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override;
@@ -245,7 +246,7 @@ public:
 
     rive::rcp<RenderTargetRHI> makeRenderTarget(
         FRHICommandListImmediate& RHICmdList,
-        const FTexture2DRHIRef& InTargetTexture);
+        const FTextureRHIRef& InTargetTexture);
 
     virtual double secondsNow() const override
     {

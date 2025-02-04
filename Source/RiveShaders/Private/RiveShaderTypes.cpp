@@ -14,107 +14,126 @@ THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY(LogRiveShaderCompiler);
 
+void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
+                             FShaderCompilerEnvironment& Environment,
+                             const bool IsVertexShader)
+{
+
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
+    Environment.SetDefine(TEXT("UNIFORM_DEFINITIONS_AUTO_GENERATED"),
+                          TEXT("1"));
+#endif
+
+    if (IsVertexShader)
+    {
+        Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    }
+    else
+    {
+        Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+        Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    }
+
+    // We are not bindless so this flag must be added for vulkan to work
+    Environment.CompilerFlags.Add(CFLAG_ForceBindful);
+}
+
 void FRiveRDGGradientPixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+    ModifyShaderEnvironment(Params, Environment, false);
 }
 
 void FRiveRDGGradientVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    ModifyShaderEnvironment(Params, Environment, true);
 }
 
 void FRiveRDGTessPixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
+    ModifyShaderEnvironment(Params, Environment, false);
 }
 
 void FRiveRDGTessVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    ModifyShaderEnvironment(Params, Environment, true);
 }
 
 void FRiveRDGPathPixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    ModifyShaderEnvironment(Params, Environment, false);
 }
 
 void FRiveRDGPathVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    ModifyShaderEnvironment(Params, Environment, true);
 }
 
 void FRiveRDGInteriorTrianglesPixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    ModifyShaderEnvironment(Params, Environment, false);
 }
 
 void FRiveRDGInteriorTrianglesVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    ModifyShaderEnvironment(Params, Environment, true);
 }
 
 void FRiveRDGImageRectPixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    ModifyShaderEnvironment(Params, Environment, false);
 }
 
 void FRiveRDGImageRectVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    ModifyShaderEnvironment(Params, Environment, true);
 }
 
 void FRiveRDGImageMeshPixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    ModifyShaderEnvironment(Params, Environment, false);
 }
 
 void FRiveRDGImageMeshVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    ModifyShaderEnvironment(Params, Environment, true);
 }
 
 void FRiveRDGAtomicResolvePixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
-    Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+    ModifyShaderEnvironment(Params, Environment, false);
 }
 
 void FRiveRDGAtomicResolveVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    Environment.SetDefine(TEXT("VERTEX"), TEXT("1"));
+    ModifyShaderEnvironment(Params, Environment, true);
 }
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGGradientPixelShader,
@@ -202,13 +221,16 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGVisualizeBufferPixelShader,
                         "FragmentMain",
                         SF_Pixel);
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 IMPLEMENT_STATIC_UNIFORM_BUFFER_SLOT(FlushUniformSlot);
 IMPLEMENT_STATIC_UNIFORM_BUFFER_STRUCT(FFlushUniforms,
                                        "uniforms",
                                        FlushUniformSlot);
-
-IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FImageDrawUniforms,
-                                         "imageDrawUniforms");
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FImageDrawUniforms, "imageDrawUniforms");
+#else
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FFlushUniforms, GLSL_FlushUniforms);
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FImageDrawUniforms, GLSL_ImageDrawUniforms);
+#endif
 
 void BindStaticFlushUniforms(FRHICommandList& RHICmdList,
                              FUniformBufferRHIRef FlushUniforms)

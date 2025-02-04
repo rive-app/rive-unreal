@@ -39,7 +39,7 @@ public:
 
     virtual void CacheTextureTarget_RenderThread(
         FRHICommandListImmediate& RHICmdList,
-        const FTexture2DRHIRef& InRHIResource) override
+        const FTextureRHIRef& InRHIResource) override
     {}
 
     virtual uint32 GetWidth() const override;

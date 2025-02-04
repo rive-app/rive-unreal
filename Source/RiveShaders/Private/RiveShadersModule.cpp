@@ -8,7 +8,6 @@
 
 void FRiveShadersModule::StartupModule()
 {
-    // for some reason the shader file path is not loading correctly.
     FString PluginShaderDir = FPaths::Combine(
         IPluginManager::Get().FindPlugin(TEXT("Rive"))->GetBaseDir(),
         TEXT("Shaders"));

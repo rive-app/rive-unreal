@@ -65,7 +65,7 @@ DECLARE_GPU_STAT_NAMED(
     TEXT("FRiveRenderTargetOpenGL::CacheTextureTarget_RenderThread"));
 void FRiveRenderTargetOpenGL::CacheTextureTarget_RenderThread(
     FRHICommandListImmediate& RHICmdList,
-    const FTexture2DRHIRef& InTexture)
+    const FTextureRHIRef& InTexture)
 {
     RIVE_DEBUG_FUNCTION_INDENT;
     check(IsInRenderingThread());
@@ -203,7 +203,7 @@ void FRiveRenderTargetOpenGL::Render_RenderThread(
 #if WITH_RIVE
 
 void FRiveRenderTargetOpenGL::CacheTextureTarget_Internal(
-    const FTexture2DRHIRef& InRHIResource)
+    const FTextureRHIRef& InRHIResource)
 {
     RIVE_DEBUG_FUNCTION_INDENT;
     check(IsInGameThread() || IsInRHIThread());

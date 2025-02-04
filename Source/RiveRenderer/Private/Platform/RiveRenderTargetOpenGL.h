@@ -37,7 +37,7 @@ public:
     virtual void Initialize() override;
     virtual void CacheTextureTarget_RenderThread(
         FRHICommandListImmediate& RHICmdList,
-        const FTexture2DRHIRef& InRHIResource) override;
+        const FTextureRHIRef& InRHIResource) override;
 
 #if WITH_RIVE
     //~ END : IRiveRenderTarget Interface
@@ -56,7 +56,7 @@ protected:
     //~ END : FRiveRenderTarget Interface
 
 private:
-    void CacheTextureTarget_Internal(const FTexture2DRHIRef& InRHIResource);
+    void CacheTextureTarget_Internal(const FTextureRHIRef& InRHIResource);
 
     void ResetOpenGLState() const;
 

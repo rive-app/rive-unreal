@@ -7,8 +7,24 @@
 
 using namespace rive::gpu;
 
+template <typename PassParamType>
+void SetFlushUniformsPerShader(PassParamType* PassParams)
+{
+    // for 5.5 we have to not use static uniform slots. Unreal keeps giving us
+    // an error about SlateView static slot not being bound when we include
+    // Engine/Generated/GeneratedUniformBuffers so for now we just dont use it
+    // in 5.5
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
+#else
+    PassParams->VS.GLSL_FlushUniforms_raw = PassParams->FlushUniforms;
+    PassParams->PS.GLSL_FlushUniforms_raw = PassParams->FlushUniforms;
+#endif
+}
+
 BEGIN_SHADER_PARAMETER_STRUCT(FRDGPassParameters, )
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
+SHADER_PARAMETER_STRUCT_INCLUDE(FRiveRDGGradientVertexShader::FParameters, VS)
+SHADER_PARAMETER_STRUCT_INCLUDE(FRiveRDGGradientPixelShader::FParameters, PS)
 RENDER_TARGET_BINDING_SLOTS()
 END_SHADER_PARAMETER_STRUCT()
 
@@ -29,6 +45,12 @@ FRDGPassRef AddGradientPass(FRDGBuilder& GraphBuilder,
     GradientPassParams->FlushUniforms = FlushUniforms;
     GradientPassParams->RenderTargets[0] =
         FRenderTargetBinding(GradientTexture, ERenderTargetLoadAction::ELoad);
+
+    SetFlushUniformsPerShader(GradientPassParams);
+
+    ClearUnusedGraphResources(PixelShader, &GradientPassParams->PS);
+    ClearUnusedGraphResources(VertexShader, &GradientPassParams->VS);
+
     return GraphBuilder.AddPass(
         RDG_EVENT_NAME("Rive_Render_Gradient"),
         GradientPassParams,
@@ -63,11 +85,22 @@ FRDGPassRef AddGradientPass(FRDGBuilder& GraphBuilder,
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
-            BindShaders(RHICmdList,
-                        GraphicsPSOInit,
-                        VertexShader,
-                        PixelShader,
-                        VertexDeclaration);
+            GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+                VertexDeclaration;
+            GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+                VertexShader.GetVertexShader();
+            GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+                PixelShader.GetPixelShader();
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+
+            SetShaderParameters(RHICmdList,
+                                PixelShader,
+                                PixelShader.GetPixelShader(),
+                                PassParameters->PS);
+            SetShaderParameters(RHICmdList,
+                                VertexShader,
+                                VertexShader.GetPixelShader(),
+                                PassParameters->VS);
 
             RHICmdList.SetStreamSource(0, GradientSpanBuffer, 0);
 
@@ -89,13 +122,18 @@ FRDGPassRef AddTessellationPass(
 {
     const auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
+    SetFlushUniformsPerShader(TesselationPassParameters);
+
     TShaderMapRef<FRiveRDGTessVertexShader> VertexShader(ShaderMap);
     TShaderMapRef<FRiveRDGTessPixelShader> PixelShader(ShaderMap);
+
+    ClearUnusedGraphResources(PixelShader, &TesselationPassParameters->PS);
+    ClearUnusedGraphResources(VertexShader, &TesselationPassParameters->VS);
 
     return GraphBuilder.AddPass(
         RDG_EVENT_NAME("Rive_Tesselation_Update"),
         TesselationPassParameters,
-        ERDGPassFlags::Raster | ERDGPassFlags::NeverParallel,
+        ERDGPassFlags::Raster,
         [TessSpanBuffer,
          TessIndexBuffer,
          VertexDeclaration,
@@ -120,12 +158,18 @@ FRDGPassRef AddTessellationPass(
             FRHIBatchedShaderParameters& BatchedShaderParameters =
                 RHICmdList.GetScratchShaderParameters();
 
-            BindShaders(RHICmdList,
-                        GraphicsPSOInit,
-                        VertexShader,
-                        PixelShader,
-                        VertexDeclaration);
+            GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+                VertexDeclaration;
+            GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+                VertexShader.GetVertexShader();
+            GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+                PixelShader.GetPixelShader();
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
 
+            SetShaderParameters(RHICmdList,
+                                PixelShader,
+                                PixelShader.GetPixelShader(),
+                                TesselationPassParameters->PS);
             SetShaderParameters(RHICmdList,
                                 VertexShader,
                                 VertexShader.GetVertexShader(),
@@ -162,13 +206,15 @@ FRDGPassRef AddDrawPatchesPass(
         CommonPassParameters->ShaderMap,
         CommonPassParameters->PixelPermutationDomain);
 
+    SetFlushUniformsPerShader(PassParameters);
+
     ClearUnusedGraphResources(PixelShader, &PassParameters->PS);
     ClearUnusedGraphResources(VertexShader, &PassParameters->VS);
     // PassParameters->VS.baseInstance = 0;
     return GraphBuilder.AddPass(
         RDG_EVENT_NAME("Rive_Draw_Patch"),
         PassParameters,
-        ERDGPassFlags::Raster | ERDGPassFlags::NeverParallel,
+        ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
             FRHICommandList& RHICmdList) {
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -208,12 +254,7 @@ FRDGPassRef AddDrawPatchesPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SetGraphicsPipelineState(RHICmdList,
-                                     GraphicsPSOInit,
-                                     0,
-                                     EApplyRendertargetOption::CheckApply,
-                                     true,
-                                     EPSOPrecacheResult::Unknown);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -250,13 +291,15 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
         CommonPassParameters->ShaderMap,
         CommonPassParameters->PixelPermutationDomain);
 
+    SetFlushUniformsPerShader(PassParameters);
+
     ClearUnusedGraphResources(PixelShader, &PassParameters->PS);
     ClearUnusedGraphResources(VertexShader, &PassParameters->VS);
 
     return GraphBuilder.AddPass(
         RDG_EVENT_NAME("Rive_Draw_Interior_Triangles"),
         PassParameters,
-        ERDGPassFlags::Raster | ERDGPassFlags::NeverParallel,
+        ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
             FRHICommandList& RHICmdList) {
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -296,12 +339,7 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SetGraphicsPipelineState(RHICmdList,
-                                     GraphicsPSOInit,
-                                     0,
-                                     EApplyRendertargetOption::CheckApply,
-                                     true,
-                                     EPSOPrecacheResult::Unknown);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -334,13 +372,15 @@ FRDGPassRef AddDrawImageRectPass(
         CommonPassParameters->ShaderMap,
         CommonPassParameters->PixelPermutationDomain);
 
+    SetFlushUniformsPerShader(PassParameters);
+
     ClearUnusedGraphResources(PixelShader, &PassParameters->PS);
     ClearUnusedGraphResources(VertexShader, &PassParameters->VS);
 
     return GraphBuilder.AddPass(
         RDG_EVENT_NAME("Rive_Draw_Image_Rect"),
         PassParameters,
-        ERDGPassFlags::Raster | ERDGPassFlags::NeverParallel,
+        ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
             FRHICommandList& RHICmdList) {
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -382,12 +422,7 @@ FRDGPassRef AddDrawImageRectPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SetGraphicsPipelineState(RHICmdList,
-                                     GraphicsPSOInit,
-                                     0,
-                                     EApplyRendertargetOption::CheckApply,
-                                     true,
-                                     EPSOPrecacheResult::Unknown);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -424,13 +459,15 @@ FRDGPassRef AddDrawImageMeshPass(
         CommonPassParameters->ShaderMap,
         CommonPassParameters->PixelPermutationDomain);
 
+    SetFlushUniformsPerShader(PassParameters);
+
     ClearUnusedGraphResources(PixelShader, &PassParameters->PS);
     ClearUnusedGraphResources(VertexShader, &PassParameters->VS);
 
     return GraphBuilder.AddPass(
         RDG_EVENT_NAME("Rive_Draw_Image_Mesh"),
         PassParameters,
-        ERDGPassFlags::Raster | ERDGPassFlags::NeverParallel,
+        ERDGPassFlags::Raster,
         [CommonPassParameters,
          PassParameters,
          NumVertices,
@@ -475,12 +512,7 @@ FRDGPassRef AddDrawImageMeshPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SetGraphicsPipelineState(RHICmdList,
-                                     GraphicsPSOInit,
-                                     0,
-                                     EApplyRendertargetOption::CheckApply,
-                                     true,
-                                     EPSOPrecacheResult::Unknown);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -520,12 +552,15 @@ FRDGPassRef AddAtomicResolvePass(
         CommonPassParameters->ShaderMap,
         CommonPassParameters->PixelPermutationDomain);
 
+    SetFlushUniformsPerShader(PassParameters);
+
     ClearUnusedGraphResources(PixelShader, &PassParameters->PS);
+    ClearUnusedGraphResources(VertexShader, &PassParameters->VS);
 
     return GraphBuilder.AddPass(
         RDG_EVENT_NAME("Rive_Draw_Atomic_Resolve"),
         PassParameters,
-        ERDGPassFlags::Raster | ERDGPassFlags::NeverParallel,
+        ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
             FRHICommandList& RHICmdList) {
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -567,17 +602,16 @@ FRDGPassRef AddAtomicResolvePass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SetGraphicsPipelineState(RHICmdList,
-                                     GraphicsPSOInit,
-                                     0,
-                                     EApplyRendertargetOption::CheckApply,
-                                     true,
-                                     EPSOPrecacheResult::Unknown);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
 
             SetShaderParameters(RHICmdList,
                                 PixelShader,
                                 PixelShader.GetPixelShader(),
                                 PassParameters->PS);
+            SetShaderParameters(RHICmdList,
+                                VertexShader,
+                                VertexShader.GetPixelShader(),
+                                PassParameters->VS);
 
             RHICmdList.DrawPrimitive(0, 2, 1);
         });

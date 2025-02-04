@@ -44,7 +44,11 @@ public class RiveEditor : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
+#if UE_5_5_OR_LATER
+            PrivateDependencyModuleNames.Add("WindowsTargetPlatformSettings");
+#else
             PrivateDependencyModuleNames.Add("WindowsTargetPlatform");
+#endif
         }
     }
 }

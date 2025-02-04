@@ -38,7 +38,7 @@ DECLARE_GPU_STAT_NAMED(
     TEXT("FRiveRenderTargetMetal::CacheTextureTarget_RenderThread"));
 void FRiveRenderTargetMetal::CacheTextureTarget_RenderThread(
     FRHICommandListImmediate& RHICmdList,
-    const FTexture2DRHIRef& InTexture)
+    const FTextureRHIRef& InTexture)
 {
     AutoreleasePool pool;
     check(IsInRenderingThread());
