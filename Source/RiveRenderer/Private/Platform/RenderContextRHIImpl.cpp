@@ -262,8 +262,14 @@ RHICapabilities::RHICapabilities()
                                            EPixelFormatCapabilities::UAV));
     check(UE::PixelFormat::HasCapabilities(PF_B8G8R8A8,
                                            EPixelFormatCapabilities::UAV));
-
+#if UE_VERSION_OLDER_THAN(5, 4, 0)
+    // for now just force metal as the only raster order support until there is
+    // a better version in 5.3
+    bSupportsRasterOrderViews =
+        GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Metal;
+#else
     bSupportsRasterOrderViews = GRHISupportsRasterOrderViews;
+#endif
     // it seems vulkan requires typed uav support.
     bSupportsTypedUAVLoads =
         RHISupports4ComponentUAVReadWrite(GMaxRHIShaderPlatform) ||
@@ -764,7 +770,8 @@ RenderContextRHIImpl::RenderContextRHIImpl(
                                         FIntPoint(1, 1),
                                         PF_R32_UINT);
     PlaceholderDesc.AddFlags(ETextureCreateFlags::ShaderResource);
-    m_placeholderTexture = CommandListImmediate.CreateTexture(PlaceholderDesc);
+    m_placeholderTexture =
+        CREATE_TEXTURE(CommandListImmediate, PlaceholderDesc);
 }
 
 rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(

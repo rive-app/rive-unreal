@@ -33,9 +33,11 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
         Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
         Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
     }
-
+// 5.4 and up
+#if UE_VERSION_NEWER_THAN(5, 3, 9)
     // We are not bindless so this flag must be added for vulkan to work
     Environment.CompilerFlags.Add(CFLAG_ForceBindful);
+#endif
 }
 
 void FRiveRDGGradientPixelShader::ModifyCompilationEnvironment(
