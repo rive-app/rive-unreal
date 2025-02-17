@@ -105,10 +105,17 @@ SHADER_PARAMETER(
 SHADER_PARAMETER(UE::HLSL::int4,
                  renderTargetUpdateBounds) // drawBounds, or renderTargetBounds
                                            // if there is a clear. (LTRB.)
+SHADER_PARAMETER(UE::HLSL::float2,
+                 atlasTextureInverseSize) // 1 / [atlasWidth, atlasHeight]
+SHADER_PARAMETER(UE::HLSL::float2,
+                 atlasContentInverseViewport) // 2 / atlasContentBounds
+SHADER_PARAMETER(UE::HLSL::uint, coverageBufferPrefix)
 SHADER_PARAMETER(UE::HLSL::uint,
                  pathIDGranularity) // Spacing between adjacent path IDs (1 if
                                     // IEEE compliant).
 SHADER_PARAMETER(float, vertexDiscardValue)
+// Debugging.
+SHADER_PARAMETER(UE::HLSL::uint, wireframeEnabled)
 END_UNIFORM_BUFFER_STRUCT();
 
 RIVESHADERS_API void BindStaticFlushUniforms(FRHICommandList&,
