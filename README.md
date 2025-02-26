@@ -2,6 +2,8 @@
 
 An Unreal runtime library for [Rive](https://rive.app). This is currently a **technical preview** for Mac and Windows installs of Unreal. We're hoping to gather feedback about the API and feature-set as we expand platform support.
 
+PLEASE WATCH [THIS VIDEO](https://ucarecdn.com/a320730a-abb9-48cc-b945-7fb4ad65767c/)  ON OUR [GETTING STARTED PAGE](https://rive.app/docs/game-runtimes/unreal/getting-started) TO AVOID COMMON ISSUES!
+
 ### Rendering support
 
 Currently supported platforms and backends include:
@@ -60,9 +62,9 @@ Check out the latest example project from the [releases page](https://github.com
 
 You can find the source for the rive-unreal-demos [here](https://github.com/rive-app/rive-unreal-demos).
 
-You will need to work in the **Unreal 5.3 or 5.4** editor that supports OpenGL or D3D11 for Windows, or a Mac with ARM64 (M1, M2, etc) architecture.
+You will need to work in the **Unreal 5.3, 5.4, or 5.5** editor that supports OpenGL, D3D11, or D#D12 for Windows, or a Mac with ARM64 (M1, M2, etc) architecture.
 
-Select either D3D11/OpenGL for Windows, or Metal for Mac/iOS as the Renderer ID under Editor Preferences -> Plugins - Graphics Switching in Unreal. If you are making an Android Build, make sure to use OpenGL instead of Vulcan.
+Select either D3D11/D#D12/OpenGL for Windows, or Metal for Mac/iOS as the Renderer ID under Editor Preferences -> Plugins - Graphics Switching in Unreal. If you are making an Android Build, make sure to use OpenGL instead of Vulcan.
 
 ### Adding the Rive Unreal plugin
 
