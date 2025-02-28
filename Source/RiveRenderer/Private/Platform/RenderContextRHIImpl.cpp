@@ -145,11 +145,8 @@ void GetPermutationForFeatures(
         features & ShaderFeatures::ENABLE_CLIP_RECT);
     VertexPermutationDomain.Set<FEnableAdvanceBlend>(
         features & ShaderFeatures::ENABLE_ADVANCED_BLEND);
-    VertexPermutationDomain.Set<FEnableFeather>(
-        features & ShaderFeatures::ENABLE_FEATHER &&
-        !(miscFlags & ShaderMiscFlags::atlasCoverage));
-    VertexPermutationDomain.Set<FEnableAtlasCoverage>(
-        miscFlags & ShaderMiscFlags::atlasCoverage);
+    VertexPermutationDomain.Set<FEnableFeather>(features &
+                                                ShaderFeatures::ENABLE_FEATHER);
 
     PixelPermutationDomain.Set<FEnableClip>(features &
                                             ShaderFeatures::ENABLE_CLIPPING);
@@ -167,11 +164,8 @@ void GetPermutationForFeatures(
         features & ShaderFeatures::ENABLE_HSL_BLEND_MODES);
     PixelPermutationDomain.Set<FEnableTypedUAVLoads>(
         Capabilities.bSupportsTypedUAVLoads);
-    PixelPermutationDomain.Set<FEnableFeather>(
-        features & ShaderFeatures::ENABLE_FEATHER &&
-        !(miscFlags & ShaderMiscFlags::atlasCoverage));
-    PixelPermutationDomain.Set<FEnableAtlasCoverage>(
-        miscFlags & ShaderMiscFlags::atlasCoverage);
+    PixelPermutationDomain.Set<FEnableFeather>(features &
+                                               ShaderFeatures::ENABLE_FEATHER);
 }
 
 /*
@@ -1629,6 +1623,21 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                                      PassParameters);
                     }
                     break;
+                    case DrawType::atlasBlit:
+                        check(triangleBuffer.IsValid());
+                        check(pathSRV);
+                        check(paintSRV);
+                        check(paintAuxSRV);
+
+                        CommonPassParameters->VertexDeclarationRHI =
+                            VertexDeclarations[static_cast<int32>(
+                                EVertexDeclarations::InteriorTriangles)];
+                        CommonPassParameters->VertexBuffers[0] = triangleBuffer;
+
+                        AddDrawAtlasBlitPass(GraphBuilder,
+                                             CommonPassParameters,
+                                             PassParameters);
+                        break;
                     case DrawType::imageRect:
                     {
                         check(paintSRV);

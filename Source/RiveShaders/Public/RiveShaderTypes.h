@@ -59,7 +59,6 @@ class FEnableClip : SHADER_PERMUTATION_BOOL("ENABLE_CLIPPING");
 class FEnableClipRect : SHADER_PERMUTATION_BOOL("ENABLE_CLIP_RECT");
 class FEnableAdvanceBlend : SHADER_PERMUTATION_BOOL("ENABLE_ADVANCED_BLEND");
 class FEnableFeather : SHADER_PERMUTATION_BOOL("ENABLE_FEATHER");
-class FEnableAtlasCoverage : SHADER_PERMUTATION_BOOL("ATLAS_COVERAGE");
 
 // FragmentOnly
 class FEnableFixedFunctionColorOutput
@@ -78,15 +77,13 @@ typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableEvenOdd,
                                  FEnableHSLBlendMode,
                                  FEnableTypedUAVLoads,
-                                 FEnableFeather,
-                                 FEnableAtlasCoverage>
+                                 FEnableFeather>
 
     AtomicPixelPermutationDomain;
 typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableClipRect,
                                  FEnableAdvanceBlend,
-                                 FEnableFeather,
-                                 FEnableAtlasCoverage>
+                                 FEnableFeather>
     AtomicVertexPermutationDomain;
 
 #define USE_ATOMIC_PIXEL_PERMUTATIONS                                          \
@@ -187,16 +184,6 @@ static bool RiveShouldCompilePermutation(
 {
     typename ShaderClass::FPermutationDomain PermutationVector(
         Parameters.PermutationId);
-
-    if (PermutationVector.Get<FEnableAtlasCoverage>())
-    {
-        return !PermutationVector.Get<FEnableFeather>();
-    }
-
-    if (PermutationVector.Get<FEnableFeather>())
-    {
-        return !PermutationVector.Get<FEnableAtlasCoverage>();
-    }
 
     // there is a bug here somewhere causing the correct shaders to not get
     // pacaked for vulkan. im not sure if the bug is on our end or unreals but
@@ -368,6 +355,42 @@ public:
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGInteriorTrianglesVertexShader,
                                 FGlobalShader);
+    using FParameters = FRiveVertexDrawUniforms;
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+class FRiveRDGAtlasBlitPixelShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtlasBlitPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtlasBlitPixelShader, FGlobalShader);
+    using FParameters = FRivePixelDrawUniforms;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return RiveShouldCompilePermutation<
+            FRiveRDGInteriorTrianglesPixelShader>(Parameters);
+    }
+};
+
+class FRiveRDGAtlasBlitVertexShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtlasBlitVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtlasBlitVertexShader, FGlobalShader);
     using FParameters = FRiveVertexDrawUniforms;
 
     USE_ATOMIC_VERTEX_PERMUTATIONS

@@ -96,6 +96,20 @@ void FRiveRDGInteriorTrianglesVertexShader::ModifyCompilationEnvironment(
     ModifyShaderEnvironment(Params, Environment, true);
 }
 
+void FRiveRDGAtlasBlitPixelShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    ModifyShaderEnvironment(Params, Environment, false);
+}
+
+void FRiveRDGAtlasBlitVertexShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    ModifyShaderEnvironment(Params, Environment, true);
+}
+
 void FRiveRDGImageRectPixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
@@ -198,6 +212,16 @@ IMPLEMENT_GLOBAL_SHADER(
     "/Plugin/Rive/Private/Rive/atomic_draw_interior_triangles.usf",
     GLSL_drawVertexMain,
     SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitPixelShader,
+                        "/Plugin/Rive/Private/Rive/atomic_draw_atlas_blit.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitVertexShader,
+                        "/Plugin/Rive/Private/Rive/atomic_draw_atlas_blit.usf",
+                        GLSL_drawVertexMain,
+                        SF_Vertex);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGImageRectPixelShader,
                         "/Plugin/Rive/Private/Rive/atomic_draw_image_rect.usf",

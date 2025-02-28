@@ -105,6 +105,11 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveFlushPassParameters* PassParameters);
 
+FRDGPassRef AddDrawAtlasBlitPass(
+    FRDGBuilder& GraphBuilder,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveFlushPassParameters* PassParameters);
+
 FRDGPassRef AddDrawImageRectPass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
