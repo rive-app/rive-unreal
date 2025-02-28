@@ -197,7 +197,7 @@ FRDGPassRef AddTessellationPass(
 FRDGPassRef AddDrawPatchesPass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRivePatchPassParameters* PassParameters)
+    FRiveFlushPassParameters* PassParameters)
 {
     TShaderMapRef<FRiveRDGPathVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,
@@ -282,7 +282,7 @@ FRDGPassRef AddDrawPatchesPass(
 FRDGPassRef AddDrawInteriorTrianglesPass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveInteriorTrianglePassParameters* PassParameters)
+    FRiveFlushPassParameters* PassParameters)
 {
     TShaderMapRef<FRiveRDGInteriorTrianglesVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,
@@ -363,7 +363,7 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
 FRDGPassRef AddDrawImageRectPass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveImageRectPassParameters* PassParameters)
+    FRiveFlushPassParameters* PassParameters)
 {
     TShaderMapRef<FRiveRDGImageRectVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,
@@ -450,7 +450,7 @@ FRDGPassRef AddDrawImageMeshPass(
     FRDGBuilder& GraphBuilder,
     uint32_t NumVertices,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveImageMeshPassParameters* PassParameters)
+    FRiveFlushPassParameters* PassParameters)
 {
     TShaderMapRef<FRiveRDGImageMeshVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,
@@ -543,7 +543,7 @@ FRDGPassRef AddDrawImageMeshPass(
 FRDGPassRef AddAtomicResolvePass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveAtomicResolvePassParameters* PassParameters)
+    FRiveFlushPassParameters* PassParameters)
 {
     TShaderMapRef<FRiveRDGAtomicResolveVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,
@@ -614,5 +614,175 @@ FRDGPassRef AddAtomicResolvePass(
                                 PassParameters->VS);
 
             RHICmdList.DrawPrimitive(0, 2, 1);
+        });
+}
+
+FRDGPassRef AddFeatherAtlasFillDrawPass(FRDGBuilder& GraphBuilder,
+                                        FRiveAtlasParameters* AtlasParameters,
+                                        FRDGAtlasPassParameters* PassParameters)
+{
+    TShaderMapRef<FRiveRDGDrawAtlasVertexShader> VertexShader(
+        AtlasParameters->ShaderMap);
+    TShaderMapRef<FRiveRDGDrawAtlasFillPixelShader> PixelShader(
+        AtlasParameters->ShaderMap);
+
+    SetFlushUniformsPerShader(PassParameters);
+
+    ClearUnusedGraphResources(VertexShader, &PassParameters->VS);
+    ClearUnusedGraphResources(PixelShader, &PassParameters->PS);
+
+    return GraphBuilder.AddPass(
+        RDG_EVENT_NAME("Rive_Draw_Atlas_Fill"),
+        PassParameters,
+        ERDGPassFlags::Raster,
+        [AtlasParameters, PassParameters, VertexShader, PixelShader](
+            FRHICommandList& RHICmdList) {
+            FGraphicsPipelineStateInitializer GraphicsPSOInit;
+            GraphicsPSOInit.BlendState =
+                TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI();
+            GraphicsPSOInit.DepthStencilState =
+                TStaticDepthStencilState<false,
+                                         ECompareFunction::CF_Always>::GetRHI();
+            GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+            GraphicsPSOInit.RasterizerState =
+                RASTER_STATE(FM_Solid,
+                             CM_CCW,
+                             ERasterizerDepthClipMode::DepthClamp);
+
+            RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+            RHICmdList.SetViewport(AtlasParameters->Viewport.Min.X,
+                                   AtlasParameters->Viewport.Min.Y,
+                                   0,
+                                   AtlasParameters->Viewport.Max.X,
+                                   AtlasParameters->Viewport.Max.Y,
+                                   1.0);
+
+            FRHIBatchedShaderParameters& BatchedShaderParameters =
+                RHICmdList.GetScratchShaderParameters();
+
+            GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+                AtlasParameters->VertexDeclarationRHI;
+            GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+                VertexShader.GetVertexShader();
+
+            GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+                PixelShader.GetPixelShader();
+
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+
+            SetShaderParameters(RHICmdList,
+                                PixelShader,
+                                PixelShader.GetPixelShader(),
+                                PassParameters->PS);
+
+            SetShaderParameters(RHICmdList,
+                                VertexShader,
+                                VertexShader.GetVertexShader(),
+                                PassParameters->VS);
+
+            auto& batch = AtlasParameters->DrawBatch;
+
+            RHICmdList.SetScissorRect(true,
+                                      batch.scissor.left,
+                                      batch.scissor.top,
+                                      batch.scissor.right,
+                                      batch.scissor.bottom);
+
+            RHICmdList.SetStreamSource(0, AtlasParameters->VertexBuffer, 0);
+
+            RHICmdList.DrawIndexedPrimitive(
+                AtlasParameters->IndexBuffer,
+                0,
+                0,
+                0,
+                rive::gpu::kMidpointFanCenterAAPatchBaseIndex,
+                rive::gpu::kMidpointFanCenterAAPatchIndexCount / 3,
+                batch.patchCount);
+        });
+}
+
+FRDGPassRef AddFeatherAtlasStrokeDrawPass(
+    FRDGBuilder& GraphBuilder,
+    FRiveAtlasParameters* AtlasParameters,
+    FRDGAtlasPassParameters* PassParameters)
+{
+    TShaderMapRef<FRiveRDGDrawAtlasVertexShader> VertexShader(
+        AtlasParameters->ShaderMap);
+    TShaderMapRef<FRiveRDGDrawAtlasStrokePixelShader> PixelShader(
+        AtlasParameters->ShaderMap);
+
+    SetFlushUniformsPerShader(PassParameters);
+
+    ClearUnusedGraphResources(VertexShader, &PassParameters->VS);
+    ClearUnusedGraphResources(PixelShader, &PassParameters->PS);
+
+    return GraphBuilder.AddPass(
+        RDG_EVENT_NAME("Rive_Draw_Atlas_Stroke"),
+        PassParameters,
+        ERDGPassFlags::Raster,
+        [AtlasParameters, PassParameters, VertexShader, PixelShader](
+            FRHICommandList& RHICmdList) {
+            FGraphicsPipelineStateInitializer GraphicsPSOInit;
+            GraphicsPSOInit.BlendState =
+                TStaticBlendState<CW_RGBA, BO_Max, BF_One, BF_One>::GetRHI();
+            GraphicsPSOInit.DepthStencilState =
+                TStaticDepthStencilState<false,
+                                         ECompareFunction::CF_Always>::GetRHI();
+            GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+            GraphicsPSOInit.RasterizerState =
+                RASTER_STATE(FM_Solid,
+                             CM_CCW,
+                             ERasterizerDepthClipMode::DepthClamp);
+
+            RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+            RHICmdList.SetViewport(AtlasParameters->Viewport.Min.X,
+                                   AtlasParameters->Viewport.Min.Y,
+                                   0,
+                                   AtlasParameters->Viewport.Max.X,
+                                   AtlasParameters->Viewport.Max.Y,
+                                   1.0);
+
+            FRHIBatchedShaderParameters& BatchedShaderParameters =
+                RHICmdList.GetScratchShaderParameters();
+
+            GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+                AtlasParameters->VertexDeclarationRHI;
+            GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+                VertexShader.GetVertexShader();
+
+            GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+                PixelShader.GetPixelShader();
+
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+
+            SetShaderParameters(RHICmdList,
+                                PixelShader,
+                                PixelShader.GetPixelShader(),
+                                PassParameters->PS);
+
+            SetShaderParameters(RHICmdList,
+                                VertexShader,
+                                VertexShader.GetVertexShader(),
+                                PassParameters->VS);
+            auto& batch = AtlasParameters->DrawBatch;
+
+            RHICmdList.SetScissorRect(true,
+                                      batch.scissor.left,
+                                      batch.scissor.top,
+                                      batch.scissor.right,
+                                      batch.scissor.bottom);
+
+            RHICmdList.SetStreamSource(0, AtlasParameters->VertexBuffer, 0);
+
+            RHICmdList.DrawIndexedPrimitive(
+                AtlasParameters->IndexBuffer,
+                0,
+                0,
+                0,
+                rive::gpu::kMidpointFanPatchBaseIndex,
+                rive::gpu::kMidpointFanPatchBorderIndexCount / 3,
+                batch.patchCount);
         });
 }

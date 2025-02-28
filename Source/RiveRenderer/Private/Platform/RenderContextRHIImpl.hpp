@@ -232,6 +232,7 @@ enum class EVertexDeclarations : int32
     ImageRect,
     ImageMesh,
     Resolve,
+    Atlas,
     NumVertexDeclarations
 };
 
@@ -301,16 +302,21 @@ public:
                                        uint32_t height) override;
     virtual void resizeTessellationTexture(uint32_t width,
                                            uint32_t height) override;
+    virtual void resizeAtlasTexture(uint32_t width, uint32_t height) override;
 
     virtual void flush(const rive::gpu::FlushDescriptor&) override;
 
 private:
-    DelayLoadedTexture m_gradiantTexture;
+    DelayLoadedTexture m_gradientTexture;
     DelayLoadedTexture m_tesselationTexture;
+    DelayLoadedTexture m_featherAtlasTexture;
 
     // This is used for unused bindings in Render Graph because it doesn't allow
     // read inputs that aren't written to beforehand.
     FTextureRHIRef m_placeholderTexture;
+    // feather texture gets created and uploaded once on construction, so we
+    // make it an external texture
+    FTextureRHIRef m_featherTexture;
 
     FBufferRHIRef m_patchVertexBuffer;
     FBufferRHIRef m_patchIndexBuffer;
@@ -320,6 +326,8 @@ private:
 
     FSamplerStateRHIRef m_linearSampler;
     FSamplerStateRHIRef m_mipmapSampler;
+    FSamplerStateRHIRef m_atlasSampler;
+    FSamplerStateRHIRef m_featherSampler;
 
     FVertexDeclarationRHIRef VertexDeclarations[static_cast<int32>(
         EVertexDeclarations::NumVertexDeclarations)];

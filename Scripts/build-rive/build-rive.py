@@ -418,6 +418,7 @@ def remove_readonly(func, path, exc_info):
 
 def copy_includes(rive_runtime_path):
     print_green('Copying rive includes...')
+    rive_constant_include_src = os.path.join(rive_runtime_path, "renderer", "src", "shaders", "constants.glsl")
     rive_includes_path = os.path.join(rive_runtime_path, 'include')
     rive_pls_includes_path = os.path.join(rive_runtime_path, 'renderer', 'include')
     rive_shaders_includes_path = os.path.join(rive_runtime_path, 'out', 'windows' if sys.platform.startswith('win32') else 'mac/x64', 'release', "include")
@@ -426,6 +427,7 @@ def copy_includes(rive_runtime_path):
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')
     shaders_target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes', "rive")
     rive_shader_source_target_path = os.path.join(script_directory, '..', '..', 'Shaders', 'Private', 'Rive')
+    rive_constants_include_target_path = os.path.join(shaders_target_path, "shaders", "constants.glsl")
     generated_shader_path = os.path.join(script_directory, '..', '..', 'Shaders', 'Private', 'Rive', 'Generated')
     generated_shader_ush_path = os.path.join(rive_shaders_includes_path, "generated", "shaders")
 
@@ -437,6 +439,8 @@ def copy_includes(rive_runtime_path):
 
     # delete and re create generated shader path to clear it
     os.makedirs(generated_shader_path)
+    os.makedirs(os.path.dirname(rive_constants_include_target_path), exist_ok=True)
+    shutil.copyfile(rive_constant_include_src, rive_constants_include_target_path)
 
     shutil.copytree(rive_includes_path, target_path, dirs_exist_ok=True)
     shutil.copytree(rive_pls_includes_path, target_path, dirs_exist_ok=True)

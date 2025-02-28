@@ -28,6 +28,30 @@ struct FRiveCommonPassParameters
     {}
 };
 
+struct FRiveAtlasParameters
+{
+    FVertexDeclarationRHIRef VertexDeclarationRHI = nullptr;
+    FBufferRHIRef VertexBuffer = nullptr;
+    FBufferRHIRef IndexBuffer = nullptr;
+    FUint32Rect Viewport;
+    FGlobalShaderMap* ShaderMap;
+    const rive::gpu::AtlasDrawBatch
+        DrawBatch; // Copy intentionally since lamnda execution is defered for
+                   // RenderGraph
+
+    FRiveAtlasParameters(const rive::gpu::AtlasDrawBatch& DrawBatch,
+                         FGlobalShaderMap* ShaderMap) :
+        ShaderMap(ShaderMap), DrawBatch(DrawBatch)
+    {}
+};
+
+BEGIN_SHADER_PARAMETER_STRUCT(FRDGAtlasPassParameters, )
+SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
+SHADER_PARAMETER_STRUCT_INCLUDE(FRiveVertexDrawUniforms, VS)
+SHADER_PARAMETER_STRUCT_INCLUDE(FAtlasDrawUniforms, PS)
+RENDER_TARGET_BINDING_SLOTS()
+END_SHADER_PARAMETER_STRUCT()
+
 FRDGPassRef AddGradientPass(FRDGBuilder& GraphBuilder,
                             TRDGUniformBufferRef<FFlushUniforms> FlushUniforms,
                             FVertexDeclarationRHIRef VertexDeclaration,
@@ -52,11 +76,21 @@ FRDGPassRef AddTessellationPass(
     uint32_t NumTessellations,
     FRiveTesselationPassParameters* TesselationPassParameters);
 
-BEGIN_SHADER_PARAMETER_STRUCT(FRivePatchPassParameters, )
+FRDGPassRef AddFeatherAtlasFillDrawPass(
+    FRDGBuilder& GraphBuilder,
+    FRiveAtlasParameters* AtlasParameters,
+    FRDGAtlasPassParameters* PassParameters);
+
+FRDGPassRef AddFeatherAtlasStrokeDrawPass(
+    FRDGBuilder& GraphBuilder,
+    FRiveAtlasParameters* AtlasParameters,
+    FRDGAtlasPassParameters* PassParameters);
+
+BEGIN_SHADER_PARAMETER_STRUCT(FRiveFlushPassParameters, )
 
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
-SHADER_PARAMETER_STRUCT_INCLUDE(FRiveRDGPathVertexShader::FParameters, VS)
-SHADER_PARAMETER_STRUCT_INCLUDE(FRiveRDGPathPixelShader::FParameters, PS)
+SHADER_PARAMETER_STRUCT_INCLUDE(FRiveVertexDrawUniforms, VS)
+SHADER_PARAMETER_STRUCT_INCLUDE(FRivePixelDrawUniforms, PS)
 RENDER_TARGET_BINDING_SLOTS()
 
 END_SHADER_PARAMETER_STRUCT()
@@ -64,69 +98,25 @@ END_SHADER_PARAMETER_STRUCT()
 FRDGPassRef AddDrawPatchesPass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRivePatchPassParameters* PassParameters);
-
-BEGIN_SHADER_PARAMETER_STRUCT(FRiveInteriorTrianglePassParameters, )
-
-SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
-SHADER_PARAMETER_STRUCT_INCLUDE(
-    FRiveRDGInteriorTrianglesVertexShader::FParameters,
-    VS)
-SHADER_PARAMETER_STRUCT_INCLUDE(
-    FRiveRDGInteriorTrianglesPixelShader::FParameters,
-    PS)
-RENDER_TARGET_BINDING_SLOTS()
-
-END_SHADER_PARAMETER_STRUCT()
+    FRiveFlushPassParameters* PassParameters);
 
 FRDGPassRef AddDrawInteriorTrianglesPass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveInteriorTrianglePassParameters* PassParameters);
-
-BEGIN_SHADER_PARAMETER_STRUCT(FRiveImageRectPassParameters, )
-
-SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
-
-SHADER_PARAMETER_STRUCT_INCLUDE(FRiveRDGImageRectVertexShader::FParameters, VS)
-SHADER_PARAMETER_STRUCT_INCLUDE(FRiveRDGImageRectPixelShader::FParameters, PS)
-
-RENDER_TARGET_BINDING_SLOTS()
-
-END_SHADER_PARAMETER_STRUCT()
+    FRiveFlushPassParameters* PassParameters);
 
 FRDGPassRef AddDrawImageRectPass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveImageRectPassParameters* PassParameters);
-
-BEGIN_SHADER_PARAMETER_STRUCT(FRiveImageMeshPassParameters, )
-
-SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
-SHADER_PARAMETER_STRUCT_INCLUDE(FRiveRDGImageMeshVertexShader::FParameters, VS)
-SHADER_PARAMETER_STRUCT_INCLUDE(FRiveRDGImageMeshPixelShader::FParameters, PS)
-RENDER_TARGET_BINDING_SLOTS()
-
-END_SHADER_PARAMETER_STRUCT()
+    FRiveFlushPassParameters* PassParameters);
 
 FRDGPassRef AddDrawImageMeshPass(
     FRDGBuilder& GraphBuilder,
     uint32_t NumVertices,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveImageMeshPassParameters* PassParameters);
-
-BEGIN_SHADER_PARAMETER_STRUCT(FRiveAtomicResolvePassParameters, )
-
-SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
-SHADER_PARAMETER_STRUCT_INCLUDE(FRiveRDGAtomicResolvePixelShader::FParameters,
-                                PS)
-SHADER_PARAMETER_STRUCT_INCLUDE(FRiveRDGAtomicResolveVertexShader::FParameters,
-                                VS)
-RENDER_TARGET_BINDING_SLOTS()
-
-END_SHADER_PARAMETER_STRUCT()
+    FRiveFlushPassParameters* PassParameters);
 
 FRDGPassRef AddAtomicResolvePass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveAtomicResolvePassParameters* PassParameters);
+    FRiveFlushPassParameters* PassParameters);

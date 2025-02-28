@@ -58,6 +58,8 @@ struct FlushDescriptor;
 class FEnableClip : SHADER_PERMUTATION_BOOL("ENABLE_CLIPPING");
 class FEnableClipRect : SHADER_PERMUTATION_BOOL("ENABLE_CLIP_RECT");
 class FEnableAdvanceBlend : SHADER_PERMUTATION_BOOL("ENABLE_ADVANCED_BLEND");
+class FEnableFeather : SHADER_PERMUTATION_BOOL("ENABLE_FEATHER");
+class FEnableAtlasCoverage : SHADER_PERMUTATION_BOOL("ATLAS_COVERAGE");
 
 // FragmentOnly
 class FEnableFixedFunctionColorOutput
@@ -75,12 +77,16 @@ typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableAdvanceBlend,
                                  FEnableEvenOdd,
                                  FEnableHSLBlendMode,
-                                 FEnableTypedUAVLoads>
+                                 FEnableTypedUAVLoads,
+                                 FEnableFeather,
+                                 FEnableAtlasCoverage>
 
     AtomicPixelPermutationDomain;
 typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableClipRect,
-                                 FEnableAdvanceBlend>
+                                 FEnableAdvanceBlend,
+                                 FEnableFeather,
+                                 FEnableAtlasCoverage>
     AtomicVertexPermutationDomain;
 
 #define USE_ATOMIC_PIXEL_PERMUTATIONS                                          \
@@ -133,14 +139,16 @@ SHADER_PARAMETER(UE::HLSL::uint, blendMode)
 SHADER_PARAMETER(UE::HLSL::uint, zIndex)
 END_UNIFORM_BUFFER_STRUCT()
 
-// One shared uniform struct used for all frament shaders besides gradient and
-// tesselation. Params not used will be marked null
+// One shared uniform struct used for all atomic frament shaders besides
+// gradient and tesselation. Params not used will be marked null
 BEGIN_SHADER_PARAMETER_STRUCT(FRivePixelDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
 
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_atlasTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_imageTexture_raw)
 
@@ -149,24 +157,27 @@ SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, clipBuffer)
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
 SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
-
+SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, atlasSampler)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
                                 GLSL_paintAuxBuffer_raw)
 
 END_SHADER_PARAMETER_STRUCT()
 
-// One shared uniform struct used for all vertex shaders besides gradient and
-// tesselation. Params not used will be marked null
+// One shared uniform struct used for all atomic vertex shaders besides gradient
+// and tesselation. Params not used will be marked null
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRiveVertexDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE_SRV(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
+SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
 SHADER_PARAMETER(unsigned int, baseInstance)
 END_SHADER_PARAMETER_STRUCT()
 
@@ -174,14 +185,23 @@ template <typename ShaderClass>
 static bool RiveShouldCompilePermutation(
     const FShaderPermutationParameters& Parameters)
 {
+    typename ShaderClass::FPermutationDomain PermutationVector(
+        Parameters.PermutationId);
+
+    if (PermutationVector.Get<FEnableAtlasCoverage>())
+    {
+        return !PermutationVector.Get<FEnableFeather>();
+    }
+
+    if (PermutationVector.Get<FEnableFeather>())
+    {
+        return !PermutationVector.Get<FEnableAtlasCoverage>();
+    }
 
     // there is a bug here somewhere causing the correct shaders to not get
     // pacaked for vulkan. im not sure if the bug is on our end or unreals but
     // for now just compile everything
 #ifdef ENABLE_SHADER_PERMUTATION_OPTIMIZATIONS
-    typename ShaderClass::FPermutationDomain PermutationVector(
-        Parameters.PermutationId);
-
     // don't compile typed UAV permutations if they aren't supported.
     if (PermutationVector.Get<FEnableTypedUAVLoads>() &&
         !(RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
@@ -274,6 +294,9 @@ public:
                                     GLSL_pathBuffer_raw)
     SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>,
                                     GLSL_contourBuffer_raw)
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
+    SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
+
     END_SHADER_PARAMETER_STRUCT()
 
     static void ModifyCompilationEnvironment(
@@ -464,6 +487,59 @@ public:
     USE_ATOMIC_VERTEX_PERMUTATIONS
 
     using FParameters = FRiveVertexDrawUniforms;
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+class FRiveRDGDrawAtlasVertexShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGDrawAtlasVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGDrawAtlasVertexShader, FGlobalShader);
+
+    using FParameters = FRiveVertexDrawUniforms;
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+BEGIN_SHADER_PARAMETER_STRUCT(FAtlasDrawUniforms, RIVESHADERS_API)
+#if !UE_VERSION_OLDER_THAN(5, 5, 0)
+SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
+#endif
+SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_featherTexture_raw)
+SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
+END_SHADER_PARAMETER_STRUCT()
+
+class FRiveRDGDrawAtlasFillPixelShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGDrawAtlasFillPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGDrawAtlasFillPixelShader,
+                                FGlobalShader);
+
+    using FParameters = FAtlasDrawUniforms;
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+class FRiveRDGDrawAtlasStrokePixelShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGDrawAtlasStrokePixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGDrawAtlasStrokePixelShader,
+                                FGlobalShader);
+
+    using FParameters = FAtlasDrawUniforms;
 
     static void ModifyCompilationEnvironment(
         const FShaderPermutationParameters&,

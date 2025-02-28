@@ -138,6 +138,27 @@ void FRiveRDGAtomicResolveVertexShader::ModifyCompilationEnvironment(
     ModifyShaderEnvironment(Params, Environment, true);
 }
 
+void FRiveRDGDrawAtlasFillPixelShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    ModifyShaderEnvironment(Params, Environment, false);
+}
+
+void FRiveRDGDrawAtlasStrokePixelShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    ModifyShaderEnvironment(Params, Environment, false);
+}
+
+void FRiveRDGDrawAtlasVertexShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    ModifyShaderEnvironment(Params, Environment, true);
+}
+
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGGradientPixelShader,
                         "/Plugin/Rive/Private/Rive/color_ramp.usf",
                         GLSL_colorRampFragmentMain,
@@ -206,6 +227,22 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtomicResolvePixelShader,
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtomicResolveVertexShader,
                         "/Plugin/Rive/Private/Rive/atomic_resolve_pls.usf",
                         GLSL_drawVertexMain,
+                        SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGDrawAtlasFillPixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_atlas_fill.usf",
+                        GLSL_atlasFillFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGDrawAtlasStrokePixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_atlas_stroke.usf",
+                        GLSL_atlasStrokeFragmentMain,
+                        SF_Pixel);
+
+// this could be either draw_atlas usf file,
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGDrawAtlasVertexShader,
+                        "/Plugin/Rive/Private/Rive/draw_atlas_fill.usf",
+                        GLSL_atlasVertexMain,
                         SF_Vertex);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGBltU32AsF4PixelShader,
