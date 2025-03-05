@@ -99,7 +99,7 @@ FRDGPassRef AddGradientPass(FRDGBuilder& GraphBuilder,
                                 PassParameters->PS);
             SetShaderParameters(RHICmdList,
                                 VertexShader,
-                                VertexShader.GetPixelShader(),
+                                VertexShader.GetVertexShader(),
                                 PassParameters->VS);
 
             RHICmdList.SetStreamSource(0, GradientSpanBuffer, 0);
@@ -691,7 +691,7 @@ FRDGPassRef AddAtomicResolvePass(
                                 PassParameters->PS);
             SetShaderParameters(RHICmdList,
                                 VertexShader,
-                                VertexShader.GetPixelShader(),
+                                VertexShader.GetVertexShader(),
                                 PassParameters->VS);
 
             RHICmdList.DrawPrimitive(0, 2, 1);

@@ -7,6 +7,7 @@
 
 #include "DataDrivenShaderPlatformInfo.h"
 #include "ShaderCompilerCore.h"
+#include "Interfaces/IPluginManager.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/generated/shaders/rhi.glsl.hpp"
@@ -34,7 +35,7 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
         Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
     }
 // 5.4 and up
-#if UE_VERSION_NEWER_THAN(5, 3, 9)
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 4
     // We are not bindless so this flag must be added for vulkan to work
     Environment.CompilerFlags.Add(CFLAG_ForceBindful);
 #endif
@@ -59,6 +60,7 @@ void FRiveRDGTessPixelShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     ModifyShaderEnvironment(Params, Environment, false);
+    Environment.SetRenderTargetOutputFormat(0, PF_R32G32B32A32_UINT);
 }
 
 void FRiveRDGTessVertexShader::ModifyCompilationEnvironment(
@@ -157,6 +159,7 @@ void FRiveRDGDrawAtlasFillPixelShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     ModifyShaderEnvironment(Params, Environment, false);
+    Environment.SetRenderTargetOutputFormat(0, PF_R32_FLOAT);
 }
 
 void FRiveRDGDrawAtlasStrokePixelShader::ModifyCompilationEnvironment(
@@ -164,6 +167,7 @@ void FRiveRDGDrawAtlasStrokePixelShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     ModifyShaderEnvironment(Params, Environment, false);
+    Environment.SetRenderTargetOutputFormat(0, PF_R32_FLOAT);
 }
 
 void FRiveRDGDrawAtlasVertexShader::ModifyCompilationEnvironment(

@@ -55,7 +55,7 @@ public class RiveLibrary : ModuleRules
         string libSuffix = bDebug ? "_d" : "";
 
         var details = new List<NativeLibraryDetails>();
-        
+
         if (Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
         {
             AddEngineThirdPartyPrivateStaticDependencies(Target, "DX9");
@@ -148,7 +148,6 @@ public class RiveLibrary : ModuleRules
 	                    detail.GetLibPath("libpng"),
 	                    detail.GetLibPath("libjpeg"),
 	           });
-
 	        }
 	        else
 	        {
