@@ -245,13 +245,15 @@ void URiveWidget::OnRiveObjectReady()
     if (!RiveWidget.IsValid() || !GetCachedWidget())
         return;
 
-    FVector2f ArtboardSize = RiveTextureObject->GetArtboard()->GetSize();
-    SetMinimumDesiredSize(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
-    RiveWidget->SetRiveTexture(RiveTextureObject);
-    RiveDescriptor.ArtboardName =
-        RiveTextureObject->GetArtboard()->GetArtboardName();
-    RiveDescriptor.StateMachineName =
-        RiveTextureObject->GetArtboard()->StateMachineName;
+    if (auto artboard = RiveTextureObject->GetArtboard(); IsValid(artboard))
+    {
+        FVector2f ArtboardSize = artboard->GetSize();
+        SetMinimumDesiredSize(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
+        RiveWidget->SetRiveTexture(RiveTextureObject);
+        RiveDescriptor.ArtboardName = artboard->GetArtboardName();
+        RiveDescriptor.StateMachineName = artboard->StateMachineName;
+    }
+
     OnRiveReady.Broadcast();
 }
 

@@ -1471,7 +1471,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             if (renderDirectToRasterPipeline)
             {
                 float clearColor4f[4];
-                UnpackColorToRGBA32FPremul(desc.clearColor, clearColor4f);
+                UnpackColorToRGBA32FPremul(desc.colorClearValue, clearColor4f);
                 AddClearRenderTargetPass(GraphBuilder,
                                          targetTexture,
                                          FLinearColor(clearColor4f[0],
@@ -1484,7 +1484,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 if (m_capabilities.bSupportsTypedUAVLoads)
                 {
                     float clearColor4f[4];
-                    UnpackColorToRGBA32FPremul(desc.clearColor, clearColor4f);
+                    UnpackColorToRGBA32FPremul(desc.colorClearValue,
+                                               clearColor4f);
                     AddClearUAVPass(GraphBuilder,
                                     targetUAV,
                                     FVector4f(clearColor4f[0],
@@ -1495,7 +1496,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 else
                 {
                     auto Color =
-                        gpu::SwizzleRiveColorToRGBAPremul(desc.clearColor);
+                        gpu::SwizzleRiveColorToRGBAPremul(desc.colorClearValue);
                     AddClearUAVPass(GraphBuilder,
                                     targetUAV,
                                     FUintVector4(Color));
