@@ -1076,15 +1076,9 @@ void* RenderContextRHIImpl::mapTriangleVertexBuffer(size_t mapSizeInBytes)
     return m_triangleBuffer->mapBuffer(mapSizeInBytes);
 }
 
-void RenderContextRHIImpl::unmapFlushUniformBuffer()
-{
-    m_flushUniformBuffer->unmapAndSubmitBuffer();
-}
+void RenderContextRHIImpl::unmapFlushUniformBuffer() {}
 
-void RenderContextRHIImpl::unmapImageDrawUniformBuffer()
-{
-    m_imageDrawUniformBuffer->unmapAndSubmitBuffer();
-}
+void RenderContextRHIImpl::unmapImageDrawUniformBuffer() {}
 
 void RenderContextRHIImpl::unmapPathBuffer() {}
 

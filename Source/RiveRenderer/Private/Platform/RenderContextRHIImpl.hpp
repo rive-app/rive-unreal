@@ -79,34 +79,37 @@ private:
     size_t m_stride;
 };
 
-template <typename UniformBufferType>
-class UniformBufferRHIImpl : public rive::gpu::BufferRing
+template <typename UniformBufferType> class UniformBufferRHIImpl
 {
 public:
-    UniformBufferRHIImpl(size_t InSizeInBytes) : BufferRing(InSizeInBytes) {}
+    UniformBufferRHIImpl(size_t InSizeInBytes) : m_sizeInBytes(InSizeInBytes)
+    {
+        m_data.SetNumUninitialized(InSizeInBytes / m_stride);
+    }
 
     TRDGUniformBufferRef<UniformBufferType> Sync(FRDGBuilder& Builder,
                                                  size_t offset)
     {
         UniformBufferType* Buffer =
-            reinterpret_cast<UniformBufferType*>(shadowBuffer() + offset);
+            Builder.AllocParameters<UniformBufferType>();
+        memcpy(Buffer, &m_data[offset / m_stride], m_stride);
         return Builder.CreateUniformBuffer<UniformBufferType>(Buffer);
     }
 
-    TUniformBufferRef<UniformBufferType> contents() const { return m_buffer; }
-
-protected:
-    virtual void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override
+    void* mapBuffer(size_t mapSizeInBytes)
     {
-        return shadowBuffer();
+        // we cant be 0 size
+        check(m_sizeInBytes);
+        // our map size must be less than or equal to our actual size
+        check(mapSizeInBytes <= m_sizeInBytes);
+        return m_data.GetData();
     }
 
-    virtual void onUnmapAndSubmitBuffer(int bufferIdx,
-                                        size_t mapSizeInBytes) override
-    {}
-
 private:
-    TUniformBufferRef<UniformBufferType> m_buffer;
+    size_t m_sizeInBytes;
+
+    TResourceArray<UniformBufferType> m_data;
+    static constexpr size_t m_stride = sizeof(UniformBufferType);
 };
 
 class RenderBufferRHIImpl final
