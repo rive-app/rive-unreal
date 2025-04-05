@@ -416,31 +416,6 @@ public:
             imageData);
     }
 
-    TextureRHIImpl(uint32_t width,
-                   uint32_t height,
-                   uint32_t mipLevelCount,
-                   const TArray<uint8>& imageData,
-                   EPixelFormat PixelFormat = PF_B8G8R8A8) :
-        Texture(width, height)
-    {
-        FRHIAsyncCommandList commandList;
-        FRHICommandListScopedPipelineGuard Guard(*commandList);
-        // TODO: Move to Staging Buffer
-        auto Desc =
-            FRHITextureCreateDesc::Create2D(TEXT("rive.PLSTextureRHIImpl_"),
-                                            m_width,
-                                            m_height,
-                                            PixelFormat);
-        Desc.SetNumMips(mipLevelCount);
-        m_texture = CREATE_TEXTURE_ASYNC(commandList, Desc);
-        commandList->UpdateTexture2D(
-            m_texture,
-            0,
-            FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height),
-            m_width * 4,
-            imageData.GetData());
-    }
-
     FRDGTextureRef asRDGTexture(FRDGBuilder& Builder) const
     {
         check(m_texture);
@@ -476,7 +451,8 @@ public:
             FRHITextureCreateDesc::Create2D(TEXT("rive.PLSTextureRHIImpl_"),
                                             m_width,
                                             m_height,
-                                            PixelFormat);
+                                            PixelFormat)
+                .AddFlags(ETextureCreateFlags::SRGB);
         Desc.SetNumMips(mipLevelCount);
         m_texture = CREATE_TEXTURE_ASYNC(commandList, Desc);
         commandList.UpdateTexture2D(
@@ -485,32 +461,6 @@ public:
             FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height),
             m_width * 4,
             imageData);
-    }
-
-    TextureRHIImpl(uint32_t width,
-                   uint32_t height,
-                   uint32_t mipLevelCount,
-                   const TArray<uint8>& imageData,
-                   EPixelFormat PixelFormat = PF_B8G8R8A8) :
-        Texture(width, height)
-    {
-        FRHICommandList& commandList =
-            GRHICommandList.GetImmediateCommandList();
-        FRHICommandListScopedPipelineGuard Guard(commandList);
-        // TODO: Move to Staging Buffer
-        auto Desc =
-            FRHITextureCreateDesc::Create2D(TEXT("rive.PLSTextureRHIImpl_"),
-                                            m_width,
-                                            m_height,
-                                            PixelFormat);
-        Desc.SetNumMips(mipLevelCount);
-        m_texture = CREATE_TEXTURE_ASYNC(commandList, Desc);
-        commandList.UpdateTexture2D(
-            m_texture,
-            0,
-            FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height),
-            m_width * 4,
-            imageData.GetData());
     }
 
     FRDGTextureRef asRDGTexture(FRDGBuilder& Builder) const
@@ -897,6 +847,7 @@ rcp<Texture> RenderContextRHIImpl::decodeImageTexture(
         return nullptr;
     }
 
+    std::unique_ptr<Bitmap> bitmap;
     if (format != EImageFormat::Invalid)
     {
         // Use Unreal for PNG and JPEG
@@ -912,37 +863,40 @@ rcp<Texture> RenderContextRHIImpl::decodeImageTexture(
             return nullptr;
         }
 
-        TArray<uint8> UncompressedBGRA;
-        if (!ImageWrapper->GetRaw(ERGBFormat::BGRA, 8, UncompressedBGRA))
+        TArray<uint8> UncompressedRGBA;
+        if (!ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, UncompressedRGBA))
         {
             return nullptr;
         }
 
-        return make_rcp<TextureRHIImpl>(ImageWrapper->GetWidth(),
-                                        ImageWrapper->GetHeight(),
-                                        1,
-                                        UncompressedBGRA);
+        uint8* data = new uint8[UncompressedRGBA.NumBytes()];
+        memcpy(data, UncompressedRGBA.GetData(), UncompressedRGBA.NumBytes());
+
+        bitmap = std::make_unique<Bitmap>(ImageWrapper->GetWidth(),
+                                          ImageWrapper->GetHeight(),
+                                          Bitmap::PixelFormat::RGBA,
+                                          data);
     }
     else
     {
         // WEBP Decoding, using the built in rive method
-        auto bitmap = Bitmap::decode(encodedBytes.data(), encodedBytes.size());
-
+        bitmap = Bitmap::decode(encodedBytes.data(), encodedBytes.size());
         if (!bitmap)
         {
             RIVE_DEBUG_ERROR("Webp Decoding Failed !");
             return nullptr;
         }
-
-        EPixelFormat PixelFormat = EPixelFormat::PF_R8G8B8A8;
-        check(bitmap->pixelFormat() == Bitmap::PixelFormat::RGBA);
-
-        return make_rcp<TextureRHIImpl>(bitmap->width(),
-                                        bitmap->height(),
-                                        1,
-                                        bitmap->bytes(),
-                                        EPixelFormat::PF_R8G8B8A8);
     }
+
+    if (bitmap->pixelFormat() != Bitmap::PixelFormat::RGBAPremul)
+    {
+        bitmap->pixelFormat(Bitmap::PixelFormat::RGBAPremul);
+    }
+    return make_rcp<TextureRHIImpl>(bitmap->width(),
+                                    bitmap->height(),
+                                    1,
+                                    bitmap->bytes(),
+                                    EPixelFormat::PF_R8G8B8A8);
 }
 
 void RenderContextRHIImpl::resizeFlushUniformBuffer(size_t sizeInBytes)
