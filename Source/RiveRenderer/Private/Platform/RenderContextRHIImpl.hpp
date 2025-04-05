@@ -79,21 +79,25 @@ private:
     size_t m_stride;
 };
 
-template <typename UniformBufferType> class UniformBufferRHIImpl
+template <typename CPUUniformBufferType, typename GPUUniformBufferType>
+class UniformBufferRHIImpl
 {
 public:
     UniformBufferRHIImpl(size_t InSizeInBytes) : m_sizeInBytes(InSizeInBytes)
     {
-        m_data.SetNumUninitialized(InSizeInBytes / m_stride);
+        m_data.SetNumUninitialized(InSizeInBytes / m_cpuStride);
     }
 
-    TRDGUniformBufferRef<UniformBufferType> Sync(FRDGBuilder& Builder,
-                                                 size_t offset)
+    FORCENOINLINE TRDGUniformBufferRef<GPUUniformBufferType> Sync(
+        FRDGBuilder& Builder,
+        size_t offset)
     {
-        UniformBufferType* Buffer =
-            Builder.AllocParameters<UniformBufferType>();
-        memcpy(Buffer, &m_data[offset / m_stride], m_stride);
-        return Builder.CreateUniformBuffer<UniformBufferType>(Buffer);
+        // there should be no remander
+        check(offset % m_cpuStride == 0);
+        GPUUniformBufferType* Buffer =
+            Builder.AllocParameters<GPUUniformBufferType>();
+        memcpy(Buffer, &m_data[offset / m_cpuStride], m_gpuStride);
+        return Builder.CreateUniformBuffer<GPUUniformBufferType>(Buffer);
     }
 
     void* mapBuffer(size_t mapSizeInBytes)
@@ -108,8 +112,9 @@ public:
 private:
     size_t m_sizeInBytes;
 
-    TResourceArray<UniformBufferType> m_data;
-    static constexpr size_t m_stride = sizeof(UniformBufferType);
+    TResourceArray<CPUUniformBufferType> m_data;
+    static constexpr size_t m_cpuStride = sizeof(CPUUniformBufferType);
+    static constexpr size_t m_gpuStride = sizeof(GPUUniformBufferType);
 };
 
 class RenderBufferRHIImpl final
@@ -335,8 +340,11 @@ private:
     FVertexDeclarationRHIRef VertexDeclarations[static_cast<int32>(
         EVertexDeclarations::NumVertexDeclarations)];
 
-    std::unique_ptr<UniformBufferRHIImpl<FFlushUniforms>> m_flushUniformBuffer;
-    std::unique_ptr<UniformBufferRHIImpl<FImageDrawUniforms>>
+    std::unique_ptr<
+        UniformBufferRHIImpl<rive::gpu::FlushUniforms, FFlushUniforms>>
+        m_flushUniformBuffer;
+    std::unique_ptr<
+        UniformBufferRHIImpl<rive::gpu::ImageDrawUniforms, FImageDrawUniforms>>
         m_imageDrawUniformBuffer;
     StructuredBufferRHIImpl<rive::gpu::PathData> m_pathBuffer;
     StructuredBufferRHIImpl<rive::gpu::PaintData> m_paintBuffer;

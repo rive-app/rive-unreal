@@ -950,8 +950,8 @@ void RenderContextRHIImpl::resizeFlushUniformBuffer(size_t sizeInBytes)
     m_flushUniformBuffer.reset();
     if (sizeInBytes != 0)
     {
-        m_flushUniformBuffer =
-            std::make_unique<UniformBufferRHIImpl<FFlushUniforms>>(sizeInBytes);
+        m_flushUniformBuffer = std::make_unique<
+            UniformBufferRHIImpl<FlushUniforms, FFlushUniforms>>(sizeInBytes);
     }
 }
 
@@ -960,9 +960,9 @@ void RenderContextRHIImpl::resizeImageDrawUniformBuffer(size_t sizeInBytes)
     m_imageDrawUniformBuffer.reset();
     if (sizeInBytes != 0)
     {
-        m_imageDrawUniformBuffer =
-            std::make_unique<UniformBufferRHIImpl<FImageDrawUniforms>>(
-                sizeInBytes);
+        m_imageDrawUniformBuffer = std::make_unique<
+            UniformBufferRHIImpl<ImageDrawUniforms, FImageDrawUniforms>>(
+            sizeInBytes);
     }
 }
 
