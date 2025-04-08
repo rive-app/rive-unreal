@@ -50,9 +50,9 @@ open-source runtime libraries allow them to load their animations into apps, gam
 
 🏡 [Homepage](https://rive.app/)
 
-📘 [General help docs](https://rive.app/community/doc/introduction/docvphVOrBbl) 
+📘 [General help docs](https://rive.app/docs/getting-started/introduction) 
 
-📘 [Rive Unreal docs](https://rive.app/community/doc/unreal/docz17NbarFe)
+📘 [Rive Unreal docs](https://rive.app/docs/game-runtimes/unreal/unreal)
 
 🛠 [Learning Rive](https://rive.app/learn-rive/)
 
@@ -62,13 +62,13 @@ Check out the latest example project from the [releases page](https://github.com
 
 You can find the source for the rive-unreal-demos [here](https://github.com/rive-app/rive-unreal-demos).
 
-You will need to work in the **Unreal 5.3, 5.4, or 5.5** editor that supports OpenGL, D3D11, or D#D12 for Windows, or a Mac with ARM64 (M1, M2, etc) architecture.
+You will need to work in the **Unreal 5.3, 5.4, or 5.5** editor that supports OpenGL, D3D11, or D3D12 for Windows, or a Mac with ARM64 (M1, M2, etc) architecture.
 
 Select either D3D11/D#D12/OpenGL for Windows, or Metal for Mac/iOS as the Renderer ID under Editor Preferences -> Plugins - Graphics Switching in Unreal. If you are making an Android Build, make sure to use OpenGL instead of Vulcan.
 
 ### Adding the Rive Unreal plugin
 
-For this technical preview, you can add the Rive Unreal plugin to your existing Unreal projects by downloading the plugin from the Github Releases, and copy/pasting the Rive folder into your `Plugins/` folder of your project (or creating one). 
+You can add the Rive Unreal plugin to your existing Unreal projects by downloading the plugin from the Github Releases, and copy/pasting the Rive folder into your `Plugins/` folder of your project (or creating one). 
 
 Then drag in a `.riv` file to your Unreal project to generate a new Widget Blueprint, Texture Object, and a Rive File definition.
 
