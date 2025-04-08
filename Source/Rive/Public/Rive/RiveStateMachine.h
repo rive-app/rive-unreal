@@ -11,6 +11,8 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
+class URiveViewModelInstance;
+
 /**
  * Represents a Rive State Machine from an Artboard. A State Machine contains
  * Inputs.
@@ -72,6 +74,8 @@ public:
     int32 GetReportedEventsCount() const;
 
     bool HasAnyReportedEvents() const;
+
+    void SetViewModelInstance(URiveViewModelInstance* RuntimeInstance);
 
     /**
      * Attribute(s)

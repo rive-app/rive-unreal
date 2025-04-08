@@ -56,7 +56,7 @@ public:
     };
 
     /** Do nothing on discard because this is static const CPU data */
-    virtual void Discard() override{};
+    virtual void Discard() override {}
 
     virtual bool IsStatic() const override { return true; }
 
@@ -94,7 +94,7 @@ public:
     };
 
     /** Do nothing on discard because this is static const CPU data */
-    virtual void Discard() override{};
+    virtual void Discard() override {}
 
     virtual bool IsStatic() const override { return true; }
 
@@ -869,8 +869,10 @@ rcp<Texture> RenderContextRHIImpl::decodeImageTexture(
             return nullptr;
         }
 
-        uint8* data = new uint8[UncompressedRGBA.NumBytes()];
-        memcpy(data, UncompressedRGBA.GetData(), UncompressedRGBA.NumBytes());
+        uint8* data = new uint8[UncompressedRGBA.Num()];
+        memcpy(data,
+               UncompressedRGBA.GetData(),
+               UncompressedRGBA.Num() * sizeof(uint8));
 
         bitmap = std::make_unique<Bitmap>(ImageWrapper->GetWidth(),
                                           ImageWrapper->GetHeight(),

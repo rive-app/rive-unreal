@@ -1,11 +1,14 @@
 // Copyright Rive, Inc. All rights reserved.
 
 #include "Rive/RiveStateMachine.h"
+#include "Rive/ViewModel/RiveViewModelInstance.h"
+#include "rive/viewmodel/runtime/viewmodel_instance_runtime.hpp"
 
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
 #include "Stats/RiveStats.h"
+#include "Rive/RiveUtils.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
@@ -38,7 +41,7 @@ FRiveStateMachine::FRiveStateMachine(
     else
     {
         NativeStateMachinePtr = InNativeArtboardInst->stateMachineNamed(
-            TCHAR_TO_UTF8(*InStateMachineName));
+            RiveUtils::ToUTF8(*InStateMachineName));
     }
 
     if (NativeStateMachinePtr == nullptr)
@@ -167,8 +170,8 @@ void FRiveStateMachine::FireTrigger(const FString& InPropertyName) const
         return;
     }
 
-    if (rive::SMITrigger* TriggerToBeFired =
-            NativeStateMachinePtr->getTrigger(TCHAR_TO_UTF8(*InPropertyName)))
+    if (rive::SMITrigger* TriggerToBeFired = NativeStateMachinePtr->getTrigger(
+            RiveUtils::ToUTF8(*InPropertyName)))
     {
         TriggerToBeFired->fire();
         return;
@@ -201,15 +204,15 @@ bool FRiveStateMachine::GetBoolValue(const FString& InPropertyName) const
     }
 
     if (const rive::SMIBool* BoolProperty =
-            NativeStateMachinePtr->getBool(TCHAR_TO_UTF8(*InPropertyName)))
+            NativeStateMachinePtr->getBool(RiveUtils::ToUTF8(*InPropertyName)))
     {
         return BoolProperty->value();
     }
 
     UE_LOG(LogRive,
            Error,
-           TEXT("Could not get the boolean property with given name '%s' as we "
-                "could not find it."),
+           TEXT("Could not get the boolean property with given name '%s' as "
+                "we could not find it."),
            *InPropertyName);
     return false;
 }
@@ -221,9 +224,8 @@ float FRiveStateMachine::GetNumberValue(const FString& InPropertyName) const
     {
         UE_LOG(LogRive,
                Error,
-               TEXT("Failed to GetNumberValue on the StateMachine as we do not "
-                    "have a valid "
-                    "renderer."));
+               TEXT("Failed to GetNumberValue on the StateMachine as we "
+                    "do not have a valid renderer."));
         return 0.f;
     }
 
@@ -235,7 +237,8 @@ float FRiveStateMachine::GetNumberValue(const FString& InPropertyName) const
     }
 
     if (const rive::SMINumber* NumberProperty =
-            NativeStateMachinePtr->getNumber(TCHAR_TO_UTF8(*InPropertyName)))
+            NativeStateMachinePtr->getNumber(
+                RiveUtils::ToUTF8(*InPropertyName)))
     {
         return NumberProperty->value();
     }
@@ -269,7 +272,7 @@ void FRiveStateMachine::SetBoolValue(const FString& InPropertyName,
     }
 
     if (rive::SMIBool* BoolProperty =
-            NativeStateMachinePtr->getBool(TCHAR_TO_UTF8(*InPropertyName)))
+            NativeStateMachinePtr->getBool(RiveUtils::ToUTF8(*InPropertyName)))
     {
         BoolProperty->value(bNewValue);
         return;
@@ -277,8 +280,8 @@ void FRiveStateMachine::SetBoolValue(const FString& InPropertyName,
 
     UE_LOG(LogRive,
            Error,
-           TEXT("Could not get the boolean property with given name '%s' as we "
-                "could not find it."),
+           TEXT("Could not get the boolean property with given name '%s' "
+                "as we could not find it."),
            *InPropertyName);
 }
 
@@ -290,9 +293,8 @@ void FRiveStateMachine::SetNumberValue(const FString& InPropertyName,
     {
         UE_LOG(LogRive,
                Error,
-               TEXT("Failed to SetNumberValue on the StateMachine as we do not "
-                    "have a valid "
-                    "renderer."));
+               TEXT("Failed to SetNumberValue on the StateMachine "
+                    "as we do not have a valid renderer."));
         return;
     }
 
@@ -303,8 +305,8 @@ void FRiveStateMachine::SetNumberValue(const FString& InPropertyName,
         return;
     }
 
-    if (rive::SMINumber* NumberProperty =
-            NativeStateMachinePtr->getNumber(TCHAR_TO_UTF8(*InPropertyName)))
+    if (rive::SMINumber* NumberProperty = NativeStateMachinePtr->getNumber(
+            RiveUtils::ToUTF8(*InPropertyName)))
     {
         NumberProperty->value(NewValue);
         return;
@@ -374,9 +376,8 @@ bool FRiveStateMachine::PointerUp(const FVector2f& NewPosition)
     {
         UE_LOG(LogRive,
                Error,
-               TEXT("Failed to call PointerUp on the StateMachine as we do not "
-                    "have a valid "
-                    "renderer."));
+               TEXT("Failed to call PointerUp on the StateMachine as we do "
+                    "not have a valid renderer."));
         return false;
     }
 
@@ -400,8 +401,7 @@ bool FRiveStateMachine::PointerExit(const FVector2f& NewPosition)
         UE_LOG(LogRive,
                Error,
                TEXT("Failed to call PointerExit on the StateMachine as we do "
-                    "not have a valid "
-                    "renderer."));
+                    "not have a valid renderer."));
         return false;
     }
 
@@ -425,8 +425,7 @@ const rive::EventReport FRiveStateMachine::GetReportedEvent(int32 AtIndex) const
         UE_LOG(LogRive,
                Error,
                TEXT("Failed to GetReportedEvent on the StateMachine as we do "
-                    "not have a valid "
-                    "renderer."));
+                    "not have a valid renderer."));
         return NullEvent;
     }
 
@@ -448,8 +447,7 @@ int32 FRiveStateMachine::GetReportedEventsCount() const
         UE_LOG(LogRive,
                Error,
                TEXT("Failed to GetReportedEventsCount on the StateMachine as "
-                    "we do not have a "
-                    "valid renderer."));
+                    "we do not have a valid renderer."));
         return 0;
     }
 
@@ -471,8 +469,7 @@ bool FRiveStateMachine::HasAnyReportedEvents() const
         UE_LOG(LogRive,
                Error,
                TEXT("Failed to HasAnyReportedEvents on the StateMachine as we "
-                    "do not have a valid "
-                    "renderer."));
+                    "do not have a valid renderer."));
         return false;
     }
 
@@ -484,6 +481,35 @@ bool FRiveStateMachine::HasAnyReportedEvents() const
     }
 
     return NativeStateMachinePtr->reportedEventCount() != 0;
+}
+
+void FRiveStateMachine::SetViewModelInstance(
+    URiveViewModelInstance* RiveViewModelInstance)
+{
+    if (!NativeStateMachinePtr)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("SetViewModelInstance failed: "
+                    "NativeStateMachinePtr is null."));
+        return;
+    }
+
+    if (!RiveViewModelInstance || !RiveViewModelInstance->GetNativePtr())
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("SetViewModelInstance failed: "
+                    "ViewModelInstance is invalid or null."));
+        return;
+    }
+
+    // Retrieve the native instance from the wrapper
+    rive::ViewModelInstanceRuntime* NativeInstance =
+        RiveViewModelInstance->GetNativePtr();
+
+    // Set the data context on the native Rive state machine
+    NativeStateMachinePtr->bindViewModelInstance(NativeInstance->instance());
 }
 
 #endif // WITH_RIVE

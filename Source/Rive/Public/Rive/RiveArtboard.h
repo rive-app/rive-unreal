@@ -10,6 +10,7 @@
 #if WITH_RIVE
 class URiveFile;
 class URiveTextureObject;
+class URiveViewModelInstance;
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/file.hpp"
@@ -219,6 +220,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = Rive)
     void SetAudioEngine(URiveAudioEngine* AudioEngine);
 
+    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+    void SetViewModelInstance(URiveViewModelInstance* RiveViewModelInstance);
+
 #if WITH_RIVE
     void Initialize(URiveFile* InRiveFile,
                     const TSharedPtr<IRiveRenderTarget>& InRiveRenderTarget);
@@ -268,6 +272,8 @@ private:
     void Initialize_Internal(const rive::Artboard* InNativeArtboard);
     void Tick_Render(float InDeltaSeconds);
     void Tick_StateMachine(float InDeltaSeconds);
+
+    TWeakObjectPtr<URiveViewModelInstance> CurrentViewModelInstance = nullptr;
 
     TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
 

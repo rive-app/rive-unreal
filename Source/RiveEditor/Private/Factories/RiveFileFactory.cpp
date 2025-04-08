@@ -200,9 +200,8 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
     {
         UE_LOG(LogRiveEditor,
                Error,
-               TEXT("Failed to Reimport the Rive file '%s' with file '%s': the "
-                    "we could not read "
-                    "the file"),
+               TEXT("Failed to Reimport the Rive file '%s' with file '%s': "
+                    "the file could not be read"),
                *GetFullNameSafe(RiveFile),
                *SourceFilename);
         return EReimportResult::Failed;

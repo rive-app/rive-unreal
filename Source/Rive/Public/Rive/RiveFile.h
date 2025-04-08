@@ -20,6 +20,7 @@ THIRD_PARTY_INCLUDES_END
 
 class URiveAsset;
 class URiveArtboard;
+class URiveViewModel;
 
 /**
  *
@@ -84,6 +85,13 @@ public:
         return ArtboardNames;
     }
 
+    UPROPERTY(Transient,
+              VisibleInstanceOnly,
+              Category = Rive,
+              NonTransactional,
+              meta = (NoResetToDefault, AllowPrivateAccess))
+    TArray<URiveViewModel*> ViewModels;
+
     UPROPERTY(meta = (NoResetToDefault))
     FString RiveFilePath_DEPRECATED;
 
@@ -107,6 +115,10 @@ private:
     UPROPERTY(VisibleAnywhere, Category = Rive, meta = (NoResetToDefault))
     TSubclassOf<UUserWidget> WidgetClass;
 
+    URiveViewModel* CreateViewModelWrapper(rive::ViewModelRuntime*) const;
+
+    std::unique_ptr<rive::File> RiveNativeFilePtr = nullptr;
+
 public:
     UPROPERTY(VisibleAnywhere, Category = Rive, meta = (NoResetToDefault))
     TMap<uint32, TObjectPtr<URiveAsset>> Assets;
@@ -118,7 +130,7 @@ public:
     {
         for (const TTuple<unsigned int, TObjectPtr<URiveAsset>>& x : Assets)
         {
-            if (x.Value->Id == InId)
+            if (x.Value != nullptr && x.Value->Id == InId)
             {
                 return x.Value;
             }
@@ -132,7 +144,7 @@ public:
     {
         for (const TTuple<unsigned int, TObjectPtr<URiveAsset>>& x : Assets)
         {
-            if (x.Value->Name.Equals(InName))
+            if (x.Value != nullptr && x.Value->Name.Equals(InName))
             {
                 return x.Value;
             }
@@ -141,20 +153,26 @@ public:
         return nullptr;
     }
 
+    /** Gets the number of ViewModels in the file */
+    UFUNCTION(BlueprintCallable, Category = "Rive|File")
+    int32 GetViewModelCount() const;
+
+    /** Gets a ViewModel by index */
+    UFUNCTION(BlueprintCallable, Category = "Rive|File")
+    URiveViewModel* GetViewModelByIndex(int32 Index) const;
+
+    /** Gets a ViewModel by name */
+    UFUNCTION(BlueprintCallable, Category = "Rive|File")
+    URiveViewModel* GetViewModelByName(const FString& Name) const;
+
+    /** Gets the default ViewModel for an Artboard */
+    UFUNCTION(BlueprintCallable, Category = "Rive|File")
+    URiveViewModel* GetDefaultArtboardViewModel(URiveArtboard* Artboard) const;
+
     rive::Span<const uint8> RiveNativeFileSpan;
     rive::Span<const uint8>& GetNativeFileSpan() { return RiveNativeFileSpan; }
 
-    std::unique_ptr<rive::File> RiveNativeFilePtr;
-
-    rive::File* GetNativeFile() const
-    {
-        if (RiveNativeFilePtr)
-        {
-            return RiveNativeFilePtr.get();
-        }
-
-        return nullptr;
-    }
+    rive::File* GetNativeFile() const { return RiveNativeFilePtr.get(); }
 
     void PrintStats() const;
 

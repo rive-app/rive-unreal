@@ -6,8 +6,10 @@
 #include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveFileAssetImporter.h"
 #include "Rive/Assets/RiveFileAssetLoader.h"
+#include "Rive/ViewModel/RiveViewModel.h"
 #include "Rive/RiveArtboard.h"
 #include "Blueprint/UserWidget.h"
+#include "Rive/RiveUtils.h"
 
 #if WITH_EDITOR
 #include "EditorFramework/AssetImportData.h"
@@ -27,8 +29,7 @@ void URiveFile::BeginDestroy()
 {
     InitState = ERiveInitState::Deinitializing;
     RiveNativeFileSpan = {};
-    RiveNativeFilePtr.reset();
-    UObject::BeginDestroy();
+    Super::BeginDestroy();
 }
 
 void URiveFile::PostLoad()
@@ -124,6 +125,7 @@ void URiveFile::Initialize()
                 {
                     ArtboardNames.Empty();
                     Artboards.Empty();
+                    ViewModels.Empty();
 
                     FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
                     rive::ImportResult ImportResult;
@@ -172,16 +174,25 @@ void URiveFile::Initialize()
                         return;
                     }
 
-                    // UI Helper
+                    // UI Helpers
                     for (int i = 0; i < RiveNativeFilePtr->artboardCount(); ++i)
                     {
                         auto Artboard = NewObject<URiveArtboard>();
 
-                        // We won't tick the artboard, it's just initialized for
-                        // informational purposes
+                        // We won't tick the artboard, it's just
+                        // initialized for informational purposes.
                         Artboard->Initialize(this, nullptr, i, "");
                         Artboards.Add(Artboard);
                         ArtboardNames.Add(Artboard->GetArtboardName());
+                    }
+
+                    for (int i = 0; i < RiveNativeFilePtr->viewModelCount();
+                         ++i)
+                    {
+                        auto ViewModel = NewObject<URiveViewModel>();
+                        ViewModel->Initialize(
+                            RiveNativeFilePtr->viewModelByIndex(i));
+                        ViewModels.Add(ViewModel);
                     }
 
                     BroadcastInitializationResult(true);
@@ -207,6 +218,108 @@ void URiveFile::BroadcastInitializationResult(bool bSuccess)
     {
         OnRiveReady.Broadcast();
     }
+}
+
+int32 URiveFile::GetViewModelCount() const
+{
+    if (!RiveNativeFilePtr)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::GetViewModelCount "
+                    "RiveNativeFilePtr is Null."));
+
+        return 0;
+    }
+
+    return static_cast<int32>(RiveNativeFilePtr->viewModelCount());
+}
+
+URiveViewModel* URiveFile::CreateViewModelWrapper(
+    rive::ViewModelRuntime* ViewModel) const
+{
+    if (!ViewModel)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateViewModelWrapper "
+                    "ViewModel is Null."));
+
+        return nullptr;
+    }
+
+    URiveViewModel* ViewModelWrapper = NewObject<URiveViewModel>();
+    ViewModelWrapper->Initialize(ViewModel);
+    return ViewModelWrapper;
+}
+
+URiveViewModel* URiveFile::GetViewModelByIndex(int32 Index) const
+{
+    if (!RiveNativeFilePtr)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::GetViewModelByIndex "
+                    "RiveNativeFilePtr is Null."));
+        return nullptr;
+    }
+
+    if (Index < 0 || Index >= GetViewModelCount())
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::GetViewModelByIndex Index "
+                    "must be between 0 and %d."),
+               GetViewModelCount() - 1);
+
+        return nullptr;
+    }
+
+    return CreateViewModelWrapper(RiveNativeFilePtr->viewModelByIndex(Index));
+}
+
+URiveViewModel* URiveFile::GetViewModelByName(const FString& Name) const
+{
+    if (!RiveNativeFilePtr)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::GetViewModelByName "
+                    "RiveNativeFilePtr is Null."));
+
+        return nullptr;
+    }
+
+    return CreateViewModelWrapper(
+        RiveNativeFilePtr->viewModelByName(RiveUtils::ToUTF8(*Name)));
+}
+
+URiveViewModel* URiveFile::GetDefaultArtboardViewModel(
+    URiveArtboard* Artboard) const
+{
+    if (!RiveNativeFilePtr || !Artboard)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::GetDefaultArtboardViewModel "
+                    "RiveNativeFilePtr or Artboard is Null."));
+
+        return nullptr;
+    }
+
+    rive::Artboard* NativeArtboard = Artboard->GetNativeArtboard();
+    if (!NativeArtboard)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::GetDefaultArtboardViewModel "
+                    "NativeArtboard is Null."));
+
+        return nullptr;
+    }
+
+    return CreateViewModelWrapper(
+        RiveNativeFilePtr->defaultArtboardViewModel(NativeArtboard));
 }
 
 #if WITH_EDITOR
@@ -267,8 +380,8 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath,
     {
         UE_LOG(LogRive,
                Error,
-               TEXT("Unable to Import the RiveFile '%s' as the RiveRenderer is "
-                    "null"),
+               TEXT("Unable to Import the RiveFile '%s' as the RiveRenderer is"
+                    " null"),
                *InRiveFilePath);
         return false;
     }

@@ -135,12 +135,15 @@ bool FRiveEditorModule::CheckCurrentRHIAndNotify()
     {
         return true;
     }
+    else
+    {
+        UE_LOG(LogRiveEditor,
+               Error,
+               TEXT("CheckCurrentRHIAndNotify: No renderer found."))
+    }
 
 #if PLATFORM_WINDOWS
-    ERHIInterfaceType ExpectedRHI = ERHIInterfaceType::D3D11;
-    EDefaultGraphicsRHI WindowsExpectedRHI =
-        EDefaultGraphicsRHI::DefaultGraphicsRHI_DX11;
-    FString ExpectedRHIStr = TEXT("DirectX 11");
+    return true; // DX11, DX12, and Vulkan are all supported.
 #elif PLATFORM_APPLE
     ERHIInterfaceType ExpectedRHI = ERHIInterfaceType::Metal;
     FString ExpectedRHIStr = TEXT("Metal");
@@ -152,6 +155,7 @@ bool FRiveEditorModule::CheckCurrentRHIAndNotify()
     FString ExpectedRHIStr = "";
 #endif
 
+#if !PLATFORM_WINDOWS
     const FText NotificationText =
         ExpectedRHI == ERHIInterfaceType::Null
             ? LOCTEXT("RiveNotAvailable",
@@ -170,50 +174,10 @@ bool FRiveEditorModule::CheckCurrentRHIAndNotify()
 
     if (ExpectedRHI != ERHIInterfaceType::Null)
     {
-        auto AdjustRHI = [this,
-#if PLATFORM_WINDOWS
-                          WindowsExpectedRHI,
-#endif
-                          ExpectedRHIStr]() {
-#if PLATFORM_WINDOWS
-            UE_LOG(LogRiveEditor,
-                   Warning,
-                   TEXT("Changing RHI to '%s'"),
-                   *ExpectedRHIStr)
-            if (const FProperty* DefaultGraphicsRHIProperty =
-                    FindFProperty<FProperty>(
-                        UWindowsTargetSettings::StaticClass(),
-                        GET_MEMBER_NAME_STRING_CHECKED(UWindowsTargetSettings,
-                                                       DefaultGraphicsRHI)))
-            {
-                UWindowsTargetSettings* WindowsSettings =
-                    GetMutableDefault<UWindowsTargetSettings>();
-                WindowsSettings->DefaultGraphicsRHI = WindowsExpectedRHI;
-                // Then Save the Config
-                WindowsSettings->UpdateSinglePropertyInConfigFile(
-                    DefaultGraphicsRHIProperty,
-                    WindowsSettings->GetDefaultConfigFilename());
-                WindowsSettings->TryUpdateDefaultConfigFile();
-                ISettingsEditorModule* SettingsEditorModule =
-                    FModuleManager::GetModulePtr<ISettingsEditorModule>(
-                        "SettingsEditor");
-                if (SettingsEditorModule)
-                {
-                    SettingsEditorModule->OnApplicationRestartRequired();
-                }
-            }
-            else
-            {
-                UE_LOG(LogRiveEditor,
-                       Error,
-                       TEXT("Unable to change the RHI to '%s'"),
-                       *ExpectedRHIStr)
-            }
-#else
+        auto AdjustRHI = [this, ExpectedRHIStr]() {
             UE_LOG(LogRiveEditor,
                    Error,
                    TEXT("Unable to change RHI for this platform"))
-#endif
             if (RHINotification)
             {
                 RHINotification->SetExpireDuration(0.0f);
@@ -255,6 +219,7 @@ bool FRiveEditorModule::CheckCurrentRHIAndNotify()
     }
 
     return false;
+#endif
 }
 
 void FRiveEditorModule::RegisterAssetTypeActions(

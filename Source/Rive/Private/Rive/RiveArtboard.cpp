@@ -8,10 +8,13 @@
 #include "Rive/RiveEvent.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveStateMachine.h"
+#include "Rive/ViewModel/RiveViewModelInstance.h"
 #include "Stats/RiveStats.h"
+#include "Rive/RiveUtils.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
+#include "rive/viewmodel/runtime/viewmodel_instance_runtime.hpp"
 #include "rive/animation/state_machine_input.hpp"
 #include "rive/animation/state_machine_input_instance.hpp"
 #include "rive/generated/animation/state_machine_bool_base.hpp"
@@ -45,6 +48,9 @@ void URiveArtboard::AdvanceStateMachine(float InDeltaSeconds)
             StateMachine->Advance(InDeltaSeconds);
         }
     }
+
+    if (CurrentViewModelInstance.IsValid())
+        CurrentViewModelInstance->HandleCallbacks();
 }
 
 void URiveArtboard::Transform(const FVector2f& One,
@@ -114,6 +120,7 @@ void URiveArtboard::Draw()
     {
         return;
     }
+
     RiveRenderTarget->Draw(GetNativeArtboard());
     LastDrawTransform = GetTransformMatrix();
 }
@@ -146,8 +153,8 @@ void URiveArtboard::FireTriggerAtPath(const FString& InInputName,
         }
 
         rive::SMITrigger* SmiTrigger =
-            NativeArtboardPtr->getTrigger(TCHAR_TO_UTF8(*InInputName),
-                                          TCHAR_TO_UTF8(*InPath));
+            NativeArtboardPtr->getTrigger(RiveUtils::ToUTF8(*InInputName),
+                                          RiveUtils::ToUTF8(*InPath));
         if (!SmiTrigger)
         {
             UE_LOG(LogRive,
@@ -202,8 +209,8 @@ bool URiveArtboard::GetBoolValueAtPath(const FString& InInputName,
             return false;
         }
         rive::SMIBool* SmiBool =
-            NativeArtboardPtr->getBool(TCHAR_TO_UTF8(*InInputName),
-                                       TCHAR_TO_UTF8(*InPath));
+            NativeArtboardPtr->getBool(RiveUtils::ToUTF8(*InInputName),
+                                       RiveUtils::ToUTF8(*InPath));
         if (!SmiBool)
         {
             UE_LOG(LogRive,
@@ -265,8 +272,8 @@ float URiveArtboard::GetNumberValueAtPath(const FString& InInputName,
         }
 
         rive::SMINumber* SmiNumber =
-            NativeArtboardPtr->getNumber(TCHAR_TO_UTF8(*InInputName),
-                                         TCHAR_TO_UTF8(*InPath));
+            NativeArtboardPtr->getNumber(RiveUtils::ToUTF8(*InInputName),
+                                         RiveUtils::ToUTF8(*InPath));
         if (!SmiNumber)
         {
             UE_LOG(LogRive,
@@ -307,7 +314,7 @@ FString URiveArtboard::GetTextValue(const FString& InPropertyName) const
         {
             if (const rive::TextValueRunBase* TextValueRun =
                     NativeArtboardPtr->find<rive::TextValueRunBase>(
-                        TCHAR_TO_UTF8(*InPropertyName)))
+                        RiveUtils::ToUTF8(*InPropertyName)))
             {
                 return FString{TextValueRun->text().c_str()};
             }
@@ -333,8 +340,8 @@ FString URiveArtboard::GetTextValueAtPath(const FString& InInputName,
         }
 
         rive::TextValueRunBase* TextValueRun =
-            NativeArtboardPtr->getTextRun(TCHAR_TO_UTF8(*InInputName),
-                                          TCHAR_TO_UTF8(*InPath));
+            NativeArtboardPtr->getTextRun(RiveUtils::ToUTF8(*InInputName),
+                                          RiveUtils::ToUTF8(*InPath));
         if (!TextValueRun)
         {
             UE_LOG(LogRive,
@@ -385,8 +392,8 @@ void URiveArtboard::SetBoolValueAtPath(const FString& InInputName,
         }
 
         rive::SMIBool* SmiBool =
-            NativeArtboardPtr->getBool(TCHAR_TO_UTF8(*InInputName),
-                                       TCHAR_TO_UTF8(*InPath));
+            NativeArtboardPtr->getBool(RiveUtils::ToUTF8(*InInputName),
+                                       RiveUtils::ToUTF8(*InPath));
         if (!SmiBool)
         {
             UE_LOG(LogRive,
@@ -448,8 +455,8 @@ void URiveArtboard::SetNumberValueAtPath(const FString& InInputName,
         }
 
         rive::SMINumber* SmiNumber =
-            NativeArtboardPtr->getNumber(TCHAR_TO_UTF8(*InInputName),
-                                         TCHAR_TO_UTF8(*InPath));
+            NativeArtboardPtr->getNumber(RiveUtils::ToUTF8(*InInputName),
+                                         RiveUtils::ToUTF8(*InPath));
         if (!SmiNumber)
         {
             UE_LOG(LogRive,
@@ -490,9 +497,9 @@ void URiveArtboard::SetTextValue(const FString& InPropertyName,
         {
             if (rive::TextValueRunBase* TextValueRun =
                     NativeArtboardPtr->find<rive::TextValueRunBase>(
-                        TCHAR_TO_UTF8(*InPropertyName)))
+                        RiveUtils::ToUTF8(*InPropertyName)))
             {
-                TextValueRun->text(TCHAR_TO_UTF8(*NewValue));
+                TextValueRun->text(RiveUtils::ToUTF8(*NewValue));
             }
         }
     }
@@ -516,8 +523,8 @@ void URiveArtboard::SetTextValueAtPath(const FString& InInputName,
         }
 
         rive::TextValueRunBase* TextValueRun =
-            NativeArtboardPtr->getTextRun(TCHAR_TO_UTF8(*InInputName),
-                                          TCHAR_TO_UTF8(*InPath));
+            NativeArtboardPtr->getTextRun(RiveUtils::ToUTF8(*InInputName),
+                                          RiveUtils::ToUTF8(*InPath));
         if (!TextValueRun)
         {
             UE_LOG(LogRive,
@@ -529,7 +536,7 @@ void URiveArtboard::SetTextValueAtPath(const FString& InInputName,
             return;
         }
 
-        TextValueRun->text(TCHAR_TO_UTF8(*InValue));
+        TextValueRun->text(RiveUtils::ToUTF8(*InValue));
         OutSuccess = true;
     }
 
@@ -584,7 +591,7 @@ bool URiveArtboard::TriggerNamedRiveEvent(const FString& EventName,
     if (NativeArtboardPtr && GetStateMachine())
     {
         if (rive::Component* Component =
-                NativeArtboardPtr->find(TCHAR_TO_UTF8(*EventName)))
+                NativeArtboardPtr->find(RiveUtils::ToUTF8(*EventName)))
         {
             if (Component->is<rive::Event>())
             {
@@ -819,7 +826,7 @@ void URiveArtboard::Initialize(URiveFile* InRiveFile,
     else
     {
         NativeArtboard =
-            RiveFile->GetNativeFile()->artboard(TCHAR_TO_UTF8(*InName));
+            RiveFile->GetNativeFile()->artboard(RiveUtils::ToUTF8(*InName));
         if (!NativeArtboard)
         {
             UE_LOG(LogRive,
@@ -863,6 +870,10 @@ void URiveArtboard::SetStateMachineName(const FString& NewStateMachineName)
 
         StateMachinePtr = MakeUnique<FRiveStateMachine>(NativeArtboardPtr.get(),
                                                         StateMachineName);
+
+        if (CurrentViewModelInstance.IsValid())
+            StateMachinePtr->SetViewModelInstance(
+                CurrentViewModelInstance.Get());
     }
 }
 
@@ -949,8 +960,8 @@ rive::ArtboardInstance* URiveArtboard::GetNativeArtboard() const
     {
         UE_LOG(LogRive,
                Error,
-               TEXT("Failed to retrieve the NativeArtboard as we do not have a "
-                    "valid renderer."));
+               TEXT("Failed to retrieve the NativeArtboard as we do not have"
+                    " a valid renderer."));
         return nullptr;
     }
 
@@ -976,8 +987,8 @@ rive::AABB URiveArtboard::GetBounds() const
     {
         UE_LOG(LogRive,
                Error,
-               TEXT("Failed to GetBounds for the Artboard as we do not have a "
-                    "valid renderer."));
+               TEXT("Failed to GetBounds for the Artboard as we do not have"
+                    " a valid renderer."));
         return {};
     }
 
@@ -1168,6 +1179,44 @@ void URiveArtboard::Initialize_Internal(const rive::Artboard* InNativeArtboard)
     }
 
     bIsInitialized = true;
+}
+
+void URiveArtboard::SetViewModelInstance(
+    URiveViewModelInstance* RiveViewModelInstance)
+{
+    // Store off the VM instance because we need to set
+    // it on dynamically created state machines.
+    CurrentViewModelInstance = RiveViewModelInstance;
+
+    if (!NativeArtboardPtr)
+    {
+        UE_LOG(LogRive,
+               Warning,
+               TEXT("SetViewModelInstance failed: "
+                    "NativeArtboardPtr is null."));
+        return;
+    }
+
+    if (!RiveViewModelInstance || !RiveViewModelInstance->GetNativePtr())
+    {
+        UE_LOG(LogRive,
+               Warning,
+               TEXT("SetViewModelInstance failed: "
+                    "RuntimeInstance is invalid or null."));
+        return;
+    }
+
+    // Access the native Rive runtime instance
+    rive::ViewModelInstanceRuntime* NativeInstance =
+        RiveViewModelInstance->GetNativePtr();
+
+    // Set the data context on the artboard
+    NativeArtboardPtr->bindViewModelInstance(NativeInstance->instance());
+
+    // Set the data context on the state machine if it exists.
+    FRiveStateMachine* StateMachine = GetStateMachine();
+    if (StateMachine)
+        StateMachine->SetViewModelInstance(RiveViewModelInstance);
 }
 
 #endif // WITH_RIVE

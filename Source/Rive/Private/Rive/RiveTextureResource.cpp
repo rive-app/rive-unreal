@@ -1,6 +1,6 @@
 // Copyright Rive, Inc. All rights reserved.
 
-#include "RiveTextureResource.h"
+#include "Rive/RiveTextureResource.h"
 
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"

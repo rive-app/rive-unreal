@@ -7,7 +7,7 @@
 #include "Logs/RiveLog.h"
 #include "RenderingThread.h"
 #include "Rive/RiveArtboard.h"
-#include "RiveTextureResource.h"
+#include "Rive/RiveTextureResource.h"
 
 URiveTexture::URiveTexture()
 {
