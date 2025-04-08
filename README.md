@@ -60,8 +60,6 @@ open-source runtime libraries allow them to load their animations into apps, gam
 
 ## Getting started
 
-Check out the latest example project from the [releases page](https://github.com/rive-app/rive-unreal/releases) to see a few techniques for adding Rive graphics in an Unreal project, as well as documentation on navigating the samples.
-
 You can find the source for the rive-unreal-demos [here](https://github.com/rive-app/rive-unreal-demos).
 
 You will need to work in the **Unreal 5.3, 5.4, or 5.5** editor that supports OpenGL, D3D11, or D3D12 for Windows, or a Mac with ARM64 (M1, M2, etc) architecture.
