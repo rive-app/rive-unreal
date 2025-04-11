@@ -1032,29 +1032,29 @@ void* RenderContextRHIImpl::mapTriangleVertexBuffer(size_t mapSizeInBytes)
     return m_triangleBuffer->mapBuffer(mapSizeInBytes);
 }
 
-void RenderContextRHIImpl::unmapFlushUniformBuffer() {}
+void RenderContextRHIImpl::unmapFlushUniformBuffer(size_t mapSizeInBytes) {}
 
 void RenderContextRHIImpl::unmapImageDrawUniformBuffer() {}
 
-void RenderContextRHIImpl::unmapPathBuffer() {}
+void RenderContextRHIImpl::unmapPathBuffer(size_t mapSizeInBytes) {}
 
-void RenderContextRHIImpl::unmapPaintBuffer() {}
+void RenderContextRHIImpl::unmapPaintBuffer(size_t mapSizeInBytes) {}
 
-void RenderContextRHIImpl::unmapPaintAuxBuffer() {}
+void RenderContextRHIImpl::unmapPaintAuxBuffer(size_t mapSizeInBytes) {}
 
-void RenderContextRHIImpl::unmapContourBuffer() {}
+void RenderContextRHIImpl::unmapContourBuffer(size_t mapSizeInBytes) {}
 
-void RenderContextRHIImpl::unmapGradSpanBuffer()
+void RenderContextRHIImpl::unmapGradSpanBuffer(size_t mapSizeInBytes)
 {
     m_gradSpanBuffer->unmapAndSubmitBuffer();
 }
 
-void RenderContextRHIImpl::unmapTessVertexSpanBuffer()
+void RenderContextRHIImpl::unmapTessVertexSpanBuffer(size_t mapSizeInBytes)
 {
     m_tessSpanBuffer->unmapAndSubmitBuffer();
 }
 
-void RenderContextRHIImpl::unmapTriangleVertexBuffer()
+void RenderContextRHIImpl::unmapTriangleVertexBuffer(size_t mapSizeInBytes)
 {
     m_triangleBuffer->unmapAndSubmitBuffer();
 }
