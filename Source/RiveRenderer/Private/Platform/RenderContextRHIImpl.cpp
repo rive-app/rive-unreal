@@ -1690,7 +1690,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     }
                     break;
                     case DrawType::atomicInitialize:
-                    case DrawType::stencilClipReset:
+                    case DrawType::msaaStrokes:
+                    case DrawType::msaaMidpointFanBorrowedCoverage:
+                    case DrawType::msaaMidpointFans:
+                    case DrawType::msaaMidpointFanStencilReset:
+                    case DrawType::msaaMidpointFanPathsStencil:
+                    case DrawType::msaaMidpointFanPathsCover:
+                    case DrawType::msaaOuterCubics:
+                    case DrawType::msaaStencilClipReset:
                         RIVE_UNREACHABLE();
                 }
             }
