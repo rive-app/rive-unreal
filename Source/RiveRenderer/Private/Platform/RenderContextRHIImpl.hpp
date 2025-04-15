@@ -263,8 +263,14 @@ public:
         return std::chrono::duration<double>(elapsed).count();
     }
 
-    virtual rive::rcp<rive::gpu::Texture> decodeImageTexture(
+    virtual rive::rcp<rive::gpu::Texture> platformDecodeImageTexture(
         rive::Span<const uint8_t> encodedBytes) override;
+
+    virtual rive::rcp<rive::gpu::Texture> makeImageTexture(
+        uint32_t width,
+        uint32_t height,
+        uint32_t mipLevelCount,
+        const uint8_t imageDataRGBA[]) override;
 
     virtual void resizeFlushUniformBuffer(size_t sizeInBytes) override;
     virtual void resizeImageDrawUniformBuffer(size_t sizeInBytes) override;
@@ -292,15 +298,15 @@ public:
     virtual void* mapTessVertexSpanBuffer(size_t mapSizeInBytes) override;
     virtual void* mapTriangleVertexBuffer(size_t mapSizeInBytes) override;
 
-    virtual void unmapFlushUniformBuffer() override;
-    virtual void unmapImageDrawUniformBuffer() override;
-    virtual void unmapPathBuffer() override;
-    virtual void unmapPaintBuffer() override;
-    virtual void unmapPaintAuxBuffer() override;
-    virtual void unmapContourBuffer() override;
-    virtual void unmapGradSpanBuffer() override;
-    virtual void unmapTessVertexSpanBuffer() override;
-    virtual void unmapTriangleVertexBuffer() override;
+    virtual void unmapFlushUniformBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapImageDrawUniformBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapPathBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapPaintBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapPaintAuxBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapContourBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapGradSpanBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapTessVertexSpanBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapTriangleVertexBuffer(size_t unmapSizeInBytes) override;
 
     virtual rive::rcp<rive::RenderBuffer> makeRenderBuffer(
         rive::RenderBufferType,
