@@ -144,8 +144,11 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
         if (UWorld* World = GetWorld())
         {
             World->GetTimerManager().ClearTimer(TimerHandle);
-            World->GetTimerManager()
-                .SetTimer(TimerHandle, [this]() { Setup(); }, 0.05f, false);
+            World->GetTimerManager().SetTimer(
+                TimerHandle,
+                [this]() { Setup(); },
+                0.05f,
+                false);
         }
     }
 
