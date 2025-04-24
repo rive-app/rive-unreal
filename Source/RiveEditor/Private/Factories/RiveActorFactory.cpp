@@ -1,4 +1,4 @@
-// Copyright Rive, Inc. All rights reserved.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #include "RiveActorFactory.h"
 

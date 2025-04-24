@@ -1,4 +1,4 @@
-// Copyright Rive, Inc. All rights reserved.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #include "Rive/Assets/RiveFileAssetLoader.h"
 
@@ -12,6 +12,8 @@
 #include "Rive/Assets/RiveImageAsset.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START

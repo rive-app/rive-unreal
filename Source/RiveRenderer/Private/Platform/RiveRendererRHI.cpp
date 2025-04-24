@@ -1,6 +1,11 @@
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
 #include "RiveRendererRHI.h"
 #include "RenderContextRHIImpl.hpp"
 #include "RiveRenderTargetRHI.h"
+#include "RHICommandList.h"
+#include "RenderGraphUtils.h"
+#include "RenderGraphResources.h"
 
 TSharedPtr<IRiveRenderTarget> FRiveRendererRHI::CreateTextureTarget_GameThread(
     const FName& InRiveName,

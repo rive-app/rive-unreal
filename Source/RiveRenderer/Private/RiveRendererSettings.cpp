@@ -1,8 +1,17 @@
-﻿// Copyright Rive, Inc. All rights reserved.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #include "RiveRendererSettings.h"
+#include "Runtime/Launch/Resources/Version.h"
 
-URiveRendererSettings::URiveRendererSettings() : bEnableRHITechPreview(false) {}
+URiveRendererSettings::URiveRendererSettings() : bEnableRHITechPreview(false)
+{
+#if PLATFORM_APPLE || ENGINE_MAJOR_VERSION < 5 ||                              \
+    (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4)
+    bCanUseRHI = false;
+#else
+    bCanUseRHI = true;
+#endif
+}
 
 #if WITH_EDITOR
 void URiveRendererSettings::PostInitProperties()

@@ -1,3 +1,5 @@
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
 #include "RenderContextRHIImpl.hpp"
 
 #include "CommonRenderResources.h"
@@ -6,6 +8,9 @@
 #include "IImageWrapper.h"
 #include "PixelShaderUtils.h"
 #include "RenderGraphBuilder.h"
+#include "RenderResource.h"
+#include "ShaderParameterUtils.h"
+#include "GlobalShader.h"
 
 #if UE_VERSION_OLDER_THAN(5, 5, 0)
 #include "RHIResourceUpdates.h"
@@ -30,6 +35,7 @@
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
+#include "rive/renderer/render_context.hpp"
 #include "rive/shaders/constants.glsl"
 THIRD_PARTY_INCLUDES_END
 

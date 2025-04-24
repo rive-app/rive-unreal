@@ -1,4 +1,4 @@
-// Copyright Rive, Inc. All rights reserved.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #include "RiveRenderTargetOpenGL.h"
 
@@ -7,6 +7,7 @@
 #include "IRiveRendererModule.h"
 #include "RiveRendererOpenGL.h"
 #include "RiveRenderer.h"
+#include "Async/Async.h"
 #include "Engine/Texture2DDynamic.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderCommand.h"

@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #pragma once
 
@@ -6,15 +6,14 @@
 #include "RiveAsset.h"
 #include "RiveAudioAsset.generated.h"
 
-/**
- *
- */
 UCLASS()
 class RIVE_API URiveAudioAsset : public URiveAsset
 {
     GENERATED_BODY()
 
+public:
     URiveAudioAsset();
+
     virtual bool LoadNativeAssetBytes(
         rive::FileAsset& InAsset,
         rive::Factory* InRiveFactory,

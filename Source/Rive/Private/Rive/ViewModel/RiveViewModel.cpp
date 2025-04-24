@@ -1,3 +1,5 @@
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
 #include "Rive/ViewModel/RiveViewModel.h"
 #include "Rive/ViewModel/RiveViewModelInstance.h"
 #include "Logs/RiveLog.h"

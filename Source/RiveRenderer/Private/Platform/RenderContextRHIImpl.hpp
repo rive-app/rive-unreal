@@ -1,7 +1,10 @@
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
 #pragma once
 #include <chrono>
 
 #include "RenderGraphBuilder.h"
+#include "Containers/DynamicRHIResourceArray.h"
 #include "Logs/RiveRendererLog.h"
 #include <RiveShaders/Public/RiveShaderTypes.h>
 

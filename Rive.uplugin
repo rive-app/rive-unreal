@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "0.3.0b",
+	"Version": 5,
+	"VersionName": "0.3.4a-gh",
 	"FriendlyName": "Rive",
 	"Description": "A Unreal Engine runtime library for Rive.",
 	"Category": "Rive",
@@ -9,41 +9,61 @@
 	"CreatedByURL": "https://rive.app/",
 	"DocsURL": "https://rive.app/docs/getting-started/introduction",
 	"MarketplaceURL": "",
-	"SupportURL": "https://rive.atlassian.net/servicedesk/customer/portals",
+	"SupportURL": "https://community.rive.app/",
 	"CanContainContent": true,
-	"IsBetaVersion": false,
-	"IsExperimentalVersion": false,
-	"Installed": false,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": true,
+	"Installed": true,
 	"Modules": [
 		{
 			"Name": "Rive",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
-			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
+			"PlatformAllowList": [
+				"Win64",
+				"Mac",
+				"IOS"
+			]
 		},
 		{
 			"Name": "RiveShaders",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
+			"PlatformAllowList": [
+				"Win64",
+				"Mac",
+				"IOS"
+			]
 		},
 		{
 			"Name": "RiveStats",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
+			"PlatformAllowList": [
+				"Win64",
+				"Mac",
+				"IOS"
+			]
 		},
 		{
 			"Name": "RiveRenderer",
 			"Type": "RuntimeNoCommandlet",
 			"LoadingPhase": "PreDefault",
-			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
+			"PlatformAllowList": [
+				"Win64",
+				"Mac",
+				"IOS"
+			]
 		},
 		{
 			"Name": "RiveEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default",
-			"WhitelistPlatforms": ["Win64", "Mac", "IOS", "Android"]
+			"PlatformAllowList": [
+				"Win64",
+				"Mac",
+				"IOS"
+			]
 		}
 	]
 }

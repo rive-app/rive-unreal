@@ -1,8 +1,13 @@
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
 #include "RivePassFunctions.h"
 
 #include "RenderGraphBuilder.h"
 #include "RenderGraphEvent.h"
 #include "RenderGraphUtils.h"
+#include "RHIStaticStates.h"  // TStaticBlendState, etc.
+#include "RHICommandList.h"   // FRHICommandList
+#include "RenderGraphUtils.h" // Graph building helpers
 #include "HLSLTree/HLSLTreeTypes.h"
 
 using namespace rive::gpu;

@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #pragma once
 
@@ -10,6 +10,7 @@ UCLASS(Config = Engine, DefaultConfig)
 class RIVERENDERER_API URiveRendererSettings : public UDeveloperSettings
 {
     GENERATED_BODY()
+
 public:
     URiveRendererSettings();
 
@@ -31,10 +32,5 @@ public:
 #endif
 
 private:
-#if PLATFORM_APPLE || ENGINE_MAJOR_VERSION < 5 ||                              \
-    (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4)
-    bool bCanUseRHI = false;
-#else
     bool bCanUseRHI = true;
-#endif
 };

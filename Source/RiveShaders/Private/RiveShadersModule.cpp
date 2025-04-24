@@ -1,7 +1,9 @@
-// Copyright Rive, Inc. All rights reserved.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #include "RiveShadersModule.h"
 
+#include "ShaderCore.h"
+#include "Misc/Paths.h"
 #include "Interfaces/IPluginManager.h"
 
 #define LOCTEXT_NAMESPACE "RiveShaderModule"

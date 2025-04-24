@@ -1,4 +1,4 @@
-// Copyright Rive, Inc. All rights reserved.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #include "RiveEditorModule.h"
 
@@ -6,6 +6,7 @@
 #include "IRiveRendererModule.h"
 #include "ISettingsEditorModule.h"
 #include "ISettingsModule.h"
+#include "PropertyEditorModule.h"
 #include "RiveFileDetailCustomization.h"
 #include "RiveFileAssetTypeActions.h"
 #include "RiveFileThumbnailRenderer.h"

@@ -1,4 +1,5 @@
-// Copyright Rive, Inc. All rights reserved.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
 #pragma once
 #include "IRiveRenderTarget.h"
 #include "MatrixTypes.h"

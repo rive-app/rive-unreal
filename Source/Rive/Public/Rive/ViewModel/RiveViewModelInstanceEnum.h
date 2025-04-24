@@ -1,3 +1,5 @@
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -30,7 +32,7 @@ public:
               meta = (GetOptions = "GetValuesInternal"))
     void SetValue(const FString& Value);
 
-    UFUNCTION(BlueprintPure)
+    UFUNCTION()
     void GetValuesInternal(TArray<FString>& Options) const;
 
     UFUNCTION(BlueprintCallable, Category = "Rive|ViewModelInstance|Enum")

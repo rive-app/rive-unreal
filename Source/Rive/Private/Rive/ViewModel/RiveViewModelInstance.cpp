@@ -1,3 +1,5 @@
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
 #include "Rive/ViewModel/RiveViewModelInstance.h"
 #include "Rive/ViewModel/RiveViewModelInstanceNumber.h"
 #include "Rive/ViewModel/RiveViewModelInstanceString.h"

@@ -1,6 +1,9 @@
-// Copyright Rive, Inc. All rights reserved.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #include "Rive/RiveTextureObject.h"
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
 #include "IRiveRenderTarget.h"
 #include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
@@ -222,67 +225,86 @@ void URiveTextureObject::OnRiveFileInitialized(bool bSuccess)
         return;
     }
 
-    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    if (ensure(RiveRenderer))
+    if (!ensure(RiveDescriptor.RiveFile))
     {
-        if (Artboard == nullptr)
-            Artboard = NewObject<URiveArtboard>(this);
-        else
-            Artboard->Reinitialize(true);
-
-        RiveRenderTarget.Reset();
-        RiveRenderTarget =
-            RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
-
-        if (!OnResourceInitializedOnRenderThread.IsBoundToObject(this))
-        {
-            OnResourceInitializedOnRenderThread.AddUObject(
-                this,
-                &URiveTextureObject::OnResourceInitialized_RenderThread);
-        }
-
-        RiveRenderTarget->SetClearColor(ClearColor);
-
-        if (RiveDescriptor.ArtboardName.IsEmpty())
-        {
-            Artboard->Initialize(RiveDescriptor.RiveFile,
-                                 RiveRenderTarget,
-                                 RiveDescriptor.ArtboardIndex,
-                                 RiveDescriptor.StateMachineName);
-        }
-        else
-        {
-            Artboard->Initialize(RiveDescriptor.RiveFile,
-                                 RiveRenderTarget,
-                                 RiveDescriptor.ArtboardName,
-                                 RiveDescriptor.StateMachineName);
-        }
-
-        RiveDescriptor.ArtboardName = Artboard->GetArtboardName();
-        RiveDescriptor.StateMachineName = Artboard->StateMachineName;
-
-        if (Size == FIntPoint::ZeroValue)
-        {
-            ResizeRenderTargets(Artboard->GetSize());
-        }
-        else
-        {
-            ResizeRenderTargets(Size);
-        }
-
-        InitializeAudioEngine();
-
-        Artboard->OnArtboardTick_Render.BindDynamic(
-            this,
-            &URiveTextureObject::OnArtboardTickRender);
-        Artboard->OnGetLocalCoordinate.BindDynamic(
-            this,
-            &URiveTextureObject::GetLocalCoordinate);
-
-        RiveRenderTarget->Initialize();
-        bIsRendering = true;
-        OnRiveReady.Broadcast();
+        UE_LOG(LogRive, Error, TEXT("RiveTextureObject: RiveFile is null."));
+        return;
     }
+
+    if (!ensure(RiveDescriptor.RiveFile->IsInitialized()))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("RiveTextureObject: RiveFile is not initialized."));
+        return;
+    }
+
+    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    if (!ensure(RiveRenderer))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("RiveTextureObject: RiveRenderer is null."));
+        return;
+    }
+
+    if (Artboard == nullptr)
+        Artboard = NewObject<URiveArtboard>(this);
+    else
+        Artboard->Reinitialize(true);
+
+    RiveRenderTarget.Reset();
+    RiveRenderTarget =
+        RiveRenderer->CreateTextureTarget_GameThread(GetFName(), this);
+
+    if (!OnResourceInitializedOnRenderThread.IsBoundToObject(this))
+    {
+        OnResourceInitializedOnRenderThread.AddUObject(
+            this,
+            &URiveTextureObject::OnResourceInitialized_RenderThread);
+    }
+
+    RiveRenderTarget->SetClearColor(ClearColor);
+
+    if (RiveDescriptor.ArtboardName.IsEmpty())
+    {
+        Artboard->Initialize(RiveDescriptor.RiveFile,
+                             RiveRenderTarget,
+                             RiveDescriptor.ArtboardIndex,
+                             RiveDescriptor.StateMachineName);
+    }
+    else
+    {
+        Artboard->Initialize(RiveDescriptor.RiveFile,
+                             RiveRenderTarget,
+                             RiveDescriptor.ArtboardName,
+                             RiveDescriptor.StateMachineName);
+    }
+
+    RiveDescriptor.ArtboardName = Artboard->GetArtboardName();
+    RiveDescriptor.StateMachineName = Artboard->StateMachineName;
+
+    if (Size == FIntPoint::ZeroValue)
+    {
+        ResizeRenderTargets(Artboard->GetSize());
+    }
+    else
+    {
+        ResizeRenderTargets(Size);
+    }
+
+    InitializeAudioEngine();
+
+    Artboard->OnArtboardTick_Render.BindDynamic(
+        this,
+        &URiveTextureObject::OnArtboardTickRender);
+    Artboard->OnGetLocalCoordinate.BindDynamic(
+        this,
+        &URiveTextureObject::GetLocalCoordinate);
+
+    RiveRenderTarget->Initialize();
+    bIsRendering = true;
+    OnRiveReady.Broadcast();
 }
 
 #if WITH_EDITOR

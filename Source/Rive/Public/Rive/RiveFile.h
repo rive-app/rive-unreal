@@ -1,4 +1,5 @@
-﻿// Copyright Rive, Inc. All rights reserved.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
 #pragma once
 
 #include <memory>
@@ -21,6 +22,7 @@ THIRD_PARTY_INCLUDES_END
 class URiveAsset;
 class URiveArtboard;
 class URiveViewModel;
+class UAssetImportData;
 
 /**
  *
