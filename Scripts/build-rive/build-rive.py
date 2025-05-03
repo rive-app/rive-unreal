@@ -7,6 +7,7 @@ import stat
 from pathlib import Path
 from enum import Enum
 
+
 parser = argparse.ArgumentParser(description="""
 Build and copy rive C++ runtime library and copy it and it headers into the correct location for unreal
 
@@ -32,6 +33,25 @@ Finally on all platforms:
 parser.add_argument("-p", "--rive_runtime_path", type=str, help="path to rive runtime root folder, if not specified default path is used")
 parser.add_argument("-t", "--build_rive_tests", action='store_true',  default=False, help="If set, gms, goldens and player will be built and copied as well")
 parser.add_argument("-r", "--raw_shaders", action='store_true', default=False, help="If set, --raw_shaders will be passed to the premake file for building")
+parser.add_argument("-n", "--no_build", action='store_true', default=False, help="If set, does not build the runtime, only generate shaders")
+
+class PlatformBuildTypes(Enum):
+    Windows = 'Windows'
+    Android = 'Android'
+    Mac = 'Mac'
+    iOS = 'iOS'
+
+    def __str__(self):
+        return self.value
+    
+    @staticmethod
+    def from_string(s):
+        try:
+            return PlatformBuildTypes[s]
+        except KeyError:
+            raise ValueError()
+
+parser.add_argument("platforms", nargs='*', type=PlatformBuildTypes, choices=list(PlatformBuildTypes), help="the platforms to build, none will just build all appropriate")
 
 PREFERED_MSVC = "14.38"
 
@@ -92,6 +112,10 @@ class CompilePass(object):
             build_script = f"powershell -File {build_script}.ps1"
         else:
             build_script = f"{build_script}.sh"
+        
+        if args.no_build:
+            build_script = f"{build_script} nobuild "
+            
         # default command to use, build_rive.sh includes --with_rive_layout and --with_rive_text automatically
         if build_type != '' and build_type is not None:
             command_args = build_type.split() + ["\"--with_rive_audio=external\"", "\"--for_unreal\""]
@@ -199,25 +223,35 @@ def main(rive_runtime_path):
     
     if sys.platform.startswith('darwin'):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
-    
-        if not do_mac(rive_runtime_path, True) or not do_mac(rive_runtime_path, False):
-            return
-        
-        if not do_ios(rive_runtime_path, True) or not do_ios(rive_runtime_path, False):
-            return
+
+        if args.platforms is None:
+            args.platforms = [PlatformBuildTypes.Mac, PlatformBuildTypes.iOS]
+
+        if PlatformBuildTypes.Mac in args.platforms:
+            if not do_mac(rive_runtime_path, True) or not do_mac(rive_runtime_path, False):
+                return
+            
+        if PlatformBuildTypes.iOS in args.platforms:
+            if not do_ios(rive_runtime_path, True) or not do_ios(rive_runtime_path, False):
+                return
         
     elif sys.platform.startswith('win32'):
+        if args.platforms is None:
+            args.platforms = [PlatformBuildTypes.Windows, PlatformBuildTypes.Android]
         # add rive build dir to path if it's not already there
         build_path = os.path.join(rive_runtime_path, "build")
         if build_path not in os.environ["PATH"]:
             os.environ["PATH"] = os.environ["PATH"] + ";" + build_path
-        if not do_windows(rive_runtime_path, True) or not do_windows(rive_runtime_path, False):
-            return
+
+        if PlatformBuildTypes.Windows in args.platforms:
+            if not do_windows(rive_runtime_path, True) or not do_windows(rive_runtime_path, False):
+                return
         
         os.chdir(rive_runtime_path)
 
-        if not do_android(rive_runtime_path, True) or not do_android(rive_runtime_path, False):
-           return
+        if PlatformBuildTypes.Android in args.platforms:
+            if not do_android(rive_runtime_path, True) or not do_android(rive_runtime_path, False):
+                return
         
         os.chdir(rive_runtime_path)
 
@@ -245,11 +279,12 @@ def do_android(rive_runtime_path, release):
         
     rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
-    print_green('Copying Android libs')
-    copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Android'), ".a", release)
-    if should_build_tests:
-        gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Android")
-        copy_files(os.getcwd(), gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+    if not args.no_build:
+        print_green('Copying Android libs')
+        copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Android'), ".a", release)
+        if should_build_tests:
+            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Android")
+            copy_files(os.getcwd(), gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
     return True
 
 
@@ -271,11 +306,12 @@ def do_windows(rive_runtime_path, release):
 
     rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
-    print_green('Copying Windows')
-    copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Win64'), ".lib", release)
-    if should_build_tests:
-        gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "x64", "Release")
-        copy_files(os.getcwd(), gm_libraries_path, ".lib", True, False, ['gms', 'goldens', 'tools_common'])
+    if not args.no_build:
+        print_green('Copying Windows')
+        copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Win64'), ".lib", release)
+        if should_build_tests:
+            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "x64", "Release")
+            copy_files(os.getcwd(), gm_libraries_path, ".lib", True, False, ['gms', 'goldens', 'tools_common'])
     
     return True
 
@@ -323,13 +359,14 @@ def do_ios(rive_runtime_path, release):
 
     rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
-    print_green('Copying iOS and iOS simulator')
-    copy_files(build_dirs['ios'], os.path.join(rive_libraries_path, 'IOS'), ".a", release)
-    copy_files(build_dirs['ios_sim'], os.path.join(rive_libraries_path, 'IOS'), ".sim.a", release)
-    if should_build_tests:
-        gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "iOS")
-        copy_files(build_dirs['ios'], gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
-        copy_files(build_dirs['ios_sim'], gm_libraries_path, ".sim.a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+    if not args.no_build:
+        print_green('Copying iOS and iOS simulator')
+        copy_files(build_dirs['ios'], os.path.join(rive_libraries_path, 'IOS'), ".a", release)
+        copy_files(build_dirs['ios_sim'], os.path.join(rive_libraries_path, 'IOS'), ".sim.a", release)
+        if should_build_tests:
+            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "iOS")
+            copy_files(build_dirs['ios'], gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+            copy_files(build_dirs['ios_sim'], gm_libraries_path, ".sim.a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
     
     return True
 
@@ -374,13 +411,14 @@ def do_mac(rive_runtime_path, release):
 
     rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
 
-    print_green('Copying macOS x64')
-    copy_files(build_dirs['mac_x64'], os.path.join(rive_libraries_path, 'Mac', 'Intel'), ".a", release)
-    copy_files(build_dirs['mac_arm64'], os.path.join(rive_libraries_path, 'Mac', 'Mac'), ".a", release)
-    if should_build_tests:
-        gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Mac")
-        copy_files(build_dirs['mac_arm64'], os.path.join(gm_libraries_path, "arm"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
-        copy_files(build_dirs['mac_x64'], os.path.join(gm_libraries_path, "x64"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+    if not args.no_build:
+        print_green('Copying macOS x64')
+        copy_files(build_dirs['mac_x64'], os.path.join(rive_libraries_path, 'Mac', 'Intel'), ".a", release)
+        copy_files(build_dirs['mac_arm64'], os.path.join(rive_libraries_path, 'Mac', 'Mac'), ".a", release)
+        if should_build_tests:
+            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Mac")
+            copy_files(build_dirs['mac_arm64'], os.path.join(gm_libraries_path, "arm"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+            copy_files(build_dirs['mac_x64'], os.path.join(gm_libraries_path, "x64"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
     
     return True
 

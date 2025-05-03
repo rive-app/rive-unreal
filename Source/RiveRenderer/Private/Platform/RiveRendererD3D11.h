@@ -10,7 +10,7 @@
 THIRD_PARTY_INCLUDES_START
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "Windows/MinWindows.h"
-#include "rive/renderer/d3d/render_context_d3d_impl.hpp" // This ends up including windows.h
+#include "rive/renderer/d3d11/render_context_d3d_impl.hpp" // This ends up including windows.h
 #include "Windows/HideWindowsPlatformTypes.h"
 THIRD_PARTY_INCLUDES_END
 
@@ -30,8 +30,7 @@ public:
     FRiveRendererD3D11GPUAdapter() {}
 
 #if WITH_RIVE
-    void Initialize(
-        rive::gpu::RenderContextD3DImpl::ContextOptions& OutContextOptions);
+    void Initialize(rive::gpu::D3DContextOptions& OutContextOptions);
 #endif // WITH_RIVE
     void ResetDXState();
 

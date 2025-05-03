@@ -12,7 +12,7 @@
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
-#include "rive/renderer/d3d/render_context_d3d_impl.hpp"
+#include "rive/renderer/d3d11/render_context_d3d_impl.hpp"
 #include "rive/renderer.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
@@ -20,7 +20,7 @@ THIRD_PARTY_INCLUDES_END
 // ------------- FRiveRendererD3D11GPUAdapter -------------
 #if WITH_RIVE
 void FRiveRendererD3D11GPUAdapter::Initialize(
-    rive::gpu::RenderContextD3DImpl::ContextOptions& OutContextOptions)
+    rive::gpu::D3DContextOptions& OutContextOptions)
 {
     check(IsInRenderingThread());
 
@@ -91,7 +91,7 @@ void FRiveRendererD3D11::CreateRenderContext_RenderThread(
     if (IsRHID3D11())
     {
 #if WITH_RIVE
-        rive::gpu::RenderContextD3DImpl::ContextOptions ContextOptions;
+        rive::gpu::D3DContextOptions ContextOptions;
 
         D3D11GPUAdapter = MakeUnique<FRiveRendererD3D11GPUAdapter>();
         D3D11GPUAdapter->Initialize(ContextOptions);
