@@ -5,7 +5,6 @@
 #include "RiveRenderer.h"
 #include "Logs/RiveRendererLog.h"
 #include "Platform/RiveRendererRHI.h"
-#include "RiveRendererSettings.h"
 
 #if PLATFORM_WINDOWS
 #include "Platform/RiveRendererD3D11.h"
@@ -25,19 +24,7 @@ void FRiveRendererModule::StartupModule()
     // Create Platform Specific Renderer
     RiveRenderer = nullptr;
 
-    const URiveRendererSettings* PluginSettings =
-        GetDefault<URiveRendererSettings>();
-    if (PluginSettings->bEnableRHITechPreview)
-    {
-        UE_LOG(LogRiveRenderer,
-               Warning,
-               TEXT("Rive running on RHI Native Tech Preview !"))
-        RiveRenderer = MakeShared<FRiveRendererRHI>();
-    }
-    else
-    {
-        StartupLegacyRiveRenderer();
-    }
+    StartupRiveRenderer();
 
     // OnBeginFrameHandle =
     // FCoreDelegates::OnFEngineLoopInitComplete.AddLambda([this]()  // Crashes
@@ -75,16 +62,23 @@ void FRiveRendererModule::CallOrRegister_OnRendererInitialized(
     }
 }
 
-void FRiveRendererModule::StartupLegacyRiveRenderer()
+void FRiveRendererModule::StartupRiveRenderer()
 {
+    // Use RHI if it's available. This means Windows and UE 5.4 and newer.
+#if PLATFORM_WINDOWS &&                                                        \
+    ((ENGINE_MAJOR_VERSION > 5) ||                                             \
+     (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 3))
+    UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI."))
+    RiveRenderer = MakeShared<FRiveRendererRHI>();
+    return;
+#endif
+
     switch (RHIGetInterfaceType())
     {
 #if PLATFORM_WINDOWS
         case ERHIInterfaceType::D3D11:
         {
-            UE_LOG(LogRiveRenderer,
-                   Display,
-                   TEXT("Rive running on RHI 'D3D11'"))
+            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on 'D3D11'"))
             RiveRenderer = MakeShared<FRiveRendererD3D11>();
             break;
         }
@@ -92,16 +86,14 @@ void FRiveRendererModule::StartupLegacyRiveRenderer()
         {
             UE_LOG(LogRiveRenderer,
                    Error,
-                   TEXT("Rive is NOT compatible with RHI 'D3D12'"))
+                   TEXT("Rive on UE5.3 is NOT compatible with 'D3D12'"))
             break;
         }
 #endif // PLATFORM_WINDOWS
 #if PLATFORM_ANDROID
         case ERHIInterfaceType::OpenGL:
         {
-            UE_LOG(LogRiveRenderer,
-                   Display,
-                   TEXT("Rive running on RHI 'OpenGL'"))
+            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on 'OpenGL'"))
             RiveRenderer = MakeShared<FRiveRendererOpenGL>();
             break;
         }
@@ -109,9 +101,7 @@ void FRiveRendererModule::StartupLegacyRiveRenderer()
 #if PLATFORM_APPLE
         case ERHIInterfaceType::Metal:
         {
-            UE_LOG(LogRiveRenderer,
-                   Display,
-                   TEXT("Rive running on RHI 'Metal'"))
+            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on 'Metal'"))
 #if defined(WITH_RIVE_MAC_ARM64)
             UE_LOG(LogRiveRenderer,
                    Display,
@@ -129,7 +119,7 @@ void FRiveRendererModule::StartupLegacyRiveRenderer()
         {
             UE_LOG(LogRiveRenderer,
                    Error,
-                   TEXT("Rive is NOT compatible with RHI 'Vulkan'"))
+                   TEXT("Rive is NOT compatible with 'Vulkan'"))
             break;
         }
         default:

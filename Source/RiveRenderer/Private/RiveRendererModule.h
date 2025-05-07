@@ -31,7 +31,7 @@ public:
      */
 
 private:
-    void StartupLegacyRiveRenderer();
+    void StartupRiveRenderer();
 
 private:
     TSharedPtr<IRiveRenderer> RiveRenderer;

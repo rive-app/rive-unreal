@@ -10,7 +10,6 @@
 #include "RiveFileDetailCustomization.h"
 #include "RiveFileAssetTypeActions.h"
 #include "RiveFileThumbnailRenderer.h"
-#include "RiveRendererSettings.h"
 #include "RiveTextureObjectAssetTypeActions.h"
 #include "RiveTextureObjectThumbnailRenderer.h"
 #include "Framework/Notifications/NotificationManager.h"
@@ -61,24 +60,6 @@ void FRiveEditorModule::StartupModule()
         CheckCurrentRHIAndNotify();
         FCoreDelegates::OnBeginFrame.Remove(OnBeginFrameHandle);
     });
-
-    // Register settings
-    if (ISettingsModule* SettingsModule =
-            FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-    {
-        SettingsModule->RegisterSettings(
-            "Project",
-            "Plugins",
-            "Rive",
-            LOCTEXT("RiveRendererSettingsName", "Rive"),
-            LOCTEXT("RiveRendererDescription", "Configure Rive settings"),
-            GetMutableDefault<URiveRendererSettings>());
-    }
-
-    GetMutableDefault<URiveRendererSettings>()->OnSettingChanged().AddLambda(
-        [this](UObject*, struct FPropertyChangedEvent&) {
-            FUnrealEdMisc::Get().RestartEditor();
-        });
 }
 
 void FRiveEditorModule::ShutdownModule()
@@ -131,8 +112,8 @@ void FRiveEditorModule::ShutdownModule()
 bool FRiveEditorModule::CheckCurrentRHIAndNotify()
 {
     IRiveRendererModule& Renderer = IRiveRendererModule::Get();
-    if (Renderer.GetRenderer()) // If we were able to create a Renderer, the RHI
-                                // is supported
+    if (Renderer.GetRenderer()) // If we were able to create a Renderer,
+                                // the RHI is supported.
     {
         return true;
     }
@@ -144,7 +125,7 @@ bool FRiveEditorModule::CheckCurrentRHIAndNotify()
     }
 
 #if PLATFORM_WINDOWS
-    return true; // DX11, DX12, and Vulkan are all supported.
+    RIVE_UNREACHABLE(); // DX11, DX12, and Vulkan are all supported.
 #elif PLATFORM_APPLE
     ERHIInterfaceType ExpectedRHI = ERHIInterfaceType::Metal;
     FString ExpectedRHIStr = TEXT("Metal");
