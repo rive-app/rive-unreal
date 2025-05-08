@@ -175,8 +175,7 @@ public:
             FRDGBufferDesc::CreateStructuredDesc(
                 m_gpuStride,
                 elementCount * (m_cpuStride / m_gpuStride)),
-            TEXT("rive.StructuredBufferRHIImpl"),
-            ERDGBufferFlags::ForceImmediateFirstBarrier);
+            TEXT("rive.StructuredBufferRHIImpl"));
 
         Builder.QueueBufferUpload(buffer,
                                   &m_data[elementOffset],

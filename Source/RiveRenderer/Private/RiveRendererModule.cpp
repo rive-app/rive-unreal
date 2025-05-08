@@ -6,13 +6,11 @@
 #include "Logs/RiveRendererLog.h"
 #include "Platform/RiveRendererRHI.h"
 
-#if PLATFORM_WINDOWS
-#include "Platform/RiveRendererD3D11.h"
-#elif PLATFORM_APPLE
+#if PLATFORM_APPLE
 #include "Platform/RiveRendererMetal.h"
 #elif PLATFORM_ANDROID
 #include "Platform/RiveRendererOpenGL.h"
-#endif // PLATFORM_WINDOWS
+#endif // PLATFORM_APPLE
 
 #define LOCTEXT_NAMESPACE "RiveRendererModule"
 
@@ -65,9 +63,7 @@ void FRiveRendererModule::CallOrRegister_OnRendererInitialized(
 void FRiveRendererModule::StartupRiveRenderer()
 {
     // Use RHI if it's available. This means Windows and UE 5.4 and newer.
-#if PLATFORM_WINDOWS &&                                                        \
-    ((ENGINE_MAJOR_VERSION > 5) ||                                             \
-     (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 3))
+#if PLATFORM_WINDOWS
     UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI."))
     RiveRenderer = MakeShared<FRiveRendererRHI>();
     return;
@@ -76,19 +72,7 @@ void FRiveRendererModule::StartupRiveRenderer()
     switch (RHIGetInterfaceType())
     {
 #if PLATFORM_WINDOWS
-        case ERHIInterfaceType::D3D11:
-        {
-            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on 'D3D11'"))
-            RiveRenderer = MakeShared<FRiveRendererD3D11>();
-            break;
-        }
-        case ERHIInterfaceType::D3D12:
-        {
-            UE_LOG(LogRiveRenderer,
-                   Error,
-                   TEXT("Rive on UE5.3 is NOT compatible with 'D3D12'"))
-            break;
-        }
+        RIVE_UNREACHABLE();
 #endif // PLATFORM_WINDOWS
 #if PLATFORM_ANDROID
         case ERHIInterfaceType::OpenGL:
