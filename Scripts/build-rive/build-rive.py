@@ -224,7 +224,7 @@ def main(rive_runtime_path):
     if sys.platform.startswith('darwin'):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
 
-        if args.platforms is None:
+        if args.platforms is None or len(args.platforms) < 1:
             args.platforms = [PlatformBuildTypes.Mac, PlatformBuildTypes.iOS]
 
         if PlatformBuildTypes.Mac in args.platforms:
@@ -236,7 +236,7 @@ def main(rive_runtime_path):
                 return
         
     elif sys.platform.startswith('win32'):
-        if args.platforms is None:
+        if args.platforms is None or len(args.platforms) < 1:
             args.platforms = [PlatformBuildTypes.Windows, PlatformBuildTypes.Android]
         # add rive build dir to path if it's not already there
         build_path = os.path.join(rive_runtime_path, "build")
