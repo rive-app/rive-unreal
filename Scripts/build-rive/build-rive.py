@@ -34,6 +34,7 @@ parser.add_argument("-p", "--rive_runtime_path", type=str, help="path to rive ru
 parser.add_argument("-t", "--build_rive_tests", action='store_true',  default=False, help="If set, gms, goldens and player will be built and copied as well")
 parser.add_argument("-r", "--raw_shaders", action='store_true', default=False, help="If set, --raw_shaders will be passed to the premake file for building")
 parser.add_argument("-n", "--no_build", action='store_true', default=False, help="If set, does not build the runtime, only generate shaders")
+parser.add_argument("-R", "--release_only", action='store_true', default=False, help="If set, does not build the debug runtime, only the release")
 
 class PlatformBuildTypes(Enum):
     Windows = 'Windows'
@@ -263,6 +264,9 @@ def main(rive_runtime_path):
     copy_includes(rive_runtime_path)
 
 def do_android(rive_runtime_path, release):
+    if args.release_only and not release:
+        return True
+    
     should_build_tests = args.build_rive_tests and release
 
     out_dir = os.path.join('..', 'out', 'android', 'release' if release else 'debug')
@@ -289,6 +293,8 @@ def do_android(rive_runtime_path, release):
 
 
 def do_windows(rive_runtime_path, release):
+    if args.release_only and not release:
+        return True
 
     should_build_tests = args.build_rive_tests and release
 
@@ -316,6 +322,9 @@ def do_windows(rive_runtime_path, release):
     return True
 
 def do_ios(rive_runtime_path, release):
+    if args.release_only and not release:
+        return True
+    
     should_build_tests = args.build_rive_tests and release
 
     root_dir = os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' )
@@ -372,6 +381,9 @@ def do_ios(rive_runtime_path, release):
 
 
 def do_mac(rive_runtime_path, release):
+    if args.release_only and not release:
+        return True
+    
     should_build_tests = args.build_rive_tests and release
 
     build_dirs = {}
