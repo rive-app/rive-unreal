@@ -67,6 +67,7 @@ targets = [
     'rive_harfbuzz',
     'rive_pls_renderer',
     'rive_sheenbidi',
+    'miniaudio',
     'rive_yoga',
     'libpng',
     'libjpeg',

@@ -162,6 +162,7 @@ public class RiveLibrary : ModuleRules
 	        PublicAdditionalLibraries.AddRange(new string[]
 	        {
 	            detail.GetLibPath("rive_sheenbidi"),
+                detail.GetLibPath("rive_miniaudio"),
 	            detail.GetLibPath("rive_harfbuzz"),
 	            detail.GetLibPath("rive_decoders"),
 	            detail.GetLibPath("rive_pls_renderer"),
