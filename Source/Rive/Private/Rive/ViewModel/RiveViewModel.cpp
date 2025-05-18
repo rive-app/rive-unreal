@@ -136,7 +136,7 @@ URiveViewModelInstance* URiveViewModel::CreateWrapperInstance(
     return InstanceWrapper;
 }
 
-URiveViewModelInstance* URiveViewModel::CreateDefaultInstance() const
+URiveViewModelInstance* URiveViewModel::CreateDefaultInstance()
 {
     if (!ViewModelRuntimePtr)
     {
@@ -166,8 +166,7 @@ URiveViewModelInstance* URiveViewModel::CreateInstance()
     return CreateWrapperInstance(ViewModelRuntimePtr->createInstance());
 }
 
-URiveViewModelInstance* URiveViewModel::CreateInstanceFromIndex(
-    int32 Index) const
+URiveViewModelInstance* URiveViewModel::CreateInstanceFromIndex(int32 Index)
 {
     if (!ViewModelRuntimePtr)
     {
@@ -192,7 +191,7 @@ URiveViewModelInstance* URiveViewModel::CreateInstanceFromIndex(
 }
 
 URiveViewModelInstance* URiveViewModel::CreateInstanceFromName(
-    const FString& Name) const
+    const FString& Name)
 {
     if (!ViewModelRuntimePtr)
     {

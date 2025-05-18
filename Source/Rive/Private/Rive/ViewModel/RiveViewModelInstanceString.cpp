@@ -34,6 +34,5 @@ void URiveViewModelInstanceString::SetValue(const FString& Value)
                TEXT("URiveViewModelInstanceString::SetValue() "
                     "GetNativePtr() is null."));
     }
-
     StringPtr->value(RiveUtils::ToUTF8(*Value));
 }

@@ -17,13 +17,16 @@ void URiveFontAsset::LoadFontFace(UFontFace* InFontFace)
 {
     if (!InFontFace || Type != ERiveAssetType::Font)
     {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("LoadFontFace: Invalid or missing FontFace."));
         return;
     }
 
     if (InFontFace->LoadingPolicy != EFontLoadingPolicy::Inline)
     {
         UE_LOG(LogRive,
-               Warning,
+               Error,
                TEXT("LoadFontFace: trying to load a font that isn't marked "
                     "Inline, this will fail. "
                     "Please change the FontFace to use the 'Inline' Loading "
@@ -69,7 +72,7 @@ void URiveFontAsset::LoadFontBytes(const TArray<uint8>& InBytes)
                         UE_LOG(
                             LogRive,
                             Error,
-                            TEXT("LoadFontFace: Could not decode font bytes"));
+                            TEXT("LoadFontBytes: Could not decode font bytes"));
                         return;
                     }
 
