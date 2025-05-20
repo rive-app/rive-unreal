@@ -30,6 +30,7 @@ Finally on all platforms:
     * Copy unreal static shaders from rive_runtime_path/renderer/src/unreal to Plugins/Rive/Shaders/Private/Rive
 """)
 
+parser.add_argument("-c", "--clean", action="store_true", default=False, help="Remove generated build output directories before building")
 parser.add_argument("-p", "--rive_runtime_path", type=str, help="path to rive runtime root folder, if not specified default path is used")
 parser.add_argument("-t", "--build_rive_tests", action='store_true',  default=False, help="If set, gms, goldens and player will be built and copied as well")
 parser.add_argument("-r", "--raw_shaders", action='store_true', default=False, help="If set, --raw_shaders will be passed to the premake file for building")
@@ -60,6 +61,12 @@ args = parser.parse_args()
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 gms_directory = os.path.abspath(os.path.join(script_directory, "../../../GM"))
+
+clean_paths = [
+    os.path.join(script_directory, "..", "..", "..", "..", "..", "runtime", "out"),
+    os.path.join(script_directory, "..", "..", "Source", "ThirdParty", "RiveLibrary", "Includes"),
+    os.path.join(script_directory, "..", "..", "Shaders", "Private", "Rive", "Generated"),
+]
 
 targets = [
     'rive',
@@ -222,6 +229,9 @@ def print_red(text):
 
 def main(rive_runtime_path):
     print_green(f"using runtime location {rive_runtime_path}")
+    
+    if args.clean:
+        clean_build_artifacts()
     
     if sys.platform.startswith('darwin'):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
@@ -435,6 +445,15 @@ def do_mac(rive_runtime_path, release):
     
     return True
 
+def clean_build_artifacts():
+    print_green("Cleaning build output directories...")
+    for path in clean_paths:
+        abs_path = os.path.abspath(path)
+        if os.path.exists(abs_path):
+            print(f"Removing {abs_path}")
+            shutil.rmtree(abs_path, onerror=remove_readonly)
+        else:
+            print(f"Path does not exist: {abs_path}")
 
 def copy_files(src, dst, extension, is_release, should_rename = True, files_to_copy = None):
      # Ensure the source directory exists
@@ -506,7 +525,6 @@ def copy_includes(rive_runtime_path):
                 ush_basename = os.path.splitext(basename)[0] + '.ush'
                 ush_path = os.path.join(generated_shader_path, ush_basename)
                 shutil.copyfile(pathname, ush_path)
-    
 
 if __name__ == '__main__':
     if args.rive_runtime_path:
