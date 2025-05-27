@@ -411,8 +411,10 @@ public:
             FRHITextureCreateDesc::Create2D(TEXT("rive.PLSTextureRHIImpl_"),
                                             m_width,
                                             m_height,
-                                            PixelFormat);
-        Desc.SetNumMips(mipLevelCount);
+                                            PixelFormat)
+                .AddFlags(ETextureCreateFlags::SRGB)
+                .SetNumMips(1);
+
         m_texture = CREATE_TEXTURE_ASYNC(commandList, Desc);
         commandList->UpdateTexture2D(
             m_texture,
@@ -449,19 +451,19 @@ public:
                    EPixelFormat PixelFormat = PF_B8G8R8A8) :
         Texture(width, height)
     {
-        FRHICommandList& commandList =
-            GRHICommandList.GetImmediateCommandList();
-        FRHICommandListScopedPipelineGuard Guard(commandList);
+        FRHICommandList& RHICmdList = GRHICommandList.GetImmediateCommandList();
+        FRHICommandListScopedPipelineGuard Guard(RHICmdList);
 
         auto Desc =
             FRHITextureCreateDesc::Create2D(TEXT("rive.PLSTextureRHIImpl_"),
                                             m_width,
                                             m_height,
                                             PixelFormat)
-                .AddFlags(ETextureCreateFlags::SRGB);
-        Desc.SetNumMips(mipLevelCount);
-        m_texture = CREATE_TEXTURE_ASYNC(commandList, Desc);
-        commandList.UpdateTexture2D(
+                .AddFlags(ETextureCreateFlags::SRGB)
+                .SetNumMips(1);
+
+        m_texture = CREATE_TEXTURE_ASYNC(RHICmdList, Desc);
+        RHICmdList.UpdateTexture2D(
             m_texture,
             0,
             FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height),
