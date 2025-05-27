@@ -1,6 +1,6 @@
 # Rive Unreal
 
-An Unreal runtime library for [Rive](https://rive.app). This is currently a **technical preview** for Mac and Windows installs of Unreal. We're hoping to gather feedback about the API and feature-set as we expand platform support.
+An Unreal runtime library for [Rive](https://rive.app). This is currently an Alpha for Mac and Windows installs of Unreal. We're hoping to gather feedback about the API and feature-set as we expand platform support.
 
 PLEASE WATCH [THIS VIDEO](https://ucarecdn.com/a320730a-abb9-48cc-b945-7fb4ad65767c/)  ON OUR [GETTING STARTED PAGE](https://rive.app/docs/game-runtimes/unreal/getting-started) TO AVOID COMMON ISSUES!
 
