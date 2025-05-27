@@ -64,7 +64,7 @@ You can find the source for the rive-unreal-demos [here](https://github.com/rive
 
 You will need to work in the **Unreal 5.3, 5.4, or 5.5** editor that supports OpenGL, D3D11, or D3D12 for Windows, or a Mac with ARM64 (M1, M2, etc) architecture.
 
-Select either D3D11/D#D12/OpenGL for Windows, or Metal for Mac/iOS as the Renderer ID under Editor Preferences -> Plugins - Graphics Switching in Unreal. If you are making an Android Build, make sure to use OpenGL instead of Vulcan.
+Select either D3D11/D3D12/OpenGL for Windows, or Metal for Mac/iOS as the Renderer ID under Editor Preferences -> Plugins - Graphics Switching in Unreal. If you are making an Android Build, make sure to use OpenGL instead of Vulcan.
 
 ### Adding the Rive Unreal plugin
 
