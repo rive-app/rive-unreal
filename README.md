@@ -10,12 +10,11 @@ Currently supported platforms and backends include:
 
 - Metal on Mac
 - Metal on iOS
-- D3D11 & D3D12 on Windows
-- OpenGL on Android
+- Vulkan, D3D11, and D3D12 on Windows
 
 Planned support for:
 
-- Vulkan on Linux, Android, Windows
+- Vulkan on Linux and Android.
 
 ### Feature support
 
@@ -32,7 +31,7 @@ The rive-unreal runtime uses the latest Rive C++ runtime.
 | Out-of-band assets           | ✅           |
 | Procedural rendering         | Coming soon |
 | PNG images                   | ✅           |
-| WEBP and JPEG images         | Coming soon |
+| WEBP and JPEG images         | ✅           |
 
 ## Table of contents
 
