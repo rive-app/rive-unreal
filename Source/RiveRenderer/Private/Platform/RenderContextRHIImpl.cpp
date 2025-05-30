@@ -303,6 +303,32 @@ FBufferRHIRef makeSimpleImmutableBuffer(FRHICommandList& RHICmdList,
     return buffer;
 }
 
+ESamplerFilter SamplerFilterFromImageFilterOption(const ImageFilter option)
+{
+    switch (option)
+    {
+        default:
+        case ImageFilter::trilinear:
+            return ESamplerFilter::SF_Bilinear;
+        case ImageFilter::nearest:
+            return ESamplerFilter::SF_Point;
+    }
+}
+
+ESamplerAddressMode AddressModeFromImageWrapOption(const ImageWrap option)
+{
+    switch (option)
+    {
+        default:
+        case ImageWrap::clamp:
+            return ESamplerAddressMode::AM_Clamp;
+        case ImageWrap::repeat:
+            return ESamplerAddressMode::AM_Wrap;
+        case ImageWrap::mirror:
+            return ESamplerAddressMode::AM_Mirror;
+    }
+}
+
 BufferRingRHIImpl::BufferRingRHIImpl(EBufferUsageFlags flags,
                                      size_t inSizeInBytes,
                                      size_t stride) :
@@ -734,14 +760,6 @@ RenderContextRHIImpl::RenderContextRHIImpl(
                                          1,
                                          0,
                                          SCF_Never>::GetRHI();
-    m_mipmapSampler = TStaticSamplerState<SF_Point,
-                                          AM_Clamp,
-                                          AM_Clamp,
-                                          AM_Clamp,
-                                          0,
-                                          1,
-                                          0,
-                                          SCF_Never>::GetRHI();
     m_featherSampler = TStaticSamplerState<SF_Bilinear,
                                            AM_Clamp,
                                            AM_Clamp,
@@ -758,6 +776,19 @@ RenderContextRHIImpl::RenderContextRHIImpl(
                                           1,
                                           0,
                                           SCF_Never>::GetRHI();
+
+    for (size_t i = 0; i < rive::ImageSampler::MAX_SAMPLER_PERMUTATIONS; i++)
+    {
+        auto filter = SamplerFilterFromImageFilterOption(
+            rive::ImageSampler::GetFilterOptionFromKey(i));
+        auto wrapX = AddressModeFromImageWrapOption(
+            rive::ImageSampler::GetWrapXOptionFromKey(i));
+        auto wrapY = AddressModeFromImageWrapOption(
+            rive::ImageSampler::GetWrapYOptionFromKey(i));
+
+        m_imageSamplers[i] = RHICreateSamplerState(
+            FSamplerStateInitializerRHI(filter, wrapX, wrapY));
+    }
 
     auto PlaceholderDesc =
         FRHITextureCreateDesc::Create2D(TEXT("rive.Placeholder"),
@@ -1494,7 +1525,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
                 PassParameters->FlushUniforms = flushUniforms;
                 PassParameters->PS.gradSampler = m_linearSampler;
-                PassParameters->PS.imageSampler = m_mipmapSampler;
+                check(batch.imageSampler.asKey() <
+                      ImageSampler::MAX_SAMPLER_PERMUTATIONS);
+                PassParameters->PS.imageSampler =
+                    m_imageSamplers[batch.imageSampler.asKey()];
                 PassParameters->PS.atlasSampler = m_atlasSampler;
                 PassParameters->PS.featherSampler = m_featherSampler;
                 PassParameters->PS.GLSL_atlasTexture_raw = atlasTexture;

@@ -10,6 +10,7 @@
 
 THIRD_PARTY_INCLUDES_START
 #undef PI
+#include "rive/shapes/paint/image_sampler.hpp"
 #include "rive/renderer/rive_renderer.hpp"
 #include "rive/renderer/rive_render_image.hpp"
 #include "rive/renderer/buffer_ring.hpp"
@@ -340,8 +341,9 @@ private:
     FBufferRHIRef m_imageRectIndexBuffer;
     FBufferRHIRef m_tessSpanIndexBuffer;
 
+    FSamplerStateRHIRef
+        m_imageSamplers[rive::ImageSampler::MAX_SAMPLER_PERMUTATIONS];
     FSamplerStateRHIRef m_linearSampler;
-    FSamplerStateRHIRef m_mipmapSampler;
     FSamplerStateRHIRef m_atlasSampler;
     FSamplerStateRHIRef m_featherSampler;
 
