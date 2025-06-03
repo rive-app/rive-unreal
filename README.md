@@ -1,3 +1,13 @@
+# Important Announcement
+
+We’re rewriting our Unreal Engine integration to deliver significantly better performance, and it’s already showing a 4x speed boost.
+
+To focus on this effort, we’re temporarily pausing support and no longer recommending this version of the Rive x Unreal plugin, which was released as an experimental preview. If you’re evaluating Rive, the [Rive C++ Runtime](https://github.com/rive-app/rive-runtime) is the best way to gauge our performance and stability.
+
+Since we started working with Unreal Engine last year, we’ve learned a lot and made key hires with deep Unreal experience. This rewrite reflects that progress.
+
+We’re sharing this now to be transparent, especially for teams considering Rive with Unreal Engine. A better, faster integration is on the way. We’ll share more technical details in an upcoming blog post.
+
 # Rive Unreal
 
 An Unreal runtime library for [Rive](https://rive.app). This is currently an Alpha for Mac and Windows installs of Unreal. We're hoping to gather feedback about the API and feature-set as we expand platform support.
