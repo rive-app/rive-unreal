@@ -241,7 +241,7 @@ FRDGPassRef AddDrawPatchesPass(
                                       BF_InverseSourceAlpha>::GetRHI();
             else
                 GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::CreateRHI();
+                    TStaticBlendState<CW_NONE>::GetRHI();
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -326,7 +326,7 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
                                       BF_InverseSourceAlpha>::GetRHI();
             else
                 GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::CreateRHI();
+                    TStaticBlendState<CW_NONE>::GetRHI();
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -407,7 +407,7 @@ FRDGPassRef AddDrawAtlasBlitPass(
                                       BF_InverseSourceAlpha>::GetRHI();
             else
                 GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::CreateRHI();
+                    TStaticBlendState<CW_NONE>::GetRHI();
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -490,7 +490,7 @@ FRDGPassRef AddDrawImageRectPass(
                                       BF_InverseSourceAlpha>::GetRHI();
             else
                 GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::CreateRHI();
+                    TStaticBlendState<CW_NONE>::GetRHI();
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -580,7 +580,7 @@ FRDGPassRef AddDrawImageMeshPass(
                                       BF_InverseSourceAlpha>::GetRHI();
             else
                 GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::CreateRHI();
+                    TStaticBlendState<CW_NONE>::GetRHI();
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -670,7 +670,7 @@ FRDGPassRef AddAtomicResolvePass(
                                       BF_InverseSourceAlpha>::GetRHI();
             else
                 GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::CreateRHI();
+                    TStaticBlendState<CW_NONE>::GetRHI();
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
