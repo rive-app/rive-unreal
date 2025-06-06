@@ -1,3 +1,17 @@
+#### Secrets #####
+# Requires "UNREAL_CI_PAT" to be defined with an access token from a github account that has access to the UnrealEngine source code
+
+#### Runner requirements ####
+## macOS ##
+# 1. A valid Xcode environment with macOS and iOS SDKs
+# 2. brew
+
+## Windows/Android/Linux ##
+# 1. Visual Studio 2022
+# 2. Android NDK setup: https://docs.unrealengine.com/5.3/en-US/how-to-set-up-android-sdk-and-ndk-for-your-unreal-engine-development-environment/
+# 3. Linux cross-compile toolchain: https://docs.unrealengine.com/5.3/en-US/linux-development-requirements-for-unreal-engine/ ; We could use another linux runner, but it'll save quite a bit of time to just cross compile to linux instead of having to build yet-another UE build
+
+
 name: Build Plugin
 
 on:
@@ -36,7 +50,7 @@ jobs:
           git lfs pull
         working-directory: RiveUnreal
 
-      - name: Make library/services in our temp directory
+      - name: Make library/services in our temp directory, required for post checkout hook FixDependencyFiles.sh for macOS
         run: |
           mkdir -p "${{runner.temp}}/Library/Services"
           echo "${{runner.temp}}/Library/Services"
@@ -53,7 +67,7 @@ jobs:
           fetch-depth: 1
         continue-on-error: true
 
-      - name: Check if UE source successfully got fetched
+      - name: Check if UE source successfully got fetched, we expect the previous checkout to fail due to UE posthook to FixDependencyFiles.sh using the ~ token to copy to Library/Services that doesnt exist in our environment
         run: |
           if [ ! -d "${{github.workspace}}/UE-${{inputs.ENGINE_VERSION}}" ]; then
             echo "Did not successfully checkout UE source"
@@ -74,7 +88,9 @@ jobs:
             version=${GITHUB_SHA}
           fi
           echo "Setting VersionName to $version"
+
           echo "RIVE_VERSION=$version" >> $GITHUB_ENV
+
           upluginPath="${GITHUB_WORKSPACE}/RiveUnreal/Rive.uplugin"
           jq '.VersionName = "'$version'"' "$upluginPath" > temp.json && mv temp.json "$upluginPath"
 
@@ -140,7 +156,9 @@ jobs:
              $version = "${{ github.sha }}"
            }
            Write-Host "Setting VersionName to $version"
+
            echo "RIVE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
            $upluginPath = "${{github.workspace}}/RiveUnreal/Rive.uplugin"
            $upluginContent = Get-Content $upluginPath | Out-String | ConvertFrom-Json
            $upluginContent.VersionName = $version
