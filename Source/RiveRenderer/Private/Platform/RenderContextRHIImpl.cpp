@@ -624,7 +624,11 @@ RenderContextRHIImpl::RenderContextRHIImpl(
         false; // m_capabilities.bSupportsRasterOrderViews;
     m_platformFeatures.clipSpaceBottomUp = true;
     m_platformFeatures.framebufferBottomUp = false;
-
+#if PLATFORM_ANDROID
+    m_platformFeatures.pathIDGranularity = 2;
+    m_platformFeatures.framebufferBottomUp = true;
+    m_platformFeatures.clipSpaceBottomUp = false;
+#endif
     auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
     VertexDeclarations[static_cast<int32>(EVertexDeclarations::Resolve)] =
