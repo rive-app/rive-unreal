@@ -27,7 +27,7 @@ AActor* URiveActorFactory::SpawnActor(
     {
         if (URiveFile* RiveFile = Cast<URiveFile>(InAsset))
         {
-            NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
+            NewActor->SetWidgetClass(URiveWidget::StaticClass());
         }
     }
 

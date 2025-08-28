@@ -2,101 +2,22 @@
 
 #include "UMG/RiveWidget.h"
 #include "Logs/RiveLog.h"
-#include "Rive/RiveTextureObject.h"
+#include "Rive/RiveAudioEngine.h"
+#include "Rive/RiveArtboard.h"
 #include "Slate/SRiveWidget.h"
 #include "TimerManager.h"
 #include "Components/PanelWidget.h"
 
 #define LOCTEXT_NAMESPACE "RiveWidget"
-namespace UE::Private::RiveWidget
-{
-FBox2f CalculateRenderTextureExtentsInViewport(const FVector2f& InTextureSize,
-                                               const FVector2f& InViewportSize);
-FVector2f CalculateLocalPointerCoordinatesFromViewport(
-    URiveTexture* InRiveTexture,
-    URiveArtboard* InArtboard,
-    const FGeometry& MyGeometry,
-    const FPointerEvent& MouseEvent);
-
-FVector2f GetInputCoordinates(URiveTexture* InRiveTexture,
-                              URiveArtboard* InRiveArtboard,
-                              const FGeometry& MyGeometry,
-                              const FPointerEvent& MouseEvent,
-                              const float InScaleFactor = 1.0f)
-{
-    // Convert absolute input position to viewport local position
-    FDeprecateSlateVector2D LocalPosition =
-        MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-
-    if (InScaleFactor != -1)
-        LocalPosition /= InScaleFactor;
-
-    // Because our RiveTexture can be a different pixel size than our viewport,
-    // we have to scale the x,y coords
-    const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-    const FBox2f TextureBox =
-        CalculateRenderTextureExtentsInViewport(InRiveTexture->Size,
-                                                ViewportSize);
-    return InRiveTexture->GetLocalCoordinatesFromExtents(InRiveArtboard,
-                                                         LocalPosition,
-                                                         TextureBox);
-}
-
-FBox2f CalculateRenderTextureExtentsInViewport(const FVector2f& InTextureSize,
-                                               const FVector2f& InViewportSize)
-{
-    const float TextureAspectRatio = InTextureSize.X / InTextureSize.Y;
-    const float ViewportAspectRatio = InViewportSize.X / InViewportSize.Y;
-
-    if (ViewportAspectRatio >
-        TextureAspectRatio) // Viewport wider than the Texture => height should
-                            // be the same
-    {
-        FVector2f Size{InViewportSize.Y * TextureAspectRatio, InViewportSize.Y};
-        float XOffset = (InViewportSize.X - Size.X) * 0.5f;
-        return {{XOffset, 0}, {XOffset + Size.X, Size.Y}};
-    }
-    else // Viewport taller than the Texture => width should be the same
-    {
-        FVector2f Size{(float)InViewportSize.X,
-                       InViewportSize.X / TextureAspectRatio};
-        float YOffset = (InViewportSize.Y - Size.Y) * 0.5f;
-        return {{0, YOffset}, {Size.X, YOffset + Size.Y}};
-    }
-}
-
-FVector2f CalculateLocalPointerCoordinatesFromViewport(
-    URiveTexture* InRiveTexture,
-    URiveArtboard* InArtboard,
-    const FGeometry& MyGeometry,
-    const FPointerEvent& MouseEvent)
-{
-    const FVector2f MouseLocal =
-        MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-    const FVector2f ViewportSize = MyGeometry.GetLocalSize();
-    const FBox2f TextureBox =
-        CalculateRenderTextureExtentsInViewport(InRiveTexture->Size,
-                                                ViewportSize);
-    return InRiveTexture->GetLocalCoordinatesFromExtents(InArtboard,
-                                                         MouseLocal,
-                                                         TextureBox);
-}
-} // namespace UE::Private::RiveWidget
 
 URiveWidget::~URiveWidget()
 {
     if (RiveWidget != nullptr)
     {
-        RiveWidget->SetRiveTexture(nullptr);
+        RiveWidget->SetRiveArtboard(nullptr);
     }
 
     RiveWidget.Reset();
-
-    if (RiveTextureObject != nullptr)
-    {
-        RiveTextureObject->MarkAsGarbage();
-        RiveTextureObject = nullptr;
-    }
 }
 
 #if WITH_EDITOR
@@ -112,42 +33,19 @@ void URiveWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
     Super::ReleaseSlateResources(bReleaseChildren);
 
-    if (RiveWidget != nullptr)
+    if (RiveWidget != nullptr && bReleaseChildren)
     {
-        RiveWidget->SetRiveTexture(nullptr);
+        RiveWidget->SetRiveArtboard(nullptr);
     }
 
     RiveWidget.Reset();
-
-    if (RiveTextureObject != nullptr)
-    {
-        RiveTextureObject->MarkAsGarbage();
-        RiveTextureObject = nullptr;
-    }
 }
 
 TSharedRef<SWidget> URiveWidget::RebuildWidget()
 {
-    RiveWidget =
-        SNew(SRiveWidget)
-            .OnSizeChanged(BIND_UOBJECT_DELEGATE(SRiveWidget::FOnSizeChanged,
-                                                 OnSWidgetSizeChanged));
+    RiveWidget = SNew(SRiveWidget);
 
-    if (!RiveTextureObject && RiveWidget.IsValid())
-    {
-        RiveTextureObject = NewObject<URiveTextureObject>();
-        RiveTextureObject->Size =
-            FIntPoint::ZeroValue; // Setting to zero value here will make the
-                                  // rive texture use the artboard size
-                                  // initially
-
-        if (UWorld* World = GetWorld())
-        {
-            World->GetTimerManager().ClearTimer(TimerHandle);
-            World->GetTimerManager()
-                .SetTimer(TimerHandle, [this]() { Setup(); }, 0.05f, false);
-        }
-    }
+    Setup();
 
     return RiveWidget.ToSharedRef();
 }
@@ -155,144 +53,72 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 FReply URiveWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry,
                                             const FPointerEvent& InMouseEvent)
 {
+    Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
     if (InMouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
     {
         return FReply::Unhandled();
     }
 
-    return OnInput(InGeometry,
-                   InMouseEvent,
-                   [this](const FVector2f& InputCoordinates,
-                          FRiveStateMachine* InStateMachine) {
-                       if (InStateMachine)
-                       {
-                           return InStateMachine->PointerDown(InputCoordinates);
-                       }
-                       return false;
-                   });
+    if (IsValid(RiveArtboard))
+    {
+        RiveArtboard->PointerDown(InGeometry, RiveDescriptor, InMouseEvent);
+    }
+
+    return FReply::Handled();
 }
 
 FReply URiveWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry,
                                           const FPointerEvent& InMouseEvent)
 {
+    Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
     if (InMouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
     {
         return FReply::Unhandled();
     }
 
-    return OnInput(InGeometry,
-                   InMouseEvent,
-                   [this](const FVector2f& InputCoordinates,
-                          FRiveStateMachine* InStateMachine) {
-                       if (InStateMachine)
-                       {
-                           return InStateMachine->PointerUp(InputCoordinates);
-                       }
-                       return false;
-                   });
+    if (IsValid(RiveArtboard))
+    {
+        RiveArtboard->PointerUp(InGeometry, RiveDescriptor, InMouseEvent);
+    }
+
+    return FReply::Handled();
 }
 
 FReply URiveWidget::NativeOnMouseMove(const FGeometry& InGeometry,
                                       const FPointerEvent& InMouseEvent)
 {
-    return OnInput(InGeometry,
-                   InMouseEvent,
-                   [this](const FVector2f& InputCoordinates,
-                          FRiveStateMachine* InStateMachine) {
-                       if (InStateMachine)
-                       {
-                           return InStateMachine->PointerMove(InputCoordinates);
-                       }
-                       return false;
-                   });
+    Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+
+    if (IsValid(RiveArtboard))
+    {
+        RiveArtboard->PointerMove(InGeometry, RiveDescriptor, InMouseEvent);
+    }
+
+    return FReply::Handled();
+}
+
+void URiveWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+    Super::NativeOnMouseLeave(InMouseEvent);
+
+    if (IsValid(RiveArtboard))
+    {
+        RiveArtboard->PointerExit(GetCachedGeometry(),
+                                  RiveDescriptor,
+                                  InMouseEvent);
+    }
 }
 
 void URiveWidget::SetAudioEngine(URiveAudioEngine* InRiveAudioEngine)
 {
-    if (RiveTextureObject)
+    RiveAudioEngine = InRiveAudioEngine;
+    if (IsValid(RiveArtboard))
     {
-        RiveTextureObject->SetAudioEngine(InRiveAudioEngine);
-        return;
+        RiveArtboard->SetAudioEngine(InRiveAudioEngine);
     }
-
-    UE_LOG(LogRive,
-           Warning,
-           TEXT("RiveObject was null while trying to SetAudioEngine"));
 }
 
-URiveArtboard* URiveWidget::GetArtboard() const
-{
-    if (RiveTextureObject && RiveTextureObject->GetArtboard())
-    {
-        return RiveTextureObject->GetArtboard();
-    }
-
-    return nullptr;
-}
-
-void URiveWidget::OnRiveObjectReady()
-{
-    if (RiveTextureObject)
-    {
-        RiveTextureObject->OnRiveReady.RemoveDynamic(
-            this,
-            &URiveWidget::OnRiveObjectReady);
-    }
-
-    if (!RiveWidget.IsValid() || !GetCachedWidget())
-        return;
-
-    if (auto artboard = RiveTextureObject->GetArtboard(); IsValid(artboard))
-    {
-        FVector2f ArtboardSize = artboard->GetSize();
-        SetMinimumDesiredSize(FIntPoint(ArtboardSize.X, ArtboardSize.Y));
-        RiveWidget->SetRiveTexture(RiveTextureObject);
-        RiveDescriptor.ArtboardName = artboard->GetArtboardName();
-        RiveDescriptor.StateMachineName = artboard->StateMachineName;
-    }
-
-    OnRiveReady.Broadcast();
-}
-
-FReply URiveWidget::OnInput(
-    const FGeometry& MyGeometry,
-    const FPointerEvent& MouseEvent,
-    const TFunction<bool(const FVector2f&, FRiveStateMachine*)>&
-        InStateMachineInputCallback)
-{
-    if (!RiveTextureObject || !RiveTextureObject->GetArtboard())
-    {
-        return FReply::Unhandled();
-    }
-
-    URiveArtboard* Artboard = RiveTextureObject->GetArtboard();
-    if (!ensure(IsValid(Artboard)))
-    {
-        return FReply::Unhandled();
-    }
-
-    bool Result = false;
-
-    Artboard->BeginInput();
-    if (FRiveStateMachine* StateMachine = Artboard->GetStateMachine())
-    {
-        float ScaleFactor = -1.0f;
-
-        if (RiveDescriptor.FitType == ERiveFitType::Layout)
-            ScaleFactor = RiveDescriptor.ScaleFactor;
-
-        FVector2f InputCoordinates =
-            UE::Private::RiveWidget::GetInputCoordinates(RiveTextureObject,
-                                                         Artboard,
-                                                         MyGeometry,
-                                                         MouseEvent,
-                                                         ScaleFactor);
-        Result = InStateMachineInputCallback(InputCoordinates, StateMachine);
-    }
-    Artboard->EndInput();
-
-    return Result ? FReply::Handled() : FReply::Unhandled();
-}
+URiveArtboard* URiveWidget::GetArtboard() const { return RiveArtboard; }
 
 TArray<FString> URiveWidget::GetArtboardNamesForDropdown() const
 {
@@ -300,9 +126,9 @@ TArray<FString> URiveWidget::GetArtboardNamesForDropdown() const
 
     if (RiveDescriptor.RiveFile)
     {
-        for (URiveArtboard* Artboard : RiveDescriptor.RiveFile->Artboards)
+        for (auto Artboard : RiveDescriptor.RiveFile->ArtboardDefinitions)
         {
-            Output.Add(Artboard->GetArtboardName());
+            Output.Add(Artboard.Name);
         }
     }
 
@@ -311,20 +137,18 @@ TArray<FString> URiveWidget::GetArtboardNamesForDropdown() const
 
 TArray<FString> URiveWidget::GetStateMachineNamesForDropdown() const
 {
-    TArray<FString> Output{""};
     if (RiveDescriptor.RiveFile)
     {
-        for (URiveArtboard* Artboard : RiveDescriptor.RiveFile->Artboards)
+        for (auto Artboard : RiveDescriptor.RiveFile->ArtboardDefinitions)
         {
-            if (Artboard->GetArtboardName().Equals(RiveDescriptor.ArtboardName))
+            if (Artboard.Name.Equals(RiveDescriptor.ArtboardName))
             {
-                Output.Append(Artboard->GetStateMachineNames());
-                break;
+                return Artboard.StateMachineNames;
             }
         }
     }
 
-    return Output;
+    return {};
 }
 
 #if WITH_EDITOR
@@ -341,12 +165,12 @@ void URiveWidget::PostEditChangeChainProperty(
 
     if (PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor, RiveFile) ||
         PropertyName ==
-            GET_MEMBER_NAME_CHECKED(FRiveDescriptor, ArtboardIndex) ||
-        PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor, ArtboardName))
+            GET_MEMBER_NAME_CHECKED(FRiveDescriptor, ArtboardName) ||
+        PropertyName ==
+            GET_MEMBER_NAME_CHECKED(FRiveDescriptor, bAutoBindDefaultViewModel))
     {
         TArray<FString> ArtboardNames = GetArtboardNamesForDropdown();
-        if (ArtboardNames.Num() > 0 && RiveDescriptor.ArtboardIndex == 0 &&
-            (RiveDescriptor.ArtboardName.IsEmpty() ||
+        if ((RiveDescriptor.ArtboardName.IsEmpty() ||
              !ArtboardNames.Contains(RiveDescriptor.ArtboardName)))
         {
             RiveDescriptor.ArtboardName = ArtboardNames[0];
@@ -363,24 +187,79 @@ void URiveWidget::PostEditChangeChainProperty(
         {
             RiveDescriptor.StateMachineName = StateMachineNames[1];
         }
+
+        if (IsValid(RiveDescriptor.RiveFile))
+        {
+            if (RiveDescriptor.ArtboardName.IsEmpty())
+            {
+                UE_LOG(LogRive,
+                       Error,
+                       TEXT("URiveWidget::PostEditChangeChainProperty Selected "
+                            "artboard is empty"));
+                return;
+            }
+
+            RiveArtboard = RiveDescriptor.RiveFile->CreateArtboardNamed(
+                RiveDescriptor.ArtboardName,
+                RiveDescriptor.bAutoBindDefaultViewModel);
+
+            if (IsValid(RiveAudioEngine))
+            {
+                RiveArtboard->SetAudioEngine(RiveAudioEngine);
+            }
+
+            RiveWidget->SetRiveArtboard(RiveArtboard);
+            RiveWidget->SetRiveDescriptor(RiveDescriptor);
+        }
+    }
+
+    if (PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor, Alignment) ||
+        PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor, FitType))
+    {
+        RiveWidget->SetRiveDescriptor(RiveDescriptor);
     }
 }
 #endif
 
 void URiveWidget::Setup()
 {
-    if (!RiveTextureObject || !RiveWidget.IsValid())
+    // Don't load stuff for default object
+    if (HasAnyFlags(RF_ClassDefaultObject))
     {
         return;
     }
 
-    RiveTextureObject->OnRiveReady.AddDynamic(this,
-                                              &URiveWidget::OnRiveObjectReady);
-#if WITH_EDITOR
-    RiveTextureObject->bRenderInEditor = true;
-#endif
-    RiveTextureObject->Initialize(RiveDescriptor);
-    CheckArtboardSize();
+    if (!RiveWidget.IsValid())
+    {
+        return;
+    }
+
+    if (RiveArtboard == nullptr && RiveDescriptor.RiveFile != nullptr &&
+        IsValid(RiveDescriptor.RiveFile))
+    {
+        if (RiveDescriptor.ArtboardName.IsEmpty())
+        {
+            UE_LOG(LogRive,
+                   Error,
+                   TEXT("URiveWidget::Setup Selected artboard is empty"));
+            return;
+        }
+
+        RiveArtboard = RiveDescriptor.RiveFile->CreateArtboardNamed(
+            RiveDescriptor.ArtboardName,
+            RiveDescriptor.bAutoBindDefaultViewModel);
+    }
+
+    if (IsValid(RiveArtboard))
+    {
+        RiveDescriptor.ArtboardName = RiveArtboard->GetArtboardName();
+        RiveWidget->SetRiveArtboard(RiveArtboard);
+        RiveWidget->SetRiveDescriptor(RiveDescriptor);
+        if (IsValid(RiveAudioEngine))
+        {
+            RiveArtboard->SetAudioEngine(RiveAudioEngine);
+        }
+    }
 }
 
 void URiveWidget::SetRiveDescriptor(const FRiveDescriptor& newDescriptor)
@@ -392,41 +271,5 @@ void URiveWidget::SetRiveDescriptor(const FRiveDescriptor& newDescriptor)
     RiveDescriptor = newDescriptor;
 
     Setup();
-}
-
-void URiveWidget::CheckArtboardSize()
-{
-    URiveArtboard* Artboard = GetArtboard();
-
-    FVector2D WidgetSize = RiveWidget->GetSize();
-
-    if (Artboard != nullptr && Artboard->IsInitialized())
-    {
-        if (RiveDescriptor.FitType == ERiveFitType::Layout)
-        {
-            FVector2f NewSize = FVector2f(
-                static_cast<float>(WidgetSize.X) / RiveDescriptor.ScaleFactor,
-                static_cast<float>(WidgetSize.Y) / RiveDescriptor.ScaleFactor);
-
-            Artboard->SetSize(NewSize);
-        }
-        else
-        {
-            if (IsChangingFromLayout)
-            {
-                FVector2f NewSize = FVector2f(Artboard->GetOriginalSize().X,
-                                              Artboard->GetOriginalSize().Y);
-
-                Artboard->SetSize(NewSize);
-            }
-
-            IsChangingFromLayout = false;
-        }
-    }
-}
-
-void URiveWidget::OnSWidgetSizeChanged(const FVector2D& InNewSize)
-{
-    CheckArtboardSize();
 }
 #undef LOCTEXT_NAMESPACE

@@ -2,14 +2,13 @@
 
 #pragma once
 
-#include "IRiveRenderTarget.h"
 #include "RiveTypes.h"
 #include "Components/ActorComponent.h"
 #include "Rive/RiveArtboard.h"
 #include "Rive/RiveDescriptor.h"
 #include "RiveActorComponent.generated.h"
 
-class IRiveRenderer;
+class FRiveRenderer;
 class URiveAudioEngine;
 class URiveTexture;
 class URiveArtboard;
@@ -52,10 +51,6 @@ public:
     UPROPERTY(BlueprintAssignable, Category = Rive)
     FRiveReadyDelegate OnRiveReady;
 
-    // Render a test example for rive renderer
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void RenderRiveTest();
-
     UFUNCTION(BlueprintCallable, Category = Rive)
     void ResizeRenderTarget(int32 InSizeX, int32 InSizeY);
 
@@ -83,17 +78,7 @@ public:
     virtual void PostEditChangeChainProperty(
         FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
-protected:
-    void RiveReady(IRiveRenderer* InRiveRenderer);
-    void OnResourceInitialized_RenderThread(
-        FRHICommandListImmediate& RHICmdList,
-        FTextureRHIRef& NewResource);
 
-    /**
-     * Attribute(s)
-     */
-
-public:
     UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = Rive)
     FRiveDescriptor DefaultRiveDescriptor;
 
@@ -114,10 +99,6 @@ public:
 
 private:
     UFUNCTION()
-    void OnDefaultArtboardTickRender(float DeltaTime,
-                                     URiveArtboard* InArtboard);
-
-    UFUNCTION()
     TArray<FString> GetArtboardNamesForDropdown() const;
 
     UFUNCTION()
@@ -125,5 +106,5 @@ private:
 
     void InitializeAudioEngine();
     FDelegateHandle AudioEngineLambdaHandle;
-    TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
+    TSharedPtr<FRiveRenderTarget> RiveRenderTarget;
 };

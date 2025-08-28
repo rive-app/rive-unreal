@@ -2,12 +2,13 @@
 
 #include "Rive/Assets/RiveFontAsset.h"
 
-#include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "RiveRenderer.h"
 #include "Engine/FontFace.h"
 #include "Logs/RiveLog.h"
 
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/renderer/render_context.hpp"
 THIRD_PARTY_INCLUDES_END
 
@@ -49,38 +50,34 @@ void URiveFontAsset::LoadFontFace(UFontFace* InFontFace)
 
 void URiveFontAsset::LoadFontBytes(const TArray<uint8>& InBytes)
 {
-    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 
     // We'll copy InBytes into the lambda because there's no guarantee they'll
     // exist by the time it's hit
-    RiveRenderer->CallOrRegister_OnInitialized(
-        IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
-            [this, InBytes](IRiveRenderer* RiveRenderer) {
-                rive::gpu::RenderContext* RenderContext;
-                {
-                    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-                    RenderContext = RiveRenderer->GetRenderContext();
-                }
 
-                if (ensure(RenderContext))
-                {
-                    auto DecodedFont = RenderContext->decodeFont(
-                        rive::make_span(InBytes.GetData(), InBytes.Num()));
+    auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
+    CommandBuilder.RunOnce([NativeAsset = NativeAsset, RiveRenderer, InBytes](
+                               rive::CommandServer*) {
+        rive::gpu::RenderContext* RenderContext =
+            RiveRenderer->GetRenderContext();
 
-                    if (DecodedFont == nullptr)
-                    {
-                        UE_LOG(
-                            LogRive,
-                            Error,
-                            TEXT("LoadFontBytes: Could not decode font bytes"));
-                        return;
-                    }
+        if (ensure(RenderContext))
+        {
+            auto DecodedFont = RenderContext->decodeFont(
+                rive::make_span(InBytes.GetData(), InBytes.Num()));
 
-                    rive::FontAsset* FontAsset =
-                        NativeAsset->as<rive::FontAsset>();
-                    FontAsset->font(DecodedFont);
-                }
-            }));
+            if (DecodedFont == nullptr)
+            {
+                UE_LOG(LogRive,
+                       Error,
+                       TEXT("LoadFontBytes: Could not decode font bytes"));
+                return;
+            }
+
+            rive::FontAsset* FontAsset = NativeAsset->as<rive::FontAsset>();
+            FontAsset->font(DecodedFont);
+        }
+    });
 }
 
 bool URiveFontAsset::LoadNativeAssetBytes(

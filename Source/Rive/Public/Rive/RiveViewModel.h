@@ -1,0 +1,230 @@
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "INotifyFieldValueChanged.h"
+#include "UObject/Object.h"
+#include "RiveCommandBuilder.h"
+#include "FieldNotificationDelegate.h"
+#include "RiveInternalTypes.h"
+#include "RiveViewModel.generated.h"
+
+class URiveArtboard;
+struct FViewModelDefinition;
+class URiveFile;
+
+// Struct that represents a list property.
+USTRUCT(BlueprintType)
+struct FRiveList
+{
+    GENERATED_BODY()
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FString Path;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    int32 ListSize = 0;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FViewModelDefaultsReadyDelegate,
+                                            URiveViewModel*,
+                                            ViewModel);
+/**
+ *
+ */
+UCLASS(Blueprintable, BlueprintType)
+class RIVE_API URiveViewModel : public UObject, public INotifyFieldValueChanged
+{
+    GENERATED_BODY()
+public:
+    static UClass* LoadGeneratedClassForViewModel(const UObject* Context,
+                                                  const URiveFile* File,
+                                                  const FString& ViewModelName);
+
+    void Initialize(FRiveCommandBuilder&,
+                    const URiveFile* OwningFile,
+                    const FViewModelDefinition& InViewModelDefinition,
+                    const FString& InstanceName);
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bIsGenerated = false;
+
+    // Getters for generated view model properties
+    // These all use blueprint reflection to get the values. This means you must
+    // check HasDefaultValues() before using these or the value returned may be
+    // incorrect.
+
+    bool GetBoolValue(const FString& PropertyName, bool& OutValue) const;
+    bool GetColorValue(const FString& PropertyName,
+                       FLinearColor& OutColor) const;
+    bool GetStringValue(const FString& PropertyName, FString& OutString) const;
+    bool GetEnumValue(const FString& PropertyName, FString& EnumValue) const;
+    bool GetNumberValue(const FString& PropertyName, float& OutNumber) const;
+    bool GetListSize(const FString& PropertyName, size_t& OutSize) const;
+
+    UFUNCTION(BlueprintCallable,
+              Category = "FieldNotify",
+              meta = (DisplayName = "Add Field Value Changed Delegate",
+                      ScriptName = "AddFieldValueChangedDelegate"))
+    void K2_AddFieldValueChangedDelegate(
+        FFieldNotificationId FieldId,
+        FFieldValueChangedDynamicDelegate Delegate);
+
+    UFUNCTION(BlueprintCallable,
+              Category = "FieldNotify",
+              meta = (DisplayName = "Remove Field Value Changed Delegate",
+                      ScriptName = "RemoveFieldValueChangedDelegate"))
+    void K2_RemoveFieldValueChangedDelegate(
+        FFieldNotificationId FieldId,
+        FFieldValueChangedDynamicDelegate Delegate);
+
+    UFUNCTION(BlueprintCallable,
+              Category = "Lists",
+              meta = (DisplayName = "Append View Model At End Of List",
+                      ScriptName = "AppendToList"))
+    void K2_AppendToList(FRiveList List, URiveViewModel* Value);
+
+    UFUNCTION(BlueprintCallable,
+              Category = "Lists",
+              meta = (DisplayName = "Insert View Model Into List",
+                      ScriptName = "InsertToList"))
+    void K2_InsertToList(FRiveList List, int32 Index, URiveViewModel* Value);
+
+    UFUNCTION(BlueprintCallable,
+              Category = "Lists",
+              meta = (DisplayName = "Remove View Model From List At Index",
+                      ScriptName = "RemoveFromList"))
+    void K2_RemoveFromList(FRiveList List, int32 Index);
+
+    UFUNCTION(BlueprintPure, Category = "Rive")
+    bool HasDefaultValues() const { return DefaultRequestIds.Num() == 0; }
+
+    // INotifyFieldValueChanged Implementation
+    /** Add a delegate that will be notified when the FieldId is value changed.
+     */
+    virtual FDelegateHandle AddFieldValueChangedDelegate(
+        UE::FieldNotification::FFieldId InFieldId,
+        FFieldValueChangedDelegate InNewDelegate) override
+    {
+        return (InFieldId.IsValid())
+                   ? Delegates.Add(this, InFieldId, MoveTemp(InNewDelegate))
+                   : FDelegateHandle();
+    }
+
+    /** Remove a delegate that was added. */
+    virtual bool RemoveFieldValueChangedDelegate(
+        UE::FieldNotification::FFieldId InFieldId,
+        FDelegateHandle InHandle) override
+    {
+        if (InFieldId.IsValid() && InHandle.IsValid())
+        {
+            return Delegates.RemoveFrom(this, InFieldId, InHandle).bRemoved;
+        }
+        return false;
+    }
+
+    /** Remove all the delegate that are bound to the specified UserObject. */
+    virtual int32 RemoveAllFieldValueChangedDelegates(
+        FDelegateUserObjectConst InUserObject) override
+    {
+        if (InUserObject)
+        {
+            return Delegates.RemoveAll(this, InUserObject).RemoveCount;
+        }
+        return false;
+    }
+
+    /** Remove all the delegate that are bound to the specified Field and
+     * UserObject. */
+    virtual int32 RemoveAllFieldValueChangedDelegates(
+        UE::FieldNotification::FFieldId InFieldId,
+        FDelegateUserObjectConst InUserObject) override
+    {
+        if (InFieldId.IsValid() && InUserObject)
+        {
+            return Delegates.RemoveAll(this, InFieldId, InUserObject)
+                .RemoveCount;
+        }
+        return false;
+    }
+
+    /** @returns the list of all the field that can notify when their value
+     * changes. */
+    virtual const UE::FieldNotification::IClassDescriptor&
+    GetFieldNotificationDescriptor() const
+    {
+        static FFieldNotificationClassDescriptor Local;
+        return Local;
+    }
+
+    /** Broadcast to the registered delegate that the FieldId value changed. */
+    virtual void BroadcastFieldValueChanged(
+        UE::FieldNotification::FFieldId InFieldId) override
+    {
+        OnUpdatedField(InFieldId);
+        if (InFieldId.IsValid())
+        {
+            Delegates.Broadcast(this, InFieldId);
+        }
+    }
+
+    struct FFieldNotificationClassDescriptor
+        : public UE::FieldNotification::IClassDescriptor
+    {
+        virtual void ForEachField(
+            const UClass* Class,
+            TFunctionRef<bool(UE::FieldNotification::FFieldId FielId)> Callback)
+            const override;
+    };
+
+    rive::ViewModelInstanceHandle GetNativeHandle() const
+    {
+        return NativeViewModelInstance;
+    }
+    // Get a view model instance from a native handle.
+    // Should only be called from the game thread.
+    static URiveViewModel* GetViewModelInstance(
+        rive::ViewModelInstanceHandle Handle)
+    {
+        check(IsInGameThread());
+        URiveViewModel** InstancePtr = ViewModelInstances.Find(Handle);
+        return InstancePtr != nullptr ? *InstancePtr : nullptr;
+    }
+
+    void OnViewModelDataReceived(
+        uint64_t RequestId,
+        rive::CommandQueue::ViewModelInstanceData Data);
+    void OnViewModelListSizeReceived(std::string Path, size_t ListSize);
+    void OnViewModelErrorReceived(uint64_t RequestId);
+
+    UPROPERTY(BlueprintAssignable, Category = Rive)
+    FViewModelDefaultsReadyDelegate OnViewModelDefaultsReady;
+
+protected:
+    virtual void BeginDestroy() override;
+
+    void OnUpdatedField(UE::FieldNotification::FFieldId InFieldId);
+
+private:
+    bool RemoveFieldValueChangedDelegate(
+        FFieldNotificationId FieldId,
+        const FFieldValueChangedDynamicDelegate& Delegate);
+
+    void BroadcastDefaultsAvailableChecked(uint64_t RequestId);
+
+    rive::ViewModelInstanceHandle NativeViewModelInstance = RIVE_NULL_HANDLE;
+
+    // Map of every rive handle to view model instance. This is used to lookup
+    // an existing view model instance for liststs or other callbacks that use
+    // Native Handles.
+    static TMap<rive::ViewModelInstanceHandle, URiveViewModel*>
+        ViewModelInstances;
+
+    UE::FieldNotification::FFieldMulticastDelegate Delegates;
+
+    FViewModelDefinition ViewModelDefinition;
+
+    // Used to determine when getting default values is finished.
+    TArray<uint64_t> DefaultRequestIds;
+};

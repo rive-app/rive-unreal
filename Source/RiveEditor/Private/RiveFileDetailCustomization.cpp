@@ -8,8 +8,7 @@
 #include "Logs/RiveEditorLog.h"
 #include "Rive/RiveArtboard.h"
 #include "Rive/RiveFile.h"
-#include "Rive/ViewModel/RiveViewModel.h"
-#include "Rive/viewmodel/viewmodel_property_string.hpp"
+#include "Rive/RiveViewModel.h"
 #include "Styling/SlateStyleMacros.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SEditableTextBox.h"
@@ -17,6 +16,9 @@
 #include <string>
 
 #include "EditorFontGlyphs.h"
+#include "IDetailChildrenBuilder.h"
+#include "IDetailGroup.h"
+#include "PropertyCustomizationHelpers.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/animation/state_machine_input.hpp"
@@ -86,25 +88,29 @@ static FString GetTypeStringForInput(rive::SMIInput* Input)
     return FString("Unknown");
 }
 
-static FString GetIconForPropertyType(rive::DataType Type)
+static FString GetIconForPropertyType(ERiveDataType Type)
 {
     switch (Type)
     {
-        case rive::DataType::boolean:
+        case ERiveDataType::Artboard:
+            return FString(TEXT("\xf247"));
+        case ERiveDataType::AssetImage:
+            return FString(TEXT("\xf03e"));
+        case ERiveDataType::Boolean:
             return FString(TEXT("\xf046")); // FontAwesome icon for check-square
-        case rive::DataType::color:
+        case ERiveDataType::Color:
             return FString(TEXT("\xf53f")); // FontAwesome icon for palette
-        case rive::DataType::enumType:
-            return FString(TEXT("\xf0cb")); // FontAwesome icon for list
-        case rive::DataType::number:
+        case ERiveDataType::EnumType:
+            return FString(TEXT("\xf022")); // FontAwesome icon for list
+        case ERiveDataType::Number:
             return FString(TEXT("\xf1ec")); // FontAwesome icon for calculator
-        case rive::DataType::string:
+        case ERiveDataType::String:
             return FString(TEXT("\xf031")); // FontAwesome icon for font
-        case rive::DataType::trigger:
+        case ERiveDataType::Trigger:
             return FString(TEXT("\xf0e7")); // FontAwesome icon for bolt
-        case rive::DataType::list:
+        case ERiveDataType::List:
             return FString(TEXT("\xf00b")); // FontAwesome icon for list
-        case rive::DataType::viewModel:
+        case ERiveDataType::ViewModel:
             return FString(
                 TEXT("\xf542")); // FontAwesome icon for Project Diagram
         default:
@@ -112,26 +118,30 @@ static FString GetIconForPropertyType(rive::DataType Type)
                                             // question-circle (unknown type)
     }
 }
-static FString GetTextForPropertyType(rive::DataType Type)
+static FString GetTextForPropertyType(ERiveDataType Type)
 {
     switch (Type)
     {
-        case rive::DataType::boolean:
+        case ERiveDataType::Boolean:
             return FString(TEXT("Boolean"));
-        case rive::DataType::color:
+        case ERiveDataType::Color:
             return FString(TEXT("Color"));
-        case rive::DataType::enumType:
+        case ERiveDataType::EnumType:
             return FString(TEXT("Enum"));
-        case rive::DataType::number:
+        case ERiveDataType::Number:
             return FString(TEXT("Number"));
-        case rive::DataType::string:
+        case ERiveDataType::String:
             return FString(TEXT("String"));
-        case rive::DataType::trigger:
+        case ERiveDataType::Trigger:
             return FString(TEXT("Trigger"));
-        case rive::DataType::list:
+        case ERiveDataType::List:
             return FString(TEXT("List"));
-        case rive::DataType::viewModel:
+        case ERiveDataType::ViewModel:
             return FString(TEXT("ViewModel"));
+        case ERiveDataType::AssetImage:
+            return FString(TEXT("Texture"));
+        case ERiveDataType::Artboard:
+            return FString(TEXT("Artboard"));
         default:
             RIVE_UNREACHABLE();
     }
@@ -146,281 +156,261 @@ TSharedRef<IDetailCustomization> FRiveFileDetailCustomization::MakeInstance()
 void FRiveFileDetailCustomization::CustomizeDetails(
     IDetailLayoutBuilder& DetailBuilder)
 {
-
-    // Find the property you want to customize
-    TSharedRef<IPropertyHandle> ArtboardsProperty = DetailBuilder.GetProperty(
-        GET_MEMBER_NAME_CHECKED(URiveFile, Artboards));
+    auto RiveFiles = DetailBuilder.GetSelectedObjectsOfType<URiveFile>();
+    check(RiveFiles.Num());
+    auto RiveFile = RiveFiles[0];
 
     IDetailCategoryBuilder& MyCategory = DetailBuilder.EditCategory("Rive");
 
-    const TAttribute<bool> EditCondition =
-        TAttribute<bool>::Create([this]() { return false; });
+    // Find the property you want to customize
+    TSharedRef<IPropertyHandle> ArtboardDefinitionsProperty =
+        DetailBuilder.GetProperty(
+            GET_MEMBER_NAME_CHECKED(URiveFile, ArtboardDefinitions));
 
-    MyCategory.AddProperty(ArtboardsProperty)
-        .CustomWidget(false)
-        .WholeRowContent()[SNew(SHorizontalBox) +
-                           SHorizontalBox::Slot().AutoWidth().Padding(
-                               0.f,
-                               5.f)[SNew(STextBlock)
-                                        .Font(DEFAULT_FONT("Regular", 8))
-                                        .Text(FText::FromString("Artboards"))]];
+    TArray<FArtboardDefinition>& ArtboardDefinitions =
+        RiveFile->ArtboardDefinitions;
 
-    uint32 NumElements;
-    ArtboardsProperty->GetNumChildren(NumElements);
+    uint32 NumArtboardElements;
+    ArtboardDefinitionsProperty->GetNumChildren(NumArtboardElements);
+    check(NumArtboardElements == ArtboardDefinitions.Num());
+    DetailBuilder.HideProperty(ArtboardDefinitionsProperty);
 
-    for (uint32 Index = 0; Index < NumElements; ++Index)
+    auto& ArtboardsGroup =
+        MyCategory.AddGroup(FName(TEXT("Artboards")),
+                            FText::FromString(TEXT("Artboards")));
+
+    for (uint32 Index = 0; Index < NumArtboardElements; Index++)
     {
-        TSharedRef<IPropertyHandle> ElementHandle =
-            ArtboardsProperty->GetChildHandle(Index).ToSharedRef();
+        auto Property =
+            ArtboardDefinitionsProperty->GetChildHandle(Index).ToSharedRef();
+        auto ArtboardDefinition = ArtboardDefinitions[Index];
 
-        UObject* Object = nullptr;
-        if (ElementHandle->GetValue(Object) == FPropertyAccess::Success)
+        auto& ArtboardGroup =
+            ArtboardsGroup.AddGroup(FName(ArtboardDefinition.Name),
+                                    FText::FromString(ArtboardDefinition.Name));
+
+        auto DefaultViewModelProperty =
+            Property->GetChildHandle(2).ToSharedRef();
+        ArtboardGroup.AddPropertyRow(DefaultViewModelProperty);
+        auto DefaultViewModelInstanceProperty =
+            Property->GetChildHandle(3).ToSharedRef();
+        ArtboardGroup.AddPropertyRow(DefaultViewModelInstanceProperty);
+
+        auto& StateMachinesGroup =
+            ArtboardGroup.AddGroup(FName("StateMachines"),
+                                   FText::FromString(TEXT("StateMachines")));
+        auto StateMachineNamesProperty =
+            Property->GetChildHandle(1).ToSharedRef();
+        uint32 NumStateMachineElements;
+        StateMachineNamesProperty->GetNumChildren(NumStateMachineElements);
+        check(NumStateMachineElements ==
+              ArtboardDefinition.StateMachineNames.Num());
+
+        for (uint32 StateMachineIndex = 0;
+             StateMachineIndex < NumStateMachineElements;
+             StateMachineIndex++)
         {
-            if (URiveArtboard* Artboard = Cast<URiveArtboard>(Object))
-            {
-                MyCategory.AddProperty(ElementHandle)
-                    .CustomWidget()
-                    .WholeRowContent()
-                        [SNew(SHorizontalBox) +
-                         SHorizontalBox::Slot()
-                             .VAlign(VAlign_Center)
-                             .Padding(10.f, 0.f, 0.f, 0.f)
-                             .AutoWidth()[SNew(STextBlock)
-                                              .Font(
-                                                  FAppStyle::Get().GetFontStyle(
-                                                      "FontAwesome.11"))
-                                              .Text(FText::FromString(
-                                                  FString(TEXT("\xf247"))))
-                                              .ToolTipText(FText::FromString(
-                                                  TEXT("Artboard")))] +
-                         SHorizontalBox::Slot()
-                             .VAlign(VAlign_Center)
-                             .Padding(10.f, 0.f)
-                             .AutoWidth()[SNew(SEditableTextBox)
-                                              .IsReadOnly(true)
-                                              .Font(DEFAULT_FONT("Mono", 8))
-                                              .Text(FText::FromString(
-                                                  Artboard
-                                                      ->GetArtboardName()))]];
+            auto StateMachineProperty =
+                StateMachineNamesProperty->GetChildHandle(StateMachineIndex)
+                    .ToSharedRef();
+            auto StateMachineName =
+                ArtboardDefinition.StateMachineNames[StateMachineIndex];
 
-                for (auto StateMachineName : Artboard->GetStateMachineNames())
-                {
-                    TUniquePtr<FRiveStateMachine> StateMachine =
-                        MakeUnique<FRiveStateMachine>(
-                            Artboard->GetNativeArtboard(),
-                            StateMachineName);
-                    uint32 StateMachineInputCount =
-                        StateMachine->GetInputCount();
-
-                    MyCategory.AddProperty(ElementHandle)
-                        .CustomWidget()
-                        .WholeRowContent()
-                            [SNew(SHorizontalBox) +
-                             SHorizontalBox::Slot()
-                                 .VAlign(VAlign_Center)
-                                 .Padding(20.f, 0.f, 0.f, 0.f)
-                                 .AutoWidth()
-                                     [SNew(STextBlock)
+            StateMachinesGroup.AddPropertyRow(StateMachineProperty)
+                .CustomWidget()
+                .WholeRowContent()
+                    [SNew(SHorizontalBox) +
+                     SHorizontalBox::Slot()
+                         .VAlign(VAlign_Center)
+                         .Padding(5.f, 0.f, 0.f, 0.f)
+                         .AutoWidth()[SNew(STextBlock)
                                           .Font(FAppStyle::Get().GetFontStyle(
                                               "FontAwesome.11"))
                                           .Text(FText::FromString(
                                               FString(TEXT("\xf0e8"))))
                                           .ToolTipText(FText::FromString(
                                               TEXT("StateMachine")))] +
-                             SHorizontalBox::Slot()
-                                 .VAlign(VAlign_Center)
-                                 .Padding(10.f, 0.f)
-                                 .AutoWidth()[SNew(SEditableTextBox)
-                                                  .IsReadOnly(true)
-                                                  .Font(DEFAULT_FONT("Mono", 8))
-                                                  .Text(FText::FromString(
-                                                      StateMachineName))]];
-
-                    for (uint32 InputI = 0; InputI < StateMachineInputCount;
-                         InputI++)
-                    {
-                        rive::SMIInput* Input = StateMachine->GetInput(InputI);
-                        FString TypeString =
-                            RiveArtboardDetailCustomizationPrivate::
-                                GetTypeStringForInput(Input);
-                        FLinearColor TypeColor =
-                            RiveArtboardDetailCustomizationPrivate::
-                                GetColorForInput(Input);
-                        // std::string InputName = Input->name();
-
-                        FString InputName(UTF8_TO_TCHAR(Input->name().c_str()));
-                        MyCategory.AddProperty(ElementHandle)
-                            .CustomWidget()
-                            .WholeRowContent()
-                                [SNew(SHorizontalBox) +
-                                 SHorizontalBox::Slot()
-                                     .VAlign(VAlign_Center)
-                                     .Padding(30.f, 0.f, 0.f, 0.f)
-                                     .AutoWidth()
-                                         [SNew(SImage)
-                                              .ColorAndOpacity(TypeColor)
-                                              .Image(FAppStyle::GetBrush(
-                                                  "Kismet.VariableList."
-                                                  "TypeIcon"))] +
-                                 SHorizontalBox::Slot()
-                                     .VAlign(VAlign_Center)
-                                     .Padding(5.f, 0.f)
-                                     .AutoWidth()
-                                         [SNew(STextBlock)
-                                              .Font(DEFAULT_FONT("Mono", 8))
-                                              .ColorAndOpacity(TypeColor)
-                                              .Text(FText::FromString(
-                                                  TypeString)) // FText::FromString(ElementHandle->GetProperty()
-                        ] +
-                                 SHorizontalBox::Slot()
-                                     .VAlign(VAlign_Center)
-                                     .Padding(5.f, 0.f)
-                                     .AutoWidth()
-                                         [SNew(SEditableTextBox)
-                                              .IsReadOnly(true)
-                                              .Font(DEFAULT_FONT("Mono", 8))
-                                              .Text(FText::FromString(
-                                                  InputName)) // FText::FromString(ElementHandle->GetProperty()
-                        ]];
-                    }
-                }
-            }
+                     SHorizontalBox::Slot()
+                         .VAlign(VAlign_Center)
+                         .Padding(5.f, 0.f)
+                         .AutoWidth()[SNew(STextBlock)
+                                          .Font(DEFAULT_FONT("Regular", 8))
+                                          .Text(FText::FromString(
+                                              StateMachineName))]];
         }
     }
 
     // Viewmodels
-    TSharedRef<IPropertyHandle> ViewModelsProperty = DetailBuilder.GetProperty(
-        GET_MEMBER_NAME_CHECKED(URiveFile, ViewModels));
+    TSharedRef<IPropertyHandle> ViewModels = DetailBuilder.GetProperty(
+        GET_MEMBER_NAME_CHECKED(URiveFile, ViewModelDefinitions));
+    TArray<FViewModelDefinition>& ViewModelDefinitions =
+        RiveFile->ViewModelDefinitions;
+    DetailBuilder.HideProperty(ViewModels);
 
-    MyCategory.AddProperty(ViewModelsProperty)
-        .CustomWidget(false)
-        .WholeRowContent()[SNew(SHorizontalBox) +
-                           SHorizontalBox::Slot().AutoWidth().Padding(0.f, 5.f)
-                               [SNew(STextBlock)
-                                    .Font(DEFAULT_FONT("Regular", 8))
-                                    .Text(FText::FromString("ViewModels"))]];
+    uint32 NumViewModels;
+    ViewModels->GetNumChildren(NumViewModels);
+    check(NumViewModels == ViewModelDefinitions.Num());
 
-    ViewModelsProperty->GetNumChildren(NumElements);
+    auto& ViewModelsGroup =
+        MyCategory.AddGroup(TEXT("View Models"),
+                            FText::FromString(TEXT("View Models")));
 
-    for (uint32 Index = 0; Index < NumElements; ++Index)
+    for (uint32 Index = 0; Index < NumViewModels; ++Index)
     {
-        TSharedRef<IPropertyHandle> ElementHandle =
-            ViewModelsProperty->GetChildHandle(Index).ToSharedRef();
+        auto ViewModelDefinitionProperty =
+            ViewModels->GetChildHandle(Index).ToSharedRef();
+        auto& ViewModelDefinition = ViewModelDefinitions[Index];
+        auto& ViewModelDefinitionGroup = ViewModelsGroup.AddGroup(
+            FName(ViewModelDefinition.Name),
+            FText::FromString(ViewModelDefinition.Name));
 
-        UObject* Object = nullptr;
-        if (ElementHandle->GetValue(Object) == FPropertyAccess::Success)
+        // Instance Names
+        TSharedRef<IPropertyHandle> InstanceNameHandle =
+            ViewModelDefinitionProperty->GetChildHandle(1).ToSharedRef();
+        uint32 NumInstanceNames;
+        InstanceNameHandle->GetNumChildren(NumInstanceNames);
+        check(ViewModelDefinition.InstanceNames.Num() == NumInstanceNames);
+
+        auto& InstanceNamesGroup = ViewModelDefinitionGroup.AddGroup(
+            TEXT("Instance Names"),
+            FText::FromString(TEXT("Instance Names")));
+        for (uint32 InstanceIndex = 0; InstanceIndex < NumInstanceNames;
+             ++InstanceIndex)
         {
-            if (URiveViewModel* ViewModel = Cast<URiveViewModel>(Object))
-            {
-                MyCategory.AddProperty(ElementHandle)
-                    .CustomWidget()
-                    .WholeRowContent()
-                        [SNew(SHorizontalBox) +
-                         SHorizontalBox::Slot()
-                             .VAlign(VAlign_Center)
-                             .Padding(10.f, 0.f, 0.f, 0.f)
-                             .AutoWidth()[SNew(STextBlock)
-                                              .Font(
-                                                  FAppStyle::Get().GetFontStyle(
-                                                      "FontAwesome.11"))
-                                              .Text(FText::FromString(
-                                                  FString(TEXT("\xf1c0"))))
-                                              .ToolTipText(FText::FromString(
-                                                  TEXT("ViewModel")))] +
-                         SHorizontalBox::Slot()
-                             .VAlign(VAlign_Center)
-                             .Padding(10.f, 0.f)
-                             .AutoWidth()[SNew(SEditableTextBox)
-                                              .IsReadOnly(true)
-                                              .Font(DEFAULT_FONT("Mono", 8))
-                                              .Text(FText::FromString(
-                                                  ViewModel->GetName()))]];
-
-                // Instances
-                MyCategory.AddProperty(ViewModelsProperty)
-                    .CustomWidget(false)
-                    .WholeRowContent()
-                        [SNew(SHorizontalBox) +
-                         SHorizontalBox::Slot()
-                             .VAlign(VAlign_Center)
-                             .AutoWidth()
-                             .Padding(20.f, 0.f, 0.f, 0.f)
-                                 [SNew(STextBlock)
-                                      .Font(DEFAULT_FONT("Regular", 8))
-                                      .Text(FText::FromString("Instances"))]];
-                for (auto InstanceName : ViewModel->GetInstanceNames())
-                {
-                    MyCategory.AddProperty(ElementHandle)
-                        .CustomWidget()
-                        .WholeRowContent()
-                            [SNew(SHorizontalBox) +
-                             SHorizontalBox::Slot()
-                                 .VAlign(VAlign_Center)
-                                 .Padding(40.f, 0.f, 0.f, 0.f)
-                                 .AutoWidth()
-                                     [SNew(STextBlock)
+            auto Property =
+                InstanceNameHandle->GetChildHandle(InstanceIndex).ToSharedRef();
+            auto InstanceName =
+                ViewModelDefinition.InstanceNames[InstanceIndex];
+            InstanceNamesGroup.AddPropertyRow(Property)
+                .CustomWidget()
+                .WholeRowContent()
+                    [SNew(SHorizontalBox) +
+                     SHorizontalBox::Slot()
+                         .VAlign(VAlign_Center)
+                         .AutoWidth()[SNew(STextBlock)
                                           .Font(FAppStyle::Get().GetFontStyle(
                                               "FontAwesome.11"))
                                           .Text(FText::FromString(
                                               FString(TEXT("\xf0c5"))))
                                           .ToolTipText(FText::FromString(
                                               TEXT("Instance")))] +
-                             SHorizontalBox::Slot()
-                                 .VAlign(VAlign_Center)
-                                 .Padding(10.f, 0.f)
-                                 .AutoWidth()[SNew(SEditableTextBox)
-                                                  .IsReadOnly(true)
-                                                  .Font(DEFAULT_FONT("Mono", 8))
-                                                  .Text(FText::FromString(
-                                                      InstanceName))]];
-                }
-
-                // Properties
-                MyCategory.AddProperty(ViewModelsProperty)
-                    .CustomWidget(false)
-                    .WholeRowContent()
-                        [SNew(SHorizontalBox) +
-                         SHorizontalBox::Slot()
-                             .VAlign(VAlign_Center)
-                             .AutoWidth()
-                             .Padding(20.f, 0.f, 0.f, 0.f)
-                                 [SNew(STextBlock)
-                                      .Font(DEFAULT_FONT("Regular", 8))
-                                      .Text(FText::FromString("Properties"))]];
-                for (auto PropertyName : ViewModel->GetPropertyNames())
-                {
-                    auto Type = ViewModel->GetPropertyTypeByName(PropertyName);
-
-                    MyCategory.AddProperty(ElementHandle)
-                        .CustomWidget()
-                        .WholeRowContent()
-                            [SNew(SHorizontalBox) +
-                             SHorizontalBox::Slot()
-                                 .VAlign(VAlign_Center)
-                                 .Padding(40.f, 0.f, 0.f, 0.f)
-                                 .AutoWidth()
-                                     [SNew(STextBlock)
-                                          .Font(FAppStyle::Get().GetFontStyle(
-                                              "FontAwesome.11"))
+                     SHorizontalBox::Slot()
+                         .VAlign(VAlign_Center)
+                         .Padding(10.f, 0.f)
+                         .AutoWidth()[SNew(STextBlock)
+                                          .Font(DEFAULT_FONT("Regular", 8))
                                           .Text(FText::FromString(
-                                              RiveArtboardDetailCustomizationPrivate::
-                                                  GetIconForPropertyType(Type)))
-                                          .ToolTipText(FText::FromString(
-                                              RiveArtboardDetailCustomizationPrivate::
-                                                  GetTextForPropertyType(Type) +
-                                              TEXT(" Property")))] +
-                             SHorizontalBox::Slot()
-                                 .VAlign(VAlign_Center)
-                                 .Padding(10.f, 0.f)
-                                 .AutoWidth()[SNew(SEditableTextBox)
-                                                  .IsReadOnly(true)
-                                                  .Font(DEFAULT_FONT("Mono", 8))
-                                                  .Text(FText::FromString(
-                                                      PropertyName))]];
-                }
-            }
+                                              InstanceName))]];
+        }
+
+        // Properties
+        TSharedRef<IPropertyHandle> PropertiesHandle =
+            ViewModelDefinitionProperty->GetChildHandle(2).ToSharedRef();
+        auto& PropertiesGroup = ViewModelDefinitionGroup.AddGroup(
+            TEXT("View Model Properties"),
+            FText::FromString(TEXT("View Model Properties")));
+        uint32 NumProperties;
+        PropertiesHandle->GetNumChildren(NumProperties);
+        check(NumProperties == ViewModelDefinition.PropertyDefinitions.Num());
+        for (uint32 PropertiesIndex = 0; PropertiesIndex < NumProperties;
+             ++PropertiesIndex)
+        {
+            auto Property =
+                PropertiesHandle->GetChildHandle(PropertiesIndex).ToSharedRef();
+            auto& PropertyDefinition =
+                ViewModelDefinition.PropertyDefinitions[PropertiesIndex];
+            PropertiesGroup.AddPropertyRow(Property)
+                .CustomWidget()
+                .WholeRowContent()
+                    [SNew(SHorizontalBox) +
+                     SHorizontalBox::Slot()
+                         .VAlign(VAlign_Center)
+                         .AutoWidth()
+                             [SNew(STextBlock)
+                                  .Font(FAppStyle::Get().GetFontStyle(
+                                      "FontAwesome.11"))
+                                  .Text(FText::FromString(
+                                      RiveArtboardDetailCustomizationPrivate::
+                                          GetIconForPropertyType(
+                                              PropertyDefinition.Type)))
+                                  .ToolTipText(FText::FromString(
+                                      RiveArtboardDetailCustomizationPrivate::
+                                          GetTextForPropertyType(
+                                              PropertyDefinition.Type) +
+                                      TEXT(" Property")))] +
+                     SHorizontalBox::Slot()
+                         .VAlign(VAlign_Center)
+                         .Padding(10.f, 0.f)
+                         .AutoWidth()[SNew(STextBlock)
+                                          .Font(DEFAULT_FONT("Regular", 8))
+                                          .Text(FText::FromString(
+                                              PropertyDefinition.Name))]];
         }
     }
+
+    // Enums
+    TSharedRef<IPropertyHandle> EnumsProperty = DetailBuilder.GetProperty(
+        GET_MEMBER_NAME_CHECKED(URiveFile, EnumDefinitions));
+    TArray<FEnumDefinition>& EnumDefinitions = RiveFile->EnumDefinitions;
+
+    uint32 NumEnums;
+    EnumsProperty->GetNumChildren(NumEnums);
+    check(NumEnums == EnumDefinitions.Num());
+
+    TSharedRef<FDetailArrayBuilder> EnumsBuilder = MakeShareable(
+        new FDetailArrayBuilder(EnumsProperty, true, false, false));
+    EnumsBuilder->OnGenerateArrayElementWidget(
+        FOnGenerateArrayElementWidget::CreateLambda([EnumDefinitions](
+                                                        TSharedRef<
+                                                            IPropertyHandle>
+                                                            Property,
+                                                        int32 Index,
+                                                        IDetailChildrenBuilder&
+                                                            Builder) {
+            auto EnumDefinition = EnumDefinitions[Index];
+            auto EnumValuesProperty = Property->GetChildHandle(1).ToSharedRef();
+            TSharedRef<FDetailArrayBuilder> EnumsValuesBuilder =
+                MakeShareable(new FDetailArrayBuilder(EnumValuesProperty,
+                                                      true,
+                                                      false,
+                                                      false));
+            EnumsValuesBuilder->SetDisplayName(
+                FText::FromString(EnumDefinition.Name));
+            EnumsValuesBuilder->OnGenerateArrayElementWidget(
+                FOnGenerateArrayElementWidget::CreateLambda(
+                    [EnumDefinition](TSharedRef<IPropertyHandle> Property,
+                                     int32 Index,
+                                     IDetailChildrenBuilder& Builder) {
+                        auto EnumValue = EnumDefinition.Values[Index];
+                        Builder.AddProperty(Property)
+                            .CustomWidget()
+                            .WholeRowContent()
+                                [SNew(SHorizontalBox) +
+                                 SHorizontalBox::Slot()
+                                     .VAlign(VAlign_Center)
+                                     .AutoWidth()
+                                         [SNew(STextBlock)
+                                              .Font(
+                                                  FAppStyle::Get().GetFontStyle(
+                                                      "FontAwesome.11"))
+                                              .Text(FText::FromString(
+                                                  FString(TEXT("\xf068"))))
+                                              .ToolTipText(FText::FromString(
+                                                  TEXT("Enum Name")))] +
+                                 SHorizontalBox::Slot()
+                                     .VAlign(VAlign_Center)
+                                     .Padding(10.f, 0.f)
+                                     .AutoWidth()
+                                         [SNew(STextBlock)
+                                              .Font(DEFAULT_FONT("Regular", 8))
+                                              .Text(FText::FromString(
+                                                  EnumValue))]];
+                    }));
+
+            Builder.AddCustomBuilder(EnumsValuesBuilder);
+        }));
+
+    MyCategory.AddCustomBuilder(EnumsBuilder);
 }
 
 #undef LOCTEXT_NAMESPACE

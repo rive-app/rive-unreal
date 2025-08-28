@@ -5,36 +5,24 @@
 #include "RiveRenderer.h"
 #include "Logs/RiveRendererLog.h"
 #include "Platform/RiveRendererRHI.h"
-
-#if PLATFORM_APPLE
-#include "Platform/RiveRendererMetal.h"
-#elif PLATFORM_ANDROID
-#include "Platform/RiveRendererOpenGL.h"
-#endif // PLATFORM_APPLE
+#include "rive/command_queue.hpp"
 
 #define LOCTEXT_NAMESPACE "RiveRendererModule"
+
+struct FRiveCommandBuilder& IRiveRendererModule::GetCommandBuilder()
+{
+    FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    return RiveRenderer->GetCommandBuilder();
+}
 
 void FRiveRendererModule::StartupModule()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
-
     check(GDynamicRHI);
-    // Create Platform Specific Renderer
+
     RiveRenderer = nullptr;
-
     StartupRiveRenderer();
-
-    // OnBeginFrameHandle =
-    // FCoreDelegates::OnFEngineLoopInitComplete.AddLambda([this]()  // Crashes
-    // sometimes on Android when on GameThread
-    OnBeginFrameHandle = FCoreDelegates::OnBeginFrame.AddLambda([this]() {
-        if (RiveRenderer.IsValid())
-        {
-            RiveRenderer->Initialize();
-            OnRendererInitializedDelegate.Broadcast();
-        }
-        FCoreDelegates::OnBeginFrame.Remove(OnBeginFrameHandle);
-    });
 }
 
 void FRiveRendererModule::ShutdownModule()
@@ -45,77 +33,15 @@ void FRiveRendererModule::ShutdownModule()
     }
 }
 
-IRiveRenderer* FRiveRendererModule::GetRenderer() { return RiveRenderer.Get(); }
-
-void FRiveRendererModule::CallOrRegister_OnRendererInitialized(
-    FSimpleMulticastDelegate::FDelegate&& Delegate)
-{
-    if (RiveRenderer.IsValid() && RiveRenderer->IsInitialized())
-    {
-        Delegate.Execute();
-    }
-    else
-    {
-        OnRendererInitializedDelegate.Add(MoveTemp(Delegate));
-    }
-}
-
 void FRiveRendererModule::StartupRiveRenderer()
 {
-    // Use RHI if it's available. This means Windows and UE 5.4 and newer.
-#if PLATFORM_WINDOWS
-    UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI."))
-    RiveRenderer = MakeShared<FRiveRendererRHI>();
-    return;
-#endif
-
-    switch (RHIGetInterfaceType())
+    if (GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Null)
     {
-#if PLATFORM_WINDOWS
-        RIVE_UNREACHABLE();
-#endif // PLATFORM_WINDOWS
-#if PLATFORM_ANDROID
-        case ERHIInterfaceType::OpenGL:
-        {
-            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on 'OpenGL'"))
-            RiveRenderer = MakeShared<FRiveRendererOpenGL>();
-            break;
-        }
-#endif // PLATFORM_ANDROID
-#if PLATFORM_APPLE
-        case ERHIInterfaceType::Metal:
-        {
-            UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on 'Metal'"))
-#if defined(WITH_RIVE_MAC_ARM64)
-            UE_LOG(LogRiveRenderer,
-                   Display,
-                   TEXT("Rive running on a Mac M1/M2 processor (Arm64)"))
-#elif defined(WITH_RIVE_MAC_INTEL)
-            UE_LOG(LogRiveRenderer,
-                   Display,
-                   TEXT("Rive running on a Mac Intel processor (x86 x64)"))
-#endif
-            RiveRenderer = MakeShared<FRiveRendererMetal>();
-            break;
-        }
-#endif // PLATFORM_APPLE
-        case ERHIInterfaceType::Vulkan:
-        {
-            UE_LOG(LogRiveRenderer,
-                   Error,
-                   TEXT("Rive is NOT compatible with 'Vulkan'"))
-            break;
-        }
-        default:
-            if (!IsRunningCommandlet())
-            {
-                UE_LOG(
-                    LogRiveRenderer,
-                    Error,
-                    TEXT("Rive is NOT compatible with the current unknown RHI"))
-            }
-            break;
+        return;
     }
+
+    UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI."))
+    RiveRenderer = MakeUnique<FRiveRendererRHI>();
 }
 
 #undef LOCTEXT_NAMESPACE

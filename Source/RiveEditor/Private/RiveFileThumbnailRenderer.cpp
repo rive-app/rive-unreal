@@ -2,33 +2,34 @@
 
 #include "RiveFileThumbnailRenderer.h"
 
-#include "IRiveRenderer.h"
+#include "CanvasTypes.h"
 #include "IRiveRendererModule.h"
+#include "RenderGraphBuilder.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Rive/RiveArtboard.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveTexture.h"
+#include "RiveRenderer.h"
+#include "RiveRenderTarget.h"
+#include "Logs/RiveEditorLog.h"
+THIRD_PARTY_INCLUDES_START
+#include "rive/command_server.hpp"
+#include "rive/renderer/gpu.hpp"
+#include "rive/renderer/render_context.hpp"
+#include "rive/renderer/rive_renderer.hpp"
+THIRD_PARTY_INCLUDES_END
 
-URiveFileThumbnailRenderer::URiveFileThumbnailRenderer() : RiveTexture(nullptr)
-{
-    FAssetRegistryModule& AssetRegistryModule =
-        FModuleManager::LoadModuleChecked<FAssetRegistryModule>(
-            "AssetRegistry");
-    AssetRegistryModule.Get().OnAssetRemoved().AddUObject(
-        this,
-        &URiveFileThumbnailRenderer::OnAssetRemoved);
-}
+URiveFileThumbnailRenderer::URiveFileThumbnailRenderer() {}
 
 bool URiveFileThumbnailRenderer::CanVisualizeAsset(UObject* Object)
 {
-    URiveFile* RiveFile = Cast<URiveFile>(Object);
-    return RiveFile && RiveFile->IsInitialized();
+    return Object->IsA<URiveFile>();
 }
 
 EThumbnailRenderFrequency URiveFileThumbnailRenderer::
     GetThumbnailRenderFrequency(UObject* Object) const
 {
-    return EThumbnailRenderFrequency::Realtime;
+    return EThumbnailRenderFrequency::OnAssetSave;
 }
 
 void URiveFileThumbnailRenderer::Draw(UObject* Object,
@@ -42,65 +43,89 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object,
 {
     if (URiveFile* RiveFile = Cast<URiveFile>(Object))
     {
-        IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+        FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 
-        if (!Initialized)
+        if (!RiveRenderTarget)
         {
-            Initialized = true;
-            RiveTexture = NewObject<URiveTexture>();
             RiveRenderTarget =
-                RiveRenderer->CreateTextureTarget_GameThread(GetFName(),
-                                                             RiveTexture);
-            RiveRenderTarget->SetClearColor(FLinearColor::Transparent);
-            RiveTexture->ResizeRenderTargets(FIntPoint(Width, Height));
-            RiveRenderTarget->Initialize();
-        }
-
-        URiveArtboard* Artboard = nullptr;
-        if (!ThumbnailRenderers.Contains(RiveFile->GetFName()))
-        {
-            Artboard = NewObject<URiveArtboard>();
-            Artboard->Initialize(RiveFile, RiveRenderTarget);
-            ThumbnailRenderers.Add(RiveFile->GetFName(), Artboard);
+                RiveRenderer->CreateRenderTarget(GetFName(), Viewport);
         }
         else
         {
-            URiveArtboard** Found = ThumbnailRenderers.Find(Object->GetFName());
-            if (Found != nullptr)
+            RiveRenderTarget->UpdateTargetTexture(Viewport);
+        }
+
+        auto NativeFileHandle = RiveFile->GetNativeFileHandle();
+
+        FBox2f AlignmentBox{
+            {static_cast<float>(X), static_cast<float>(Y)},
+            {static_cast<float>(Width), static_cast<float>(Height)}};
+
+        // This completly bypasses the command server / queue. This is because
+        // we have to render and return now. Any delay prevents the icon from
+        // rendering.
+        ENQUEUE_RENDER_COMMAND(URiveFileThumbnailRenderer_Draw)
+        ([RiveRenderer,
+          AlignmentBox,
+          NativeFileHandle,
+          RiveRenderTarget =
+              RiveRenderTarget](FRHICommandListImmediate& RHICmdList) {
+            auto CommandServer = RiveRenderer->GetCommandServer();
+            auto RenderTarget = RiveRenderTarget->GetRenderTarget();
+
+            check(CommandServer);
+            check(RenderTarget);
+
+            auto File = CommandServer->getFile(NativeFileHandle);
+
+            if (!File)
             {
-                Artboard = *Found;
+                UE_LOG(LogRiveEditor,
+                       Error,
+                       TEXT("URiveFileThumbnailRenderer::Draw Invalid File"));
+                return;
             }
-        }
 
-        if (Artboard != nullptr)
-        {
-            RiveRenderTarget->Save();
-            Artboard->Align(ERiveFitType::ScaleDown,
-                            ERiveAlignment::Center,
-                            1.0);
-            Artboard->Tick(FApp::GetDeltaTime());
-            RiveRenderTarget->Restore();
-            RiveRenderTarget->SubmitAndClear();
-            UTextureThumbnailRenderer::Draw(RiveTexture,
-                                            X,
-                                            Y,
-                                            Width,
-                                            Height,
-                                            Viewport,
-                                            Canvas,
-                                            bAdditionalViewFamily);
-        }
-    }
-}
+            auto ArtboardInstance = File->artboardDefault();
 
-void URiveFileThumbnailRenderer::OnAssetRemoved(const FAssetData& AssetData)
-{
-    for (TTuple<FName, URiveArtboard*>& ThumbnailRenderer : ThumbnailRenderers)
-    {
-        if (ThumbnailRenderer.Key == AssetData.AssetName)
-        {
-            ThumbnailRenderers.Remove(AssetData.AssetName);
-            return;
-        }
+            if (!ArtboardInstance)
+            {
+                UE_LOG(LogRiveEditor,
+                       Error,
+                       TEXT("URiveFileThumbnailRenderer::Draw Invalid Default "
+                            "Artboard Instance"));
+                return;
+            }
+
+            ArtboardInstance->advance(1.0);
+
+            auto Context = RiveRenderer->GetRenderContext();
+            Context->beginFrame({
+                .renderTargetWidth =
+                    static_cast<uint32_t>(AlignmentBox.GetSize().X),
+                .renderTargetHeight =
+                    static_cast<uint32_t>(AlignmentBox.GetSize().Y),
+                .loadAction = rive::gpu::LoadAction::clear,
+                .clearColor = rive::colorRed(255),
+                .wireframe = false,
+            });
+
+            auto Renderer = MakeUnique<rive::RiveRenderer>(Context);
+            Renderer->save();
+            Renderer->align(rive::Fit::contain,
+                            rive::Alignment::center,
+                            {AlignmentBox.Min.X,
+                             AlignmentBox.Min.Y,
+                             AlignmentBox.Max.X,
+                             AlignmentBox.Max.Y},
+                            ArtboardInstance->bounds());
+            ArtboardInstance->draw(Renderer.Get());
+            Renderer->restore();
+            FRDGBuilder GraphBuilder(RHICmdList);
+            Context->flush({.renderTarget = RenderTarget.get(),
+                            .externalCommandBuffer = &GraphBuilder});
+            GraphBuilder.Execute();
+        });
     }
+    Canvas->SetRenderTargetDirty(true);
 }

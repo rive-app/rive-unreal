@@ -2,15 +2,18 @@
 
 #include "Rive/RiveFile.h"
 
-#include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveFileAssetImporter.h"
 #include "Rive/Assets/RiveFileAssetLoader.h"
-#include "Rive/ViewModel/RiveViewModel.h"
+#include "Rive/RiveViewModel.h"
 #include "Rive/RiveArtboard.h"
 #include "Blueprint/UserWidget.h"
 #include "Rive/RiveUtils.h"
+#include "RiveRenderer.h"
+#include "RiveCommandBuilder.h"
+#include "IRiveRendererModule.h"
+#include "rive/command_queue.hpp"
 
 #if WITH_EDITOR
 #include "EditorFramework/AssetImportData.h"
@@ -18,6 +21,7 @@
 
 #if WITH_RIVE
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/animation/state_machine_input.hpp"
 #include "rive/renderer/render_context.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -26,10 +30,173 @@ THIRD_PARTY_INCLUDES_END
 class FRiveFileAssetImporter;
 class FRiveFileAssetLoader;
 
+static ERiveDataType RiveDataTypeFromDataType(rive::DataType type)
+{
+    switch (type)
+    {
+        case rive::DataType::none:
+            return ERiveDataType::None;
+        case rive::DataType::string:
+            return ERiveDataType::String;
+        case rive::DataType::number:
+            return ERiveDataType::Number;
+        case rive::DataType::boolean:
+            return ERiveDataType::Boolean;
+        case rive::DataType::color:
+            return ERiveDataType::Color;
+        case rive::DataType::list:
+            return ERiveDataType::List;
+        case rive::DataType::enumType:
+            return ERiveDataType::EnumType;
+        case rive::DataType::trigger:
+            return ERiveDataType::Trigger;
+        case rive::DataType::viewModel:
+            return ERiveDataType::ViewModel;
+        case rive::DataType::assetImage:
+            return ERiveDataType::AssetImage;
+        case rive::DataType::artboard:
+            return ERiveDataType::Artboard;
+        case rive::DataType::integer:
+        case rive::DataType::symbolListIndex:
+            RIVE_UNREACHABLE();
+    }
+
+    return ERiveDataType::None;
+}
+
+class FRiveFileListener final : public rive::CommandQueue::FileListener
+{
+public:
+    FRiveFileListener(TWeakObjectPtr<URiveFile> ListeningFile) :
+        ListeningFile(ListeningFile)
+    {}
+
+    virtual void onFileError(const rive::FileHandle,
+                             uint64_t requestId,
+                             std::string error) override
+    {
+        FUTF8ToTCHAR Conversion(error.c_str());
+        UE_LOG(LogRive,
+               Error,
+               TEXT("Rive File RequestId: %llu Error {%s}"),
+               requestId,
+               Conversion.Get());
+    }
+    virtual void onViewModelsListed(
+        const rive::FileHandle,
+        uint64_t requestId,
+        std::vector<std::string> viewModelNames) override
+    {
+        check(IsInGameThread());
+        if (auto StrongFile = ListeningFile.Pin(); StrongFile.IsValid())
+        {
+#if WITH_EDITORONLY_DATA
+            StrongFile->ViewModelNamesListed(std::move(viewModelNames));
+#endif
+        }
+    }
+
+    virtual void onViewModelInstanceNamesListed(
+        const rive::FileHandle,
+        uint64_t requestId,
+        std::string viewModelName,
+        std::vector<std::string> instanceNames) override
+    {
+        check(IsInGameThread());
+        if (auto StrongFile = ListeningFile.Pin(); StrongFile.IsValid())
+        {
+#if WITH_EDITORONLY_DATA
+            StrongFile->ViewModelInstanceNamesListed(std::move(viewModelName),
+                                                     std::move(instanceNames));
+#endif
+        }
+    }
+
+    virtual void onViewModelPropertiesListed(
+        const rive::FileHandle,
+        uint64_t requestId,
+        std::string viewModelName,
+        std::vector<rive::CommandQueue::FileListener::ViewModelPropertyData>
+            properties) override
+    {
+        check(IsInGameThread());
+        if (auto StrongFile = ListeningFile.Pin(); StrongFile.IsValid())
+        {
+#if WITH_EDITORONLY_DATA
+            StrongFile->ViewModelPropertyDefinitionsListed(
+                std::move(viewModelName),
+                std::move(properties));
+#endif
+        }
+    }
+
+    virtual void onViewModelEnumsListed(
+        const rive::FileHandle,
+        uint64_t requestId,
+        std::vector<rive::ViewModelEnum> enums) override
+    {
+        check(IsInGameThread());
+        if (auto StrongFile = ListeningFile.Pin(); StrongFile.IsValid())
+        {
+#if WITH_EDITORONLY_DATA
+            StrongFile->EnumsListed(std::move(enums));
+#endif
+        }
+    }
+
+    virtual void onArtboardsListed(
+        const rive::FileHandle Handle,
+        uint64_t RequestId,
+        std::vector<std::string> artboardNames) override
+    {
+        check(IsInGameThread());
+        if (auto StrongFile = ListeningFile.Pin(); StrongFile.IsValid())
+        {
+#if WITH_EDITORONLY_DATA
+            StrongFile->ArtboardsListed(std::move(artboardNames));
+#endif
+        }
+    }
+
+    virtual void onFileDeleted(const rive::FileHandle Handle,
+                               uint64_t RequestId) override
+    {
+        check(IsInGameThread());
+        if (auto StrongFile = ListeningFile.Pin(); StrongFile.IsValid())
+        {
+            UE_LOG(LogRive,
+                   Display,
+                   TEXT("Rive File Named %s deleted"),
+                   *StrongFile->GetName());
+        }
+        else
+        {
+            UE_LOG(LogRive,
+                   Display,
+                   TEXT("Rive File Handle %p deleted"),
+                   Handle);
+        }
+
+        delete this;
+    }
+
+private:
+    TWeakObjectPtr<URiveFile> ListeningFile = nullptr;
+};
+
 void URiveFile::BeginDestroy()
 {
-    InitState = ERiveInitState::Deinitializing;
     RiveNativeFileSpan = {};
+
+    if (!IsRunningCommandlet() && !HasAnyFlags(RF_ClassDefaultObject) &&
+        NativeFileHandle != RIVE_NULL_HANDLE)
+    {
+        auto Renderer = IRiveRendererModule::Get().GetRenderer();
+        check(Renderer);
+        auto& CommandBuilder = Renderer->GetCommandBuilder();
+        CommandBuilder.DestroyFile(NativeFileHandle);
+    }
+
     Super::BeginDestroy();
 }
 
@@ -37,12 +204,10 @@ void URiveFile::PostLoad()
 {
     UObject::PostLoad();
 
-    if (!IsRunningCommandlet())
+    // Don't load stuff for default object
+    if (HasAnyFlags(RF_ClassDefaultObject))
     {
-        IRiveRendererModule::Get().CallOrRegister_OnRendererInitialized(
-            FSimpleMulticastDelegate::FDelegate::CreateUObject(
-                this,
-                &URiveFile::Initialize));
+        return;
     }
 
 #if WITH_EDITORONLY_DATA
@@ -52,51 +217,26 @@ void URiveFile::PostLoad()
             NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
     }
 
-    if (!RiveFilePath_DEPRECATED.IsEmpty())
-    {
-        FAssetImportInfo Info;
-        Info.Insert(FAssetImportInfo::FSourceFile(RiveFilePath_DEPRECATED));
-        AssetImportData->SourceData = MoveTemp(Info);
-    }
-
 #endif
+
+    if (!IsRunningCommandlet())
+    {
+        Initialize();
+    }
 }
 
 void URiveFile::Initialize()
 {
-    if (!(InitState == ERiveInitState::Uninitialized ||
-          (InitState == ERiveInitState::Initialized && bNeedsImport)))
-    {
-        return;
-    }
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
 
-    WasLastInitializationSuccessful.Reset();
-    InitState = ERiveInitState::Initializing;
-    OnStartInitializingDelegate.Broadcast();
+    Initialize(RiveRenderer->GetCommandBuilder());
+}
 
-    if (!IRiveRendererModule::IsAvailable())
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Could not load rive file as the required Rive Renderer "
-                    "Module is either "
-                    "missing or not loaded properly."));
-        BroadcastInitializationResult(false);
-        return;
-    }
+void URiveFile::Initialize(FRiveCommandBuilder& CommandBuilder)
+{
+    check(IsInGameThread());
 
-    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    if (!ensure(RiveRenderer))
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Failed to import rive file as we do not have a valid "
-                    "renderer."));
-        BroadcastInitializationResult(false);
-        return;
-    }
-
-#if WITH_RIVE
     if (RiveNativeFileSpan.empty() || bNeedsImport)
     {
         if (RiveFileData.IsEmpty())
@@ -104,262 +244,462 @@ void URiveFile::Initialize()
             UE_LOG(LogRive,
                    Error,
                    TEXT("Could not load an empty Rive File Data."));
-            BroadcastInitializationResult(false);
             return;
         }
-        RiveNativeFileSpan =
-            rive::make_span(RiveFileData.GetData(), RiveFileData.Num());
+        RiveNativeFileSpan.resize(RiveFileData.Num());
+        FMemory::Memcpy(RiveNativeFileSpan.data(),
+                        RiveFileData.GetData(),
+                        RiveFileData.Num() * sizeof(uint8_t));
     }
-
-    InitState = ERiveInitState::Initializing;
-
-    RiveRenderer->CallOrRegister_OnInitialized(
-        IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
-            [this](IRiveRenderer* RiveRenderer) {
-                rive::gpu::RenderContext* RenderContext;
-                {
-                    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-                    RenderContext = RiveRenderer->GetRenderContext();
-                }
-
-                if (ensure(RenderContext))
-                {
-                    ArtboardNames.Empty();
-                    Artboards.Empty();
-                    ViewModels.Empty();
-
-                    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-                    rive::ImportResult ImportResult;
 
 #if WITH_EDITORONLY_DATA
-                    if (bNeedsImport)
-                    {
-                        bNeedsImport = false;
-                        const TUniquePtr<FRiveFileAssetImporter> AssetImporter =
-                            MakeUnique<FRiveFileAssetImporter>(
-                                GetOutermost(),
-                                AssetImportData->GetFirstFilename(),
-                                GetAssets());
-                        RiveNativeFilePtr =
-                            rive::File::import(RiveNativeFileSpan,
-                                               RenderContext,
-                                               &ImportResult,
-                                               AssetImporter.Get());
-                        if (ImportResult != rive::ImportResult::success)
-                        {
-                            UE_LOG(LogRive,
-                                   Error,
-                                   TEXT("Failed to import rive file."));
-                            Lock.Unlock();
-                            BroadcastInitializationResult(false);
-                            return;
-                        }
-                    }
+    if (bNeedsImport)
+    {
+        ArtboardDefinitions.Empty();
+        EnumDefinitions.Empty();
+        ViewModelDefinitions.Empty();
+
+        bHasArtboardData = false;
+        bHasViewModelData = false;
+        bHasEnumsData = false;
+
+        bNeedsImport = false;
+        NativeFileHandle = CommandBuilder.LoadFile(RiveNativeFileSpan,
+                                                   new FRiveFileListener(this));
+
+        CommandBuilder.RequestViewModelEnums(NativeFileHandle);
+        CommandBuilder.RequestArtboardNames(NativeFileHandle);
+        CommandBuilder.RequestViewModelNames(NativeFileHandle);
+
+        return;
+    }
+    bHasArtboardData = true;
+    bHasViewModelData = true;
+    bHasEnumsData = true;
 #endif
+    NativeFileHandle = CommandBuilder.LoadFile(RiveNativeFileSpan,
+                                               new FRiveFileListener(this));
+}
 
-                    const TUniquePtr<FRiveFileAssetLoader> FileAssetLoader =
-                        MakeUnique<FRiveFileAssetLoader>(this, Assets);
-                    RiveNativeFilePtr =
-                        rive::File::import(RiveNativeFileSpan,
-                                           RenderContext,
-                                           &ImportResult,
-                                           FileAssetLoader.Get());
+URiveArtboard* URiveFile::CreateArtboardNamed(const FString& Name,
+                                              bool inAutoBindViewModel)
+{
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
 
-                    if (ImportResult != rive::ImportResult::success)
-                    {
-                        UE_LOG(LogRive,
-                               Error,
-                               TEXT("Failed to load rive file."));
-                        Lock.Unlock();
-                        BroadcastInitializationResult(false);
-                        return;
-                    }
+    return CreateArtboardNamed(RiveRenderer->GetCommandBuilder(),
+                               Name,
+                               inAutoBindViewModel);
+}
 
-                    // UI Helpers
-                    for (int i = 0; i < RiveNativeFilePtr->artboardCount(); ++i)
-                    {
-                        auto Artboard = NewObject<URiveArtboard>();
+URiveArtboard* URiveFile::CreateArtboardNamed(FRiveCommandBuilder& builder,
+                                              const FString& Name,
+                                              bool inAutoBindViewModel)
+{
+    auto ArtboardDefinition = GetArtboardDefinition(Name);
+    if (!ArtboardDefinition)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateArtboardNamed, artboard %s not found in "
+                    "file %s"),
+               *Name,
+               *GetName());
+        return nullptr;
+    }
 
-                        // We won't tick the artboard, it's just
-                        // initialized for informational purposes.
-                        Artboard->Initialize(this, nullptr, i, "");
-                        Artboards.Add(Artboard);
-                        ArtboardNames.Add(Artboard->GetArtboardName());
-                    }
+    auto ArtboardName = MakeUniqueObjectName(this,
+                                             URiveArtboard::StaticClass(),
+                                             TEXT("URiveArtboard"));
+    auto Artboard = NewObject<URiveArtboard>(this, ArtboardName);
+    Artboard->Initialize(this,
+                         *ArtboardDefinition,
+                         inAutoBindViewModel,
+                         builder);
+    return Artboard;
+}
+#if WITH_EDITORONLY_DATA
+void URiveFile::EnumsListed(std::vector<rive::ViewModelEnum> InEnumNames)
+{
+    EnumDefinitions.Empty();
+    EnumDefinitions.Reserve(InEnumNames.size());
+    for (const auto& Enum : InEnumNames)
+    {
+        FUTF8ToTCHAR Conversion(Enum.name.c_str());
+        FEnumDefinition Definition;
+        Definition.Name = Conversion;
+        Definition.Values.Reserve(Enum.enumerants.size());
+        for (const auto& EnumValue : Enum.enumerants)
+        {
+            FUTF8ToTCHAR ValueConversion(EnumValue.c_str());
+            Definition.Values.Add(ValueConversion.Get());
+        }
+        EnumDefinitions.Add(MoveTemp(Definition));
+    }
 
-                    for (int i = 0; i < RiveNativeFilePtr->viewModelCount();
-                         ++i)
-                    {
-                        auto ViewModel = NewObject<URiveViewModel>();
-                        ViewModel->Initialize(
-                            RiveNativeFilePtr->viewModelByIndex(i));
-                        ViewModels.Add(ViewModel);
-                    }
+    bHasEnumsData = true;
+    CheckShouldBrodcastDataReady();
+}
 
-                    BroadcastInitializationResult(true);
-                    return;
+void URiveFile::ArtboardsListed(std::vector<std::string> InArtboardNames)
+{
+
+    FRiveRenderer* renderer = IRiveRendererModule::Get().GetRenderer();
+    check(renderer);
+    FRiveCommandBuilder& CommandBuilder = renderer->GetCommandBuilder();
+
+    ArtboardDefinitions.Empty();
+    ArtboardDefinitions.Reserve(InArtboardNames.size());
+    for (const auto& ArtboardName : InArtboardNames)
+    {
+        FUTF8ToTCHAR Conversion(ArtboardName.c_str());
+        FString Name = Conversion.Get();
+
+        FArtboardDefinition Definition;
+        Definition.Name = Name;
+        auto Index = ArtboardDefinitions.Add(Definition);
+        // Create a temp artboard to get data about statemachines within it
+        auto UniqueArtboardName =
+            MakeUniqueObjectName(this,
+                                 URiveArtboard::StaticClass(),
+                                 TEXT("URiveArtboardTemp"));
+        auto tempArtboard = NewObject<URiveArtboard>(this, UniqueArtboardName);
+        // Prevents deletion from GC
+        tempArtboard->AddToRoot();
+        tempArtboard->InitializeForDataImport(this, Name, CommandBuilder);
+        tempArtboard->OnDataReady.AddLambda(
+            [this, Index, Max = InArtboardNames.size()](
+                URiveArtboard* artboard) {
+                ArtboardDefinitions[Index].StateMachineNames =
+                    artboard->GetStateMachineNames();
+                ArtboardDefinitions[Index].DefaultViewModel =
+                    artboard->GetDefaultViewModel();
+                ArtboardDefinitions[Index].DefaultViewModelInstance =
+                    artboard->GetDefaultViewModelInstance();
+                // If this is the last artboard we set getting the data to true
+                // and attempt broadcast.
+                if (Index == Max - 1)
+                {
+                    bHasArtboardData = true;
+                    CheckShouldBrodcastDataReady();
                 }
-
-                UE_LOG(LogRive, Error, TEXT("Failed to import rive file."));
-                BroadcastInitializationResult(false);
-            }));
-#endif // WITH_RIVE
-}
-
-void URiveFile::BroadcastInitializationResult(bool bSuccess)
-{
-    WasLastInitializationSuccessful = bSuccess;
-    InitState =
-        bSuccess ? ERiveInitState::Initialized : ERiveInitState::Uninitialized;
-    // First broadcast the one time fire delegate
-    OnInitializedOnceDelegate.Broadcast(bSuccess);
-    OnInitializedOnceDelegate.Clear();
-    OnInitializedDelegate.Broadcast(bSuccess);
-    if (bSuccess)
-    {
-        OnRiveReady.Broadcast();
+                // Allow GC again
+                artboard->RemoveFromRoot();
+            });
     }
 }
 
-int32 URiveFile::GetViewModelCount() const
+void URiveFile::ViewModelNamesListed(std::vector<std::string> InViewModelNames)
 {
-    if (!RiveNativeFilePtr)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveFile::GetViewModelCount "
-                    "RiveNativeFilePtr is Null."));
+    ViewModelDefinitions.Empty();
+    ViewModelDefinitions.SetNum(InViewModelNames.size());
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    FRiveCommandBuilder& builder = RiveRenderer->GetCommandBuilder();
 
-        return 0;
+    for (int i = 0; i < InViewModelNames.size(); i++)
+    {
+        FUTF8ToTCHAR Conversion(InViewModelNames[i].c_str());
+        ViewModelDefinitions[i].Name = Conversion;
+
+        builder.RequestViewModelInstanceNames(NativeFileHandle,
+                                              InViewModelNames[i]);
+        builder.RequestViewModelProperties(NativeFileHandle,
+                                           InViewModelNames[i]);
     }
 
-    return static_cast<int32>(RiveNativeFilePtr->viewModelCount());
+    if (InViewModelNames.empty())
+    {
+        bHasViewModelData = true;
+        CheckShouldBrodcastDataReady();
+    }
 }
 
-URiveViewModel* URiveFile::CreateViewModelWrapper(
-    rive::ViewModelRuntime* ViewModel) const
+void URiveFile::ViewModelInstanceNamesListed(
+    std::string viewModelName,
+    std::vector<std::string> InInstanceNames)
 {
-    if (!ViewModel)
+    FUTF8ToTCHAR Conversion(viewModelName.c_str());
+    FString ViewModelNames = Conversion.Get();
+    auto ViewModelDefinition =
+        ViewModelDefinitions.FindByPredicate([ViewModelNames](const auto& val) {
+            return val.Name == ViewModelNames;
+        });
+
+    if (!ViewModelDefinition)
     {
         UE_LOG(LogRive,
                Error,
-               TEXT("URiveFile::CreateViewModelWrapper "
-                    "ViewModel is Null."));
-
-        return nullptr;
+               TEXT("ViewModel name %s not found when trying to get view model "
+                    "instance names"),
+               *ViewModelNames);
+        return;
     }
 
-    URiveViewModel* ViewModelWrapper = NewObject<URiveViewModel>();
-    ViewModelWrapper->Initialize(ViewModel);
-    return ViewModelWrapper;
+    ViewModelDefinition->InstanceNames.Reserve(InInstanceNames.size());
+    for (const auto& Name : InInstanceNames)
+    {
+        FUTF8ToTCHAR NameConversion(Name.c_str());
+        ViewModelDefinition->InstanceNames.Add(NameConversion.Get());
+    }
 }
 
-URiveViewModel* URiveFile::GetViewModelByIndex(int32 Index) const
+void URiveFile::ViewModelPropertyDefinitionsListed(
+    std::string viewModelName,
+    std::vector<rive::CommandQueue::FileListener::ViewModelPropertyData>
+        properties)
 {
-    if (!RiveNativeFilePtr)
+    FUTF8ToTCHAR Conversion(viewModelName.c_str());
+    FString ViewModelName = Conversion.Get();
+    auto ViewModelDefinition = ViewModelDefinitions.FindByPredicate(
+        [ViewModelName](const auto& val) { return val.Name == ViewModelName; });
+
+    if (!ViewModelDefinition)
     {
         UE_LOG(LogRive,
                Error,
-               TEXT("URiveFile::GetViewModelByIndex "
-                    "RiveNativeFilePtr is Null."));
-        return nullptr;
+               TEXT("ViewModel name %s not found when trying to update "
+                    "property definitions"),
+               *ViewModelName);
+        return;
     }
 
-    if (Index < 0 || Index >= GetViewModelCount())
+    ViewModelDefinition->PropertyDefinitions.SetNum(properties.size());
+    for (int i = 0; i < properties.size(); i++)
+    {
+        FUTF8ToTCHAR PropertyNameConversion(properties[i].name.c_str());
+        ViewModelDefinition->PropertyDefinitions[i].Name =
+            PropertyNameConversion;
+        ViewModelDefinition->PropertyDefinitions[i].Type =
+            RiveDataTypeFromDataType(properties[i].type);
+        if (properties[i].type == rive::DataType::enumType)
+        {
+            FUTF8ToTCHAR MetaDataConversion(properties[i].metaData.c_str());
+            ViewModelDefinition->PropertyDefinitions[i].MetaData =
+                MetaDataConversion;
+        }
+    }
+
+    // Because everything is guaranteed order we know that the last view model
+    // received is in fact the last thing we need.
+    if (ViewModelDefinition == &ViewModelDefinitions.Last())
+    {
+        bHasViewModelData = true;
+        CheckShouldBrodcastDataReady();
+    }
+}
+void URiveFile::CheckShouldBrodcastDataReady()
+{
+    if (bHasArtboardData && bHasViewModelData && bHasEnumsData)
+    {
+        OnDataReady.Broadcast(this);
+    }
+}
+#endif
+URiveViewModel* URiveFile::CreateViewModelByName(const URiveFile* InputFile,
+                                                 const FString& ViewModelName,
+                                                 const FString& InstanceName)
+{
+    if (!ensure(IsValid(InputFile)))
     {
         UE_LOG(LogRive,
                Error,
-               TEXT("URiveFile::GetViewModelByIndex Index "
-                    "must be between 0 and %d."),
-               GetViewModelCount() - 1);
-
+               TEXT("URiveFile::CreateViewModelByName Input File was invalid"));
         return nullptr;
     }
 
-    return CreateViewModelWrapper(RiveNativeFilePtr->viewModelByIndex(Index));
+    if (!ensure(!ViewModelName.IsEmpty()))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateViewModelByName Input ViewModelName was "
+                    "empty"));
+        return nullptr;
+    }
+
+    if (!ensure(!InputFile->ViewModelDefinitions.IsEmpty()))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateViewModelByName Input File "
+                    "ViewModelDefinitions was empty"));
+        return nullptr;
+    }
+
+    auto ViewModelDefinition = InputFile->ViewModelDefinitions.FindByPredicate(
+        [ViewModelName](const FViewModelDefinition& L) {
+            return L.Name == ViewModelName;
+        });
+
+    if (!ensure(ViewModelDefinition))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateViewModelByName Input Could not find "
+                    "viewmodel with name %s"),
+               *ViewModelName);
+        return nullptr;
+    }
+
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& Builder = RiveRenderer->GetCommandBuilder();
+
+    const auto SanitizedViewModelName =
+        RiveUtils::SanitizeObjectName(ViewModelName + TEXT("_") + InstanceName);
+    UClass* ViewModelClass =
+        URiveViewModel::LoadGeneratedClassForViewModel(InputFile,
+                                                       InputFile,
+                                                       ViewModelName);
+    const auto ObjectName = MakeUniqueObjectName(ViewModelClass->GetOuter(),
+                                                 ViewModelClass,
+                                                 *SanitizedViewModelName);
+
+    URiveViewModel* ViewModel = NewObject<URiveViewModel>(InputFile->GetOuter(),
+                                                          ViewModelClass,
+                                                          ObjectName);
+    ViewModel->Initialize(Builder,
+                          InputFile,
+                          *ViewModelDefinition,
+                          InstanceName);
+    return ViewModel;
 }
 
-URiveViewModel* URiveFile::GetViewModelByName(const FString& Name) const
+URiveViewModel* URiveFile::CreateViewModelByArtboardName(
+    const URiveFile* InputFile,
+    const FString& ArtboardName,
+    const FString& InstanceName)
 {
-    if (!RiveNativeFilePtr)
+    if (!ensure(IsValid(InputFile)))
     {
         UE_LOG(LogRive,
                Error,
-               TEXT("URiveFile::GetViewModelByName "
-                    "RiveNativeFilePtr is Null."));
-
+               TEXT("URiveFile::CreateViewModelByArtboardName Input File was "
+                    "invalid"));
         return nullptr;
     }
 
-    return CreateViewModelWrapper(
-        RiveNativeFilePtr->viewModelByName(RiveUtils::ToUTF8(*Name)));
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& Builder = RiveRenderer->GetCommandBuilder();
+
+    FString ViewModelName;
+    bool bFound = false;
+
+    for (auto& Artboard : InputFile->ArtboardDefinitions)
+    {
+        if (Artboard.Name == ArtboardName)
+        {
+            for (auto& ViewModel : InputFile->ViewModelDefinitions)
+            {
+                if (ViewModel.Name == Artboard.DefaultViewModel)
+                {
+                    ViewModelName = Artboard.DefaultViewModel;
+                    bFound = true;
+                    break;
+                }
+            }
+            if (bFound)
+                break;
+        }
+    }
+
+    if (!ensure(bFound) && !ensure(!ViewModelName.IsEmpty()))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateViewModelByArtboardName Could not find "
+                    "View Model for Artboard %s"),
+               *ArtboardName);
+        return nullptr;
+    }
+
+    auto ViewModelDefinition = InputFile->ViewModelDefinitions.FindByPredicate(
+        [ViewModelName](const FViewModelDefinition& L) {
+            return L.Name == ViewModelName;
+        });
+
+    if (!ensure(ViewModelDefinition))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateViewModelByName Input Could not find "
+                    "viewmodel with name %s"),
+               *ViewModelName);
+        return nullptr;
+    }
+
+    auto SanitizedName =
+        RiveUtils::SanitizeObjectName(ViewModelName + TEXT("_") + InstanceName);
+
+    UClass* ViewModelClass =
+        URiveViewModel::LoadGeneratedClassForViewModel(InputFile,
+                                                       InputFile,
+                                                       ViewModelName);
+
+    const auto ObjectName = MakeUniqueObjectName(ViewModelClass->GetOuter(),
+                                                 ViewModelClass,
+                                                 *SanitizedName);
+
+    URiveViewModel* ViewModel = NewObject<URiveViewModel>(InputFile->GetOuter(),
+                                                          ViewModelClass,
+                                                          ObjectName);
+    ViewModel->Initialize(Builder,
+                          InputFile,
+                          *ViewModelDefinition,
+                          InstanceName);
+    return ViewModel;
 }
 
-URiveViewModel* URiveFile::GetDefaultArtboardViewModel(
-    URiveArtboard* Artboard) const
+URiveViewModel* URiveFile::CreateDefaultViewModel(const URiveFile* InputFile,
+                                                  const FString& ViewModelName)
 {
-    if (!RiveNativeFilePtr || !Artboard)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveFile::GetDefaultArtboardViewModel "
-                    "RiveNativeFilePtr or Artboard is Null."));
+    UE_LOG(LogRive,
+           Error,
+           TEXT("URiveFile::GetViewModelByName "
+                "Command Qeueue not implemented view models."));
+    // not implemented in command queue yet
+    return nullptr;
+}
 
-        return nullptr;
-    }
+URiveViewModel* URiveFile::CreateDefaultViewModelForArtboard(
+    const URiveFile* InputFile,
+    URiveArtboard* Artboard)
+{
+    UE_LOG(LogRive,
+           Error,
+           TEXT("URiveFile::GetDefaultArtboardViewModel "
+                "Command Qeueue not implemented view models."));
+    return nullptr;
+}
 
-    rive::Artboard* NativeArtboard = Artboard->GetNativeArtboard();
-    if (!NativeArtboard)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveFile::GetDefaultArtboardViewModel "
-                    "NativeArtboard is Null."));
-
-        return nullptr;
-    }
-
-    return CreateViewModelWrapper(
-        RiveNativeFilePtr->defaultArtboardViewModel(NativeArtboard));
+URiveViewModel* URiveFile::CreateArtboardViewModelByName(
+    const URiveFile* InputFile,
+    URiveArtboard* Artboard,
+    const FString& InstanceName)
+{
+    UE_LOG(LogRive,
+           Error,
+           TEXT("URiveFile::GetDefaultArtboardViewModel "
+                "Command Qeueue not implemented view models."));
+    return nullptr;
 }
 
 #if WITH_EDITOR
 void URiveFile::PrintStats() const
 {
-    const rive::File* NativeFile = GetNativeFile();
-    if (!NativeFile)
-    {
-        UE_LOG(LogRive,
-               Warning,
-               TEXT("Could not print statistics as we have detected an empty "
-                    "rive file."));
-        return;
-    }
 
     FFormatNamedArguments RiveFileLoadArgs;
-    RiveFileLoadArgs.Add(
-        TEXT("Major"),
-        FText::AsNumber(static_cast<int>(NativeFile->majorVersion)));
-    RiveFileLoadArgs.Add(
-        TEXT("Minor"),
-        FText::AsNumber(static_cast<int>(NativeFile->minorVersion)));
+
     RiveFileLoadArgs.Add(
         TEXT("NumArtboards"),
-        FText::AsNumber(static_cast<uint32>(NativeFile->artboardCount())));
+        FText::AsNumber(static_cast<uint32>(ArtboardDefinitions.Num())));
     RiveFileLoadArgs.Add(
-        TEXT("NumAssets"),
-        FText::AsNumber(static_cast<uint32>(NativeFile->assets().size())));
-
-    if (const rive::Artboard* NativeArtboard = NativeFile->artboard())
-    {
-        RiveFileLoadArgs.Add(TEXT("NumAnimations"),
-                             FText::AsNumber(static_cast<uint32>(
-                                 NativeArtboard->animationCount())));
-    }
-    else
-    {
-        RiveFileLoadArgs.Add(TEXT("NumAnimations"), FText::AsNumber(0));
-    }
+        TEXT("NumViewModels"),
+        FText::AsNumber(static_cast<uint32>(ViewModelDefinitions.Num())));
+    RiveFileLoadArgs.Add(
+        TEXT("NumEnums"),
+        FText::AsNumber(static_cast<uint32>(EnumDefinitions.Num())));
 
     const FText RiveFileLoadMsg =
         FText::Format(NSLOCTEXT("FURFile",
@@ -377,15 +717,6 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath,
                              TArray<uint8>& InRiveFileBuffer,
                              bool bIsReimport)
 {
-    if (!IRiveRendererModule::Get().GetRenderer())
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Unable to Import the RiveFile '%s' as the RiveRenderer is"
-                    " null"),
-               *InRiveFilePath);
-        return false;
-    }
     bNeedsImport = true;
 
 #if WITH_EDITORONLY_DATA
@@ -399,10 +730,15 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath,
 
 #endif
 
+    auto Renderer = IRiveRendererModule::Get().GetRenderer();
+    check(Renderer);
+
+    auto& CommanBuilder = Renderer->GetCommandBuilder();
+
     RiveFileData = MoveTemp(InRiveFileBuffer);
     if (bIsReimport)
     {
-        Initialize();
+        Initialize(CommanBuilder);
     }
     else
     {
@@ -410,16 +746,6 @@ bool URiveFile::EditorImport(const FString& InRiveFilePath,
         ConditionalPostLoad();
     }
 
-    // In Theory, the import should be synchronous as the
-    // IRiveRendererModule::Get().GetRenderer() should have been initialized,
-    // and the parent Rive File (if any) should already be loaded
-    ensureMsgf(WasLastInitializationSuccessful.IsSet(),
-               TEXT("The initialization of the Rive File '%s' ended up being "
-                    "asynchronous. "
-                    "EditorImport returning true as we don't know if the "
-                    "import was successful."),
-               *InRiveFilePath);
-
-    return WasLastInitializationSuccessful.Get(true);
+    return true;
 }
 #endif // WITH_EDITOR

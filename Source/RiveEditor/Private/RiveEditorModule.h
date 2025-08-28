@@ -14,12 +14,6 @@ public:
     virtual void ShutdownModule() override;
     //~ END : IModuleInterface Interface
 
-    /**
-     * Checks the current RHI and create a notification if Rive is not supported
-     * for this RHI Returns true if the current RHI is supported.
-     */
-    bool CheckCurrentRHIAndNotify();
-
 private:
     void RegisterAssetTypeActions(IAssetTools& AssetTools,
                                   TSharedRef<IAssetTypeActions> Action);

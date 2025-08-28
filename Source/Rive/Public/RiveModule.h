@@ -18,7 +18,4 @@ public:
     /**
      * Implementation(s)
      */
-
-private:
-    void TestRiveIntegration();
 };

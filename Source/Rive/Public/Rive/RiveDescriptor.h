@@ -28,15 +28,15 @@ public:
               meta = (GetOptions = "GetArtboardNamesForDropdown"))
     FString ArtboardName;
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    int32 ArtboardIndex = 0;
-
     // StateMachine name to pass into our default artboard instance
     UPROPERTY(BlueprintReadWrite,
               EditAnywhere,
               Category = Rive,
               meta = (GetOptions = "GetStateMachineNamesForDropdown"))
     FString StateMachineName;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+    bool bAutoBindDefaultViewModel = true;
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
     ERiveFitType FitType = ERiveFitType::Contain;

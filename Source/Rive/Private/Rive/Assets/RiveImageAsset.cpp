@@ -4,17 +4,17 @@
 
 #include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
-#include "IRiveRenderer.h"
 #include "IRiveRendererModule.h"
+#include "RiveRenderer.h"
+#include "RiveCommandBuilder.h"
 #include "Logs/RiveLog.h"
 
 #include "Engine/Texture2D.h"
 #include "Engine/Texture.h"
 #include "TextureResource.h"
-#include "rive/renderer/render_context_helper_impl.hpp"
-#include "rive/renderer/rive_render_image.hpp"
 
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/factory.hpp"
 #include "rive/renderer/render_context.hpp"
 THIRD_PARTY_INCLUDES_END
@@ -100,88 +100,77 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
         }
     }
 
-    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    FRiveCommandBuilder& CommandBuilder = RiveRenderer->GetCommandBuilder();
+    CommandBuilder.RunOnce([this, InTexture, RiveRenderer = RiveRenderer](
+                               rive::CommandServer*) {
+        rive::gpu::RenderContext* RenderContext =
+            RiveRenderer->GetRenderContext();
 
-    RiveRenderer->CallOrRegister_OnInitialized(
-        IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
-            [this, InTexture](IRiveRenderer* RiveRenderer) {
-                rive::gpu::RenderContext* RenderContext;
-                {
-                    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-                    RenderContext = RiveRenderer->GetRenderContext();
-                }
+        if (ensure(RenderContext))
+        {
+            TArray<uint8> ImageData;
+            UE::Private::RiveImageAsset::GetTextureData(InTexture, ImageData);
 
-                if (ensure(RenderContext))
-                {
-                    TArray<uint8> ImageData;
-                    UE::Private::RiveImageAsset::GetTextureData(InTexture,
-                                                                ImageData);
+            if (ImageData.IsEmpty())
+            {
+                UE_LOG(LogRive,
+                       Error,
+                       TEXT("LoadTexture: Could not get raw bitmap "
+                            "data from Texture."));
+                return;
+            }
 
-                    if (ImageData.IsEmpty())
-                    {
-                        UE_LOG(LogRive,
-                               Error,
-                               TEXT("LoadTexture: Could not get raw bitmap "
-                                    "data from Texture."));
-                        return;
-                    }
-
-                    TArray64<uint8> CompressedImage;
-                    FImageView ImageView = FImageView(ImageData.GetData(),
-                                                      InTexture->GetSizeX(),
-                                                      InTexture->GetSizeY(),
-                                                      ERawImageFormat::BGRA8);
-                    IImageWrapperModule& ImageWrapperModule =
-                        FModuleManager::LoadModuleChecked<IImageWrapperModule>(
-                            FName("ImageWrapper"));
-                    ImageWrapperModule.CompressImage(CompressedImage,
-                                                     EImageFormat::PNG,
-                                                     ImageView,
-                                                     100);
-                    rive::rcp<rive::RenderImage> RenderImage =
-                        RenderContext->decodeImage(
-                            rive::make_span(CompressedImage.GetData(),
-                                            CompressedImage.Num()));
-                    NativeAsset->as<rive::ImageAsset>()->renderImage(
-                        RenderImage);
-                }
-            }));
+            TArray64<uint8> CompressedImage;
+            FImageView ImageView = FImageView(ImageData.GetData(),
+                                              InTexture->GetSizeX(),
+                                              InTexture->GetSizeY(),
+                                              ERawImageFormat::BGRA8);
+            IImageWrapperModule& ImageWrapperModule =
+                FModuleManager::LoadModuleChecked<IImageWrapperModule>(
+                    FName("ImageWrapper"));
+            ImageWrapperModule.CompressImage(CompressedImage,
+                                             EImageFormat::PNG,
+                                             ImageView,
+                                             100);
+            rive::rcp<rive::RenderImage> RenderImage =
+                RenderContext->decodeImage(
+                    rive::make_span(CompressedImage.GetData(),
+                                    CompressedImage.Num()));
+            NativeAsset->as<rive::ImageAsset>()->renderImage(RenderImage);
+        }
+    });
 }
 
 void URiveImageAsset::LoadImageBytes(const TArray<uint8>& InBytes)
 {
-    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 
-    // We'll copy InBytes into the lambda because there's no guarantee they'll
-    // exist by the time it's hit
-    RiveRenderer->CallOrRegister_OnInitialized(
-        IRiveRenderer::FOnRendererInitialized::FDelegate::CreateLambda(
-            [this, InBytes](IRiveRenderer* RiveRenderer) {
-                rive::gpu::RenderContext* RenderContext;
-                {
-                    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-                    RenderContext = RiveRenderer->GetRenderContext();
-                }
+    FRiveCommandBuilder& CommandBuilder = RiveRenderer->GetCommandBuilder();
+    CommandBuilder.RunOnce([this,
+                            InBytes = InBytes,
+                            RiveRenderer = RiveRenderer](rive::CommandServer*) {
+        rive::gpu::RenderContext* RenderContext =
+            RiveRenderer->GetRenderContext();
 
-                if (ensure(RenderContext))
-                {
-                    auto DecodedImage = RenderContext->decodeImage(
-                        rive::make_span(InBytes.GetData(), InBytes.Num()));
+        if (ensure(RenderContext))
+        {
+            auto DecodedImage = RenderContext->decodeImage(
+                rive::make_span(InBytes.GetData(), InBytes.Num()));
 
-                    if (DecodedImage == nullptr)
-                    {
-                        UE_LOG(LogRive,
-                               Error,
-                               TEXT("LoadImageBytes: Could not decode image "
-                                    "bytes"));
-                        return;
-                    }
+            if (DecodedImage == nullptr)
+            {
+                UE_LOG(LogRive,
+                       Error,
+                       TEXT("LoadImageBytes: Could not decode image "
+                            "bytes"));
+                return;
+            }
 
-                    rive::ImageAsset* ImageAsset =
-                        NativeAsset->as<rive::ImageAsset>();
-                    ImageAsset->renderImage(DecodedImage);
-                }
-            }));
+            rive::ImageAsset* ImageAsset = NativeAsset->as<rive::ImageAsset>();
+            ImageAsset->renderImage(DecodedImage);
+        }
+    });
 }
 
 bool URiveImageAsset::LoadNativeAssetBytes(

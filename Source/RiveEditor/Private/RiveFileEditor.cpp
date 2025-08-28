@@ -4,7 +4,6 @@
 #include "Rive/RiveFile.h"
 #include "Slate/SRiveWidget.h"
 #include "PropertyEditorModule.h"
-#include "Rive/RiveTextureObject.h"
 #include "Widgets/Docking/SDockTab.h"
 
 const FName FRiveFileEditor::RiveViewportTabID(TEXT("RiveViewportTabID"));
@@ -17,14 +16,8 @@ FRiveFileEditor::~FRiveFileEditor()
 {
     if (RiveWidget)
     {
-        RiveWidget->SetRiveTexture(nullptr);
+        RiveWidget->SetRiveArtboard(nullptr);
         RiveWidget.Reset();
-    }
-
-    if (RiveTextureObject)
-    {
-        RiveTextureObject->bRenderInEditor = false;
-        RiveTextureObject = nullptr;
     }
 }
 
@@ -132,26 +125,13 @@ TSharedRef<SDockTab> FRiveFileEditor::SpawnTab_RiveViewportTab(
 
     TSharedPtr<SWidget> ViewportWidget = nullptr;
 
-    if (RiveFile)
+    if (RiveFile && ensure(RiveFile->GetHasData()) &&
+        RiveFile->ArtboardDefinitions.Num() > 0)
     {
-        if (!RiveTextureObject)
-        {
-            RiveTextureObject = NewObject<URiveTextureObject>();
-            RiveTextureObject->Initialize(
-                FRiveDescriptor{RiveFile,
-                                "",
-                                0,
-                                "",
-                                ERiveFitType::Contain,
-                                ERiveAlignment::Center});
-        }
-
-        RiveTextureObject->bRenderInEditor = true;
-        RiveWidget = SNew(SRiveWidget)
-#if WITH_EDITOR
-                         .bDrawCheckerboardInEditor(true);
-#endif
-        RiveWidget->SetRiveTexture(RiveTextureObject);
+        RiveWidget = SNew(SRiveWidget);
+        RiveWidget->SetRiveArtboard(
+            RiveFile->CreateArtboardNamed(RiveFile->ArtboardDefinitions[0].Name,
+                                          false));
         ViewportWidget = RiveWidget;
     }
     else

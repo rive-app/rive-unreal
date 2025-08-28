@@ -48,6 +48,11 @@
 			"Type": "Editor",
 			"LoadingPhase": "Default",
 			"PlatformAllowList": [ "Win64", "Mac", "IOS" ]
+		},
+		{
+			"Name": "RiveEditorNodes",
+			"Type": "UncookedOnly",
+			"LoadingPhase": "Default"
 		}
 	]
 }

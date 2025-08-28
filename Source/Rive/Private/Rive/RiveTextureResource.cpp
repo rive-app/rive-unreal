@@ -4,7 +4,7 @@
 
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
-#include "IRiveRenderer.h"
+#include "RiveRenderer.h"
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
 #include "RenderUtils.h"
@@ -16,19 +16,6 @@ FRiveTextureResource::FRiveTextureResource(URiveTexture* Owner) :
 
 void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
 {
-    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    if (!IRiveRendererModule::Get().GetRenderer())
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Failed to InitRHI for the RiveTextureResource as we do "
-                    "not have a valid "
-                    "renderer."));
-        return;
-    }
-
-    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-
     if (RiveTexture)
     {
         FSamplerStateInitializerRHI SamplerStateInitializer(
@@ -45,14 +32,6 @@ void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
 
 void FRiveTextureResource::ReleaseRHI()
 {
-    IRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    if (ensure(RiveRenderer))
-    {
-        RiveRenderer->GetThreadDataCS().Lock();
-    }
-
-    FScopeLock Lock(&RiveRenderer->GetThreadDataCS());
-
     if (RiveTexture)
     {
         RHIUpdateTextureReference(
@@ -61,11 +40,6 @@ void FRiveTextureResource::ReleaseRHI()
     }
 
     FTextureResource::ReleaseRHI();
-
-    if (RiveRenderer)
-    {
-        RiveRenderer->GetThreadDataCS().Unlock();
-    }
 }
 
 uint32 FRiveTextureResource::GetSizeX() const

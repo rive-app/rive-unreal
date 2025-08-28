@@ -6,7 +6,7 @@
 #include "ThumbnailRendering/TextureThumbnailRenderer.h"
 #include "RiveFileThumbnailRenderer.generated.h"
 
-class IRiveRenderTarget;
+class FRiveRenderTarget;
 class URiveArtboard;
 class URiveTexture;
 
@@ -34,14 +34,5 @@ class RIVEEDITOR_API URiveFileThumbnailRenderer
                       bool bAdditionalViewFamily) override;
 
 private:
-    void OnAssetRemoved(const FAssetData& AssetData);
-
-    UPROPERTY()
-    TMap<FName, URiveArtboard*> ThumbnailRenderers;
-
-    UPROPERTY()
-    URiveTexture* RiveTexture;
-
-    TSharedPtr<IRiveRenderTarget> RiveRenderTarget;
-    bool Initialized = false;
+    TSharedPtr<FRiveRenderTarget> RiveRenderTarget;
 };

@@ -15,7 +15,6 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Logs/RiveEditorLog.h"
-#include "Rive/RiveTextureObject.h"
 #include "Templates/WidgetTemplateClass.h"
 #include "UMG/RiveWidget.h"
 #include "UObject/SavePackage.h"
@@ -61,8 +60,6 @@ bool FRiveWidgetFactory::SaveAsset(UWidgetBlueprint* InWidgetBlueprint)
 
     double StartTime = FPlatformTime::Seconds();
 
-    UMetaData* MetaData = Package->GetMetaData();
-
     FSavePackageArgs SaveArgs;
 
     SaveArgs.TopLevelFlags = RF_Standalone;
@@ -105,8 +102,8 @@ bool FRiveWidgetFactory::CreateWidgetStructure(
             RiveWidget->RiveDescriptor =
                 FRiveDescriptor{RiveFile,
                                 "",
-                                0,
                                 "",
+                                false,
                                 ERiveFitType::Contain,
                                 ERiveAlignment::Center};
         }
@@ -205,12 +202,6 @@ bool FRiveWidgetFactory::Create()
         return false;
     }
 
-    if (!RiveFile->GetWidgetClass()->IsValidLowLevel())
-    {
-        RiveFile->SetWidgetClass(
-            TSubclassOf<UUserWidget>(NewBP->GeneratedClass));
-    }
-
     // Compile BP
     FCompilerResultsLog LogResults;
 
@@ -246,7 +237,7 @@ static void SpawnRiveWidgetActor(const FToolMenuContext& MenuContext)
 
                 if (NewActor)
                 {
-                    NewActor->SetWidgetClass(RiveFile->GetWidgetClass());
+                    NewActor->SetWidgetClass(URiveWidget::StaticClass());
                 }
             }
         }

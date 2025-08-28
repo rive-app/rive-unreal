@@ -7,42 +7,101 @@
 #include "RenderGraphUtils.h"
 #include "RenderGraphResources.h"
 
-TSharedPtr<IRiveRenderTarget> FRiveRendererRHI::CreateTextureTarget_GameThread(
+static const FString RiveRenderOverrideDescription =
+    TEXT("Forces a specific rendering interlock mode for rive renderer.\n"
+         "\tatomics: Forces atomic interlock mode\n"
+         "\traster: Forces raster ordered interlock mode\n"
+         "\tmsaa: Forces msaa interlock mode\n");
+
+FRiveRendererRHI::FRiveRendererRHI()
+{
+    FCommandLine::RegisterArgument(TEXT("riveRenderOverride"),
+                                   ECommandLineArgumentFlags::GameContexts |
+                                       ECommandLineArgumentFlags::EditorContext,
+                                   RiveRenderOverrideDescription);
+}
+
+TSharedPtr<FRiveRenderTarget> FRiveRendererRHI::CreateRenderTarget(
     const FName& InRiveName,
     UTexture2DDynamic* InRenderTarget)
 {
     check(IsInGameThread());
 
-    FScopeLock Lock(&ThreadDataCS);
-
     const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget =
-        MakeShared<FRiveRenderTargetRHI>(SharedThis(this),
-                                         InRiveName,
-                                         InRenderTarget);
-
-    RenderTargets.Add(InRiveName, RiveRenderTarget);
+        MakeShared<FRiveRenderTargetRHI>(this, InRiveName, InRenderTarget);
 
     return RiveRenderTarget;
 }
 
-DECLARE_GPU_STAT_NAMED(CreatePLSContextRHI,
-                       TEXT("CreatePLSContext_RenderThread"));
-void FRiveRendererRHI::CreateRenderContext_RenderThread(
-    FRHICommandListImmediate& RHICmdList)
+TSharedPtr<FRiveRenderTarget> FRiveRendererRHI::CreateRenderTarget(
+    const FName& InRiveName,
+    UTextureRenderTarget2D* InRenderTarget)
+{
+    check(IsInGameThread());
+
+    const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget =
+        MakeShared<FRiveRenderTargetRHI>(this, InRiveName, InRenderTarget);
+
+    return RiveRenderTarget;
+}
+
+TSharedPtr<FRiveRenderTarget> FRiveRendererRHI::CreateRenderTarget(
+    FRDGBuilder& GraphBuilder,
+    const FName& InRiveName,
+    FRDGTextureRef InRenderTarget)
+{
+    return MakeShared<FRiveRenderTargetRHI>(GraphBuilder,
+                                            this,
+                                            InRiveName,
+                                            InRenderTarget);
+    ;
+}
+
+TSharedPtr<FRiveRenderTarget> FRiveRendererRHI::CreateRenderTarget(
+    const FName& InRiveName,
+    FRenderTarget* RenderTarget)
+{
+    return MakeShared<FRiveRenderTargetRHI>(this, InRiveName, RenderTarget);
+}
+
+DECLARE_GPU_STAT_NAMED(CreateRenderContext,
+                       TEXT("FRiveRendererRHI::CreateRenderContext"));
+void FRiveRendererRHI::CreateRenderContext(FRHICommandListImmediate& RHICmdList)
 {
     check(IsInRenderingThread());
     check(GDynamicRHI);
 
-    FScopeLock Lock(&ThreadDataCS);
-
-    SCOPED_GPU_STAT(RHICmdList, CreatePLSContextRHI);
+    SCOPED_GPU_STAT(RHICmdList, CreateRenderContext);
 
     if (GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Null)
     {
         return;
     }
 
-#if WITH_RIVE
-    RenderContext = RenderContextRHIImpl::MakeContext(RHICmdList);
-#endif // WITH_RIVE
+    RenderContextRHIImpl::RHICapabilitiesOverrides Overrides;
+
+    FString renderOverrides;
+    if (FParse::Value(FCommandLine::Get(),
+                      TEXT("riveRenderOverride="),
+                      renderOverrides))
+    {
+        auto lower = renderOverrides.ToLower();
+        if (lower == TEXT("atomics"))
+        {
+            Overrides.bSupportsPixelShaderUAVs = true;
+            Overrides.bSupportsRasterOrderViews = false;
+        }
+        else if (lower == TEXT("raster"))
+        {
+            Overrides.bSupportsPixelShaderUAVs = false;
+            Overrides.bSupportsRasterOrderViews = true;
+        }
+        else if (lower == TEXT("msaa"))
+        {
+            Overrides.bSupportsPixelShaderUAVs = false;
+            Overrides.bSupportsRasterOrderViews = false;
+        }
+    }
+
+    RenderContext = RenderContextRHIImpl::MakeContext(RHICmdList, Overrides);
 }

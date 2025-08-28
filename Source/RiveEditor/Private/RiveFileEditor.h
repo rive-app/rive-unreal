@@ -43,6 +43,4 @@ private:
 
     /** The rive file asset being edited. */
     TObjectPtr<URiveFile> RiveFile;
-    TObjectPtr<URiveTextureObject>
-        RiveTextureObject; // The Object used to render the preview
 };

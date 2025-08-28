@@ -127,3 +127,19 @@ FRDGPassRef AddAtomicResolvePass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveFlushPassParameters* PassParameters);
+
+FRDGPassRef AddDrawRasterOrderPatchesPass(
+    FRDGBuilder& GraphBuilder,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveFlushPassParameters* PassParameters);
+
+FRDGPassRef AddDrawRasterOrderInteriorTrianglesPass(
+    FRDGBuilder& GraphBuilder,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveFlushPassParameters* PassParameters);
+
+FRDGPassRef AddDrawRasterOrderImageMeshPass(
+    FRDGBuilder& GraphBuilder,
+    uint32_t NumVertices,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveFlushPassParameters* PassParameters);

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Stats/Stats.h"
+
 /*
  * Stats group for game objects that rive uses, like RiveTextureObject
  */
