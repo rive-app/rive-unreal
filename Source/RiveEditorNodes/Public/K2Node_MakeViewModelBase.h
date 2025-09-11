@@ -106,7 +106,7 @@ private:
     int32 SelectedIndex = INDEX_NONE;
 
     UPROPERTY()
-    UClass* ViewModelClass = nullptr;
+    TObjectPtr<UClass> ViewModelClass = nullptr;
 
     static FName PN_File;
     static FName PN_ViewModelSource;

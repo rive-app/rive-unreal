@@ -316,14 +316,20 @@ FBufferRHIRef makeSimpleImmutableBuffer(FRHICommandList& RHICmdList,
                                         EBufferUsageFlags bindFlags,
                                         FResourceArrayInterface& ResourceArray)
 {
-    const size_t size = ResourceArray.GetResourceDataSize();
-    FRHIResourceCreateInfo Info(DebugName, &ResourceArray);
-    auto buffer = RHICmdList.CreateBuffer(size,
-                                          EBufferUsageFlags::Static | bindFlags,
-                                          sizeof(DataType),
-                                          ERHIAccess::VertexOrIndexBuffer,
-                                          Info);
-    return buffer;
+    const size_t Size = ResourceArray.GetResourceDataSize();
+
+    FRHIBufferCreateDesc CreateDesc =
+        FRHIBufferCreateDesc::Create(DebugName,
+                                     Size,
+                                     sizeof(DataType),
+                                     EBufferUsageFlags::Static | bindFlags)
+            .SetGPUMask(FRHIGPUMask::All())
+            .SetInitialState(ERHIAccess::VertexOrIndexBuffer)
+            .SetClassName(NAME_None)
+            .SetOwnerName(NAME_None)
+            .SetInitActionResourceArray(&ResourceArray);
+
+    return RHICmdList.CreateBuffer(CreateDesc);
 }
 
 ESamplerFilter SamplerFilterFromImageFilterOption(const ImageFilter option)
@@ -361,15 +367,18 @@ BufferRingRHIImpl::BufferRingRHIImpl(EBufferUsageFlags flags,
 FBufferRHIRef BufferRingRHIImpl::Sync(FRHICommandList& commandList,
                                       size_t offsetInBytes) const
 {
-    FRHIResourceCreateInfo Info(TEXT("rive.BufferRingRHIImpl_"));
-
     const size_t size = capacityInBytes() - offsetInBytes;
-    auto buffer =
-        commandList.CreateBuffer(size,
-                                 m_flags | EBufferUsageFlags::Volatile,
-                                 m_stride,
-                                 ERHIAccess::WriteOnlyMask,
-                                 Info);
+    FRHIBufferCreateDesc CreateDesc =
+        FRHIBufferCreateDesc::Create(TEXT("rive.BufferRingRHIImpl_"),
+                                     size,
+                                     m_stride,
+                                     m_flags | EBufferUsageFlags::Volatile)
+            .SetGPUMask(FRHIGPUMask::All())
+            .SetInitialState(ERHIAccess::WriteOnlyMask)
+            .SetClassName(NAME_None)
+            .SetOwnerName(NAME_None);
+
+    auto buffer = commandList.CreateBuffer(CreateDesc);
     // for DX12 we should use RLM_WriteOnly_NoOverwrite but RLM_WriteOnly works
     // everywhere so we use it for now
     auto map = commandList.LockBuffer(buffer, 0, size, RLM_WriteOnly);

@@ -109,7 +109,7 @@ public:
 #if WITH_EDITORONLY_DATA
     // This property holds the import data
     UPROPERTY(VisibleAnywhere, Instanced, Category = "Import Settings")
-    UAssetImportData* AssetImportData;
+    TObjectPtr<UAssetImportData> AssetImportData;
 #endif
 
     rive::FileHandle GetNativeFileHandle() const { return NativeFileHandle; }

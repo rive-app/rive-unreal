@@ -89,7 +89,7 @@ public:
     FIntPoint Size;
 
     UPROPERTY(BlueprintReadWrite, SkipSerialization, Transient, Category = Rive)
-    TArray<URiveArtboard*> Artboards;
+    TArray<TObjectPtr<URiveArtboard>> Artboards;
 
     UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
     TObjectPtr<URiveTexture> RiveTexture;

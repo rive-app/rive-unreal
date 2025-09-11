@@ -314,14 +314,14 @@ void URiveActorComponent::PostEditChangeChainProperty(
         TArray<FString> StateMachineNames = GetStateMachineNamesForDropdown();
         if (StateMachineNames.Num() == 1)
         {
-            DefaultRiveDescriptor.StateMachineName =
-                StateMachineNames[0]; // No state machine, use blank
+            DefaultRiveDescriptor.StateMachineName = StateMachineNames[0];
         }
         else if (DefaultRiveDescriptor.StateMachineName.IsEmpty() ||
                  !StateMachineNames.Contains(
-                     DefaultRiveDescriptor.StateMachineName))
+                     DefaultRiveDescriptor.StateMachineName) &&
+                     !StateMachineNames.IsEmpty())
         {
-            DefaultRiveDescriptor.StateMachineName = StateMachineNames[1];
+            DefaultRiveDescriptor.StateMachineName = StateMachineNames[0];
         }
     }
 }
