@@ -7,6 +7,9 @@
 #include "RiveTypes.h"
 #include "RiveStateMachine.h"
 #include "rive/command_queue.hpp"
+#include "Input/Events.h"
+#include "Layout/Geometry.h"
+#include "Tickable.h"
 
 #if WITH_RIVE
 struct FArtboardDefinition;
@@ -135,7 +138,7 @@ public:
 
     // This is the size of the artboard in the Rive file. It is not the size of
     // the rendered artboard.
-    UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+    UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "RiveFileData")
     FVector2D ArtboardDefaultSize;
 
 #if WITH_EDITORONLY_DATA

@@ -5,6 +5,10 @@
 #include <memory>
 
 #include "RiveCommandBuilder.h"
+#include "Engine/Texture2DDynamic.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "UnrealClient.h"
+#include "RenderGraphFwd.h"
 
 namespace rive::gpu
 {

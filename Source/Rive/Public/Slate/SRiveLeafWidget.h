@@ -5,6 +5,7 @@
 #include "Engine/TimerHandle.h"
 #include "Rive/RiveDescriptor.h"
 #include "Widgets/SCompoundWidget.h"
+#include "Widgets/SLeafWidget.h"
 
 class SImage;
 class URiveArtboard;

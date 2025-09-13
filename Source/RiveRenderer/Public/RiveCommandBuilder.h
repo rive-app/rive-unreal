@@ -1,6 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
-
+#include "Engine/Texture2D.h"
 namespace rive
 {
 class Renderer;

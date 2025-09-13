@@ -9,6 +9,8 @@
 
 struct FRiveDescriptor;
 struct FRiveCommandBuilder;
+#include "Input/Events.h"
+#include "Layout/Geometry.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/command_queue.hpp"

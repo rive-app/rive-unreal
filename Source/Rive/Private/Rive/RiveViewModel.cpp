@@ -10,6 +10,7 @@
 #include "Rive/RiveArtboard.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveUtils.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 TMap<rive::ViewModelInstanceHandle, URiveViewModel*>
     URiveViewModel::ViewModelInstances;

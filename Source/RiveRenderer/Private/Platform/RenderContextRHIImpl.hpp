@@ -7,6 +7,7 @@
 #include "Containers/DynamicRHIResourceArray.h"
 #include "Logs/RiveRendererLog.h"
 #include <RiveShaders/Public/RiveShaderTypes.h>
+#include "UnrealClient.h"
 
 THIRD_PARTY_INCLUDES_START
 #undef PI

@@ -6,6 +6,8 @@
 #include "RiveStats.h"
 #include "RiveTypeConversions.h"
 #include "Platform/RenderContextRHIImpl.hpp"
+#include "TextureResource.h"
+#include "Async/Async.h"
 
 THIRD_PARTY_INCLUDES_START
 #undef PI

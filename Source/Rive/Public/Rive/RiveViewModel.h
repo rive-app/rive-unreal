@@ -20,10 +20,10 @@ struct FRiveList
 {
     GENERATED_BODY()
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FString Path;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     int32 ListSize = 0;
 };
 
@@ -47,7 +47,7 @@ public:
                     const FViewModelDefinition& InViewModelDefinition,
                     const FString& InstanceName);
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     bool bIsGenerated = false;
 
     // Getters for generated view model properties

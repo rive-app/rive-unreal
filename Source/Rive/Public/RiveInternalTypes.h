@@ -23,11 +23,11 @@ USTRUCT(BlueprintType)
 struct FRivePropertyData
 {
     GENERATED_BODY()
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FString Name;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FString MetaData;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     ERiveDataType Type = ERiveDataType::None;
 };
 
@@ -35,9 +35,9 @@ USTRUCT(BlueprintType)
 struct FEnumDefinition
 {
     GENERATED_BODY()
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FString Name;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     TArray<FString> Values;
 };
 
@@ -45,15 +45,15 @@ USTRUCT(BlueprintType)
 struct FArtboardDefinition
 {
     GENERATED_BODY()
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FString Name;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     TArray<FString> StateMachineNames;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FString DefaultViewModel;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FString DefaultViewModelInstance;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FVector2D DefaultArtboardSize;
 };
 
@@ -61,10 +61,10 @@ USTRUCT(BlueprintType)
 struct FViewModelDefinition
 {
     GENERATED_BODY()
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FString Name;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     TArray<FString> InstanceNames;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     TArray<FRivePropertyData> PropertyDefinitions;
 };
