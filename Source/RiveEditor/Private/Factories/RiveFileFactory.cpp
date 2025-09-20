@@ -23,6 +23,8 @@
 #include "Types/AttributeStorage.h"
 #include "UObject/SavePackage.h"
 #include "UObject/UnrealTypePrivate.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_FunctionEntry.h"
 
 extern UNREALED_API class UEditorEngine* GEditor;
 
@@ -67,10 +69,17 @@ static UEnum* GenerateBlueprintForEnum(const FString& FolderPath,
     FString SanitizedPackageName =
         UPackageTools::SanitizePackageName(PackageName);
 
-    UUserDefinedEnum* Enum = Cast<UUserDefinedEnum>(
-        FEnumEditorUtils::CreateUserDefinedEnum(FolderPackage,
-                                                *EnumName,
-                                                RF_Standalone | RF_Public));
+    UUserDefinedEnum* Enum =
+        FindObject<UUserDefinedEnum>(FolderPackage, EnumName);
+    bool bIsNewEnum = false;
+    if (!Enum)
+    {
+        Enum = Cast<UUserDefinedEnum>(
+            FEnumEditorUtils::CreateUserDefinedEnum(FolderPackage,
+                                                    *EnumName,
+                                                    RF_Standalone | RF_Public));
+        bIsNewEnum = true;
+    }
 
     TArray<TPair<FName, int64>> EnumsValues;
     int64 Index = 0;
@@ -83,7 +92,10 @@ static UEnum* GenerateBlueprintForEnum(const FString& FolderPath,
     Enum->SetEnums(EnumsValues, UEnum::ECppForm::Namespaced);
 
     // Notify the asset registry
-    FAssetRegistryModule::AssetCreated(Enum);
+    if (bIsNewEnum)
+    {
+        FAssetRegistryModule::AssetCreated(Enum);
+    }
 
     // Mark the package dirty...
     if (!FolderPackage->MarkPackageDirty())
@@ -136,14 +148,25 @@ static UClass* GenerateBlueprintForViewModel(
     FString SanitizedPackageName =
         UPackageTools::SanitizePackageName(PackageName);
 
-    // Create and init a new blank Blueprint
-    UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(
-        URiveViewModel::StaticClass(),
-        FolderPackage,
-        *BlueprintName,
-        BPTYPE_Normal,
-        UBlueprint::StaticClass(),
-        UBlueprintGeneratedClass::StaticClass());
+    // Try to find a pre existing blueprint
+    UBlueprint* Blueprint =
+        FindObject<UBlueprint>(FolderPackage, BlueprintName);
+    bool bIsNewBlueprint = false;
+
+    // If there is none, make a new one.
+    if (!Blueprint)
+    {
+        // Create and init a new blank Blueprint
+        Blueprint = FKismetEditorUtilities::CreateBlueprint(
+            URiveViewModel::StaticClass(),
+            FolderPackage,
+            *BlueprintName,
+            BPTYPE_Normal,
+            UBlueprint::StaticClass(),
+            UBlueprintGeneratedClass::StaticClass());
+        bIsNewBlueprint = true;
+    }
+
     if (Blueprint)
     {
         // Editing the BluePrint
@@ -151,6 +174,9 @@ static UClass* GenerateBlueprintForViewModel(
         URiveViewModel* CDO =
             BlueprintClass->GetDefaultObject<URiveViewModel>();
         CDO->bIsGenerated = true;
+
+        Blueprint->NewVariables.Empty();
+        Blueprint->DelegateSignatureGraphs.Empty();
 
         static FText VariableCategory = FText::FromString(TEXT("Rive"));
         Blueprint->Modify();
@@ -300,7 +326,8 @@ static UClass* GenerateBlueprintForViewModel(
                                                  &LogResults);
 
         // Notify the asset registry
-        FAssetRegistryModule::AssetCreated(Blueprint);
+        if (bIsNewBlueprint)
+            FAssetRegistryModule::AssetCreated(Blueprint);
 
         // Mark the package dirty...
         if (!FolderPackage->MarkPackageDirty())
@@ -347,55 +374,8 @@ static UClass* GenerateBlueprintForViewModel(
     return nullptr;
 }
 
-static void DeletePreviousAssetsForFile(URiveFile* File)
-{
-    auto PackagePath = RiveUtils::GetPackagePathForFile(File);
-    FAssetRegistryModule& AssetRegistryModule =
-        FModuleManager::LoadModuleChecked<FAssetRegistryModule>(
-            "AssetRegistry");
-    auto& AssetRegistry = AssetRegistryModule.Get();
-    TArray<FAssetData> AssetData;
-    if (AssetRegistry.GetAssetsByPackageName(*PackagePath, AssetData))
-    {
-        TArray<UObject*> Objects;
-
-        for (const auto& ViewModelAssetData : AssetData)
-        {
-            Objects.Add(ViewModelAssetData.GetAsset());
-        }
-
-        auto MissedAssets =
-            ObjectTools::ForceDeleteObjects(Objects, false) - AssetData.Num();
-        if (MissedAssets > 0)
-        {
-            UE_LOG(LogRiveEditor,
-                   Error,
-                   TEXT("Failed to force delete all assets for file '%s'. "
-                        "Number missed %i"),
-                   *File->GetName(),
-                   MissedAssets);
-        }
-    }
-    // Remove files.
-    UEditorAssetSubsystem* EditorAssetSubsystem =
-        GEditor->GetEditorSubsystem<UEditorAssetSubsystem>();
-    if (EditorAssetSubsystem != nullptr)
-    {
-        if (!EditorAssetSubsystem->DeleteDirectory(PackagePath))
-        {
-            UE_LOG(
-                LogRiveEditor,
-                Error,
-                TEXT("Failed to delete the previous assets for the file '%s'"),
-                *File->GetName());
-        }
-    }
-}
-
 static void GenerateBlueprintsForFile(URiveFile* RiveFile)
 {
-    DeletePreviousAssetsForFile(RiveFile);
-
     TArray<UEnum*> GeneratedEnums;
     GeneratedEnums.SetNumUninitialized(RiveFile->EnumDefinitions.Num());
 

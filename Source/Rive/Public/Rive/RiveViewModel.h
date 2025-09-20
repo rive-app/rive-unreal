@@ -30,6 +30,8 @@ struct FRiveList
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FViewModelDefaultsReadyDelegate,
                                             URiveViewModel*,
                                             ViewModel);
+class URiveTriggerDelegate;
+
 /**
  *
  */
@@ -96,6 +98,9 @@ public:
               meta = (DisplayName = "Remove View Model From List At Index",
                       ScriptName = "RemoveFromList"))
     void K2_RemoveFromList(FRiveList List, int32 Index);
+
+    UFUNCTION(BlueprintCallable)
+    void SetTrigger(const FString& TriggerName);
 
     UFUNCTION(BlueprintPure, Category = "Rive")
     bool HasDefaultValues() const { return DefaultRequestIds.Num() == 0; }
@@ -227,4 +232,45 @@ private:
 
     // Used to determine when getting default values is finished.
     TArray<uint64_t> DefaultRequestIds;
+
+    // Used for forwarding trigger names to the delegate callback without having
+    // to make changes to how multicast delegates work
+    TArray<URiveTriggerDelegate> TriggerDelegates;
+
+    // Checked in SetTrigger to make sure we don't infinite recurse when a
+    // trigger is fired from the riv state machine
+    bool bIsInDataCallback = false;
+
+    friend class URiveTriggerDelegate;
+};
+
+UCLASS(Blueprintable, BlueprintType)
+class URiveTriggerDelegate : public UObject
+{
+    GENERATED_BODY()
+public:
+    int32 TriggerIndex = -1;
+
+    TWeakObjectPtr<URiveViewModel> OwningViewModel;
+
+    UFUNCTION(BlueprintCallable, Category = "Rive | Triggers")
+    void SetTrigger()
+    {
+        if (auto ViewModel = OwningViewModel.Pin())
+        {
+            check(TriggerIndex >= 0);
+            check(
+                ViewModel->ViewModelDefinition.PropertyDefinitions.IsValidIndex(
+                    TriggerIndex));
+
+            const auto& TriggerName =
+                ViewModel->ViewModelDefinition.PropertyDefinitions[TriggerIndex]
+                    .Name;
+            const auto& TriggerType =
+                ViewModel->ViewModelDefinition.PropertyDefinitions[TriggerIndex]
+                    .Type;
+            check(TriggerType == ERiveDataType::Trigger)
+                ViewModel->SetTrigger(TriggerName);
+        }
+    }
 };

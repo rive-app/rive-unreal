@@ -350,6 +350,16 @@ struct RIVERENDERER_API FRiveCommandBuilder
         return CurrentRequestId;
     }
 
+    uint64_t SetViewModelTrigger(rive::ViewModelInstanceHandle ViewModel,
+                                 const FString& Name)
+    {
+        FTCHARToUTF8 ConvertName(*Name);
+        CommandQueue->fireViewModelTrigger(ViewModel,
+                                           ConvertName.Get(),
+                                           ++CurrentRequestId);
+        return CurrentRequestId;
+    }
+
     uint64_t SetViewModelColor(rive::ViewModelInstanceHandle ViewModel,
                                const FString& Name,
                                FLinearColor Value)

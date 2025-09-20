@@ -171,8 +171,12 @@ void URiveViewModel::Initialize(
     // There is no reason to auto-subscribe if we aren't a generated view model.
     if (bIsGenerated)
     {
-        for (auto PropertyDefinition : ViewModelDefinition.PropertyDefinitions)
+        for (int32 Index = 0;
+             Index < ViewModelDefinition.PropertyDefinitions.Num();
+             ++Index)
         {
+            const auto& PropertyDefinition =
+                ViewModelDefinition.PropertyDefinitions[Index];
             // View model properties do not have subscriptions
             if (PropertyDefinition.Type == ERiveDataType::ViewModel)
             {
@@ -194,6 +198,29 @@ void URiveViewModel::Initialize(
                 NativeViewModelInstance,
                 PropertyDefinition.Name,
                 RiveDataTypeToDataType(PropertyDefinition.Type));
+
+            if (PropertyDefinition.Type == ERiveDataType::Trigger)
+            {
+                FScriptDelegate GenericDelegate;
+                const FString TriggerName =
+                    GET_FUNCTION_NAME_STRING_CHECKED(URiveTriggerDelegate,
+                                                     SetTrigger);
+                URiveTriggerDelegate* TriggerDelegate =
+                    NewObject<URiveTriggerDelegate>(
+                        this,
+                        FName(TriggerName + TEXT("_TriggerDelegate")));
+                TriggerDelegate->OwningViewModel = this;
+                TriggerDelegate->TriggerIndex = Index;
+                GenericDelegate.BindUFunction(TriggerDelegate,
+                                              FName(TriggerName));
+                if (auto DelegateProperty =
+                        FindFProperty<FMulticastDelegateProperty>(
+                            GetClass(),
+                            *PropertyDefinition.Name))
+                {
+                    DelegateProperty->AddDelegate(GenericDelegate, this);
+                }
+            }
         }
     }
     // This handle should not exist in the map.
@@ -342,6 +369,22 @@ void URiveViewModel::K2_RemoveFromList(FRiveList List, int32 Index)
     Builder.RemoveViewModelList(NativeViewModelInstance, List.Path, Index);
 }
 
+void URiveViewModel::SetTrigger(const FString& TriggerName)
+{
+    if (bIsInDataCallback)
+        return;
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& Builder = RiveRenderer->GetCommandBuilder();
+    uint64_t Id =
+        Builder.SetViewModelTrigger(NativeViewModelInstance, TriggerName);
+    UE_LOG(LogRive,
+           Verbose,
+           TEXT("Set Trigger Request with name %s Request Id %llu"),
+           *TriggerName,
+           Id);
+}
+
 void URiveViewModel::OnViewModelDataReceived(
     uint64_t RequestId,
     rive::CommandQueue::ViewModelInstanceData Data)
@@ -361,6 +404,7 @@ void URiveViewModel::OnViewModelDataReceived(
         return;
     }
 
+    bIsInDataCallback = true;
     switch (Data.metaData.type)
     {
         case rive::DataType::string:
@@ -462,6 +506,8 @@ void URiveViewModel::OnViewModelDataReceived(
             }
         }
     }
+
+    bIsInDataCallback = false;
 }
 
 void URiveViewModel::OnViewModelListSizeReceived(std::string Path,
