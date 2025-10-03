@@ -27,9 +27,6 @@ struct FRiveList
     int32 ListSize = 0;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FViewModelDefaultsReadyDelegate,
-                                            URiveViewModel*,
-                                            ViewModel);
 class URiveTriggerDelegate;
 
 /**
@@ -101,9 +98,6 @@ public:
 
     UFUNCTION(BlueprintCallable)
     void SetTrigger(const FString& TriggerName);
-
-    UFUNCTION(BlueprintPure, Category = "Rive")
-    bool HasDefaultValues() const { return DefaultRequestIds.Num() == 0; }
 
     // INotifyFieldValueChanged Implementation
     /** Add a delegate that will be notified when the FieldId is value changed.
@@ -201,22 +195,40 @@ public:
         uint64_t RequestId,
         rive::CommandQueue::ViewModelInstanceData Data);
     void OnViewModelListSizeReceived(std::string Path, size_t ListSize);
-    void OnViewModelErrorReceived(uint64_t RequestId);
 
-    UPROPERTY(BlueprintAssignable, Category = Rive)
-    FViewModelDefaultsReadyDelegate OnViewModelDefaultsReady;
+    FORCEINLINE void SetOwningArtboard(TWeakObjectPtr<URiveArtboard> Artboard)
+    {
+        OwningArtboard = MoveTemp(Artboard);
+    }
+
+    FORCEINLINE void SetViewModelDefinition(
+        const FViewModelDefinition& InViewModelDefinition)
+    {
+        ViewModelDefinition = InViewModelDefinition;
+    }
+
+    const FViewModelDefinition& GetViewModelDefinition() const
+    {
+        return ViewModelDefinition;
+    }
 
 protected:
     virtual void BeginDestroy() override;
 
     void OnUpdatedField(UE::FieldNotification::FFieldId InFieldId);
 
+    // This is used to unsettle the state machine when a property is updated.
+    UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = Rive)
+    TWeakObjectPtr<URiveArtboard> OwningArtboard;
+
+    // Set when the blueprint is generated
+    UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = Rive)
+    FViewModelDefinition ViewModelDefinition;
+
 private:
     bool RemoveFieldValueChangedDelegate(
         FFieldNotificationId FieldId,
         const FFieldValueChangedDynamicDelegate& Delegate);
-
-    void BroadcastDefaultsAvailableChecked(uint64_t RequestId);
 
     rive::ViewModelInstanceHandle NativeViewModelInstance = RIVE_NULL_HANDLE;
 
@@ -227,11 +239,6 @@ private:
         ViewModelInstances;
 
     UE::FieldNotification::FFieldMulticastDelegate Delegates;
-
-    FViewModelDefinition ViewModelDefinition;
-
-    // Used to determine when getting default values is finished.
-    TArray<uint64_t> DefaultRequestIds;
 
     // Used for forwarding trigger names to the delegate callback without having
     // to make changes to how multicast delegates work

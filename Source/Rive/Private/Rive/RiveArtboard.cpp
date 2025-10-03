@@ -296,6 +296,8 @@ void URiveArtboard::SetViewModel(URiveViewModel* RiveViewModelInstance)
         return;
     }
 
+    RiveViewModelInstance->SetOwningArtboard(this);
+
     if (StateMachine && StateMachine->IsValid())
     {
         StateMachine->BindViewModel(RiveViewModelInstance);
@@ -418,4 +420,12 @@ void URiveArtboard::Tick(float InDeltaSeconds)
 bool URiveArtboard::IsTickable() const
 {
     return StateMachine.IsValid() && !StateMachine->IsStateMachineSettled();
+}
+
+void URiveArtboard::UnsettleStateMachine()
+{
+    if (StateMachine.IsValid())
+    {
+        StateMachine->SetStateMachineSettled(false);
+    }
 }

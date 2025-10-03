@@ -79,21 +79,8 @@ bool UK2Node_MakeViewModel::CheckForErrors(
 UEnum* UK2Node_MakeViewModel::GenerateViewModelSourceEnum(
     TObjectPtr<URiveFile> RiveFile)
 {
-    UEnum* Enum = NewObject<UEnum>(this, TEXT("EViewModelEnum"));
-
-    TArray<TPair<FName, int64>> EnumsValues;
-
-    for (int64 i = 0; i < RiveFile->ViewModelDefinitions.Num(); ++i)
-    {
-        const auto& ViewModelDefinition = RiveFile->ViewModelDefinitions[i];
-        EnumsValues.Add(TPair<FName, int64>(
-            FName(TEXT("EViewModelEnum::") + ViewModelDefinition.Name),
-            i));
-    }
-    Enum->CppType = TEXT("EViewModelEnum_Generated");
-    Enum->SetEnums(EnumsValues, UEnum::ECppForm::Namespaced);
-
-    return Enum;
+    check(RiveFile->ViewModelEnum);
+    return RiveFile->ViewModelEnum;
 }
 
 int UK2Node_MakeViewModel::GetIndexFromSelection(const FString& Selection)

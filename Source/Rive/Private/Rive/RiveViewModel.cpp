@@ -64,11 +64,6 @@ public:
                TEXT("Rive View Model RequestId: %llu Error {%s}"),
                RequestId,
                Conversion.Get());
-        if (auto StrongViewModel = ListeningViewModel.Pin();
-            StrongViewModel.IsValid())
-        {
-            StrongViewModel->OnViewModelErrorReceived(RequestId);
-        }
     }
 
     virtual void onViewModelDeleted(const rive::ViewModelInstanceHandle Handle,
@@ -135,6 +130,28 @@ UClass* URiveViewModel::LoadGeneratedClassForViewModel(
     return LoadClass<URiveViewModel>(Context->GetOutermost(), *FullPath);
 }
 
+constexpr bool GetIsPropertyTypeWithDefault(ERiveDataType Type)
+{
+    switch (Type)
+    {
+        case ERiveDataType::String:
+        case ERiveDataType::Number:
+        case ERiveDataType::Boolean:
+        case ERiveDataType::Color:
+        case ERiveDataType::EnumType:
+        case ERiveDataType::ViewModel:
+        case ERiveDataType::Artboard:
+            return true;
+        case ERiveDataType::AssetImage:
+        case ERiveDataType::List:
+        case ERiveDataType::Trigger:
+        case ERiveDataType::None:
+            break;
+    }
+
+    return false;
+}
+
 void URiveViewModel::Initialize(
     FRiveCommandBuilder& Builder,
     const URiveFile* OwningFile,
@@ -171,27 +188,144 @@ void URiveViewModel::Initialize(
     // There is no reason to auto-subscribe if we aren't a generated view model.
     if (bIsGenerated)
     {
+        int32 DefaultValueIndex = 0;
+        const auto ViewModelDefault =
+            ViewModelDefinition.InstanceDefaults.FindByPredicate(
+                [InstanceName](const auto& ViewModelDefault) {
+                    return ViewModelDefault.InstanceName == InstanceName;
+                });
+        UBlueprintGeneratedClass* GeneratedClass =
+            Cast<UBlueprintGeneratedClass>(GetClass());
         for (int32 Index = 0;
              Index < ViewModelDefinition.PropertyDefinitions.Num();
              ++Index)
         {
             const auto& PropertyDefinition =
                 ViewModelDefinition.PropertyDefinitions[Index];
+
+            if (ViewModelDefault &&
+                GetIsPropertyTypeWithDefault(PropertyDefinition.Type))
+            {
+                const FPropertyDefaultData& DefaultData =
+                    ViewModelDefault->PropertyValues[DefaultValueIndex++];
+                check(DefaultData.Name == PropertyDefinition.Name);
+                const FString& DefaultValue = DefaultData.Value;
+                switch (PropertyDefinition.Type)
+                {
+                    case ERiveDataType::String:
+                    {
+                        if (FStrProperty* Prop = FindFProperty<FStrProperty>(
+                                GeneratedClass,
+                                *PropertyDefinition.Name))
+                        {
+                            Prop->SetPropertyValue_InContainer(this,
+                                                               DefaultValue);
+                        }
+                    }
+                    break;
+                    case ERiveDataType::Number:
+                    {
+                        if (FFloatProperty* Prop =
+                                FindFProperty<FFloatProperty>(
+                                    GeneratedClass,
+                                    *PropertyDefinition.Name))
+                        {
+                            Prop->SetPropertyValue_InContainer(
+                                this,
+                                FCString::Atof(*DefaultValue));
+                        }
+                    }
+                    break;
+                    case ERiveDataType::Boolean:
+                    {
+                        if (FBoolProperty* Prop = FindFProperty<FBoolProperty>(
+                                GeneratedClass,
+                                *PropertyDefinition.Name))
+                        {
+                            Prop->SetPropertyValue_InContainer(
+                                this,
+                                DefaultValue == TEXT("True") ? true : false);
+                        }
+                    }
+                    break;
+                    case ERiveDataType::Color:
+                    {
+                        if (FStructProperty* Prop =
+                                FindFProperty<FStructProperty>(
+                                    GeneratedClass,
+                                    *PropertyDefinition.Name))
+                        {
+                            FLinearColor* ColorValue =
+                                Prop->ContainerPtrToValuePtr<FLinearColor>(
+                                    this);
+                            rive::ColorInt ColorInt =
+                                FCString::Atoi(*DefaultValue);
+                            float Values[4];
+                            rive::UnpackColorToRGBA32F(ColorInt, Values);
+                            ColorValue->R = Values[0];
+                            ColorValue->G = Values[1];
+                            ColorValue->B = Values[2];
+                            ColorValue->A = Values[3];
+                        }
+                    }
+                    break;
+                    case ERiveDataType::EnumType:
+                    {
+                        if (FByteProperty* Prop = FindFProperty<FByteProperty>(
+                                GeneratedClass,
+                                *PropertyDefinition.Name))
+                        {
+                            UEnum* Enum = Prop->GetIntPropertyEnum();
+                            check(Enum);
+                            Prop->SetPropertyValue_InContainer(
+                                this,
+                                Enum->GetIndexByNameString(DefaultValue));
+                        }
+                    }
+                    break;
+                    case ERiveDataType::ViewModel:
+                    {
+                        if (FObjectProperty* Prop =
+                                FindFProperty<FObjectProperty>(
+                                    GeneratedClass,
+                                    *PropertyDefinition.Name))
+                        {
+                            FString ViewModelType;
+                            FString ViewModelInstanceName;
+                            ensure(DefaultValue.Split(TEXT("/"),
+                                                      &ViewModelType,
+                                                      &ViewModelInstanceName));
+                            TObjectPtr<URiveViewModel> NestedViewModel =
+                                URiveFile::CreateViewModelByName(
+                                    OwningFile,
+                                    ViewModelType,
+                                    ViewModelInstanceName);
+                            Prop->SetPropertyValue_InContainer(this,
+                                                               NestedViewModel);
+                            Builder.SetViewModelViewModel(
+                                NativeViewModelInstance,
+                                PropertyDefinition.Name,
+                                NestedViewModel->NativeViewModelInstance);
+                        }
+                    }
+                    break;
+                    case ERiveDataType::Artboard:
+                    {
+                        // Do nothing for this but it is a valid default. Maybe
+                        // we will do something with it later.
+                    }
+                    break;
+                    case ERiveDataType::AssetImage:
+                    case ERiveDataType::List:
+                    default:
+                        continue;
+                }
+            }
+
             // View model properties do not have subscriptions
             if (PropertyDefinition.Type == ERiveDataType::ViewModel)
             {
                 continue;
-            }
-
-            auto RequestId = Builder.GetPropertyValue(
-                NativeViewModelInstance,
-                PropertyDefinition.Name,
-                RiveDataTypeToDataType(PropertyDefinition.Type));
-
-            if (PropertyDefinition.Type < ERiveDataType::Trigger &&
-                PropertyDefinition.Type != ERiveDataType::List)
-            {
-                DefaultRequestIds.Add(RequestId);
             }
 
             Builder.SubscribeToProperty(
@@ -488,8 +622,6 @@ void URiveViewModel::OnViewModelDataReceived(
             RIVE_UNREACHABLE();
     }
 
-    BroadcastDefaultsAvailableChecked(RequestId);
-
     if (UBlueprintGeneratedClass* BlueprintClass =
             Cast<UBlueprintGeneratedClass>(GetClass()))
     {
@@ -546,11 +678,6 @@ void URiveViewModel::OnViewModelListSizeReceived(std::string Path,
     }
 }
 
-void URiveViewModel::OnViewModelErrorReceived(uint64_t RequestId)
-{
-    BroadcastDefaultsAvailableChecked(RequestId);
-}
-
 void URiveViewModel::BeginDestroy()
 {
     if (NativeViewModelInstance != RIVE_NULL_HANDLE)
@@ -592,6 +719,11 @@ void URiveViewModel::OnUpdatedField(UE::FieldNotification::FFieldId InFieldId)
             TEXT("URiveViewModel::OnUpdatedField Field %s is not a property."),
             *InFieldId.GetName().GetPlainNameString());
         return;
+    }
+
+    if (auto StrongArtboard = OwningArtboard.Pin(); StrongArtboard.IsValid())
+    {
+        StrongArtboard->UnsettleStateMachine();
     }
 
     auto PropName = Property->GetName();
@@ -700,18 +832,6 @@ bool URiveViewModel::RemoveFieldValueChangedDelegate(
 {
     auto RemoveResult = Delegates.Remove(InDelegate);
     return RemoveResult.bRemoved;
-}
-
-void URiveViewModel::BroadcastDefaultsAvailableChecked(uint64_t RequestId)
-{
-    if (DefaultRequestIds.Contains(RequestId))
-    {
-        DefaultRequestIds.Remove(RequestId);
-        if (DefaultRequestIds.Num() == 0)
-        {
-            OnViewModelDefaultsReady.Broadcast(this);
-        }
-    }
 }
 
 void URiveViewModel::FFieldNotificationClassDescriptor::ForEachField(

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RiveCommandBuilder.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Rive/RiveDescriptor.h"
 #include "RiveRenderTarget2D.generated.h"
@@ -44,6 +45,8 @@ public:
     // Draws the artboard selected by RiveDescriptor
     UFUNCTION(BlueprintCallable, Category = "Rive | RenderTarget")
     void Draw();
+
+    void Draw(DirectDrawCallback);
 
     virtual uint32 CalcTextureMemorySizeEnum(
         ETextureMipCount Enum) const override;

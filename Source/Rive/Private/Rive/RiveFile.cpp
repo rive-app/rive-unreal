@@ -2,6 +2,7 @@
 
 #include "Rive/RiveFile.h"
 
+#include "EditorCategoryUtils.h"
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveFileAssetImporter.h"
@@ -13,7 +14,10 @@
 #include "RiveRenderer.h"
 #include "RiveCommandBuilder.h"
 #include "IRiveRendererModule.h"
+#include "ObjectEditorUtils.h"
 #include "rive/command_queue.hpp"
+#include "StructUtils/PropertyBag.h"
+#include "Types/AttributeStorage.h"
 
 #if WITH_EDITOR
 #include "EditorFramework/AssetImportData.h"
@@ -24,6 +28,7 @@ THIRD_PARTY_INCLUDES_START
 #undef PI
 #include "rive/animation/state_machine_input.hpp"
 #include "rive/renderer/render_context.hpp"
+#include "Rive/command_server.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
@@ -261,6 +266,7 @@ void URiveFile::Initialize(FRiveCommandBuilder& CommandBuilder)
 
         bHasArtboardData = false;
         bHasViewModelData = false;
+        bHasViewModelInstanceDefaultsData = false;
         bHasEnumsData = false;
 
         bNeedsImport = false;
@@ -276,6 +282,7 @@ void URiveFile::Initialize(FRiveCommandBuilder& CommandBuilder)
     bHasArtboardData = true;
     bHasViewModelData = true;
     bHasEnumsData = true;
+    bHasViewModelInstanceDefaultsData = true;
 #endif
     NativeFileHandle = CommandBuilder.LoadFile(RiveNativeFileSpan,
                                                new FRiveFileListener(this));
@@ -319,6 +326,7 @@ URiveArtboard* URiveFile::CreateArtboardNamed(FRiveCommandBuilder& builder,
     return Artboard;
 }
 #if WITH_EDITORONLY_DATA
+
 void URiveFile::EnumsListed(std::vector<rive::ViewModelEnum> InEnumNames)
 {
     EnumDefinitions.Empty();
@@ -338,7 +346,7 @@ void URiveFile::EnumsListed(std::vector<rive::ViewModelEnum> InEnumNames)
     }
 
     bHasEnumsData = true;
-    CheckShouldBrodcastDataReady();
+    CheckShouldBroadcastDataReady();
 }
 
 void URiveFile::ArtboardsListed(std::vector<std::string> InArtboardNames)
@@ -381,12 +389,14 @@ void URiveFile::ArtboardsListed(std::vector<std::string> InArtboardNames)
                 if (Index == Max - 1)
                 {
                     bHasArtboardData = true;
-                    CheckShouldBrodcastDataReady();
+                    CheckShouldBroadcastDataReady();
                 }
                 // Allow GC again
                 artboard->RemoveFromRoot();
             });
     }
+
+    GenerateArtboardEnum();
 }
 
 void URiveFile::ViewModelNamesListed(std::vector<std::string> InViewModelNames)
@@ -411,8 +421,11 @@ void URiveFile::ViewModelNamesListed(std::vector<std::string> InViewModelNames)
     if (InViewModelNames.empty())
     {
         bHasViewModelData = true;
-        CheckShouldBrodcastDataReady();
+        bHasViewModelInstanceDefaultsData = true;
+        CheckShouldBroadcastDataReady();
     }
+
+    GenerateViewModelEnum();
 }
 
 void URiveFile::ViewModelInstanceNamesListed(
@@ -442,6 +455,8 @@ void URiveFile::ViewModelInstanceNamesListed(
         FUTF8ToTCHAR NameConversion(Name.c_str());
         ViewModelDefinition->InstanceNames.Add(NameConversion.Get());
     }
+
+    GenerateViewModelInstanceEnums(*ViewModelDefinition);
 }
 
 void URiveFile::ViewModelPropertyDefinitionsListed(
@@ -472,25 +487,215 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
             PropertyNameConversion;
         ViewModelDefinition->PropertyDefinitions[i].Type =
             RiveDataTypeFromDataType(properties[i].type);
-        if (properties[i].type == rive::DataType::enumType)
+        if (properties[i].type == rive::DataType::enumType ||
+            properties[i].type == rive::DataType::viewModel)
         {
             FUTF8ToTCHAR MetaDataConversion(properties[i].metaData.c_str());
             ViewModelDefinition->PropertyDefinitions[i].MetaData =
                 MetaDataConversion;
         }
     }
-
     // Because everything is guaranteed order we know that the last view model
     // received is in fact the last thing we need.
-    if (ViewModelDefinition == &ViewModelDefinitions.Last())
+    const bool bIsLastViewModel =
+        (ViewModelDefinition == &ViewModelDefinitions.Last());
+    // Used for the edge case that Instance Names is empty or only contains
+    // invalid names and bIsLastViewModel is true.
+    bool bWasUpdated = false;
+    // We request the instance names before the proeprty data. So that means we
+    // are garunteed the instance names here assuming nothing broke along the
+    // way. This is to get the default values for the generated blueprints.
+    auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
+    TWeakObjectPtr<URiveFile> WeakThis(this);
+    for (const auto& InstanceName : ViewModelDefinition->InstanceNames)
+    {
+        if (InstanceName.IsEmpty())
+            continue;
+
+        bWasUpdated = true;
+        // The simplest solution here is to generate each view model instance
+        // and get the values with a run once and then delete each instance
+        // afterwords.
+        auto NativeViewModel =
+            CommandBuilder.CreateViewModel(NativeFileHandle,
+                                           *ViewModelDefinition->Name,
+                                           *InstanceName);
+
+        // Copy the view model property data because we are going to access it
+        // on the render thread.
+        auto CopyPropertyDefinitions = ViewModelDefinition->PropertyDefinitions;
+        auto CopyViewModelName = ViewModelDefinition->Name;
+        CommandBuilder.RunOnce([bIsLastViewModel,
+                                WeakThis,
+                                CopyPropertyDefinitions,
+                                NativeViewModel,
+                                CopyViewModelName,
+                                InstanceName](rive::CommandServer* Server) {
+            auto NativeViewModelInstance =
+                Server->getViewModelInstance(NativeViewModel);
+            check(NativeViewModelInstance);
+            TArray<FPropertyDefaultData> DefaultValues;
+            for (const auto& Property : CopyPropertyDefinitions)
+            {
+                FTCHARToUTF8 UTFPropName(Property.Name);
+                std::string TerminatedPropName(UTFPropName.Get(),
+                                               UTFPropName.Length());
+                switch (Property.Type)
+                {
+                    case ERiveDataType::String:
+                    {
+                        auto Prop = NativeViewModelInstance->propertyString(
+                            TerminatedPropName);
+                        if (ensure(Prop))
+                        {
+                            DefaultValues.Add({Property.Name,
+                                               FString(Prop->value().c_str())});
+                        }
+                    }
+                    break;
+                    case ERiveDataType::Number:
+                    {
+                        auto Prop = NativeViewModelInstance->propertyNumber(
+                            TerminatedPropName);
+                        if (ensure(Prop))
+                        {
+                            DefaultValues.Add(
+                                {Property.Name,
+                                 FString::SanitizeFloat(Prop->value())});
+                        }
+                    }
+                    break;
+                    case ERiveDataType::Boolean:
+                    {
+                        auto Prop = NativeViewModelInstance->propertyBoolean(
+                            TerminatedPropName);
+                        if (ensure(Prop))
+                        {
+                            DefaultValues.Add(
+                                {Property.Name,
+                                 Prop->value() ? TEXT("True") : TEXT("False")});
+                        }
+                    }
+                    break;
+                    case ERiveDataType::Color:
+                    {
+                        auto Prop = NativeViewModelInstance->propertyColor(
+                            TerminatedPropName);
+                        if (ensure(Prop))
+                        {
+                            DefaultValues.Add(
+                                {Property.Name,
+                                 FString::FromInt(Prop->value())});
+                        }
+                    }
+                    break;
+                    case ERiveDataType::EnumType:
+                    {
+                        auto Prop = NativeViewModelInstance->propertyEnum(
+                            TerminatedPropName);
+                        if (ensure(Prop))
+                        {
+                            DefaultValues.Add({Property.Name,
+                                               FString(Prop->value().c_str())});
+                        }
+                    }
+                    break;
+                    case ERiveDataType::ViewModel:
+                    {
+                        auto Prop = NativeViewModelInstance->propertyViewModel(
+                            TerminatedPropName);
+                        if (ensure(Prop))
+                        {
+                            // Value is view_model_type/instance_name
+                            FString Value =
+                                FString(Prop->instance()
+                                            ->viewModel()
+                                            ->name()
+                                            .c_str()) +
+                                TEXT("/") +
+                                FString(Prop->instance()->name().c_str());
+                            DefaultValues.Add({Property.Name, Value});
+                        }
+                    }
+                    break;
+                    case ERiveDataType::Artboard:
+                    {
+                        auto Prop = NativeViewModelInstance->propertyArtboard(
+                            TerminatedPropName);
+                        if (ensure(Prop))
+                        {
+                            DefaultValues.Add(
+                                {Property.Name, FString(Prop->name().c_str())});
+                        }
+                    }
+                    break;
+                    case ERiveDataType::AssetImage:
+                    case ERiveDataType::List:
+                    default:
+                        continue;
+                }
+            }
+            // Sync back to game thread to update actual view model data.
+            AsyncTask(
+                ENamedThreads::GameThread,
+                [bIsLastViewModel,
+                 WeakThis,
+                 DefaultValues,
+                 CopyViewModelName,
+                 InstanceName,
+                 NativeViewModel]() {
+                    if (auto StrongThis = WeakThis.Pin())
+                    {
+                        auto ViewModel =
+                            StrongThis->ViewModelDefinitions.FindByPredicate(
+                                [CopyViewModelName](const auto& ViewModel) {
+                                    return ViewModel.Name == CopyViewModelName;
+                                });
+                        check(ViewModel);
+                        ViewModel->InstanceDefaults.Add(
+                            {InstanceName, DefaultValues});
+
+                        if (bIsLastViewModel)
+                        {
+                            StrongThis->bHasViewModelInstanceDefaultsData =
+                                true;
+                            StrongThis->CheckShouldBroadcastDataReady();
+                        }
+                    }
+
+                    IRiveRendererModule::GetCommandBuilder().DestroyViewModel(
+                        NativeViewModel);
+                });
+        });
+    }
+
+    //  In the off case we don't have anything to update for the last view
+    //  model, sync against the render thread and dispatch back to the game
+    //  thread. This ensures we get all other view model data first.
+    if (!bWasUpdated && bIsLastViewModel)
+    {
+        CommandBuilder.RunOnce([WeakThis](rive::CommandServer* Server) {
+            AsyncTask(ENamedThreads::GameThread, [WeakThis]() {
+                if (auto StrongThis = WeakThis.Pin())
+                {
+                    StrongThis->bHasViewModelInstanceDefaultsData = true;
+                    StrongThis->CheckShouldBroadcastDataReady();
+                }
+            });
+        });
+    }
+
+    if (bIsLastViewModel)
     {
         bHasViewModelData = true;
-        CheckShouldBrodcastDataReady();
+        CheckShouldBroadcastDataReady();
     }
 }
-void URiveFile::CheckShouldBrodcastDataReady()
+
+void URiveFile::CheckShouldBroadcastDataReady()
 {
-    if (bHasArtboardData && bHasViewModelData && bHasEnumsData)
+    if (bHasArtboardData && bHasViewModelData && bHasEnumsData &&
+        bHasViewModelInstanceDefaultsData)
     {
         OnDataReady.Broadcast(this);
     }
@@ -551,6 +756,7 @@ URiveViewModel* URiveFile::CreateViewModelByName(const URiveFile* InputFile,
         URiveViewModel::LoadGeneratedClassForViewModel(InputFile,
                                                        InputFile,
                                                        ViewModelName);
+    check(ViewModelClass);
     const auto ObjectName = MakeUniqueObjectName(ViewModelClass->GetOuter(),
                                                  ViewModelClass,
                                                  *SanitizedViewModelName);
@@ -683,6 +889,119 @@ URiveViewModel* URiveFile::CreateArtboardViewModelByName(
            TEXT("URiveFile::GetDefaultArtboardViewModel "
                 "Command Qeueue not implemented view models."));
     return nullptr;
+}
+
+void URiveFile::GenerateArtboardEnum()
+{
+    const FString FileName = RiveUtils::SanitizeObjectName(GetName());
+    const FString EnumName =
+        FString::Printf(TEXT("EArtboardEnum_%s"), *FileName);
+
+    if (!IsValid(ArtboardEnum))
+    {
+        ArtboardEnum = NewObject<UEnum>(GetOuter(), *EnumName, RF_Public);
+    }
+    else
+        ViewModelEnum->SetFlags(ViewModelEnum->GetFlags() |
+                                EObjectFlags::RF_Public);
+
+    TArray<TPair<FName, int64>> EnumsValues;
+
+    for (int64 i = 0; i < ArtboardDefinitions.Num(); ++i)
+    {
+        const auto& ArtboardDefinition = ArtboardDefinitions[i];
+        const FString ArtboardEnumName =
+            FString::Printf(TEXT("%s::%s"),
+                            *EnumName,
+                            *ArtboardDefinition.Name);
+        EnumsValues.Add(TPair<FName, int64>(ArtboardEnumName, i));
+    }
+    ArtboardEnum->CppType = EnumName;
+    ArtboardEnum->SetEnums(EnumsValues, UEnum::ECppForm::Namespaced);
+}
+
+void URiveFile::GenerateViewModelEnum()
+{
+    auto FileName = RiveUtils::SanitizeObjectName(GetName());
+    const FString EnumName =
+        FString::Printf(TEXT("EViewModelEnum_%s"), *FileName);
+    if (!ViewModelEnum)
+        ViewModelEnum = NewObject<UEnum>(GetOuter(), *EnumName, RF_Public);
+    else
+        ViewModelEnum->SetFlags(ViewModelEnum->GetFlags() |
+                                EObjectFlags::RF_Public);
+
+    TArray<TPair<FName, int64>> EnumsValues;
+    for (int64 i = 0; i < ViewModelDefinitions.Num(); ++i)
+    {
+        const auto& ViewModelDefinition = ViewModelDefinitions[i];
+        const FString ViewModelEnumName =
+            FString::Printf(TEXT("%s::%s"),
+                            *EnumName,
+                            *ViewModelDefinition.Name);
+        EnumsValues.Add(TPair<FName, int64>(ViewModelEnumName, i));
+    }
+
+    ViewModelEnum->CppType = EnumName;
+    ViewModelEnum->SetEnums(EnumsValues, UEnum::ECppForm::Namespaced);
+}
+
+void URiveFile::GenerateViewModelInstanceEnums(
+    const FViewModelDefinition& SelectedViewModel)
+{
+    // ensure we are using a view model of this file.
+    check(ViewModelDefinitions.Find(SelectedViewModel) != INDEX_NONE);
+    const FString ViewModelName = SelectedViewModel.Name;
+
+    const FString SanitizedViewModelName =
+        RiveUtils::SanitizeObjectName(ViewModelName);
+    const FString SanitizedFileName = RiveUtils::SanitizeObjectName(GetName());
+    const FString EnumName =
+        FString::Printf(TEXT("EViewModelInstanceEnum_%s_%s"),
+                        *SanitizedViewModelName,
+                        *SanitizedFileName);
+
+    // Just update the current enum instead of spawn a new one if it already
+    // exists.
+    UEnum* Enum = nullptr;
+    TObjectPtr<UEnum>* EnumPtr = ViewModelInstanceEnums.Find(ViewModelName);
+    if (EnumPtr)
+    {
+        Enum = *EnumPtr;
+        Enum->SetFlags(Enum->GetFlags() | EObjectFlags::RF_Public);
+    }
+    else
+    {
+        Enum = NewObject<UEnum>(this, *EnumName, RF_Public);
+    }
+
+    TArray<TPair<FName, int64>> EnumsValues;
+    EnumsValues.Add(TPair<FName, int64>(
+        FString::Printf(TEXT("%s::%s"),
+                        *EnumName,
+                        *GViewModelInstanceBlankName.ToString()),
+        0));
+    EnumsValues.Add(TPair<FName, int64>(
+        FString::Printf(TEXT("%s::%s"),
+                        *EnumName,
+                        *GViewModelInstanceDefaultName.ToString()),
+        1));
+
+    for (int64 i = 0; i < SelectedViewModel.InstanceNames.Num(); ++i)
+    {
+        EnumsValues.Add(TPair<FName, int64>(
+            FString::Printf(TEXT("%s::%s"),
+                            *EnumName,
+                            *SelectedViewModel.InstanceNames[i]),
+            i + 2));
+    }
+
+    Enum->CppType = EnumName;
+    Enum->SetEnums(EnumsValues, UEnum::ECppForm::Namespaced);
+    if (EnumPtr == nullptr)
+    {
+        ViewModelInstanceEnums.Add(ViewModelName, Enum);
+    }
 }
 
 #if WITH_EDITOR

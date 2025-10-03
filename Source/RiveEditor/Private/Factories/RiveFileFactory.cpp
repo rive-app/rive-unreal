@@ -25,6 +25,7 @@
 #include "UObject/UnrealTypePrivate.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_FunctionEntry.h"
+#include "FileHelpers.h"
 
 extern UNREALED_API class UEditorEngine* GEditor;
 
@@ -70,7 +71,7 @@ static UEnum* GenerateBlueprintForEnum(const FString& FolderPath,
         UPackageTools::SanitizePackageName(PackageName);
 
     UUserDefinedEnum* Enum =
-        FindObject<UUserDefinedEnum>(FolderPackage, EnumName);
+        FindObject<UUserDefinedEnum>(FolderPackage, *EnumName);
     bool bIsNewEnum = false;
     if (!Enum)
     {
@@ -79,6 +80,10 @@ static UEnum* GenerateBlueprintForEnum(const FString& FolderPath,
                                                     *EnumName,
                                                     RF_Standalone | RF_Public));
         bIsNewEnum = true;
+    }
+    else
+    {
+        Enum->Modify();
     }
 
     TArray<TPair<FName, int64>> EnumsValues;
@@ -96,9 +101,13 @@ static UEnum* GenerateBlueprintForEnum(const FString& FolderPath,
     {
         FAssetRegistryModule::AssetCreated(Enum);
     }
+    else
+    {
+        FEnumEditorUtils::PostEditUndo(Enum);
+    }
 
     // Mark the package dirty...
-    if (!FolderPackage->MarkPackageDirty())
+    if (!Enum->MarkPackageDirty())
     {
         UE_LOG(LogRiveEditor,
                Warning,
@@ -111,6 +120,9 @@ static UEnum* GenerateBlueprintForEnum(const FString& FolderPath,
         FPackageName::GetAssetPackageExtension());
     FSavePackageArgs PackageArgs;
     PackageArgs.Error = GError;
+    // Don't crash the editor if we can't save. The user can still save the file
+    // themselves afterwords.
+    PackageArgs.SaveFlags = SAVE_NoError | ESaveFlags::SAVE_AllowTimeout;
     PackageArgs.TopLevelFlags =
         EObjectFlags::RF_Public | EObjectFlags::RF_Standalone;
 
@@ -135,7 +147,7 @@ static UEnum* GenerateBlueprintForEnum(const FString& FolderPath,
     return Enum;
 }
 
-static UClass* GenerateBlueprintForViewModel(
+static UBlueprint* GenerateBlueprintForViewModel(
     const FString& FolderPath,
     const FViewModelDefinition& ViewModelDefinition,
     const TArray<UEnum*>& Enums)
@@ -150,7 +162,7 @@ static UClass* GenerateBlueprintForViewModel(
 
     // Try to find a pre existing blueprint
     UBlueprint* Blueprint =
-        FindObject<UBlueprint>(FolderPackage, BlueprintName);
+        FindObject<UBlueprint>(FolderPackage, *BlueprintName);
     bool bIsNewBlueprint = false;
 
     // If there is none, make a new one.
@@ -174,6 +186,7 @@ static UClass* GenerateBlueprintForViewModel(
         URiveViewModel* CDO =
             BlueprintClass->GetDefaultObject<URiveViewModel>();
         CDO->bIsGenerated = true;
+        CDO->SetViewModelDefinition(ViewModelDefinition);
 
         Blueprint->NewVariables.Empty();
         Blueprint->DelegateSignatureGraphs.Empty();
@@ -205,12 +218,17 @@ static UClass* GenerateBlueprintForViewModel(
                     [SanitizedEnumName](const UEnum* Enum) {
                         return Enum->GetName() == SanitizedEnumName;
                     });
-                UE_LOG(LogRiveEditor,
-                       Error,
-                       TEXT("Failed to find enum '%s'"),
-                       *SanitizedEnumName);
-                check(EnumPtr);
-                PinType.PinSubCategoryObject = *EnumPtr;
+                if (!ensure(EnumPtr))
+                {
+                    UE_LOG(LogRiveEditor,
+                           Error,
+                           TEXT("Failed to find enum '%s'"),
+                           *SanitizedEnumName);
+                }
+                else
+                {
+                    PinType.PinSubCategoryObject = *EnumPtr;
+                }
             }
             else if (PropertyDefinition.Type == ERiveDataType::Number)
             {
@@ -319,7 +337,7 @@ static UClass* GenerateBlueprintForViewModel(
             FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(
                 Blueprint);
         }
-        // Compile the changes
+
         FCompilerResultsLog LogResults;
         FKismetEditorUtilities::CompileBlueprint(Blueprint,
                                                  EBlueprintCompileOptions::None,
@@ -327,9 +345,10 @@ static UClass* GenerateBlueprintForViewModel(
 
         // Notify the asset registry
         if (bIsNewBlueprint)
+        {
             FAssetRegistryModule::AssetCreated(Blueprint);
+        }
 
-        // Mark the package dirty...
         if (!FolderPackage->MarkPackageDirty())
         {
             UE_LOG(LogRiveEditor,
@@ -343,6 +362,9 @@ static UClass* GenerateBlueprintForViewModel(
             FPackageName::GetAssetPackageExtension());
         FSavePackageArgs PackageArgs;
         PackageArgs.Error = GError;
+        PackageArgs.SaveFlags = ESaveFlags::SAVE_NoError |
+                                ESaveFlags::SAVE_AllowTimeout |
+                                ESaveFlags::SAVE_Concurrent;
         PackageArgs.TopLevelFlags =
             EObjectFlags::RF_Public | EObjectFlags::RF_Standalone;
 
@@ -351,24 +373,7 @@ static UClass* GenerateBlueprintForViewModel(
                                             *PackageFileName,
                                             PackageArgs);
 
-        if (bSaved)
-        {
-            UE_LOG(
-                LogTemp,
-                Log,
-                TEXT("Blueprint '%s' successfully created and saved at '%s'."),
-                *BlueprintName,
-                *PackageFileName);
-        }
-        else
-        {
-            UE_LOG(LogTemp,
-                   Error,
-                   TEXT("Failed to save Blueprint '%s'."),
-                   *BlueprintName);
-        }
-
-        return BlueprintClass;
+        return Blueprint;
     }
 
     return nullptr;
@@ -376,6 +381,12 @@ static UClass* GenerateBlueprintForViewModel(
 
 static void GenerateBlueprintsForFile(URiveFile* RiveFile)
 {
+    const FScopedTransaction Transaction(
+        NSLOCTEXT("RiveFileFactory",
+                  "GenerateBlueprintsForFile",
+                  "Generate Blueprints For File"));
+    // We break generating blueprints into 3 steps.
+    // 1. Create the Enums for every enum in the riv and save them to disk.
     TArray<UEnum*> GeneratedEnums;
     GeneratedEnums.SetNumUninitialized(RiveFile->EnumDefinitions.Num());
 
@@ -388,10 +399,25 @@ static void GenerateBlueprintsForFile(URiveFile* RiveFile)
             GenerateBlueprintForEnum(FolderPath, EnumDefinition);
     }
 
+    // 2. Create the generated blueprints from each view model in riv
     for (auto& ViewModel : RiveFile->ViewModelDefinitions)
     {
         GenerateBlueprintForViewModel(FolderPath, ViewModel, GeneratedEnums);
     }
+
+    // 3. Ensure everthing was Saved to disk.
+    const bool bPromptUserToSave = false;
+    const bool bSaveMapPackages = true;
+    const bool bSaveContentPackages = true;
+    const bool bFastSave = false;
+    const bool bNotifyNoPackagesSaved = false;
+    const bool bCanBeDeclined = false;
+    FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave,
+                                        bSaveMapPackages,
+                                        bSaveContentPackages,
+                                        bFastSave,
+                                        bNotifyNoPackagesSaved,
+                                        bCanBeDeclined);
 }
 
 URiveFileFactory::URiveFileFactory(const FObjectInitializer& ObjectInitializer)

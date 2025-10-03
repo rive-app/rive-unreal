@@ -45,6 +45,10 @@ public:
     virtual void Tick(float InDeltaSeconds) override;
     virtual bool IsTickable() const override;
 
+    // Used by view model updates to unsettle the state machine.
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    void UnsettleStateMachine();
+
     DECLARE_MULTICAST_DELEGATE_OneParam(FDataReadyDelegate, URiveArtboard*);
     FDataReadyDelegate OnDataReady;
 

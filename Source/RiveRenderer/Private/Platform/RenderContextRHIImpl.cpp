@@ -2024,7 +2024,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         }
                     }
                     break;
-                    case DrawType::atomicResolve:
+                    case DrawType::renderPassResolve:
                     {
                         check(paintSRV);
                         check(paintAuxSRV);
@@ -2038,7 +2038,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                              PassParameters);
                     }
                     break;
-                    case DrawType::atomicInitialize:
+                    case DrawType::renderPassInitialize:
                     case DrawType::msaaStrokes:
                     case DrawType::msaaMidpointFanBorrowedCoverage:
                     case DrawType::msaaMidpointFans:

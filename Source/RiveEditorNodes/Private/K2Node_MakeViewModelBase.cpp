@@ -507,30 +507,8 @@ void UK2Node_MakeViewModelBase::GenerateViewModelInstanceEnumPin(
         RemovePin(OldPin);
     }
 
-    UEnum* Enum = NewObject<UEnum>(this, TEXT("EViewModelInstanceEnum"));
-
-    TArray<TPair<FName, int64>> EnumsValues;
-
-    EnumsValues.Add(
-        TPair<FName, int64>(FName(TEXT("EViewModelInstanceEnum::") +
-                                  GViewModelInstanceBlankName.ToString()),
-                            0));
-    EnumsValues.Add(
-        TPair<FName, int64>(FName(TEXT("EViewModelInstanceEnum::") +
-                                  GViewModelInstanceDefaultName.ToString()),
-                            1));
-
-    for (int64 i = 0; i < SelectedViewModel.InstanceNames.Num(); ++i)
-    {
-        EnumsValues.Add(
-            TPair<FName, int64>(FName(TEXT("EViewModelInstanceEnum::") +
-                                      SelectedViewModel.InstanceNames[i]),
-                                i + 2));
-    }
-
-    Enum->CppType = TEXT("EViewModelInstanceEnum_Generated");
-    Enum->SetEnums(EnumsValues, UEnum::ECppForm::Namespaced);
-
+    auto Enum = SelectedRiveFile->GetViewModelInstanceEnum(SelectedViewModel);
+    check(Enum);
     auto Pin = CreatePin(EGPD_Input,
                          UEdGraphSchema_K2::PC_Byte,
                          Enum,

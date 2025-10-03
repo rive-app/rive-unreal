@@ -71,10 +71,16 @@ void URiveRenderTarget2D::PostLoad()
 
 void URiveRenderTarget2D::InitRiveRenderTarget2D()
 {
+    auto Renderer = IRiveRendererModule::Get().GetRenderer();
+    check(Renderer);
+    RenderTarget = Renderer->CreateRenderTarget(*GetName(), this);
+    RenderTarget->SetClearRenderTarget(bShouldClear);
+    RenderTarget->Initialize();
+
     if (!IsValid(RiveDescriptor.RiveFile))
     {
         RiveArtboard = nullptr;
-        UE_LOG(LogRive, Error, TEXT("RiveDescriptor.RiveFile is invalid."));
+        UE_LOG(LogRive, Warning, TEXT("RiveDescriptor.RiveFile is invalid."));
         return;
     }
 
@@ -89,19 +95,21 @@ void URiveRenderTarget2D::InitRiveRenderTarget2D()
                     .StateMachineNames[0];
     }
 
-    auto Renderer = IRiveRendererModule::Get().GetRenderer();
-    check(Renderer);
-    RenderTarget = Renderer->CreateRenderTarget(*GetName(), this);
-    RenderTarget->SetClearRenderTarget(bShouldClear);
-    RenderTarget->Initialize();
+    if (!RiveDescriptor.ArtboardName.IsEmpty())
+    {
+        auto& Builder = Renderer->GetCommandBuilder();
+        RiveArtboard = RiveDescriptor.RiveFile->CreateArtboardNamed(
+            Builder,
+            RiveDescriptor.ArtboardName,
+            RiveDescriptor.bAutoBindDefaultViewModel);
+        Draw();
+    }
+}
 
-    auto& Builder = Renderer->GetCommandBuilder();
-    RiveArtboard = RiveDescriptor.RiveFile->CreateArtboardNamed(
-        Builder,
-        RiveDescriptor.ArtboardName,
-        RiveDescriptor.bAutoBindDefaultViewModel);
-
-    Draw();
+void URiveRenderTarget2D::Draw(DirectDrawCallback DrawCallback)
+{
+    auto& Builder = IRiveRendererModule::Get().GetCommandBuilder();
+    Builder.Draw(RenderTarget, DrawCallback);
 }
 
 void URiveRenderTarget2D::Draw() { Draw(RiveArtboard, RiveDescriptor); }
@@ -165,7 +173,11 @@ void URiveRenderTarget2D::PostEditChangeProperty(
         RenderTarget->Initialize();
     }
 
-    Draw();
+    if (IsValid(RiveDescriptor.RiveFile) &&
+        !RiveDescriptor.ArtboardName.IsEmpty())
+    {
+        Draw();
+    }
 }
 #endif
 

@@ -86,21 +86,8 @@ bool UK2Node_MakeArtboardViewModel::CheckForErrors(
 UEnum* UK2Node_MakeArtboardViewModel::GenerateViewModelSourceEnum(
     TObjectPtr<URiveFile> RiveFile)
 {
-    UEnum* Enum = NewObject<UEnum>(this, TEXT("EArtboardEnum"));
-
-    TArray<TPair<FName, int64>> EnumsValues;
-
-    for (int64 i = 0; i < RiveFile->ArtboardDefinitions.Num(); ++i)
-    {
-        const auto& ArtboardDefinition = RiveFile->ArtboardDefinitions[i];
-        EnumsValues.Add(TPair<FName, int64>(
-            FName(TEXT("EArtboardEnum::") + ArtboardDefinition.Name),
-            i));
-    }
-    Enum->CppType = TEXT("EArtboardEnum_Generated");
-    Enum->SetEnums(EnumsValues, UEnum::ECppForm::Namespaced);
-
-    return Enum;
+    check(RiveFile->ArtboardEnum);
+    return RiveFile->ArtboardEnum;
 }
 
 UEdGraphPin* UK2Node_MakeArtboardViewModel::GetTargetPinForViewModelSource(

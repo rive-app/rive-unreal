@@ -121,6 +121,7 @@ private:
     rive::FileHandle NativeFileHandle = RIVE_NULL_HANDLE;
 
 #if WITH_EDITORONLY_DATA
+    // Used for getting default data. Does not provide reflection data.
     void EnumsListed(std::vector<rive::ViewModelEnum> InEnumNames);
     void ArtboardsListed(std::vector<std::string> InArtboardNames);
     void ViewModelNamesListed(std::vector<std::string> InViewModelNames);
@@ -133,12 +134,25 @@ private:
     bool bHasArtboardData = false;
     bool bHasViewModelData = false;
     bool bHasEnumsData = false;
-    void CheckShouldBrodcastDataReady();
+    bool bHasViewModelInstanceDefaultsData = false;
+    void CheckShouldBroadcastDataReady();
 #endif
-
     friend class FRiveFileListener;
 
 public:
+    // These are used for blueprint node dropdowns. They are generated on file
+    // import.
+
+    // Enum of all view model type names in the file.
+    UPROPERTY()
+    TObjectPtr<UEnum> ViewModelEnum;
+    // Map of view model type name to instance names enum
+    UPROPERTY()
+    TMap<FString, TObjectPtr<UEnum>> ViewModelInstanceEnums;
+    // Enum of artboard names in the file.
+    UPROPERTY()
+    TObjectPtr<UEnum> ArtboardEnum;
+
     int32 GetViewModelCount() const { return ViewModelDefinitions.Num(); }
 
     // Creates a ViewModel Given the ViewModel name and Instance name
@@ -184,6 +198,23 @@ public:
         const FString& InstanceName);
 
     std::vector<uint8_t> RiveNativeFileSpan;
+
+    UEnum* GetViewModelInstanceEnum(
+        const FViewModelDefinition& ViewModelDefinition) const
+    {
+        check(ViewModelDefinitions.Find(ViewModelDefinition) != INDEX_NONE);
+        check(ViewModelInstanceEnums.Find(ViewModelDefinition.Name) != nullptr);
+        return *ViewModelInstanceEnums.Find(ViewModelDefinition.Name);
+    }
+
+#if WITH_EDITORONLY_DATA
+
+    void GenerateViewModelEnum();
+    void GenerateViewModelInstanceEnums(
+        const FViewModelDefinition& ViewModelDefinition);
+    void GenerateArtboardEnum();
+
+#endif
 
 #if WITH_EDITOR
     void PrintStats() const;

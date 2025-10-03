@@ -58,6 +58,26 @@ struct FArtboardDefinition
 };
 
 USTRUCT(BlueprintType)
+struct FPropertyDefaultData
+{
+    GENERATED_BODY()
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
+    FString Name;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
+    FString Value;
+};
+
+USTRUCT(BlueprintType)
+struct FViewModelInstanceDefaultData
+{
+    GENERATED_BODY()
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
+    FString InstanceName;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
+    TArray<FPropertyDefaultData> PropertyValues;
+};
+
+USTRUCT(BlueprintType)
 struct FViewModelDefinition
 {
     GENERATED_BODY()
@@ -67,4 +87,15 @@ struct FViewModelDefinition
     TArray<FString> InstanceNames;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     TArray<FRivePropertyData> PropertyDefinitions;
+    // Make it a property so it saves.
+    UPROPERTY()
+    // Used to store instance default data. This is a work around so that we do
+    // not need an event for data is ready. {Instance Name : { Property Name :
+    // Property Default Value Encoded As Strings} }
+    TArray<FViewModelInstanceDefaultData> InstanceDefaults;
+
+    FORCEINLINE bool operator==(const FViewModelDefinition& Other) const
+    {
+        return Other.Name == Name;
+    }
 };
