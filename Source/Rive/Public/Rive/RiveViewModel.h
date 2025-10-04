@@ -96,7 +96,7 @@ public:
                       ScriptName = "RemoveFromList"))
     void K2_RemoveFromList(FRiveList List, int32 Index);
 
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|ViewModel")
     void SetTrigger(const FString& TriggerName);
 
     // INotifyFieldValueChanged Implementation

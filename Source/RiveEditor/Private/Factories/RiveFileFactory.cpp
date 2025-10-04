@@ -126,6 +126,7 @@ static UEnum* GenerateBlueprintForEnum(const FString& FolderPath,
     PackageArgs.TopLevelFlags =
         EObjectFlags::RF_Public | EObjectFlags::RF_Standalone;
 
+    FolderPackage->MarkAsFullyLoaded();
     bool bSaved = UPackage::SavePackage(FolderPackage,
                                         Enum,
                                         *PackageFileName,
@@ -368,6 +369,7 @@ static UBlueprint* GenerateBlueprintForViewModel(
         PackageArgs.TopLevelFlags =
             EObjectFlags::RF_Public | EObjectFlags::RF_Standalone;
 
+        FolderPackage->MarkAsFullyLoaded();
         bool bSaved = UPackage::SavePackage(FolderPackage,
                                             Blueprint,
                                             *PackageFileName,
