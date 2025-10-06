@@ -127,7 +127,7 @@ UClass* URiveViewModel::LoadGeneratedClassForViewModel(
                         SanatizedViewModelName + TEXT("_C");
     static FString FolderPath = RiveUtils::GetPackagePathForFile(File);
     FString FullPath = FolderPath + TEXT("/") + ClassName;
-    return LoadClass<URiveViewModel>(Context->GetOutermost(), *FullPath);
+    return LoadClass<URiveViewModel>(nullptr, *FullPath);
 }
 
 constexpr bool GetIsPropertyTypeWithDefault(ERiveDataType Type)

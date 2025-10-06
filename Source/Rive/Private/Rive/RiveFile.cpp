@@ -2,7 +2,9 @@
 
 #include "Rive/RiveFile.h"
 
+#if WITH_EDITOR
 #include "EditorCategoryUtils.h"
+#endif
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveFileAssetImporter.h"

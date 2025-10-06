@@ -356,7 +356,9 @@ void URiveArtboard::InitializeForDataImport(
     const FString& Name,
     FRiveCommandBuilder& InCommandBuilder)
 {
-    if (ArtboardDefinition.Name.IsEmpty())
+    ArtboardDefinition.Name = Name;
+
+    if (Name.IsEmpty())
     {
         NativeArtboardHandle = InCommandBuilder.CreateDefaultArtboard(
             InRiveFile->GetNativeFileHandle(),
