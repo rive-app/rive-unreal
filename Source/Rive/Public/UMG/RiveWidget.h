@@ -65,6 +65,9 @@ public:
     void SetAudioEngine(URiveAudioEngine* InRiveAudioEngine);
 
     UFUNCTION(BlueprintCallable, Category = Rive)
+    void SetArtboard(URiveArtboard* InArtboard);
+
+    UFUNCTION(BlueprintCallable, Category = Rive)
     URiveArtboard* GetArtboard() const;
 
     /**

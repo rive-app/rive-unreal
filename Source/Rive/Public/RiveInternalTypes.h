@@ -87,12 +87,15 @@ struct FViewModelDefinition
     TArray<FString> InstanceNames;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     TArray<FRivePropertyData> PropertyDefinitions;
-    // Make it a property so it saves.
-    UPROPERTY()
     // Used to store instance default data. This is a work around so that we do
     // not need an event for data is ready. {Instance Name : { Property Name :
     // Property Default Value Encoded As Strings} }
+    UPROPERTY()
     TArray<FViewModelInstanceDefaultData> InstanceDefaults;
+    // This is the name of the default instance, so we can load its values when
+    // the vm is made.
+    UPROPERTY()
+    FString DefaultInstanceName;
 
     FORCEINLINE bool operator==(const FViewModelDefinition& Other) const
     {

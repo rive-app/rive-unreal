@@ -507,6 +507,41 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
     // way. This is to get the default values for the generated blueprints.
     auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
     TWeakObjectPtr<URiveFile> WeakThis(this);
+
+    // First get the "default" instance name;
+    auto DefaultViewModelHandle =
+        CommandBuilder.CreateDefaultViewModel(NativeFileHandle,
+                                              *ViewModelDefinition->Name);
+
+    CommandBuilder.RunOnce([DefaultViewModelHandle, ViewModelName, WeakThis](
+                               rive::CommandServer* Server) {
+        auto DefaultInstance =
+            Server->getViewModelInstance(DefaultViewModelHandle);
+        check(DefaultInstance);
+        auto DefaultInstanceName = DefaultInstance->instance()->name();
+        AsyncTask(ENamedThreads::GameThread,
+                  [DefaultViewModelHandle,
+                   DefaultInstanceName,
+                   ViewModelName,
+                   WeakThis]() {
+                      if (auto StrongThis = WeakThis.Pin())
+                      {
+                          auto ViewModel =
+                              StrongThis->ViewModelDefinitions.FindByPredicate(
+                                  [ViewModelName](const auto& ViewModel) {
+                                      return ViewModel.Name == ViewModelName;
+                                  });
+                          check(ViewModel);
+                          FUTF8ToTCHAR DefaultInstanceNameConversion(
+                              DefaultInstanceName.c_str());
+                          ViewModel->DefaultInstanceName =
+                              DefaultInstanceNameConversion;
+                      }
+                      IRiveRendererModule::GetCommandBuilder().DestroyViewModel(
+                          DefaultViewModelHandle);
+                  });
+    });
+
     for (const auto& InstanceName : ViewModelDefinition->InstanceNames)
     {
         if (InstanceName.IsEmpty())

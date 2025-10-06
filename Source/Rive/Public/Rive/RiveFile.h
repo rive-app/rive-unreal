@@ -51,8 +51,10 @@ public:
     void Initialize();
     void Initialize(FRiveCommandBuilder&);
 
+    UFUNCTION(BlueprintCallable, Category = Rive)
     URiveArtboard* CreateArtboardNamed(const FString& Name,
                                        bool inAutoBindViewModel);
+
     URiveArtboard* CreateArtboardNamed(FRiveCommandBuilder&,
                                        const FString& Name,
                                        bool inAutoBindViewModel);

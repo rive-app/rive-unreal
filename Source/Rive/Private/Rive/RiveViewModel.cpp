@@ -185,17 +185,24 @@ void URiveViewModel::Initialize(
                                     new FRiveViewModelListener(this));
     }
 
+    const FString ResolvedInstanceName =
+        InstanceName == GViewModelInstanceDefaultName
+            ? ViewModelDefinition.DefaultInstanceName
+            : InstanceName;
     // There is no reason to auto-subscribe if we aren't a generated view model.
     if (bIsGenerated)
     {
         int32 DefaultValueIndex = 0;
         const auto ViewModelDefault =
             ViewModelDefinition.InstanceDefaults.FindByPredicate(
-                [InstanceName](const auto& ViewModelDefault) {
-                    return ViewModelDefault.InstanceName == InstanceName;
+                [ResolvedInstanceName](const auto& ViewModelDefault) {
+                    return ViewModelDefault.InstanceName ==
+                           ResolvedInstanceName;
                 });
         UBlueprintGeneratedClass* GeneratedClass =
             Cast<UBlueprintGeneratedClass>(GetClass());
+        check(ViewModelDefault);
+        check(GeneratedClass);
         for (int32 Index = 0;
              Index < ViewModelDefinition.PropertyDefinitions.Num();
              ++Index)

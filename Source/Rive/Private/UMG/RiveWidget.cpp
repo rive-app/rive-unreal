@@ -118,6 +118,20 @@ void URiveWidget::SetAudioEngine(URiveAudioEngine* InRiveAudioEngine)
     }
 }
 
+void URiveWidget::SetArtboard(URiveArtboard* InArtboard)
+{
+    RiveArtboard = InArtboard;
+    if (IsValid(RiveArtboard))
+    {
+        RiveDescriptor.ArtboardName = RiveArtboard->GetArtboardName();
+        RiveWidget->SetRiveArtboard(RiveArtboard);
+        if (IsValid(RiveAudioEngine))
+        {
+            RiveArtboard->SetAudioEngine(RiveAudioEngine);
+        }
+    }
+}
+
 URiveArtboard* URiveWidget::GetArtboard() const { return RiveArtboard; }
 
 TArray<FString> URiveWidget::GetArtboardNamesForDropdown() const
@@ -171,7 +185,8 @@ void URiveWidget::PostEditChangeChainProperty(
     {
         TArray<FString> ArtboardNames = GetArtboardNamesForDropdown();
         if ((RiveDescriptor.ArtboardName.IsEmpty() ||
-             !ArtboardNames.Contains(RiveDescriptor.ArtboardName)))
+             !ArtboardNames.Contains(RiveDescriptor.ArtboardName) &&
+                 !ArtboardNames.IsEmpty()))
         {
             RiveDescriptor.ArtboardName = ArtboardNames[0];
         }
@@ -183,7 +198,8 @@ void URiveWidget::PostEditChangeChainProperty(
                 StateMachineNames[0]; // No state machine, use blank
         }
         else if (RiveDescriptor.StateMachineName.IsEmpty() ||
-                 !StateMachineNames.Contains(RiveDescriptor.StateMachineName))
+                 !StateMachineNames.Contains(RiveDescriptor.StateMachineName) &&
+                     !StateMachineNames.IsEmpty())
         {
             RiveDescriptor.StateMachineName = StateMachineNames[1];
         }
