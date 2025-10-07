@@ -522,7 +522,11 @@ def copy_includes(rive_runtime_path):
         if 'minified' in basename:
             pathname = os.path.join(generated_shader_ush_path, basename)
             if os.path.isfile(pathname):
-                ush_basename = os.path.splitext(basename)[0] + '.ush'
+                root, ext = os.path.splitext(basename)
+                if ext == '.glsl':
+                    ush_basename = root + '.ush'
+                else:
+                    ush_basename = root + ext + '.ush'
                 ush_path = os.path.join(generated_shader_path, ush_basename)
                 shutil.copyfile(pathname, ush_path)
 
