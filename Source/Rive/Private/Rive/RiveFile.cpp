@@ -4,7 +4,9 @@
 
 #if WITH_EDITOR
 #include "EditorCategoryUtils.h"
+#include "Types/AttributeStorage.h"
 #endif
+
 #include "IRiveRendererModule.h"
 #include "Logs/RiveLog.h"
 #include "Rive/Assets/RiveFileAssetImporter.h"
@@ -19,7 +21,6 @@
 #include "ObjectEditorUtils.h"
 #include "rive/command_queue.hpp"
 #include "StructUtils/PropertyBag.h"
-#include "Types/AttributeStorage.h"
 
 #if WITH_EDITOR
 #include "EditorFramework/AssetImportData.h"
@@ -928,6 +929,7 @@ URiveViewModel* URiveFile::CreateArtboardViewModelByName(
     return nullptr;
 }
 
+#if WITH_EDITORONLY_DATA
 void URiveFile::GenerateArtboardEnum()
 {
     const FString FileName = RiveUtils::SanitizeObjectName(GetName());
@@ -1040,7 +1042,7 @@ void URiveFile::GenerateViewModelInstanceEnums(
         ViewModelInstanceEnums.Add(ViewModelName, Enum);
     }
 }
-
+#endif
 #if WITH_EDITOR
 void URiveFile::PrintStats() const
 {
