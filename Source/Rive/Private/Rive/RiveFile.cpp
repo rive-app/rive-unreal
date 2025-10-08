@@ -547,10 +547,13 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
 
     for (const auto& InstanceName : ViewModelDefinition->InstanceNames)
     {
-        if (InstanceName.IsEmpty())
-            continue;
+        // The editor was fixed so we should never have empty instance names
+        check(!InstanceName.IsEmpty());
 
         bWasUpdated = true;
+        const bool bCanBroadcast =
+            bIsLastViewModel &&
+            ViewModelDefinition->InstanceNames.Last() == InstanceName;
         // The simplest solution here is to generate each view model instance
         // and get the values with a run once and then delete each instance
         // afterwords.
@@ -563,7 +566,7 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
         // on the render thread.
         auto CopyPropertyDefinitions = ViewModelDefinition->PropertyDefinitions;
         auto CopyViewModelName = ViewModelDefinition->Name;
-        CommandBuilder.RunOnce([bIsLastViewModel,
+        CommandBuilder.RunOnce([bCanBroadcast,
                                 WeakThis,
                                 CopyPropertyDefinitions,
                                 NativeViewModel,
@@ -676,7 +679,7 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
             // Sync back to game thread to update actual view model data.
             AsyncTask(
                 ENamedThreads::GameThread,
-                [bIsLastViewModel,
+                [bCanBroadcast,
                  WeakThis,
                  DefaultValues,
                  CopyViewModelName,
@@ -693,7 +696,7 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                         ViewModel->InstanceDefaults.Add(
                             {InstanceName, DefaultValues});
 
-                        if (bIsLastViewModel)
+                        if (bCanBroadcast)
                         {
                             StrongThis->bHasViewModelInstanceDefaultsData =
                                 true;
@@ -738,7 +741,24 @@ void URiveFile::CheckShouldBroadcastDataReady()
         OnDataReady.Broadcast(this);
     }
 }
+
+void URiveFile::RegisterGeneratedBlueprint(
+    const FName& BlueprintName,
+    UBlueprintGeneratedClass* GeneratedClass)
+{
+    GeneratedClassMap.Add(BlueprintName, {GeneratedClass});
+}
 #endif
+UClass* URiveFile::GetGeneratedClassForViewModel(
+    const FName& ViewModelName) const
+{
+    if (const auto GeneratedClass = GeneratedClassMap.Find(ViewModelName))
+    {
+        return GeneratedClass->Entry.LoadSynchronous();
+    }
+    return nullptr;
+}
+
 URiveViewModel* URiveFile::CreateViewModelByName(const URiveFile* InputFile,
                                                  const FString& ViewModelName,
                                                  const FString& InstanceName)
@@ -790,11 +810,10 @@ URiveViewModel* URiveFile::CreateViewModelByName(const URiveFile* InputFile,
 
     const auto SanitizedViewModelName =
         RiveUtils::SanitizeObjectName(ViewModelName + TEXT("_") + InstanceName);
-    UClass* ViewModelClass =
-        URiveViewModel::LoadGeneratedClassForViewModel(InputFile,
-                                                       InputFile,
-                                                       ViewModelName);
+    auto ViewModelClass =
+        InputFile->GetGeneratedClassForViewModel(*ViewModelName);
     check(ViewModelClass);
+
     const auto ObjectName = MakeUniqueObjectName(ViewModelClass->GetOuter(),
                                                  ViewModelClass,
                                                  *SanitizedViewModelName);
@@ -877,10 +896,8 @@ URiveViewModel* URiveFile::CreateViewModelByArtboardName(
         RiveUtils::SanitizeObjectName(ViewModelName + TEXT("_") + InstanceName);
 
     UClass* ViewModelClass =
-        URiveViewModel::LoadGeneratedClassForViewModel(InputFile,
-                                                       InputFile,
-                                                       ViewModelName);
-
+        InputFile->GetGeneratedClassForViewModel(*ViewModelName);
+    check(ViewModelClass);
     const auto ObjectName = MakeUniqueObjectName(ViewModelClass->GetOuter(),
                                                  ViewModelClass,
                                                  *SanitizedName);

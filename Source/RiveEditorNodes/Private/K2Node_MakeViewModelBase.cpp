@@ -149,18 +149,15 @@ void UK2Node_MakeViewModelBase::PinDefaultValueChanged(UEdGraphPin* Pin)
 
         auto SelectedViewModel = GetViewModelDefinitionFromIndex(SelectedIndex);
         check(SelectedViewModel);
-        ViewModelClass = URiveViewModel::LoadGeneratedClassForViewModel(
-            this,
-            SelectedRiveFile,
-            SelectedViewModel->Name);
+        ViewModelClass = SelectedRiveFile->GetGeneratedClassForViewModel(
+            *SelectedViewModel->Name);
         // Make sure we have the correct "type" of class as a bunch of
         // intermediates get created
-        if (ViewModelClass)
+        if (ensure(ViewModelClass))
         {
             ViewModelClass = ViewModelClass->GetAuthoritativeClass();
         }
-
-        if (!ViewModelClass)
+        else
         {
             UE_LOG(LogRiveNode,
                    Warning,

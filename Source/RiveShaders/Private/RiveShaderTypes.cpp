@@ -12,7 +12,7 @@
 #include "Interfaces/IPluginManager.h"
 
 THIRD_PARTY_INCLUDES_START
-#include "rive/generated/shaders/rhi.exports.h"
+#include "rive/generated/shaders/rhi.glsl.exports.h"
 THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY(LogRiveShaderCompiler);

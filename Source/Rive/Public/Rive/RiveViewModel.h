@@ -37,10 +37,6 @@ class RIVE_API URiveViewModel : public UObject, public INotifyFieldValueChanged
 {
     GENERATED_BODY()
 public:
-    static UClass* LoadGeneratedClassForViewModel(const UObject* Context,
-                                                  const URiveFile* File,
-                                                  const FString& ViewModelName);
-
     void Initialize(FRiveCommandBuilder&,
                     const URiveFile* OwningFile,
                     const FViewModelDefinition& InViewModelDefinition,

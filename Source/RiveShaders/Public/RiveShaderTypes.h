@@ -10,7 +10,7 @@
 #include "ShaderCompilerCore.h"
 
 #include "HLSLTypeAliases.h"
-#include "rive/generated/shaders/rhi.exports.h"
+#include "rive/generated/shaders/rhi.glsl.exports.h"
 #include "Misc/EngineVersionComparison.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRiveShaderCompiler, Display, All);

@@ -63,12 +63,21 @@ static FName RiveDataTypeToPinCatagory(ERiveDataType DataType)
 static UEnum* GenerateBlueprintForEnum(const FString& FolderPath,
                                        const FEnumDefinition& EnumDefinition)
 {
-    UPackage* FolderPackage = CreatePackage(*FolderPath);
     FString EnumName =
         TEXT("E") + ObjectTools::SanitizeObjectName(EnumDefinition.Name);
     FString PackageName = FolderPath + "/" + EnumName;
     FString SanitizedPackageName =
         UPackageTools::SanitizePackageName(PackageName);
+    UPackage* FolderPackage = UPackageTools::LoadPackage(*SanitizedPackageName);
+    if (!FolderPackage)
+    {
+        FolderPackage = CreatePackage(*SanitizedPackageName);
+    }
+    UPackageTools::HandleFullyLoadingPackages(
+        {FolderPackage},
+        NSLOCTEXT("Rive",
+                  "GenerateBlueprintForViewModel",
+                  "Generate Blueprint For View Model"));
 
     UUserDefinedEnum* Enum =
         FindObject<UUserDefinedEnum>(FolderPackage, *EnumName);
@@ -126,7 +135,6 @@ static UEnum* GenerateBlueprintForEnum(const FString& FolderPath,
     PackageArgs.TopLevelFlags =
         EObjectFlags::RF_Public | EObjectFlags::RF_Standalone;
 
-    FolderPackage->MarkAsFullyLoaded();
     bool bSaved = UPackage::SavePackage(FolderPackage,
                                         Enum,
                                         *PackageFileName,
@@ -153,14 +161,23 @@ static UBlueprint* GenerateBlueprintForViewModel(
     const FViewModelDefinition& ViewModelDefinition,
     const TArray<UEnum*>& Enums)
 {
-    UPackage* FolderPackage = CreatePackage(*FolderPath);
     FString BlueprintName =
         ObjectTools::SanitizeObjectName(ViewModelDefinition.Name);
     FString PackageName = FolderPath;
     PackageName.PathAppend(*BlueprintName, BlueprintName.Len());
     FString SanitizedPackageName =
         UPackageTools::SanitizePackageName(PackageName);
+    UPackage* FolderPackage = UPackageTools::LoadPackage(*SanitizedPackageName);
+    if (!FolderPackage)
+    {
+        FolderPackage = CreatePackage(*SanitizedPackageName);
+    }
 
+    UPackageTools::HandleFullyLoadingPackages(
+        {FolderPackage},
+        NSLOCTEXT("Rive",
+                  "GenerateBlueprintForViewModel",
+                  "Generate Blueprint For View Model"));
     // Try to find a pre existing blueprint
     UBlueprint* Blueprint =
         FindObject<UBlueprint>(FolderPackage, *BlueprintName);
@@ -363,13 +380,11 @@ static UBlueprint* GenerateBlueprintForViewModel(
             FPackageName::GetAssetPackageExtension());
         FSavePackageArgs PackageArgs;
         PackageArgs.Error = GError;
-        PackageArgs.SaveFlags = ESaveFlags::SAVE_NoError |
-                                ESaveFlags::SAVE_AllowTimeout |
-                                ESaveFlags::SAVE_Concurrent;
+        PackageArgs.SaveFlags =
+            ESaveFlags::SAVE_NoError | ESaveFlags::SAVE_AllowTimeout;
         PackageArgs.TopLevelFlags =
             EObjectFlags::RF_Public | EObjectFlags::RF_Standalone;
 
-        FolderPackage->MarkAsFullyLoaded();
         bool bSaved = UPackage::SavePackage(FolderPackage,
                                             Blueprint,
                                             *PackageFileName,
@@ -401,10 +416,44 @@ static void GenerateBlueprintsForFile(URiveFile* RiveFile)
             GenerateBlueprintForEnum(FolderPath, EnumDefinition);
     }
 
+    RiveFile->Modify(true);
+
     // 2. Create the generated blueprints from each view model in riv
     for (auto& ViewModel : RiveFile->ViewModelDefinitions)
     {
-        GenerateBlueprintForViewModel(FolderPath, ViewModel, GeneratedEnums);
+        if (auto GeneratedBlueprint =
+                GenerateBlueprintForViewModel(FolderPath,
+                                              ViewModel,
+                                              GeneratedEnums);
+            IsValid(GeneratedBlueprint))
+        {
+            if (auto GeneratedClass = Cast<UBlueprintGeneratedClass>(
+                    GeneratedBlueprint->GeneratedClass);
+                IsValid(GeneratedClass))
+            {
+                RiveFile->RegisterGeneratedBlueprint(*ViewModel.Name,
+                                                     GeneratedClass);
+                UE_LOG(LogRiveEditor,
+                       Display,
+                       TEXT("Generated Class Package %s"),
+                       *GeneratedClass->GetPackage()->GetName());
+            }
+            else
+            {
+                UE_LOG(LogRiveEditor,
+                       Error,
+                       TEXT("Failed to get the generated blueprint class for "
+                            "view model %s"),
+                       *ViewModel.Name);
+            }
+        }
+        else
+        {
+            UE_LOG(LogRiveEditor,
+                   Error,
+                   TEXT("Failed to generate blueprint for view model %s"),
+                   *ViewModel.Name);
+        }
     }
 
     // 3. Ensure everthing was Saved to disk.

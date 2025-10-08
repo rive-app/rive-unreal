@@ -337,7 +337,7 @@ ESamplerFilter SamplerFilterFromImageFilterOption(const ImageFilter option)
     switch (option)
     {
         default:
-        case ImageFilter::trilinear:
+        case ImageFilter::bilinear:
             return ESamplerFilter::SF_Bilinear;
         case ImageFilter::nearest:
             return ESamplerFilter::SF_Point;

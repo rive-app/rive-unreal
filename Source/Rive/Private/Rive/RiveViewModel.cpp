@@ -116,20 +116,6 @@ private:
     TWeakObjectPtr<URiveViewModel> ListeningViewModel = nullptr;
 };
 
-UClass* URiveViewModel::LoadGeneratedClassForViewModel(
-    const UObject* Context,
-    const URiveFile* File,
-    const FString& ViewModelName)
-{
-    FString SanatizedViewModelName =
-        RiveUtils::SanitizeObjectName(ViewModelName);
-    FString ClassName = SanatizedViewModelName + TEXT(".") +
-                        SanatizedViewModelName + TEXT("_C");
-    static FString FolderPath = RiveUtils::GetPackagePathForFile(File);
-    FString FullPath = FolderPath + TEXT("/") + ClassName;
-    return LoadClass<URiveViewModel>(nullptr, *FullPath);
-}
-
 constexpr bool GetIsPropertyTypeWithDefault(ERiveDataType Type)
 {
     switch (Type)

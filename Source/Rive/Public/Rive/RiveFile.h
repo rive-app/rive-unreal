@@ -28,6 +28,15 @@ struct FRiveCommandBuilder;
 
 static FName GViewModelInstanceBlankName = "--Blank--";
 static FName GViewModelInstanceDefaultName = "--Default--";
+
+USTRUCT()
+struct FGeneratedClassEntry
+{
+    GENERATED_BODY()
+    UPROPERTY()
+    TSoftClassPtr<URiveViewModel> Entry;
+};
+
 /**
  *
  */
@@ -120,6 +129,9 @@ private:
     UPROPERTY()
     TArray<uint8> RiveFileData;
 
+    UPROPERTY(VisibleAnywhere, Category = "Rive|ViewModels")
+    TMap<FName, FGeneratedClassEntry> GeneratedClassMap;
+
     rive::FileHandle NativeFileHandle = RIVE_NULL_HANDLE;
 
 #if WITH_EDITORONLY_DATA
@@ -157,6 +169,7 @@ public:
 
     int32 GetViewModelCount() const { return ViewModelDefinitions.Num(); }
 
+    UClass* GetGeneratedClassForViewModel(const FName& ViewModelName) const;
     // Creates a ViewModel Given the ViewModel name and Instance name
     UFUNCTION(BlueprintCallable,
               meta = (BlueprintInternalUseOnly = "true"),
@@ -210,7 +223,9 @@ public:
     }
 
 #if WITH_EDITORONLY_DATA
-
+    // Used to register blueprints classes that are generated for view models.
+    void RegisterGeneratedBlueprint(const FName& BlueprintName,
+                                    UBlueprintGeneratedClass* GeneratedClass);
     void GenerateViewModelEnum();
     void GenerateViewModelInstanceEnums(
         const FViewModelDefinition& ViewModelDefinition);
