@@ -60,6 +60,16 @@ public:
     void Initialize();
     void Initialize(FRiveCommandBuilder&);
 
+    UFUNCTION(BlueprintCallable,
+              meta = (BlueprintInternalUseOnly = "true"),
+              Category = Rive)
+    static URiveArtboard* MakeArtboard(URiveFile* InRiveFile,
+                                       const FString& Name,
+                                       bool inAutoBindViewModel)
+    {
+        return InRiveFile->CreateArtboardNamed(Name, inAutoBindViewModel);
+    }
+
     UFUNCTION(BlueprintCallable, Category = Rive)
     URiveArtboard* CreateArtboardNamed(const FString& Name,
                                        bool inAutoBindViewModel);

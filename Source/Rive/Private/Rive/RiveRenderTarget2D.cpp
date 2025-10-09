@@ -117,6 +117,9 @@ void URiveRenderTarget2D::Draw() { Draw(RiveArtboard, RiveDescriptor); }
 void URiveRenderTarget2D::Draw(URiveArtboard* InArtboard,
                                FRiveDescriptor InDescriptor)
 {
+    if (!IsValid(RiveDescriptor.RiveFile) ||
+        RiveDescriptor.ArtboardName.IsEmpty() || !IsValid(RiveArtboard))
+        return;
     // Alignment is the full size of the render target.
     // {0,0 => SizeX,SizeY}
     FBox2f AlignmentBox{{},
