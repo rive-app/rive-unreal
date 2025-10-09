@@ -9,53 +9,7 @@
 #include "Rive/RiveArtboard.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveViewModel.h"
-
-static void MovePinLinksOrCopyDefaults(FKismetCompilerContext& CompilerContext,
-                                       UEdGraphPin* Source,
-                                       UEdGraphPin* Dest)
-{
-    if (Source->LinkedTo.Num() > 0)
-    {
-        CompilerContext.MovePinLinksToIntermediate(*Source, *Dest);
-    }
-    else
-    {
-        Dest->DefaultObject = Source->DefaultObject;
-        Dest->DefaultValue = Source->DefaultValue;
-        Dest->DefaultTextValue = Source->DefaultTextValue;
-    }
-}
-
-static FString GetPinStringValue(UEdGraphPin* Pin)
-{
-    check(Pin);
-    if (Pin->HasAnyConnections())
-    {
-        for (auto ConnectedPin : Pin->LinkedTo)
-        {
-            if (ConnectedPin->DefaultObject)
-                return ConnectedPin->GetDefaultAsString();
-        }
-    }
-
-    return Pin->GetDefaultAsString();
-}
-
-template <typename ReturnType>
-static TObjectPtr<ReturnType> GetPinObjectValue(UEdGraphPin* Pin)
-{
-    check(Pin);
-    if (Pin->HasAnyConnections())
-    {
-        for (auto ConnectedPin : Pin->LinkedTo)
-        {
-            if (ConnectedPin->DefaultObject)
-                return Cast<ReturnType>(ConnectedPin->DefaultObject);
-        }
-    }
-
-    return Cast<ReturnType>(Pin->DefaultObject);
-}
+#include "PinTools.h"
 
 FName UK2Node_MakeArtboard::PN_File = TEXT("FileInput");
 FName UK2Node_MakeArtboard::PN_ArtboardSource = TEXT("ArtboardSourceInput");
@@ -182,7 +136,7 @@ void UK2Node_MakeArtboard::ReallocatePinsDuringReconstruction(
 
     if (OldFilePin)
     {
-        SelectedRiveFile = GetPinObjectValue<URiveFile>(OldFilePin);
+        SelectedRiveFile = UPinTools::GetPinObjectValue<URiveFile>(OldFilePin);
         if (IsValid(SelectedRiveFile) && !SelectedRiveFile->GetHasData() &&
             !IsRunningCommandlet())
         {
@@ -233,27 +187,35 @@ void UK2Node_MakeArtboard::ExpandNode(FKismetCompilerContext& CompilerContext,
     if (MyExecPin->HasAnyConnections())
     {
         auto NodeExecPin = Node_CallFunction->GetExecPin();
-        MovePinLinksOrCopyDefaults(CompilerContext, MyExecPin, NodeExecPin);
+        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
+                                              MyExecPin,
+                                              NodeExecPin);
     }
 
     auto MyThenPin = GetThenPin();
     if (MyThenPin->HasAnyConnections())
     {
         auto NodeThenPin = Node_CallFunction->GetThenPin();
-        MovePinLinksOrCopyDefaults(CompilerContext, MyThenPin, NodeThenPin);
+        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
+                                              MyThenPin,
+                                              NodeThenPin);
     }
 
     if (auto FilePin = GetFilePin())
     {
         auto SelfPin = Node_CallFunction->FindPin(TEXT("InRiveFile"));
-        MovePinLinksOrCopyDefaults(CompilerContext, FilePin, SelfPin);
+        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
+                                              FilePin,
+                                              SelfPin);
     }
 
     if (auto ArtboardPin = GetArtboardSourcePin())
     {
         auto TargetPin = Node_CallFunction->FindPin(TEXT("Name"));
         check(TargetPin);
-        MovePinLinksOrCopyDefaults(CompilerContext, ArtboardPin, TargetPin);
+        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
+                                              ArtboardPin,
+                                              TargetPin);
     }
 
     if (auto AutoBindPin = GetAutoBindPin())
@@ -261,7 +223,9 @@ void UK2Node_MakeArtboard::ExpandNode(FKismetCompilerContext& CompilerContext,
         auto TargetPin =
             Node_CallFunction->FindPin(TEXT("inAutoBindViewModel"));
         check(TargetPin);
-        MovePinLinksOrCopyDefaults(CompilerContext, AutoBindPin, TargetPin);
+        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
+                                              AutoBindPin,
+                                              TargetPin);
     }
 
     if (auto ReturnPin = GetReturnPin())
@@ -284,7 +248,7 @@ bool UK2Node_MakeArtboard::CheckForErrors(
             this);
         return true;
     }
-    auto RiveFile = GetPinObjectValue<URiveFile>(GetFilePin());
+    auto RiveFile = UPinTools::GetPinObjectValue<URiveFile>(GetFilePin());
 
     if (!RiveFile)
     {
@@ -329,7 +293,7 @@ void UK2Node_MakeArtboard::UpdatePins(UEdGraphPin* UpdatedPin)
 {
     UEdGraphPin* InputFilePin = FindPin(PN_File);
 
-    auto RiveFile = GetPinObjectValue<URiveFile>(InputFilePin);
+    auto RiveFile = UPinTools::GetPinObjectValue<URiveFile>(InputFilePin);
     bool bNeedsEnumPins = RiveFile != nullptr;
 
     auto ArtboardPin = GetArtboardSourcePin();

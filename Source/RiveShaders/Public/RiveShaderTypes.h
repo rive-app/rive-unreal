@@ -124,6 +124,7 @@ SHADER_PARAMETER(UE::HLSL::uint,
                  pathIDGranularity) // Spacing between adjacent path IDs (1 if
                                     // IEEE compliant).
 SHADER_PARAMETER(float, vertexDiscardValue)
+SHADER_PARAMETER(float, mipMapLODBias)
 // Debugging.
 SHADER_PARAMETER(UE::HLSL::uint, wireframeEnabled)
 END_UNIFORM_BUFFER_STRUCT();

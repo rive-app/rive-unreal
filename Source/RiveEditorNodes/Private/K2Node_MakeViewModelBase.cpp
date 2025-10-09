@@ -10,53 +10,7 @@
 #include "Logs/LogRiveNode.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveViewModel.h"
-
-static void MovePinLinksOrCopyDefaults(FKismetCompilerContext& CompilerContext,
-                                       UEdGraphPin* Source,
-                                       UEdGraphPin* Dest)
-{
-    if (Source->LinkedTo.Num() > 0)
-    {
-        CompilerContext.MovePinLinksToIntermediate(*Source, *Dest);
-    }
-    else
-    {
-        Dest->DefaultObject = Source->DefaultObject;
-        Dest->DefaultValue = Source->DefaultValue;
-        Dest->DefaultTextValue = Source->DefaultTextValue;
-    }
-}
-
-static FString GetPinStringValue(UEdGraphPin* Pin)
-{
-    check(Pin);
-    if (Pin->HasAnyConnections())
-    {
-        for (auto ConnectedPin : Pin->LinkedTo)
-        {
-            if (ConnectedPin->DefaultObject)
-                return ConnectedPin->GetDefaultAsString();
-        }
-    }
-
-    return Pin->GetDefaultAsString();
-}
-
-template <typename ReturnType>
-static TObjectPtr<ReturnType> GetPinObjectValue(UEdGraphPin* Pin)
-{
-    check(Pin);
-    if (Pin->HasAnyConnections())
-    {
-        for (auto ConnectedPin : Pin->LinkedTo)
-        {
-            if (ConnectedPin->DefaultObject)
-                return Cast<ReturnType>(ConnectedPin->DefaultObject);
-        }
-    }
-
-    return Cast<ReturnType>(Pin->DefaultObject);
-}
+#include "PinTools.h"
 
 FName UK2Node_MakeViewModelBase::PN_File = TEXT("FileInput");
 FName UK2Node_MakeViewModelBase::PN_ViewModelSource =
@@ -210,7 +164,7 @@ void UK2Node_MakeViewModelBase::ReallocatePinsDuringReconstruction(
 
     if (OldFilePin)
     {
-        SelectedRiveFile = GetPinObjectValue<URiveFile>(OldFilePin);
+        SelectedRiveFile = UPinTools::GetPinObjectValue<URiveFile>(OldFilePin);
         if (IsValid(SelectedRiveFile) && !SelectedRiveFile->GetHasData() &&
             !IsRunningCommandlet())
         {
@@ -259,12 +213,13 @@ void UK2Node_MakeViewModelBase::ReallocatePinsDuringReconstruction(
     {
         if (SelectedRiveFile->GetHasData())
         {
-            SelectedIndex =
-                GetIndexFromSelection(GetPinStringValue(OldViewModelSourcePin));
+            SelectedIndex = GetIndexFromSelection(
+                UPinTools::GetPinStringValue(OldViewModelSourcePin));
         }
         else
         {
-            const auto Selection = GetPinStringValue(OldViewModelSourcePin);
+            const auto Selection =
+                UPinTools::GetPinStringValue(OldViewModelSourcePin);
             auto handle = SelectedRiveFile->OnDataReady.AddLambda(
                 [this, Selection](URiveFile*) {
                     SelectedRiveFile->OnDataReady.RemoveAll(this);
@@ -296,35 +251,43 @@ void UK2Node_MakeViewModelBase::ExpandNode(
     if (MyExecPin->HasAnyConnections())
     {
         auto NodeExecPin = Node_CallFunction->GetExecPin();
-        MovePinLinksOrCopyDefaults(CompilerContext, MyExecPin, NodeExecPin);
+        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
+                                              MyExecPin,
+                                              NodeExecPin);
     }
 
     auto MyThenPin = GetThenPin();
     if (MyThenPin->HasAnyConnections())
     {
         auto NodeThenPin = Node_CallFunction->GetThenPin();
-        MovePinLinksOrCopyDefaults(CompilerContext, MyThenPin, NodeThenPin);
+        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
+                                              MyThenPin,
+                                              NodeThenPin);
     }
 
     if (auto FilePin = GetFilePin())
     {
         auto TargetPin = Node_CallFunction->FindPin(TEXT("InputFile"));
-        MovePinLinksOrCopyDefaults(CompilerContext, FilePin, TargetPin);
+        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
+                                              FilePin,
+                                              TargetPin);
     }
 
     if (auto ViewModelPin = GetViewModelSourcePin())
     {
         auto TargetPin = GetTargetPinForViewModelSource(Node_CallFunction);
         check(TargetPin);
-        MovePinLinksOrCopyDefaults(CompilerContext, ViewModelPin, TargetPin);
+        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
+                                              ViewModelPin,
+                                              TargetPin);
     }
 
     if (auto ViewModelInstacePin = GetViewModelInstancePin())
     {
         auto TargetPin = Node_CallFunction->FindPin(TEXT("InstanceName"));
-        MovePinLinksOrCopyDefaults(CompilerContext,
-                                   ViewModelInstacePin,
-                                   TargetPin);
+        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
+                                              ViewModelInstacePin,
+                                              TargetPin);
     }
 
     if (auto ReturnPin = GetReturnPin())
@@ -353,7 +316,7 @@ bool UK2Node_MakeViewModelBase::CheckForErrors(
             this);
         return true;
     }
-    auto RiveFile = GetPinObjectValue<URiveFile>(GetFilePin());
+    auto RiveFile = UPinTools::GetPinObjectValue<URiveFile>(GetFilePin());
 
     if (!RiveFile)
     {
@@ -410,7 +373,7 @@ void UK2Node_MakeViewModelBase::UpdatePins(UEdGraphPin* UpdatedPin)
 
     SelectedIndex = INDEX_NONE;
 
-    auto RiveFile = GetPinObjectValue<URiveFile>(InputFilePin);
+    auto RiveFile = UPinTools::GetPinObjectValue<URiveFile>(InputFilePin);
     bool bNeedsEnumPins = RiveFile != nullptr;
 
     if ((bNeedsEnumPins && GetViewModelSourcePin() == nullptr) ||
@@ -434,7 +397,7 @@ void UK2Node_MakeViewModelBase::UpdatePins(UEdGraphPin* UpdatedPin)
         (!ViewModelInstancePin || ViewModelInstancePin != UpdatedPin))
     {
         check(SelectedRiveFile != nullptr);
-        auto Value = GetPinStringValue(ViewModelPin);
+        auto Value = UPinTools::GetPinStringValue(ViewModelPin);
         SelectedIndex = GetIndexFromSelection(Value);
         if (SelectedIndex != INDEX_NONE)
         {
