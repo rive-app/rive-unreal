@@ -1131,3 +1131,73 @@ FRDGPassRef AddFeatherAtlasStrokeDrawPass(
                 batch.patchCount);
         });
 }
+
+FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
+                              FVertexDeclarationRHIRef VertexDeclarationRHI,
+                              FUint32Rect Viewport,
+                              FGlobalShaderMap* ShaderMap,
+                              FRiveDrawTextureBltParameters* PassParameters)
+{
+    TShaderMapRef<FRiveBltTextureAsDrawVertexShader> VertexShader(ShaderMap);
+    TShaderMapRef<FRiveBltTextureAsDrawPixelShader> PixelShader(ShaderMap);
+
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
+#else
+    PassParameters->PS.GLSL_FlushUniforms_raw = PassParameters->FlushUniforms;
+#endif
+
+    ClearUnusedGraphResources(PixelShader, &PassParameters->PS);
+    return GraphBuilder.AddPass(
+        RDG_EVENT_NAME("Rive_Draw_Atomic_Resolve"),
+        PassParameters,
+        ERDGPassFlags::Raster,
+        [Viewport,
+         VertexDeclarationRHI,
+         PassParameters,
+         VertexShader,
+         PixelShader](FRHICommandList& RHICmdList) {
+            FGraphicsPipelineStateInitializer GraphicsPSOInit;
+            GraphicsPSOInit.DepthStencilState =
+                TStaticDepthStencilState<false,
+                                         ECompareFunction::CF_Always>::GetRHI();
+            GraphicsPSOInit.RasterizerState =
+                RASTER_STATE(FM_Solid,
+                             CM_None,
+                             ERasterizerDepthClipMode::DepthClamp);
+            GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+            GraphicsPSOInit.BlendState =
+                TStaticBlendState<CW_RGBA,
+                                  BO_Add,
+                                  BF_One,
+                                  BF_InverseSourceAlpha,
+                                  BO_Add,
+                                  BF_One,
+                                  BF_InverseSourceAlpha>::GetRHI();
+
+            RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+            RHICmdList.SetViewport(Viewport.Min.X,
+                                   Viewport.Min.Y,
+                                   0,
+                                   Viewport.Max.X,
+                                   Viewport.Max.Y,
+                                   1.0);
+
+            GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+                VertexDeclarationRHI;
+            GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+                VertexShader.GetVertexShader();
+            GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+                PixelShader.GetPixelShader();
+
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+
+            SetShaderParameters(RHICmdList,
+                                PixelShader,
+                                PixelShader.GetPixelShader(),
+                                PassParameters->PS);
+
+            RHICmdList.DrawPrimitive(0, 2, 1);
+        });
+}

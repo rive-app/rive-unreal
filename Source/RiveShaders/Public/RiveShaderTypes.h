@@ -708,6 +708,39 @@ public:
         FShaderCompilerEnvironment&);
 };
 
+class FRiveBltTextureAsDrawVertexShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveBltTextureAsDrawVertexShader,
+                                   RIVESHADERS_API);
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+BEGIN_SHADER_PARAMETER_STRUCT(FRiveBltTextureDrawUniforms, RIVESHADERS_API)
+#if !UE_VERSION_OLDER_THAN(5, 5, 0)
+SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
+#endif
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_sourceTexture_raw)
+END_SHADER_PARAMETER_STRUCT()
+
+class FRiveBltTextureAsDrawPixelShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveBltTextureAsDrawPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveBltTextureAsDrawPixelShader,
+                                FGlobalShader);
+
+    using FParameters = FRiveBltTextureDrawUniforms;
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
 /*
  * The shader will convert a PF_R32 texture to PF_R8G8B8A8 in order to visualize
  * it. It does so by writing SourceTexture to the current rendertarget color

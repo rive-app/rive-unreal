@@ -226,6 +226,20 @@ void FRiveRDGRasterOrderImageMeshPixelShader::ModifyCompilationEnvironment(
     ModifyShaderEnvironment(Params, Environment, false);
 }
 
+void FRiveBltTextureAsDrawVertexShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    ModifyShaderEnvironment(Params, Environment, true);
+}
+
+void FRiveBltTextureAsDrawPixelShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    ModifyShaderEnvironment(Params, Environment, false);
+}
+
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGGradientPixelShader,
                         "/Plugin/Rive/Private/Rive/color_ramp.usf",
                         GLSL_colorRampFragmentMain,
@@ -344,6 +358,16 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGDrawAtlasFillPixelShader,
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGDrawAtlasStrokePixelShader,
                         "/Plugin/Rive/Private/Rive/draw_atlas_stroke.usf",
                         GLSL_atlasStrokeFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveBltTextureAsDrawVertexShader,
+                        "/Plugin/Rive/Private/Rive/blend_texture.usf",
+                        GLSL_blitVertexMain,
+                        SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveBltTextureAsDrawPixelShader,
+                        "/Plugin/Rive/Private/Rive/blend_texture.usf",
+                        GLSL_blitFragmentMain,
                         SF_Pixel);
 
 // this could be either draw_atlas usf file,

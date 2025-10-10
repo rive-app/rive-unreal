@@ -143,3 +143,17 @@ FRDGPassRef AddDrawRasterOrderImageMeshPass(
     uint32_t NumVertices,
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveFlushPassParameters* PassParameters);
+
+BEGIN_SHADER_PARAMETER_STRUCT(FRiveDrawTextureBltParameters, )
+
+SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
+SHADER_PARAMETER_STRUCT_INCLUDE(FRiveBltTextureDrawUniforms, PS)
+RENDER_TARGET_BINDING_SLOTS()
+
+END_SHADER_PARAMETER_STRUCT()
+
+FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
+                              FVertexDeclarationRHIRef VertexDeclarationRHI,
+                              FUint32Rect Viewport,
+                              FGlobalShaderMap* ShaderMap,
+                              FRiveDrawTextureBltParameters* PassParameters);

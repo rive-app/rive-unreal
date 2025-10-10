@@ -2052,19 +2052,27 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             }
         } // end flush render pass scope
 
-        // Maybe this should be source blended.
         if (needsBackBuffer)
         {
-            FIntPoint UpdatePosition{desc.renderTargetUpdateBounds.left,
-                                     desc.renderTargetUpdateBounds.top};
-            FIntPoint UpdateSize{desc.renderTargetUpdateBounds.width(),
-                                 desc.renderTargetUpdateBounds.height()};
-            AddCopyTexturePass(GraphBuilder,
-                               backBuffer,
-                               targetTexture,
-                               UpdatePosition,
-                               UpdatePosition,
-                               UpdateSize);
+            auto Params =
+                GraphBuilder.AllocParameters<FRiveDrawTextureBltParameters>();
+            Params->RenderTargets[0] =
+                FRenderTargetBinding(targetTexture,
+                                     ERenderTargetLoadAction::ELoad);
+            Params->PS.GLSL_sourceTexture_raw = backBuffer;
+            Params->FlushUniforms = flushUniforms;
+            // If we have a back buffer we need to blend it back into the render
+            // target so use our draw shader because CopyTexture and DrawTexture
+            // don't support blending.
+            AddDrawTextureBlt(GraphBuilder,
+                              VertexDeclarations[static_cast<int>(
+                                  EVertexDeclarations::Resolve)],
+                              FUint32Rect(desc.renderTargetUpdateBounds.left,
+                                          desc.renderTargetUpdateBounds.top,
+                                          desc.renderTargetUpdateBounds.right,
+                                          desc.renderTargetUpdateBounds.bottom),
+                              ShaderMap,
+                              Params);
         }
 
         static const auto CVarVisualize =
