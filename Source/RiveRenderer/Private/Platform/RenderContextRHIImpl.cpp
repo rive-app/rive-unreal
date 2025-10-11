@@ -299,7 +299,7 @@ RHICapabilities::RHICapabilities()
         GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Metal;
 #else
 #if PLATFORM_APPLE
-    bSupportsRasterOrderViews = true;
+    bSupportsRasterOrderViews = false;
 #else
     bSupportsRasterOrderViews = GRHISupportsRasterOrderViews;
 #endif
@@ -734,7 +734,14 @@ FRDGTextureRef RenderTargetRHI::clipTexture(FRDGBuilder& Builder)
         CreateRenderTarget(m_clipTexture, TEXT("rive.Clip")),
         ERDGTextureFlags::MultiFrame);
 }
-
+#if PLATFORM_APPLE
+FRDGBufferRef RenderTargetRHI::coverageBuffer(FRDGBuilder& Builder)
+{
+    auto BufferDesc =
+        FRDGBufferDesc::CreateBufferDesc(sizeof(uint), width() * height());
+    return Builder.CreateBuffer(BufferDesc, TEXT("rive.AtomicCoverage"));
+}
+#endif
 FRDGTextureRef RenderTargetRHI::coverageTexture(FRDGBuilder& Builder)
 {
     return Builder.RegisterExternalTexture(
@@ -1422,9 +1429,23 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         check(targetTexture);
         auto clipTexture = renderTarget->clipTexture(GraphBuilder);
         check(clipTexture);
-        auto coverageTexture = renderTarget->coverageTexture(GraphBuilder);
-        check(coverageTexture);
         FRDGTextureRef backBuffer = nullptr;
+        FRDGTextureRef coverageTexture = nullptr;
+
+#if PLATFORM_APPLE
+        FRDGBufferRef coverageBuffer = nullptr;
+        FRDGBufferUAVRef coverageUAV = nullptr;
+#else
+        FRDGTextureUAVRef coverageUAV = nullptr;
+#endif
+
+#if PLATFORM_APPLE
+        coverageBuffer = renderTarget->coverageBuffer(GraphBuilder);
+        check(coverageBuffer);
+#else
+        coverageTexture = renderTarget->coverageTexture(GraphBuilder);
+        check(coverageTexture);
+#endif
 
         bool needsBackBuffer =
             (!renderTarget->TargetTextureSupportsUAV() &&
@@ -1467,15 +1488,20 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                    ERDGUnorderedAccessViewFlags::None,
                                    PF_R32_UINT);
 
-        auto coverageUAV =
-            GraphBuilder.CreateUAV(coverageTexture,
-                                   ERDGUnorderedAccessViewFlags::None,
-                                   PF_R32_UINT);
-
         check(m_flushUniformBuffer);
         auto flushUniforms =
             m_flushUniformBuffer->Sync(GraphBuilder,
                                        desc.flushUniformDataOffsetInBytes);
+
+#if PLATFORM_APPLE
+        // Apple platforms validate that a buffer is bound so always make one.
+        static FImageDrawUniforms StaticZeroBuffer = {};
+        auto imageDrawUniforms =
+            GraphBuilder.CreateUniformBuffer<FImageDrawUniforms>(
+                &StaticZeroBuffer);
+#else
+        TRDGUniformBufferRef<FImageDrawUniforms> imageDrawUniforms = nullptr;
+#endif
 
         auto placeholderTexture = GraphBuilder.RegisterExternalTexture(
             CreateRenderTarget(m_placeholderTexture, TEXT("RivePlaceholder")));
@@ -1542,13 +1568,26 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         {
             RDG_GPU_STAT_SCOPE(GraphBuilder,
                                STAT_RiveFlush_RiveClearCoverageClip);
-            check(coverageUAV);
+#if PLATFORM_APPLE
+            coverageUAV = GraphBuilder.CreateUAV(coverageBuffer,
+                                                 EPixelFormat::PF_R32_UINT);
+            RDG_GPU_STAT_SCOPE(GraphBuilder,
+                               STAT_RiveFlush_RiveClearCoverageClip);
+            AddClearUAVPass(GraphBuilder, coverageUAV, desc.coverageClearValue);
+#else
+            coverageUAV =
+                GraphBuilder.CreateUAV(coverageTexture,
+                                       ERDGUnorderedAccessViewFlags::None,
+                                       PF_R32_UINT);
+            RDG_GPU_STAT_SCOPE(GraphBuilder,
+                               STAT_RiveFlush_RiveClearCoverageClip);
             AddClearUAVPass(GraphBuilder,
                             coverageUAV,
                             FUintVector4(desc.coverageClearValue,
                                          desc.coverageClearValue,
                                          desc.coverageClearValue,
                                          desc.coverageClearValue));
+#endif
 
             if (desc.combinedShaderFeatures &
                 gpu::ShaderFeatures::ENABLE_CLIPPING)
@@ -1937,7 +1976,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         auto imageTexture = static_cast<const TextureRHIImpl*>(
                             batch.imageTexture);
 
-                        auto imageDrawUniforms = m_imageDrawUniformBuffer->Sync(
+                        imageDrawUniforms = m_imageDrawUniformBuffer->Sync(
                             GraphBuilder,
                             batch.imageDrawDataOffset);
 
@@ -1985,11 +2024,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         auto VertexBufferRHI = VertexBuffer->Sync(CommandList);
                         auto UVBufferRHI = UVBuffer->Sync(CommandList);
 
-                        auto imageDrawUniforms =
-                            PassParameters->VS.ImageDrawUniforms =
-                                m_imageDrawUniformBuffer->Sync(
-                                    GraphBuilder,
-                                    batch.imageDrawDataOffset);
+                        imageDrawUniforms = m_imageDrawUniformBuffer->Sync(
+                            GraphBuilder,
+                            batch.imageDrawDataOffset);
 
                         PassParameters->VS.ImageDrawUniforms =
                             imageDrawUniforms;
@@ -2087,11 +2124,13 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     FIntPoint(renderTarget->width(), renderTarget->height()));
                 break;
             case 2:
+#if !PLATFORM_APPLE
                 AddBltU32ToF4Pass(
                     GraphBuilder,
                     coverageTexture,
                     targetTexture,
                     FIntPoint(renderTarget->width(), renderTarget->height()));
+#endif
                 break;
             case 3:
                 AddBltU324ToF4Pass(

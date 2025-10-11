@@ -85,7 +85,9 @@ public:
     FRDGTextureRef backBufferTexture(FRDGBuilder& Builder);
 
     FRDGTextureRef clipTexture(FRDGBuilder& Builder);
-
+#if PLATFORM_APPLE
+    FRDGBufferRef coverageBuffer(FRDGBuilder& Builder);
+#endif
     FRDGTextureRef coverageTexture(FRDGBuilder& Builder);
 
     bool TargetTextureSupportsUAV() const { return m_targetTextureSupportsUAV; }

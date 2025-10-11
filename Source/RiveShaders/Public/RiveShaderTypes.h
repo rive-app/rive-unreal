@@ -158,7 +158,11 @@ SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_imageTexture_raw)
 
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageCountBuffer)
+#if PLATFORM_APPLE
+SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, coverageAtomicBuffer)
+#else
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
+#endif
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, clipBuffer)
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, scratchColorBuffer)
@@ -673,7 +677,11 @@ BEGIN_SHADER_PARAMETER_STRUCT(FAtlasDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
+#if PLATFORM_APPLE
+SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, coverageAtomicBuffer)
+#else
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
+#endif
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_featherTexture_raw)
 SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
 END_SHADER_PARAMETER_STRUCT()
