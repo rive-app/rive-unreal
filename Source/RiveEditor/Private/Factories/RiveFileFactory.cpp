@@ -206,11 +206,19 @@ static UBlueprint* GenerateBlueprintForViewModel(
         CDO->bIsGenerated = true;
         CDO->SetViewModelDefinition(ViewModelDefinition);
 
-        Blueprint->NewVariables.Empty();
-        Blueprint->DelegateSignatureGraphs.Empty();
-
         static FText VariableCategory = FText::FromString(TEXT("Rive"));
         Blueprint->Modify();
+
+        TSet<FName> CurrentVars;
+        FBlueprintEditorUtils::GetClassVariableList(Blueprint, CurrentVars);
+
+        // Remove all current vars
+        for (const auto& Variable : CurrentVars)
+        {
+            FBlueprintEditorUtils::RemoveMemberVariable(Blueprint, Variable);
+        }
+
+        Blueprint->DelegateSignatureGraphs.Empty();
 
         for (auto PropertyDefinition : ViewModelDefinition.PropertyDefinitions)
         {
@@ -558,8 +566,12 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass,
         return nullptr;
     }
 
-    auto Lambda = [](URiveFile* RiveFile) {
+    TWeakObjectPtr<URiveFileFactory> WeakThis(this);
+    auto Lambda = [WeakThis](URiveFile* RiveFile) {
         GenerateBlueprintsForFile(RiveFile);
+        if (auto StrongThis = WeakThis.Pin();
+            StrongThis.IsValid() && StrongThis->OnDataReadyHandle.IsValid())
+            RiveFile->OnDataReady.Remove(StrongThis->OnDataReadyHandle);
     };
 
     if (RiveFile->GetHasData())
@@ -568,7 +580,8 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass,
     }
     else
     {
-        RiveFile->OnDataReady.AddLambda(Lambda);
+        if (!OnDataReadyHandle.IsValid())
+            OnDataReadyHandle = RiveFile->OnDataReady.AddLambda(Lambda);
     }
 
     GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(
@@ -675,8 +688,12 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
         return EReimportResult::Failed;
     }
 
-    auto Lambda = [](URiveFile* RiveFile) {
+    TWeakObjectPtr<URiveFileFactory> WeakThis(this);
+    auto Lambda = [WeakThis](URiveFile* RiveFile) {
         GenerateBlueprintsForFile(RiveFile);
+        if (auto StrongThis = WeakThis.Pin();
+            StrongThis.IsValid() && StrongThis->OnDataReadyHandle.IsValid())
+            RiveFile->OnDataReady.Remove(StrongThis->OnDataReadyHandle);
     };
 
     if (RiveFile->GetHasData())
@@ -685,7 +702,8 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
     }
     else
     {
-        RiveFile->OnDataReady.AddLambda(Lambda);
+        if (!OnDataReadyHandle.IsValid())
+            OnDataReadyHandle = RiveFile->OnDataReady.AddLambda(Lambda);
     }
 
     GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetReimport(
