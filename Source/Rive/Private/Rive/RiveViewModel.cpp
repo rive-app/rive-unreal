@@ -148,7 +148,9 @@ void URiveViewModel::Initialize(
     check(!InViewModelDefinition.Name.IsEmpty());
     ViewModelDefinition = InViewModelDefinition;
 
-    if (InstanceName == GViewModelInstanceBlankName)
+    const bool bIsBlankInstance = InstanceName == GViewModelInstanceBlankName;
+
+    if (bIsBlankInstance)
     {
         NativeViewModelInstance =
             Builder.CreateBlankViewModel(OwningFile->GetNativeFileHandle(),
@@ -172,7 +174,7 @@ void URiveViewModel::Initialize(
     }
 
     const FString ResolvedInstanceName =
-        InstanceName == GViewModelInstanceDefaultName
+        (InstanceName == GViewModelInstanceDefaultName || bIsBlankInstance)
             ? ViewModelDefinition.DefaultInstanceName
             : InstanceName;
     // There is no reason to auto-subscribe if we aren't a generated view model.
@@ -195,6 +197,9 @@ void URiveViewModel::Initialize(
         {
             const auto& PropertyDefinition =
                 ViewModelDefinition.PropertyDefinitions[Index];
+            if (bIsBlankInstance &&
+                PropertyDefinition.Type != ERiveDataType::ViewModel)
+                continue;
 
             if (ViewModelDefault &&
                 GetIsPropertyTypeWithDefault(PropertyDefinition.Type))
@@ -288,6 +293,10 @@ void URiveViewModel::Initialize(
                             ensure(DefaultValue.Split(TEXT("/"),
                                                       &ViewModelType,
                                                       &ViewModelInstanceName));
+                            if (bIsBlankInstance)
+                                ViewModelInstanceName =
+                                    GViewModelInstanceBlankName.ToString();
+
                             TObjectPtr<URiveViewModel> NestedViewModel =
                                 URiveFile::CreateViewModelByName(
                                     OwningFile,
