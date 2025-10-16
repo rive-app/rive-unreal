@@ -473,15 +473,6 @@ void URiveViewModel::K2_AppendToList(FRiveList List, URiveViewModel* Value)
     Builder.AppendViewModelList(NativeViewModelInstance,
                                 List.Path,
                                 Value->NativeViewModelInstance);
-    Builder.RunOnce([InstanceHandle = Value->NativeViewModelInstance](
-                        rive::CommandServer* CommandServer) {
-        auto instance = CommandServer->getViewModelInstance(InstanceHandle);
-        auto name = instance->name();
-        UE_LOG(LogRive,
-               Display,
-               TEXT("Rive View Model List Append %hs"),
-               name.c_str());
-    });
 }
 
 void URiveViewModel::K2_InsertToList(FRiveList List,
@@ -586,11 +577,51 @@ void URiveViewModel::OnViewModelDataReceived(
             if (auto DelegateProperty =
                     CastField<FMulticastDelegateProperty>(Property))
             {
+
                 auto Delegate = DelegateProperty->GetMulticastDelegate(
                     DelegateProperty->ContainerPtrToValuePtr<void>(this));
                 check(Delegate);
                 // We don't have any inputs or outputs for triggers
-                Delegate->ProcessMulticastDelegate<UObject>(nullptr);
+                FString SigName =
+                    Conversion +
+                    FString(HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX);
+                auto SignatureFunction = FindDelegateSignature(*SigName);
+                if (!ensure(SignatureFunction))
+                {
+                    UE_LOG(LogRive,
+                           Error,
+                           TEXT("Failed to find delegate signature for "
+                                "trigger \"%s\" on view model \"%s\" with "
+                                "class \"%s\" !"),
+                           Conversion.Get(),
+                           *GetName(),
+                           *GetClass()->GetName());
+                    return;
+                }
+                uint8* Parameters = (uint8*)UE_VSTACK_ALLOC_ALIGNED(
+                    Stack.CachedThreadVirtualStackAllocator,
+                    SignatureFunction->ParmsSize,
+                    SignatureFunction->GetMinAlignment());
+                FMemory::Memzero(Parameters, SignatureFunction->ParmsSize);
+                if (FProperty* InputProperty = CastField<FProperty>(
+                        SignatureFunction->ChildProperties))
+                {
+                    if (auto ObjectProperty =
+                            CastField<FObjectProperty>(InputProperty);
+                        ensure(ObjectProperty))
+                    {
+                        ObjectProperty->SetObjectPropertyValue_InContainer(
+                            Parameters,
+                            this);
+                    }
+                    else
+                    {
+                        UE_LOG(LogRive,
+                               Error,
+                               TEXT("Failed to get delegate input property"));
+                    }
+                }
+                Delegate->ProcessMulticastDelegate<UObject>(Parameters);
             }
             break;
         case rive::DataType::viewModel:

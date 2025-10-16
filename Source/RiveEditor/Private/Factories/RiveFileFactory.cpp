@@ -317,6 +317,30 @@ static UBlueprint* GenerateBlueprintForViewModel(
                                                  FUNC_Public));
                 K2Schema->MarkFunctionEntryAsEditable(NewGraph, true);
 
+                TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+                NewGraph->GetNodesOfClass(FunctionEntryNodes);
+                if (ensure(FunctionEntryNodes.Num() > 0))
+                {
+                    FEdGraphPinType ViewModelInputPinType;
+                    ViewModelInputPinType.PinCategory =
+                        UEdGraphSchema_K2::PC_Object;
+                    ViewModelInputPinType.PinSubCategoryObject =
+                        URiveViewModel::StaticClass();
+
+                    FunctionEntryNodes[0]->CreateUserDefinedPin(
+                        TEXT("TriggeredViewModel"),
+                        ViewModelInputPinType,
+                        EGPD_Output);
+                }
+                else
+                {
+                    UE_LOG(LogRiveEditor,
+                           Error,
+                           TEXT("Coould not get function entry node for "
+                                "trigger delegate %s"),
+                           *PropertyDefinition.Name);
+                }
+
                 Blueprint->DelegateSignatureGraphs.Add(NewGraph);
                 FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(
                     Blueprint);
