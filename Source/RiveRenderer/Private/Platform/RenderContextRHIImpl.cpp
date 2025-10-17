@@ -1449,9 +1449,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         bool needsBackBuffer =
             (!renderTarget->TargetTextureSupportsUAV() &&
-             !desc.atomicFixedFunctionColorOutput) ||
+             !desc.fixedFunctionColorOutput) ||
             (!renderTarget->TargetTextureSupportsRenderTarget() &&
-             desc.atomicFixedFunctionColorOutput);
+             desc.fixedFunctionColorOutput);
 
         if (needsBackBuffer)
         {
@@ -1462,12 +1462,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         bool TargetIsSRGB = static_cast<bool>(targetTexture->Desc.Flags &
                                               ETextureCreateFlags::SRGB);
-        bool needsLinearColorOutput = desc.atomicFixedFunctionColorOutput &&
-                                      TargetIsSRGB && !needsBackBuffer;
+        bool needsLinearColorOutput =
+            desc.fixedFunctionColorOutput && TargetIsSRGB && !needsBackBuffer;
 
         FRDGTextureUAVRef targetUAV = nullptr;
 
-        if (!desc.atomicFixedFunctionColorOutput)
+        if (!desc.fixedFunctionColorOutput)
         {
             if (m_capabilities.bSupportsTypedUAVLoads || needsForceUAVTypes)
             {
@@ -1760,7 +1760,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         if (desc.colorLoadAction == LoadAction::clear)
         {
-            if (desc.atomicFixedFunctionColorOutput)
+            if (desc.fixedFunctionColorOutput)
             {
                 float clearColor4f[4];
                 UnpackColorToRGBA32FPremul(desc.colorClearValue, clearColor4f);
@@ -1841,7 +1841,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                               renderTarget->width(),
                               renderTarget->height());
                 CommonPassParameters->NeedsSourceBlending =
-                    desc.atomicFixedFunctionColorOutput;
+                    desc.fixedFunctionColorOutput;
 
                 FRiveFlushPassParameters* PassParameters =
                     GraphBuilder.AllocParameters<FRiveFlushPassParameters>();
@@ -1875,7 +1875,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 PassParameters->VS.featherSampler = m_featherSampler;
                 PassParameters->VS.baseInstance = 0;
 
-                if (desc.atomicFixedFunctionColorOutput)
+                if (desc.fixedFunctionColorOutput)
                 {
                     PassParameters->RenderTargets[0] = FRenderTargetBinding(
                         needsBackBuffer ? backBuffer : targetTexture,
