@@ -650,7 +650,12 @@ struct RIVERENDERER_API FRiveCommandBuilder
         return CurrentRequestId;
     }
 
+    // Queues a callback to be called at the end of the frame. This is more
+    // efficient and should be preferred over RunOnceImmediate where possible.
     void RunOnce(ServerSideCallback Callback);
+    // Immediately sends a callback to the CommandServer to be run. This should
+    // be used when ordering is important.
+    void RunOnceImmediate(ServerSideCallback Callback);
     // Request for State Machine advance
     void AdvanceStateMachine(rive::StateMachineHandle, float AdvanceAmount);
     // Enqueues a draw of the given Artboard.

@@ -141,6 +141,12 @@ bool FRiveStateMachine::PointerMove(const FGeometry& InGeometry,
                                     const FRiveDescriptor& InDescriptor,
                                     const FPointerEvent& InMouseEvent)
 {
+    // Ignore when mouse doesn't move.
+    if (InMouseEvent.GetCursorDelta().GetAbsMax() <= 0)
+    {
+        return false;
+    }
+
     bStateMachineSettled = false;
     float ScaleFactor = 1.0f;
     if (InDescriptor.FitType == ERiveFitType::Layout)
@@ -236,11 +242,6 @@ void FRiveStateMachine::BindViewModel(TObjectPtr<URiveViewModel> ViewModel)
     auto& CommandBuilder = Renderer->GetCommandBuilder();
     CommandBuilder.StateMachineBindViewModel(NativeStateMachineHandle,
                                              ViewModel->GetNativeHandle());
-}
-
-const rive::EventReport FRiveStateMachine::GetReportedEvent(int32 AtIndex) const
-{
-    return NullEvent;
 }
 
 void FRiveStateMachine::SetStateMachineSettled(bool inStateMachineSettled)

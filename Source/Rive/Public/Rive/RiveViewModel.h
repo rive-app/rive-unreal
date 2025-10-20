@@ -10,6 +10,7 @@
 #include "RiveInternalTypes.h"
 #include "RiveViewModel.generated.h"
 
+class URiveViewModel;
 class URiveArtboard;
 struct FViewModelDefinition;
 class URiveFile;
@@ -25,6 +26,11 @@ struct FRiveList
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     int32 ListSize = 0;
+
+    // This is not an exhaustive list of view models. It is only to prevent GC
+    // of added view models. and allow mapping of value -> index
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
+    TMap<URiveViewModel*, int32> ViewModels;
 };
 
 class URiveTriggerDelegate;
@@ -90,7 +96,7 @@ public:
               Category = "Lists",
               meta = (DisplayName = "Remove View Model From List At Index",
                       ScriptName = "RemoveFromList"))
-    void K2_RemoveFromList(FRiveList List, int32 Index);
+    void K2_RemoveFromList(FRiveList List, URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable, Category = "Rive|ViewModel")
     void SetTrigger(const FString& TriggerName);
@@ -225,6 +231,10 @@ private:
     bool RemoveFieldValueChangedDelegate(
         FFieldNotificationId FieldId,
         const FFieldValueChangedDynamicDelegate& Delegate);
+
+    void UpdateListWithViewModelData(const FString& ListPath,
+                                     URiveViewModel* Value,
+                                     int32 Index);
 
     rive::ViewModelInstanceHandle NativeViewModelInstance = RIVE_NULL_HANDLE;
 

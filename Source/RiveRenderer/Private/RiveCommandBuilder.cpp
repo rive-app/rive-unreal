@@ -29,6 +29,7 @@ uint64_t FRiveCommandBuilder::SetViewModelImage(
     UTexture2D* Value)
 {
     FTCHARToUTF8 ConvertName(*Name);
+    std::string ConvertedName(ConvertName.Get(), ConvertName.Length());
 
     // This mess is to support using UTexture2D directly as a value for a
     // property instead of forcing people to use the command queue to create a
@@ -42,7 +43,7 @@ uint64_t FRiveCommandBuilder::SetViewModelImage(
     {
         // If we don't already have this texture we first dispatch to the render
         // thread to create a render image.
-        RunOnce([this, StrongValue, ViewModel, Name = ConvertName.Get()](
+        RunOnce([this, StrongValue, ViewModel, Name = MoveTemp(ConvertedName)](
                     rive::CommandServer* CommandServer) {
             // Everything in here is on the render thread.
             check(IsInRenderingThread());
@@ -77,6 +78,11 @@ uint64_t FRiveCommandBuilder::SetViewModelImage(
 void FRiveCommandBuilder::RunOnce(ServerSideCallback Callback)
 {
     Commands.Add(Callback);
+}
+
+void FRiveCommandBuilder::RunOnceImmediate(ServerSideCallback Callback)
+{
+    CommandQueue->runOnce(Callback);
 }
 
 void FRiveCommandBuilder::AdvanceStateMachine(rive::StateMachineHandle Handle,

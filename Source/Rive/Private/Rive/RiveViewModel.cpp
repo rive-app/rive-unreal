@@ -154,7 +154,8 @@ void URiveViewModel::Initialize(
     {
         NativeViewModelInstance =
             Builder.CreateBlankViewModel(OwningFile->GetNativeFileHandle(),
-                                         FName(ViewModelDefinition.Name));
+                                         FName(ViewModelDefinition.Name),
+                                         new FRiveViewModelListener(this));
     }
     else if (InstanceName == GViewModelInstanceDefaultName ||
              InstanceName.IsEmpty())
@@ -197,10 +198,17 @@ void URiveViewModel::Initialize(
         {
             const auto& PropertyDefinition =
                 ViewModelDefinition.PropertyDefinitions[Index];
+
             if (bIsBlankInstance &&
                 PropertyDefinition.Type != ERiveDataType::ViewModel)
+            {
+                // still subscribe even though there is no default
+                Builder.SubscribeToProperty(
+                    NativeViewModelInstance,
+                    PropertyDefinition.Name,
+                    RiveDataTypeToDataType(PropertyDefinition.Type));
                 continue;
-
+            }
             if (ViewModelDefault &&
                 GetIsPropertyTypeWithDefault(PropertyDefinition.Type))
             {
@@ -319,7 +327,6 @@ void URiveViewModel::Initialize(
                     break;
                     case ERiveDataType::AssetImage:
                     case ERiveDataType::List:
-                    default:
                         continue;
                 }
             }
@@ -356,6 +363,11 @@ void URiveViewModel::Initialize(
                 {
                     DelegateProperty->AddDelegate(GenericDelegate, this);
                 }
+            }
+            else if (PropertyDefinition.Type == ERiveDataType::List)
+            {
+                Builder.GetPropertyListSize(NativeViewModelInstance,
+                                            PropertyDefinition.Name);
             }
         }
     }
@@ -473,6 +485,46 @@ void URiveViewModel::K2_AppendToList(FRiveList List, URiveViewModel* Value)
     Builder.AppendViewModelList(NativeViewModelInstance,
                                 List.Path,
                                 Value->NativeViewModelInstance);
+    TWeakObjectPtr<URiveViewModel> WeakThis = this;
+    TStrongObjectPtr<URiveViewModel> StrongValue(Value);
+    Builder.RunOnceImmediate([WeakThis,
+                              StrongValue,
+                              ListPath = List.Path,
+                              Handle = NativeViewModelInstance,
+                              AddedHandle = Value->NativeViewModelInstance](
+                                 rive::CommandServer* Server) {
+        if (auto RootViewModel = Server->getViewModelInstance(Handle))
+        {
+            if (auto AddedViewModel = Server->getViewModelInstance(AddedHandle))
+            {
+                FTCHARToUTF8 Conversion(ListPath);
+                std::string ListPathStr(Conversion.Get(), Conversion.Length());
+                if (auto List = RootViewModel->propertyList(ListPathStr))
+                {
+                    auto Index = List->size() - 1;
+                    AsyncTask(ENamedThreads::GameThread,
+                              [WeakThis, Index, StrongValue, ListPath]() {
+                                  if (auto StrongThis = WeakThis.Pin();
+                                      StrongThis.IsValid())
+                                  {
+                                      StrongThis->UpdateListWithViewModelData(
+                                          ListPath,
+                                          StrongValue.Get(),
+                                          Index);
+                                  }
+                              });
+                }
+                else
+                {
+                    UE_LOG(LogRive,
+                           Error,
+                           TEXT("Failed to get list property \"%s\" "
+                                "on append to list !"),
+                           *ListPath);
+                }
+            }
+        }
+    });
 }
 
 void URiveViewModel::K2_InsertToList(FRiveList List,
@@ -486,14 +538,18 @@ void URiveViewModel::K2_InsertToList(FRiveList List,
                                 List.Path,
                                 Value->NativeViewModelInstance,
                                 Index);
+    UpdateListWithViewModelData(List.Path, Value, Index);
 }
 
-void URiveViewModel::K2_RemoveFromList(FRiveList List, int32 Index)
+void URiveViewModel::K2_RemoveFromList(FRiveList List, URiveViewModel* Value)
 {
     auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     check(RiveRenderer);
     auto& Builder = RiveRenderer->GetCommandBuilder();
-    Builder.RemoveViewModelList(NativeViewModelInstance, List.Path, Index);
+    int32 Index = INDEX_NONE;
+    List.ViewModels.RemoveAndCopyValue(Value, Index);
+    if (Index != INDEX_NONE)
+        Builder.RemoveViewModelList(NativeViewModelInstance, List.Path, Index);
 }
 
 void URiveViewModel::SetTrigger(const FString& TriggerName)
@@ -530,6 +586,14 @@ void URiveViewModel::OnViewModelDataReceived(
                *GetClass()->GetName());
         return;
     }
+
+    FString PropName(Data.metaData.name.size(), Data.metaData.name.c_str());
+    UE_LOG(LogRive,
+           Display,
+           TEXT("URiveViewModel::OnViewModelDataReceived %s property updated "
+                "for view model %s"),
+           *PropName,
+           *GetName());
 
     bIsInDataCallback = true;
     switch (Data.metaData.type)
@@ -585,7 +649,11 @@ void URiveViewModel::OnViewModelDataReceived(
                 FString SigName =
                     Conversion +
                     FString(HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX);
-                auto SignatureFunction = FindDelegateSignature(*SigName);
+                // FindDelegateSignature would assert if ambiguous, but we don't
+                // care so bypass it.
+                auto SignatureFunction = GetClass()->FindFunctionByName(
+                    *SigName,
+                    EIncludeSuperFlag::ExcludeSuper);
                 if (!ensure(SignatureFunction))
                 {
                     UE_LOG(LogRive,
@@ -598,10 +666,10 @@ void URiveViewModel::OnViewModelDataReceived(
                            *GetClass()->GetName());
                     return;
                 }
-                uint8* Parameters = (uint8*)UE_VSTACK_ALLOC_ALIGNED(
-                    Stack.CachedThreadVirtualStackAllocator,
+                uint8* Parameters = (uint8*)FMemory_Alloca_Aligned(
                     SignatureFunction->ParmsSize,
                     SignatureFunction->GetMinAlignment());
+                check(Parameters);
                 FMemory::Memzero(Parameters, SignatureFunction->ParmsSize);
                 if (FProperty* InputProperty = CastField<FProperty>(
                         SignatureFunction->ChildProperties))
@@ -680,7 +748,7 @@ void URiveViewModel::OnViewModelListSizeReceived(std::string Path,
 {
     FUTF8ToTCHAR Conversion(Path.c_str());
     FStructProperty* Property =
-        FindFProperty<FStructProperty>(Conversion.Get());
+        FindFProperty<FStructProperty>(GetClass(), Conversion.Get());
     if (!Property)
     {
         UE_LOG(LogRive,
@@ -720,7 +788,9 @@ void URiveViewModel::BeginDestroy()
         auto& Builder = RiveRenderer->GetCommandBuilder();
         for (auto PropertyDefinition : ViewModelDefinition.PropertyDefinitions)
         {
-            Builder.SubscribeToProperty(
+            if (PropertyDefinition.Type == ERiveDataType::ViewModel)
+                continue;
+            Builder.UnsubscribeFromProperty(
                 NativeViewModelInstance,
                 PropertyDefinition.Name,
                 RiveDataTypeToDataType(PropertyDefinition.Type));
@@ -865,6 +935,25 @@ bool URiveViewModel::RemoveFieldValueChangedDelegate(
 {
     auto RemoveResult = Delegates.Remove(InDelegate);
     return RemoveResult.bRemoved;
+}
+
+void URiveViewModel::UpdateListWithViewModelData(const FString& ListPath,
+                                                 URiveViewModel* Value,
+                                                 int32 Index)
+{
+    FStructProperty* Property =
+        FindFProperty<FStructProperty>(GetClass(), *ListPath);
+    if (!Property)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("Failed to find list property to update !"));
+        return;
+    }
+
+    FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
+    check(List);
+    List->ViewModels.Add(Value, Index);
 }
 
 void URiveViewModel::FFieldNotificationClassDescriptor::ForEachField(

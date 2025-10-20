@@ -60,8 +60,6 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
 
     void BindViewModel(TObjectPtr<URiveViewModel> ViewModel);
 
-    const rive::EventReport GetReportedEvent(int32 AtIndex) const;
-
     void SetStateMachineSettled(bool inStateMachineSettled);
 
     bool IsStateMachineSettled() const { return bStateMachineSettled; }
