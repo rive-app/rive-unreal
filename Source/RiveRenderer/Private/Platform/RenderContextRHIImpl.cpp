@@ -798,11 +798,11 @@ RenderContextRHIImpl::RenderContextRHIImpl(
            TEXT("Running RHI with %s Capabilities"),
            *CapabilityString);
 
-    m_platformFeatures.supportsFragmentShaderAtomics =
+    m_platformFeatures.supportsAtomicMode =
         m_capabilities.bSupportsPixelShaderUAVs &
         Overrides.bSupportsPixelShaderUAVs;
     m_platformFeatures.supportsClipPlanes = true;
-    m_platformFeatures.supportsRasterOrdering =
+    m_platformFeatures.supportsRasterOrderingMode =
         m_capabilities.bSupportsRasterOrderViews &
         Overrides.bSupportsRasterOrderViews;
     m_platformFeatures.clipSpaceBottomUp = true;
@@ -1041,18 +1041,18 @@ void RenderContextRHIImpl::updateFromInterlockCVar(int32 CVar)
             m_platformFeatures = m_originalPlatformFeatures;
             break;
         case 1:
-            m_platformFeatures.supportsFragmentShaderAtomics = true;
-            m_platformFeatures.supportsRasterOrdering = false;
+            m_platformFeatures.supportsAtomicMode = true;
+            m_platformFeatures.supportsRasterOrderingMode = false;
             m_platformFeatures.supportsClipPlanes = false;
             break;
         case 2:
-            m_platformFeatures.supportsFragmentShaderAtomics = false;
-            m_platformFeatures.supportsRasterOrdering = true;
+            m_platformFeatures.supportsAtomicMode = false;
+            m_platformFeatures.supportsRasterOrderingMode = true;
             m_platformFeatures.supportsClipPlanes = false;
             break;
         case 3:
-            m_platformFeatures.supportsFragmentShaderAtomics = false;
-            m_platformFeatures.supportsRasterOrdering = false;
+            m_platformFeatures.supportsAtomicMode = false;
+            m_platformFeatures.supportsRasterOrderingMode = false;
             m_platformFeatures.supportsClipPlanes = true;
             break;
     }
