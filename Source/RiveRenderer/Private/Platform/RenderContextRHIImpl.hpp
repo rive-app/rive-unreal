@@ -21,7 +21,7 @@ struct RHICapabilities
 {
     RHICapabilities();
 
-    bool bSupportsPixelShaderUAVs = false;
+    bool bSupportsPixelShaderUAVs = true;
     bool bSupportsTypedUAVLoads = false;
     bool bSupportsRasterOrderViews = false;
 
@@ -59,6 +59,10 @@ public:
         m_targetTextureSupportsRenderTarget =
             static_cast<bool>(m_rdgTextureTarget->Desc.Flags &
                               ETextureCreateFlags::RenderTargetable);
+
+        m_targetTextureSupportsResolveTarget =
+            static_cast<bool>(m_rdgTextureTarget->Desc.Flags &
+                              ETextureCreateFlags::ResolveTargetable);
     }
 
     void updateTargetTexture(FRenderTarget* InTextureTarget)
@@ -73,6 +77,10 @@ public:
         m_targetTextureSupportsRenderTarget =
             static_cast<bool>(rhiTexture->GetDesc().Flags &
                               ETextureCreateFlags::RenderTargetable);
+
+        m_targetTextureSupportsResolveTarget =
+            static_cast<bool>(rhiTexture->GetDesc().Flags &
+                              ETextureCreateFlags::ResolveTargetable);
     }
 
     // RDG Interface, RDG objects can not be cached so register the RHI textures
@@ -82,7 +90,9 @@ public:
     FRDGTextureRef targetTexture(FRDGBuilder& Builder);
 
     // Used when the target texture does not support UAVs
-    FRDGTextureRef backBufferTexture(FRDGBuilder& Builder);
+    FRDGTextureRef backBufferTexture(FRDGBuilder& Builder,
+                                     const FLinearColor& ClearColor,
+                                     const rive::gpu::FlushDescriptor& desc);
 
     FRDGTextureRef clipTexture(FRDGBuilder& Builder);
 #if PLATFORM_APPLE
@@ -90,10 +100,21 @@ public:
 #endif
     FRDGTextureRef coverageTexture(FRDGBuilder& Builder);
 
+    FRDGTextureRef msaaColorTexture(FRDGBuilder& Builder,
+                                    const FLinearColor& ClearColor);
+
+    FRDGTextureRef msaaStencilTexture(FRDGBuilder& Builder,
+                                      float DepthClear,
+                                      uint32 StencilClear);
+
     bool TargetTextureSupportsUAV() const { return m_targetTextureSupportsUAV; }
     bool TargetTextureSupportsRenderTarget() const
     {
         return m_targetTextureSupportsRenderTarget;
+    }
+    bool TargetTextureSupportsResolveTarget() const
+    {
+        return m_targetTextureSupportsResolveTarget;
     }
 
     FTextureRHIRef texture() const { return m_textureTarget; }
@@ -107,6 +128,7 @@ private:
 
     bool m_targetTextureSupportsUAV;
     bool m_targetTextureSupportsRenderTarget;
+    bool m_targetTextureSupportsResolveTarget;
     // Reference held for convenience. May be better to just DI it everywhere.
     const RHICapabilities& m_capabilities;
 };
@@ -142,6 +164,31 @@ public:
         m_data.SetNumUninitialized(InSizeInBytes / m_cpuStride);
     }
 
+    FORCENOINLINE TUniformBufferRef<GPUUniformBufferType> Sync(
+        FRHICommandList& RHICmdList,
+        size_t offset)
+    {
+        // there should be no remander
+        check(offset % m_cpuStride == 0);
+        FImageDrawUniforms Uniforms;
+        memcpy(&Uniforms, &m_data[offset / m_cpuStride], m_gpuStride);
+        if (!m_uniformBufferRHIRef)
+        {
+            // Lazy create this because we only ever want to use it for msaa.
+            m_uniformBufferRHIRef = TUniformBufferRef<GPUUniformBufferType>::
+                CreateUniformBufferImmediate(
+                    Uniforms,
+                    EUniformBufferUsage::UniformBuffer_SingleDraw);
+        }
+        else
+        {
+            m_uniformBufferRHIRef.UpdateUniformBufferImmediate(RHICmdList,
+                                                               Uniforms);
+        }
+
+        return m_uniformBufferRHIRef;
+    }
+
     FORCENOINLINE TRDGUniformBufferRef<GPUUniformBufferType> Sync(
         FRDGBuilder& Builder,
         size_t offset)
@@ -165,7 +212,9 @@ public:
 
 private:
     size_t m_sizeInBytes;
-
+    // Used for msaa mode where we bypass rdg per draw, so this is used for
+    // image uniforms
+    TUniformBufferRef<GPUUniformBufferType> m_uniformBufferRHIRef;
     TResourceArray<CPUUniformBufferType> m_data;
     static constexpr size_t m_cpuStride = sizeof(CPUUniformBufferType);
     static constexpr size_t m_gpuStride = sizeof(GPUUniformBufferType);

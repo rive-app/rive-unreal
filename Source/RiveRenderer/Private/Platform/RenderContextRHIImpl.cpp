@@ -17,6 +17,7 @@
 #endif
 
 #include "RenderGraphUtils.h"
+#include "VisualizeTexture.h"
 #include "Logs/RiveRendererLog.h"
 
 #include "HAL/IConsoleManager.h"
@@ -33,12 +34,56 @@
 
 #include "RiveShaderTypes.h"
 #include "RiveStats.h"
+#include "ScreenPass.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
 #include "rive/renderer/render_context.hpp"
 #include "rive/shaders/constants.glsl"
 THIRD_PARTY_INCLUDES_END
+
+static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
+{
+    switch (InDrawType)
+    {
+        case rive::gpu::DrawType::midpointFanPatches:
+            return TEXT("midpointFanPatches");
+        case rive::gpu::DrawType::midpointFanCenterAAPatches:
+            return TEXT("midpointFanCenterAAPatches");
+        case rive::gpu::DrawType::outerCurvePatches:
+            return TEXT("outerCurvePatches");
+        case rive::gpu::DrawType::msaaOuterCubics:
+            return TEXT("msaaOuterCubics");
+        case rive::gpu::DrawType::msaaStrokes:
+            return TEXT("msaaStrokes");
+        case rive::gpu::DrawType::msaaMidpointFanBorrowedCoverage:
+            return TEXT("msaaMidpointFanBorrowedCoverage");
+        case rive::gpu::DrawType::msaaMidpointFans:
+            return TEXT("msaaMidpointFans");
+        case rive::gpu::DrawType::msaaMidpointFanStencilReset:
+            return TEXT("msaaMidpointFanStencilReset");
+        case rive::gpu::DrawType::msaaMidpointFanPathsStencil:
+            return TEXT("msaaMidpointFanPathsStencil");
+        case rive::gpu::DrawType::msaaMidpointFanPathsCover:
+            return TEXT("msaaMidpointFanPathsCover");
+        case rive::gpu::DrawType::interiorTriangulation:
+            return TEXT("interiorTriangulation");
+        case rive::gpu::DrawType::msaaStencilClipReset:
+            return TEXT("msaaStencilClipReset");
+        case rive::gpu::DrawType::atlasBlit:
+            return TEXT("atlasBlit");
+        case rive::gpu::DrawType::imageRect:
+            return TEXT("imageRect");
+        case rive::gpu::DrawType::imageMesh:
+            return TEXT("imageMesh");
+        case rive::gpu::DrawType::renderPassInitialize:
+            return TEXT("renderPassInitialize");
+        case rive::gpu::DrawType::renderPassResolve:
+            return TEXT("renderPassResolve");
+    };
+
+    return TEXT("Unkown");
+}
 
 template <typename DataType, size_t size>
 struct TStaticResourceData : public FResourceArrayInterface
@@ -136,8 +181,15 @@ static TAutoConsoleVariable<int32> CVarShouldVisualizeRive(
         TEXT("<=0: off\n")
         TEXT("  1: visualize clip\n")
         TEXT("  2: visualize coverage texture\n")
-        TEXT("  3: visualize tessalation texture\n")
-        TEXT("  4: visuzlize paint data buffer\n"),
+        TEXT("  3: visualize tessellation texture\n")
+        TEXT("  4: visualize paint data buffer\n")
+        TEXT("  5: visualize msaa color buffer\n")
+        TEXT("  6: visualize msaa stencil buffer\n"),
+    ECVF_Scalability | ECVF_RenderThreadSafe);
+static TAutoConsoleVariable<bool> CVarRiveWireframe(
+    TEXT("r.rive.wireframe"),
+    0,
+    TEXT("Render rive in Wireframe"),
     ECVF_Scalability | ECVF_RenderThreadSafe);
 #if WITH_EDITOR
 static TAutoConsoleVariable<int32> CVarInterlocksMode(
@@ -158,6 +210,7 @@ void GetPermutationForFeatures(
     const RHICapabilities& Capabilities,
     bool force4ComponenWrite,
     bool needsLinearGamma,
+    bool needsCoalesce,
     AtomicPixelPermutationDomain& PixelPermutationDomain,
     AtomicVertexPermutationDomain& VertexPermutationDomain)
 {
@@ -184,13 +237,12 @@ void GetPermutationForFeatures(
                                                ShaderFeatures::ENABLE_EVEN_ODD);
     PixelPermutationDomain.Set<FEnableHSLBlendMode>(
         features & ShaderFeatures::ENABLE_HSL_BLEND_MODES);
-    PixelPermutationDomain.Set<FEnableTypedUAVLoads>(
-        Capabilities.bSupportsTypedUAVLoads || force4ComponenWrite);
     PixelPermutationDomain.Set<FEnableFeather>(features &
                                                ShaderFeatures::ENABLE_FEATHER);
     PixelPermutationDomain.Set<FEnableClockwiseFill>(
         miscFlags & ShaderMiscFlags::clockwiseFill);
     PixelPermutationDomain.Set<FEnableGammaCorrection>(needsLinearGamma);
+    PixelPermutationDomain.Set<FCoalescedPlsResolveAndTransfer>(needsCoalesce);
 }
 
 /*
@@ -307,7 +359,7 @@ RHICapabilities::RHICapabilities()
     // it seems vulkan requires typed uav support.
     bSupportsTypedUAVLoads =
         RHISupports4ComponentUAVReadWrite(GMaxRHIShaderPlatform) ||
-        GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan;
+        GDynamicRHI->GetInterfaceType() != ERHIInterfaceType::Vulkan;
 }
 
 template <typename DataType>
@@ -594,6 +646,10 @@ RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
         static_cast<bool>(m_textureTarget->GetDesc().Flags &
                           ETextureCreateFlags::RenderTargetable);
 
+    m_targetTextureSupportsResolveTarget =
+        static_cast<bool>(m_textureTarget->GetDesc().Flags &
+                          ETextureCreateFlags::ResolveTargetable);
+
     // Rive is not currently supported without UAVs.
     check(Capabilities.bSupportsPixelShaderUAVs);
 }
@@ -631,6 +687,9 @@ RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
 
     m_targetTextureSupportsRenderTarget = static_cast<bool>(
         rhiTexture->GetDesc().Flags & ETextureCreateFlags::RenderTargetable);
+
+    m_targetTextureSupportsResolveTarget = static_cast<bool>(
+        rhiTexture->GetDesc().Flags & ETextureCreateFlags::ResolveTargetable);
 
     // Rive is not currently supported without UAVs.
     check(Capabilities.bSupportsPixelShaderUAVs);
@@ -670,6 +729,10 @@ RenderTargetRHI::RenderTargetRHI(FRDGBuilder& GraphBuilder,
     m_targetTextureSupportsRenderTarget = static_cast<bool>(
         m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::RenderTargetable);
 
+    m_targetTextureSupportsResolveTarget =
+        static_cast<bool>(m_rdgTextureTarget->Desc.Flags &
+                          ETextureCreateFlags::ResolveTargetable);
+
     // Rive is not currently supported without UAVs.
     check(Capabilities.bSupportsPixelShaderUAVs);
 }
@@ -689,43 +752,51 @@ FRDGTextureRef RenderTargetRHI::targetTexture(FRDGBuilder& Builder)
         ERDGTextureFlags::MultiFrame);
 }
 
-FRDGTextureRef RenderTargetRHI::backBufferTexture(FRDGBuilder& Builder)
+FRDGTextureRef RenderTargetRHI::backBufferTexture(
+    FRDGBuilder& Builder,
+    const FLinearColor& ClearColor,
+    const rive::gpu::FlushDescriptor& Desc)
 {
     check(m_rdgTextureTarget || m_textureTarget || m_renderTarget);
+
+    FIntPoint Extent;
+    EPixelFormat Format;
+
     if (m_rdgTextureTarget)
     {
         const FRDGTextureDesc& targetDesc = m_rdgTextureTarget->Desc;
-        const FRDGTextureDesc desc = FRDGTextureDesc::Create2D(
-            targetDesc.Extent,
-            targetDesc.Format,
-            FClearValueBinding(FLinearColor::Transparent),
-            ETextureCreateFlags::UAV | ETextureCreateFlags::RenderTargetable);
-
-        return Builder.CreateTexture(desc, TEXT("rive.BackBuffer"));
+        Extent = targetDesc.Extent;
+        Format = targetDesc.Format;
     }
     else if (m_renderTarget)
     {
         auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
         const FRHITextureDesc& targetDesc = rhiTexture->GetDesc();
-        const FRDGTextureDesc desc = FRDGTextureDesc::Create2D(
-            targetDesc.Extent,
-            targetDesc.Format,
-            FClearValueBinding(FLinearColor::Transparent),
-            ETextureCreateFlags::UAV | ETextureCreateFlags::RenderTargetable);
-
-        return Builder.CreateTexture(desc, TEXT("rive.BackBuffer"));
+        Extent = targetDesc.Extent;
+        Format = targetDesc.Format;
     }
     else
     {
         const FRHITextureDesc& targetDesc = m_textureTarget->GetDesc();
-        const FRDGTextureDesc desc = FRDGTextureDesc::Create2D(
-            targetDesc.Extent,
-            targetDesc.Format,
-            FClearValueBinding(FLinearColor::Transparent),
-            ETextureCreateFlags::UAV | ETextureCreateFlags::RenderTargetable);
-
-        return Builder.CreateTexture(desc, TEXT("rive.BackBuffer"));
+        Extent = targetDesc.Extent;
+        Format = targetDesc.Format;
     }
+
+    ETextureCreateFlags CreateFlags = ETextureCreateFlags::None;
+    if (Desc.interlockMode == InterlockMode::msaa)
+        CreateFlags |= ETextureCreateFlags::ResolveTargetable;
+    else if (Desc.fixedFunctionColorOutput)
+        CreateFlags |= ETextureCreateFlags::RenderTargetable;
+    else
+        CreateFlags |= ETextureCreateFlags::UAV;
+
+    const FRDGTextureDesc CreateDesc =
+        FRDGTextureDesc::Create2D(Extent,
+                                  Format,
+                                  FClearValueBinding(ClearColor),
+                                  CreateFlags);
+
+    return Builder.CreateTexture(CreateDesc, TEXT("rive.BackBuffer"));
 }
 
 FRDGTextureRef RenderTargetRHI::clipTexture(FRDGBuilder& Builder)
@@ -748,6 +819,65 @@ FRDGTextureRef RenderTargetRHI::coverageTexture(FRDGBuilder& Builder)
         CreateRenderTarget(m_atomicCoverageTexture,
                            TEXT("rive.AtomicCoverage")),
         ERDGTextureFlags::MultiFrame);
+}
+
+FRDGTextureRef RenderTargetRHI::msaaColorTexture(FRDGBuilder& Builder,
+                                                 const FLinearColor& ClearColor)
+{
+    check(m_rdgTextureTarget || m_textureTarget || m_renderTarget);
+
+    FIntPoint Extent;
+    EPixelFormat Format = PF_R8G8B8A8;
+
+    if (m_rdgTextureTarget)
+    {
+        const FRDGTextureDesc& targetDesc = m_rdgTextureTarget->Desc;
+        Extent = targetDesc.Extent;
+        Format = targetDesc.Format;
+    }
+    else if (m_renderTarget)
+    {
+        auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
+        const FRHITextureDesc& targetDesc = rhiTexture->GetDesc();
+        Extent = targetDesc.Extent;
+        Format = targetDesc.Format;
+    }
+    else
+    {
+        const FRHITextureDesc& targetDesc = m_textureTarget->GetDesc();
+        Extent = targetDesc.Extent;
+        Format = targetDesc.Format;
+    }
+
+    const FRDGTextureDesc desc =
+        FRDGTextureDesc::Create2D(Extent,
+                                  Format,
+                                  FClearValueBinding(ClearColor),
+                                  ETextureCreateFlags::RenderTargetable |
+                                      ETextureCreateFlags::InputAttachmentRead |
+                                      ETextureCreateFlags::ShaderResource,
+                                  1,
+                                  4);
+    return Builder.CreateTexture(desc, TEXT("rive.MSAAColor"));
+}
+
+FRDGTextureRef RenderTargetRHI::msaaStencilTexture(FRDGBuilder& Builder,
+                                                   float DepthClear,
+                                                   uint32 StencilClear)
+{
+    FIntPoint Extent{static_cast<int32>(width()), static_cast<int32>(height())};
+
+    const FRDGTextureDesc desc = FRDGTextureDesc::Create2D(
+        Extent,
+        PF_DepthStencil,
+        FClearValueBinding(DepthClear, StencilClear),
+        ETextureCreateFlags::DepthStencilTargetable |
+            ETextureCreateFlags::DepthStencilResolveTarget |
+            ETextureCreateFlags::ShaderResource,
+        1,
+        4);
+
+    return Builder.CreateTexture(desc, TEXT("rive.MSAADepthStencil"));
 }
 
 void DelayLoadedTexture::UpdateTexture(const FRDGTextureDesc& inDesc,
@@ -799,12 +929,15 @@ RenderContextRHIImpl::RenderContextRHIImpl(
            *CapabilityString);
 
     m_platformFeatures.supportsAtomicMode =
-        m_capabilities.bSupportsPixelShaderUAVs &
+        m_capabilities.bSupportsPixelShaderUAVs &&
         Overrides.bSupportsPixelShaderUAVs;
-    m_platformFeatures.supportsClipPlanes = true;
+    m_platformFeatures.supportsClipPlanes =
+        FDataDrivenShaderPlatformInfo::GetSupportsClipDistance(
+            GMaxRHIShaderPlatform);
     m_platformFeatures.supportsRasterOrderingMode =
-        m_capabilities.bSupportsRasterOrderViews &
+        m_capabilities.bSupportsRasterOrderViews &&
         Overrides.bSupportsRasterOrderViews;
+
     m_platformFeatures.clipSpaceBottomUp = true;
     m_platformFeatures.framebufferBottomUp = false;
     m_capabilities.bSupportsTypedUAVLoads &= Overrides.bSupportsTypedUAVLoads;
@@ -1043,17 +1176,14 @@ void RenderContextRHIImpl::updateFromInterlockCVar(int32 CVar)
         case 1:
             m_platformFeatures.supportsAtomicMode = true;
             m_platformFeatures.supportsRasterOrderingMode = false;
-            m_platformFeatures.supportsClipPlanes = false;
             break;
         case 2:
             m_platformFeatures.supportsAtomicMode = false;
             m_platformFeatures.supportsRasterOrderingMode = true;
-            m_platformFeatures.supportsClipPlanes = false;
             break;
         case 3:
             m_platformFeatures.supportsAtomicMode = false;
             m_platformFeatures.supportsRasterOrderingMode = false;
-            m_platformFeatures.supportsClipPlanes = true;
             break;
     }
 }
@@ -1427,10 +1557,69 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         auto targetTexture = renderTarget->targetTexture(GraphBuilder);
         check(targetTexture);
-        auto clipTexture = renderTarget->clipTexture(GraphBuilder);
-        check(clipTexture);
+
         FRDGTextureRef backBuffer = nullptr;
-        FRDGTextureRef coverageTexture = nullptr;
+
+        const bool NeedsBackBuffer =
+            (!renderTarget->TargetTextureSupportsUAV() &&
+             !desc.fixedFunctionColorOutput) ||
+            (!renderTarget->TargetTextureSupportsRenderTarget() &&
+             desc.fixedFunctionColorOutput) ||
+            (!renderTarget->TargetTextureSupportsResolveTarget() &&
+             desc.interlockMode == InterlockMode::msaa);
+
+        const bool NeedsCoalesceResolve =
+            NeedsBackBuffer && desc.interlockMode == InterlockMode::atomics;
+        const bool NeedsFinalCopy =
+            NeedsBackBuffer && desc.interlockMode != InterlockMode::atomics;
+
+        if (NeedsBackBuffer)
+        {
+            float values[4];
+            rive::UnpackColorToRGBA32F(desc.colorClearValue, values);
+            backBuffer = renderTarget->backBufferTexture(
+                GraphBuilder,
+                desc.colorLoadAction == LoadAction::clear
+                    ? FLinearColor(values[0], values[1], values[2], values[3])
+                    : FLinearColor::Transparent,
+                desc);
+            if (EnumHasAnyFlags(backBuffer->Desc.Flags,
+                                TexCreate_RenderTargetable))
+            {
+                AddClearRenderTargetPass(GraphBuilder, backBuffer);
+            }
+            if (desc.colorLoadAction == LoadAction::preserveRenderTarget)
+            {
+                AddCopyTexturePass(GraphBuilder, targetTexture, backBuffer);
+            }
+        }
+
+        const bool NeedsForceUAVTypes =
+            targetTexture->Desc.Format != PF_R8G8B8A8;
+
+        const bool TargetIsSRGB = static_cast<bool>(targetTexture->Desc.Flags &
+                                                    ETextureCreateFlags::SRGB);
+        const bool NeedsLinearColorOutput =
+            desc.fixedFunctionColorOutput && TargetIsSRGB && !NeedsBackBuffer;
+
+        FRDGTextureUAVRef targetUAV = nullptr;
+
+        if (!desc.fixedFunctionColorOutput &&
+            desc.interlockMode != InterlockMode::msaa)
+        {
+            if (m_capabilities.bSupportsTypedUAVLoads || NeedsForceUAVTypes)
+            {
+                targetUAV = GraphBuilder.CreateUAV(
+                    NeedsBackBuffer ? backBuffer : targetTexture);
+            }
+            else
+            {
+                targetUAV = GraphBuilder.CreateUAV(
+                    NeedsBackBuffer ? backBuffer : targetTexture,
+                    ERDGUnorderedAccessViewFlags::None,
+                    PF_R32_UINT);
+            }
+        }
 
 #if PLATFORM_APPLE
         FRDGBufferRef coverageBuffer = nullptr;
@@ -1439,54 +1628,52 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         FRDGTextureUAVRef coverageUAV = nullptr;
 #endif
 
+        FRDGTextureRef clipTexture = nullptr;
+        FRDGTextureRef coverageTexture = nullptr;
+        FRDGTextureUAVRef clipUAV = nullptr;
+
+        if (desc.interlockMode != InterlockMode::msaa)
+        {
 #if PLATFORM_APPLE
-        coverageBuffer = renderTarget->coverageBuffer(GraphBuilder);
-        check(coverageBuffer);
+            coverageBuffer = renderTarget->coverageBuffer(GraphBuilder);
+            check(coverageBuffer);
 #else
-        coverageTexture = renderTarget->coverageTexture(GraphBuilder);
-        check(coverageTexture);
+            coverageTexture = renderTarget->coverageTexture(GraphBuilder);
+            check(coverageTexture);
 #endif
 
-        bool needsBackBuffer =
-            (!renderTarget->TargetTextureSupportsUAV() &&
-             !desc.fixedFunctionColorOutput) ||
-            (!renderTarget->TargetTextureSupportsRenderTarget() &&
-             desc.fixedFunctionColorOutput);
+            clipTexture = renderTarget->clipTexture(GraphBuilder);
+            check(clipTexture);
+            coverageTexture = renderTarget->coverageTexture(GraphBuilder);
+            check(coverageTexture);
 
-        if (needsBackBuffer)
-        {
-            backBuffer = renderTarget->backBufferTexture(GraphBuilder);
-        }
+            clipUAV = GraphBuilder.CreateUAV(clipTexture,
+                                             ERDGUnorderedAccessViewFlags::None,
+                                             PF_R32_UINT);
+#if PLATFORM_APPLE
+            coverageUAV = GraphBuilder.CreateUAV(coverageBuffer, PF_R32_UINT);
+            AddClearUAVPass(GraphBuilder, coverageUAV, desc.coverageClearValue);
+#else
+            coverageUAV =
+                GraphBuilder.CreateUAV(coverageTexture,
+                                       ERDGUnorderedAccessViewFlags::None,
+                                       PF_R32_UINT);
+            RDG_GPU_STAT_SCOPE(GraphBuilder,
+                               STAT_RiveFlush_RiveClearCoverageClip);
+            AddClearUAVPass(GraphBuilder,
+                            coverageUAV,
+                            FUintVector4(desc.coverageClearValue,
+                                         desc.coverageClearValue,
+                                         desc.coverageClearValue,
+                                         desc.coverageClearValue));
+#endif
 
-        bool needsForceUAVTypes = targetTexture->Desc.Format != PF_R8G8B8A8;
-
-        bool TargetIsSRGB = static_cast<bool>(targetTexture->Desc.Flags &
-                                              ETextureCreateFlags::SRGB);
-        bool needsLinearColorOutput =
-            desc.fixedFunctionColorOutput && TargetIsSRGB && !needsBackBuffer;
-
-        FRDGTextureUAVRef targetUAV = nullptr;
-
-        if (!desc.fixedFunctionColorOutput)
-        {
-            if (m_capabilities.bSupportsTypedUAVLoads || needsForceUAVTypes)
+            if (desc.combinedShaderFeatures &
+                gpu::ShaderFeatures::ENABLE_CLIPPING)
             {
-                targetUAV = GraphBuilder.CreateUAV(
-                    needsBackBuffer ? backBuffer : targetTexture);
-            }
-            else
-            {
-                targetUAV = GraphBuilder.CreateUAV(
-                    needsBackBuffer ? backBuffer : targetTexture,
-                    ERDGUnorderedAccessViewFlags::None,
-                    PF_R32_UINT);
+                AddClearUAVPass(GraphBuilder, clipUAV, FUintVector4(0));
             }
         }
-
-        auto clipUAV =
-            GraphBuilder.CreateUAV(clipTexture,
-                                   ERDGUnorderedAccessViewFlags::None,
-                                   PF_R32_UINT);
 
         check(m_flushUniformBuffer);
         auto flushUniforms =
@@ -1513,6 +1700,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         FRDGTextureRef scratchColorTexture = placeholderTexture;
         FRDGTextureUAVRef scratchUAV =
             GraphBuilder.CreateUAV(placeholderTexture);
+
+        FRDGTextureRef MSAAColorTexture = nullptr;
+        FRDGTextureRef DepthStencilTexture = nullptr;
+        FRDGTextureRef MSAADstColorTexture = nullptr;
 
         if (desc.interlockMode == InterlockMode::rasterOrdering)
         {
@@ -1563,37 +1754,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         if (m_triangleBuffer)
         {
             triangleBuffer = m_triangleBuffer->Sync(CommandList);
-        }
-
-        {
-            RDG_GPU_STAT_SCOPE(GraphBuilder,
-                               STAT_RiveFlush_RiveClearCoverageClip);
-#if PLATFORM_APPLE
-            coverageUAV = GraphBuilder.CreateUAV(coverageBuffer,
-                                                 EPixelFormat::PF_R32_UINT);
-            RDG_GPU_STAT_SCOPE(GraphBuilder,
-                               STAT_RiveFlush_RiveClearCoverageClip);
-            AddClearUAVPass(GraphBuilder, coverageUAV, desc.coverageClearValue);
-#else
-            coverageUAV =
-                GraphBuilder.CreateUAV(coverageTexture,
-                                       ERDGUnorderedAccessViewFlags::None,
-                                       PF_R32_UINT);
-            RDG_GPU_STAT_SCOPE(GraphBuilder,
-                               STAT_RiveFlush_RiveClearCoverageClip);
-            AddClearUAVPass(GraphBuilder,
-                            coverageUAV,
-                            FUintVector4(desc.coverageClearValue,
-                                         desc.coverageClearValue,
-                                         desc.coverageClearValue,
-                                         desc.coverageClearValue));
-#endif
-
-            if (desc.combinedShaderFeatures &
-                gpu::ShaderFeatures::ENABLE_CLIPPING)
-            {
-                AddClearUAVPass(GraphBuilder, clipUAV, FUintVector4(0));
-            }
         }
 
         if (desc.gradSpanCount > 0)
@@ -1750,14 +1910,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         // passes.
         ERenderTargetLoadAction loadAction = ERenderTargetLoadAction::ELoad;
 
-        // Always clear back buffer.
-        if (needsBackBuffer)
-        {
-            AddClearRenderTargetPass(GraphBuilder,
-                                     backBuffer,
-                                     FLinearColor::Transparent);
-        }
-
         if (desc.colorLoadAction == LoadAction::clear)
         {
             if (desc.fixedFunctionColorOutput)
@@ -1773,7 +1925,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             }
             else
             {
-                if (m_capabilities.bSupportsTypedUAVLoads || needsForceUAVTypes)
+                if (m_capabilities.bSupportsTypedUAVLoads || NeedsForceUAVTypes)
                 {
                     float clearColor4f[4];
                     UnpackColorToRGBA32FPremul(desc.colorClearValue,
@@ -1795,10 +1947,362 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 }
             }
         }
+        if (desc.interlockMode == InterlockMode::msaa)
+        {
+            check(targetTexture);
 
+            float values[4];
+            rive::UnpackColorToRGBA32F(desc.colorClearValue, values);
+            MSAAColorTexture = renderTarget->msaaColorTexture(
+                GraphBuilder,
+                desc.colorLoadAction == LoadAction::clear
+                    ? FLinearColor(values[0], values[1], values[2], values[3])
+                    : FLinearColor::Transparent);
+            DepthStencilTexture =
+                renderTarget->msaaStencilTexture(GraphBuilder,
+                                                 desc.depthClearValue,
+                                                 desc.stencilClearValue);
+
+            AddClearDepthStencilPass(GraphBuilder, DepthStencilTexture);
+            AddClearRenderTargetPass(GraphBuilder, MSAAColorTexture);
+
+            if (desc.combinedShaderFeatures &
+                gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND)
+            {
+                // Used for reading back the framebuffer since we have no easy
+                // framebuffer fetch option
+                auto MSAADstColorTextureDesc = MSAAColorTexture->Desc;
+                MSAADstColorTextureDesc.ClearValue =
+                    FClearValueBinding::Transparent;
+                MSAADstColorTextureDesc.NumSamples = 1;
+                MSAADstColorTextureDesc.Flags |=
+                    ETextureCreateFlags::RenderTargetable;
+                MSAADstColorTextureDesc.Flags |=
+                    ETextureCreateFlags::ShaderResource;
+                MSAADstColorTexture =
+                    GraphBuilder.CreateTexture(MSAADstColorTextureDesc,
+                                               TEXT("rive.MSAAScratchTexture"));
+
+                AddClearRenderTargetPass(GraphBuilder, MSAADstColorTexture);
+            }
+
+            const bool bNeedsSeperateResolve =
+                GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan;
+
+            auto PassParameters =
+                GraphBuilder.AllocParameters<FRiveMSAAFlushPassParameters>();
+            if (bNeedsSeperateResolve)
+            {
+                PassParameters->RenderTargets[0] = {
+                    MSAAColorTexture,
+                    ERenderTargetLoadAction::ELoad,
+                };
+            }
+            else
+            {
+                PassParameters->RenderTargets[0] = {
+                    MSAAColorTexture,
+                    NeedsBackBuffer ? backBuffer : targetTexture,
+                    ERenderTargetLoadAction::ELoad,
+                };
+            }
+
+            PassParameters->RenderTargets.DepthStencil = {
+                DepthStencilTexture,
+                nullptr,
+                ERenderTargetLoadAction::ELoad,
+                ERenderTargetLoadAction::ELoad,
+                FExclusiveDepthStencil::DepthWrite_StencilWrite};
+
+            PassParameters->RenderTargets.ResolveRect = {
+                desc.renderTargetUpdateBounds.left,
+                desc.renderTargetUpdateBounds.top,
+                desc.renderTargetUpdateBounds.right,
+                desc.renderTargetUpdateBounds.bottom};
+
+            PassParameters->FlushUniforms = flushUniforms;
+            PassParameters->PS.gradSampler = m_linearSampler;
+
+            PassParameters->PS.atlasSampler = m_atlasSampler;
+            PassParameters->PS.featherSampler = m_featherSampler;
+            PassParameters->PS.GLSL_dstColorTexture_raw = MSAADstColorTexture;
+            PassParameters->PS.GLSL_atlasTexture_raw = atlasTexture;
+            PassParameters->PS.GLSL_featherTexture_raw = featherTexture;
+            PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
+            PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+            PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
+            PassParameters->PS.GLSL_imageTexture_raw = m_placeholderTexture;
+
+            PassParameters->VS.GLSL_tessVertexTexture_raw = tessSRV;
+            PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
+            PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
+            PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+            PassParameters->VS.GLSL_paintBuffer_raw = paintSRV;
+            PassParameters->VS.GLSL_featherTexture_raw = featherTexture;
+            PassParameters->VS.featherSampler = m_featherSampler;
+            PassParameters->VS.baseInstance = 0;
+
+            FUintRect Viewport =
+                FUintRect(0, 0, renderTarget->width(), renderTarget->height());
+
+            FUintRect Scissor = FUintRect(desc.renderTargetUpdateBounds.left,
+                                          desc.renderTargetUpdateBounds.top,
+                                          desc.renderTargetUpdateBounds.right,
+                                          desc.renderTargetUpdateBounds.bottom);
+
+            for (const DrawBatch* RenderPassStart = desc.drawList->head();
+                 RenderPassStart != nullptr;
+                 RenderPassStart = RenderPassStart->nextDstBlendBarrier)
+            {
+                GraphBuilder.AddPass(
+                    RDG_EVENT_NAME("Rive_Draw_MSAA_Render_Pass"),
+                    PassParameters,
+                    ERDGPassFlags::Raster | ERDGPassFlags::NeverMerge,
+                    [PassParameters,
+                     desc = desc,
+                     RenderPassStart = *RenderPassStart,
+                     ShaderMap,
+                     capabilities = m_capabilities,
+                     platformFeatures = m_platformFeatures,
+                     imageSamplers = m_imageSamplers,
+                     NeedsForceUAVTypes,
+                     imageDrawUniformBuffer = m_imageDrawUniformBuffer.get(),
+                     NeedsLinearColorOutput,
+                     VertexDeclarations = VertexDeclarations,
+                     patchVertexBuffer = m_patchVertexBuffer,
+                     patchIndexBuffer = m_patchIndexBuffer,
+                     triangleBuffer,
+                     Viewport,
+                     Scissor,
+                     FixedFunctionColorOutput = desc.fixedFunctionColorOutput](
+                        FRHICommandListImmediate& RHICmdList) {
+                        RDG_GPU_STAT_SCOPE(GraphBuilder,
+                                           STAT_RiveFlush_RiveFlushRenderPass);
+
+                        for (const DrawBatch* batch =
+                                 const_cast<DrawBatch*>(&RenderPassStart);
+                             batch != RenderPassStart.nextDstBlendBarrier;
+                             batch = batch->next)
+                        {
+                            if (batch->elementCount == 0)
+                            {
+                                continue;
+                            }
+
+                            AtomicPixelPermutationDomain PixelPermutationDomain;
+                            AtomicVertexPermutationDomain
+                                VertexPermutationDomain;
+
+                            auto ShaderFeatures = batch->shaderFeatures;
+                            auto shaderMiscFlags = batch->shaderMiscFlags;
+
+                            if (batch->drawContents &
+                                DrawContents::clockwiseFill)
+                                shaderMiscFlags |=
+                                    ShaderMiscFlags::clockwiseFill;
+
+                            GetPermutationForFeatures(ShaderFeatures,
+                                                      shaderMiscFlags,
+                                                      capabilities,
+                                                      NeedsForceUAVTypes,
+                                                      NeedsLinearColorOutput,
+                                                      false,
+                                                      PixelPermutationDomain,
+                                                      VertexPermutationDomain);
+
+                            PipelineState PipelineState;
+                            get_pipeline_state(*batch,
+                                               desc,
+                                               platformFeatures,
+                                               &PipelineState);
+
+                            check(batch->imageSampler.asKey() <
+                                  ImageSampler::MAX_SAMPLER_PERMUTATIONS);
+                            PassParameters->PS.imageSampler =
+                                imageSamplers[batch->imageSampler.asKey()];
+
+                            FRiveCommonPassParameters CommonPassParameters(
+                                *batch,
+                                PipelineState,
+                                ShaderMap);
+
+                            CommonPassParameters.VertexPermutationDomain =
+                                VertexPermutationDomain;
+                            CommonPassParameters.PixelPermutationDomain =
+                                PixelPermutationDomain;
+                            CommonPassParameters.Viewport = Viewport;
+                            CommonPassParameters.Scissor = Scissor;
+                            CommonPassParameters.NeedsSourceBlending =
+                                FixedFunctionColorOutput;
+                            CommonPassParameters.bWireframe =
+                                CVarRiveWireframe.GetValueOnRenderThread() ||
+                                desc.wireframe;
+                            switch (batch->drawType)
+                            {
+
+                                case DrawType::msaaOuterCubics:
+                                case DrawType::msaaStrokes:
+                                case DrawType::msaaMidpointFanBorrowedCoverage:
+                                case DrawType::msaaMidpointFans:
+                                case DrawType::msaaMidpointFanStencilReset:
+                                case DrawType::msaaMidpointFanPathsStencil:
+                                case DrawType::msaaMidpointFanPathsCover:
+                                {
+                                    const FString& PassName =
+                                        NameForDrawType(batch->drawType);
+
+                                    CommonPassParameters.VertexDeclarationRHI =
+                                        VertexDeclarations[static_cast<int32>(
+                                            EVertexDeclarations::Paths)];
+                                    CommonPassParameters.VertexBuffers[0] =
+                                        patchVertexBuffer;
+                                    CommonPassParameters.IndexBuffer =
+                                        patchIndexBuffer;
+
+                                    PassParameters->VS.baseInstance =
+                                        batch->baseElement;
+
+                                    AddDrawMSAAPatchesPass(
+                                        RHICmdList,
+                                        PassName,
+                                        &CommonPassParameters,
+                                        PassParameters);
+                                }
+                                break;
+                                case DrawType::msaaStencilClipReset:
+                                {
+                                    CommonPassParameters.VertexDeclarationRHI =
+                                        VertexDeclarations[static_cast<int32>(
+                                            EVertexDeclarations::
+                                                InteriorTriangles)];
+                                    CommonPassParameters.VertexBuffers[0] =
+                                        triangleBuffer;
+
+                                    AddDrawMSAAStencilClipResetPass(
+                                        RHICmdList,
+                                        &CommonPassParameters,
+                                        PassParameters);
+                                }
+                                break;
+                                case DrawType::atlasBlit:
+                                {
+                                    CommonPassParameters.VertexDeclarationRHI =
+                                        VertexDeclarations[static_cast<int32>(
+                                            EVertexDeclarations::
+                                                InteriorTriangles)];
+                                    CommonPassParameters.VertexBuffers[0] =
+                                        triangleBuffer;
+
+                                    AddDrawMSAAAtlasBlitPass(
+                                        RHICmdList,
+                                        &CommonPassParameters,
+                                        PassParameters);
+                                }
+                                break;
+                                case DrawType::imageMesh:
+                                {
+                                    LITE_RTTI_CAST_OR_BREAK(
+                                        IndexBuffer,
+                                        const RenderBufferRHIImpl*,
+                                        batch->indexBuffer);
+                                    LITE_RTTI_CAST_OR_BREAK(
+                                        VertexBuffer,
+                                        const RenderBufferRHIImpl*,
+                                        batch->vertexBuffer);
+                                    LITE_RTTI_CAST_OR_BREAK(
+                                        UVBuffer,
+                                        const RenderBufferRHIImpl*,
+                                        batch->uvBuffer);
+
+                                    auto imageTexture =
+                                        static_cast<const TextureRHIImpl*>(
+                                            batch->imageTexture);
+
+                                    auto IndexBufferRHI =
+                                        IndexBuffer->Sync(RHICmdList);
+                                    auto VertexBufferRHI =
+                                        VertexBuffer->Sync(RHICmdList);
+                                    auto UVBufferRHI =
+                                        UVBuffer->Sync(RHICmdList);
+
+                                    auto imageDrawUniforms =
+                                        PassParameters->VS.ImageDrawUniforms =
+                                            imageDrawUniformBuffer->Sync(
+                                                RHICmdList,
+                                                batch->imageDrawDataOffset);
+
+                                    PassParameters->PS.ImageDrawUniforms =
+                                        imageDrawUniforms;
+
+                                    PassParameters->PS.GLSL_imageTexture_raw =
+                                        imageTexture->contents();
+
+                                    CommonPassParameters.VertexDeclarationRHI =
+                                        VertexDeclarations[static_cast<int32>(
+                                            EVertexDeclarations::ImageMesh)];
+                                    CommonPassParameters.VertexBuffers[0] =
+                                        VertexBufferRHI;
+                                    CommonPassParameters.VertexBuffers[1] =
+                                        UVBufferRHI;
+                                    CommonPassParameters.IndexBuffer =
+                                        IndexBufferRHI;
+
+                                    AddDrawMSAAImageMeshPass(
+                                        RHICmdList,
+                                        VertexBuffer->sizeInBytes() /
+                                            sizeof(Vec2D),
+                                        &CommonPassParameters,
+                                        PassParameters);
+                                }
+                                break;
+                                case DrawType::midpointFanPatches:
+                                case DrawType::midpointFanCenterAAPatches:
+                                case DrawType::outerCurvePatches:
+                                case DrawType::interiorTriangulation:
+                                case DrawType::renderPassResolve:
+                                case DrawType::imageRect:
+                                case DrawType::renderPassInitialize:
+                                    RIVE_UNREACHABLE();
+                            }
+                        }
+                    });
+
+                if (RenderPassStart->nextDstBlendBarrier && MSAADstColorTexture)
+                {
+                    if (bNeedsSeperateResolve)
+                    {
+                        AddDrawTexturePass(GraphBuilder,
+                                           ShaderMap,
+                                           MSAAColorTexture,
+                                           MSAADstColorTexture,
+                                           {});
+                    }
+                    else
+                    {
+                        AddDrawTexturePass(GraphBuilder,
+                                           ShaderMap,
+                                           NeedsBackBuffer ? backBuffer
+                                                           : targetTexture,
+                                           MSAADstColorTexture,
+                                           {});
+                    }
+                }
+            }
+
+            if (bNeedsSeperateResolve)
+            {
+                AddDrawTexturePass(GraphBuilder,
+                                   ShaderMap,
+                                   MSAAColorTexture,
+                                   NeedsBackBuffer ? backBuffer : targetTexture,
+                                   {});
+            }
+        }
+        else
         {
             RDG_GPU_STAT_SCOPE(GraphBuilder,
                                STAT_RiveFlush_RiveFlushRenderPass);
+
             for (const DrawBatch& batch : *desc.drawList)
             {
                 if (batch.elementCount == 0)
@@ -1814,22 +2318,32 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         ? desc.combinedShaderFeatures
                         : batch.shaderFeatures;
 
-                auto shaderMiscFlags = batch.shaderMiscFlags;
+                auto ShaderMiscFlags = batch.shaderMiscFlags;
 
                 if (batch.drawContents & DrawContents::clockwiseFill)
-                    shaderMiscFlags &= ShaderMiscFlags::clockwiseFill;
+                    ShaderMiscFlags &= ShaderMiscFlags::clockwiseFill;
 
                 GetPermutationForFeatures(ShaderFeatures,
-                                          shaderMiscFlags,
+                                          ShaderMiscFlags,
                                           m_capabilities,
-                                          needsForceUAVTypes,
-                                          needsLinearColorOutput,
+                                          NeedsForceUAVTypes,
+                                          NeedsLinearColorOutput,
+                                          NeedsCoalesceResolve &&
+                                              batch.drawType ==
+                                                  DrawType::renderPassResolve,
                                           PixelPermutationDomain,
                                           VertexPermutationDomain);
+
+                PipelineState PipelineState;
+                get_pipeline_state(batch,
+                                   desc,
+                                   m_platformFeatures,
+                                   &PipelineState);
 
                 FRiveCommonPassParameters* CommonPassParameters =
                     GraphBuilder.AllocObject<FRiveCommonPassParameters>(
                         batch,
+                        PipelineState,
                         ShaderMap);
                 CommonPassParameters->VertexPermutationDomain =
                     VertexPermutationDomain;
@@ -1840,9 +2354,16 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                               0,
                               renderTarget->width(),
                               renderTarget->height());
+                CommonPassParameters->Scissor =
+                    FUintRect(desc.renderTargetUpdateBounds.left,
+                              desc.renderTargetUpdateBounds.top,
+                              desc.renderTargetUpdateBounds.right,
+                              desc.renderTargetUpdateBounds.bottom);
                 CommonPassParameters->NeedsSourceBlending =
-                    desc.fixedFunctionColorOutput;
-
+                    desc.fixedFunctionColorOutput || NeedsCoalesceResolve;
+                CommonPassParameters->bWireframe =
+                    CVarRiveWireframe.GetValueOnRenderThread() ||
+                    desc.wireframe;
                 FRiveFlushPassParameters* PassParameters =
                     GraphBuilder.AllocParameters<FRiveFlushPassParameters>();
 
@@ -1854,6 +2375,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     m_imageSamplers[batch.imageSampler.asKey()];
                 PassParameters->PS.atlasSampler = m_atlasSampler;
                 PassParameters->PS.featherSampler = m_featherSampler;
+                PassParameters->PS.GLSL_dstColorTexture_raw = MSAAColorTexture;
                 PassParameters->PS.GLSL_atlasTexture_raw = atlasTexture;
                 PassParameters->PS.GLSL_featherTexture_raw = featherTexture;
                 PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
@@ -1878,8 +2400,13 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 if (desc.fixedFunctionColorOutput)
                 {
                     PassParameters->RenderTargets[0] = FRenderTargetBinding(
-                        needsBackBuffer ? backBuffer : targetTexture,
+                        NeedsBackBuffer ? backBuffer : targetTexture,
                         loadAction);
+                }
+                else if (NeedsCoalesceResolve)
+                {
+                    PassParameters->RenderTargets[0] =
+                        FRenderTargetBinding(targetTexture, loadAction);
                 }
                 else
                 {
@@ -1901,6 +2428,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         check(paintAuxSRV);
                         check(contourSRV);
 
+                        const FString& PassName =
+                            NameForDrawType(batch.drawType);
+
                         CommonPassParameters->VertexDeclarationRHI =
                             VertexDeclarations[static_cast<int32>(
                                 EVertexDeclarations::Paths)];
@@ -1913,12 +2443,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         if (desc.interlockMode == InterlockMode::rasterOrdering)
                         {
                             AddDrawRasterOrderPatchesPass(GraphBuilder,
+                                                          PassName,
                                                           CommonPassParameters,
                                                           PassParameters);
                         }
                         else
                         {
                             AddDrawPatchesPass(GraphBuilder,
+                                               PassName,
                                                CommonPassParameters,
                                                PassParameters);
                         }
@@ -1965,6 +2497,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         AddDrawAtlasBlitPass(GraphBuilder,
                                              CommonPassParameters,
                                              PassParameters);
+
                         break;
                     case DrawType::imageRect:
                     {
@@ -2051,14 +2584,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                 CommonPassParameters,
                                 PassParameters);
                         }
-                        else
-                        {
-                            AddDrawImageMeshPass(GraphBuilder,
-                                                 VertexBuffer->sizeInBytes() /
-                                                     sizeof(Vec2D),
-                                                 CommonPassParameters,
-                                                 PassParameters);
-                        }
+
+                        AddDrawImageMeshPass(GraphBuilder,
+                                             VertexBuffer->sizeInBytes() /
+                                                 sizeof(Vec2D),
+                                             CommonPassParameters,
+                                             PassParameters);
                     }
                     break;
                     case DrawType::renderPassResolve:
@@ -2089,7 +2620,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             }
         } // end flush render pass scope
 
-        if (needsBackBuffer)
+        if (NeedsFinalCopy)
         {
             auto Params =
                 GraphBuilder.AllocParameters<FRiveDrawTextureBltParameters>();
@@ -2097,7 +2628,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 FRenderTargetBinding(targetTexture,
                                      ERenderTargetLoadAction::ELoad);
             Params->PS.GLSL_sourceTexture_raw = backBuffer;
-            Params->FlushUniforms = flushUniforms;
             // If we have a back buffer we need to blend it back into the render
             // target so use our draw shader because CopyTexture and DrawTexture
             // don't support blending.
@@ -2149,6 +2679,50 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     paintSRV,
                     targetTexture,
                     FIntPoint(renderTarget->width(), renderTarget->height()));
+                break;
+            case 5:
+                if (MSAAColorTexture)
+                {
+                    FRDGTextureRef VisTexture =
+                        FVisualizeTexture::AddVisualizeTexturePass(
+                            GraphBuilder,
+                            ShaderMap,
+                            MSAAColorTexture);
+                    FIntPoint UpdatePosition{desc.renderTargetUpdateBounds.left,
+                                             desc.renderTargetUpdateBounds.top};
+                    FIntPoint UpdateSize{
+                        desc.renderTargetUpdateBounds.width(),
+                        desc.renderTargetUpdateBounds.height()};
+                    AddDrawTexturePass(GraphBuilder,
+                                       ShaderMap,
+                                       VisTexture,
+                                       targetTexture,
+                                       {.Size = UpdateSize,
+                                        .SourcePosition = UpdatePosition,
+                                        .DestPosition = UpdatePosition});
+                }
+                break;
+            case 6:
+                if (DepthStencilTexture)
+                {
+                    FRDGTextureRef VisTexture =
+                        FVisualizeTexture::AddVisualizeTexturePass(
+                            GraphBuilder,
+                            ShaderMap,
+                            DepthStencilTexture);
+                    FIntPoint UpdatePosition{desc.renderTargetUpdateBounds.left,
+                                             desc.renderTargetUpdateBounds.top};
+                    FIntPoint UpdateSize{
+                        desc.renderTargetUpdateBounds.width(),
+                        desc.renderTargetUpdateBounds.height()};
+                    AddDrawTexturePass(GraphBuilder,
+                                       ShaderMap,
+                                       VisTexture,
+                                       targetTexture,
+                                       {.Size = UpdateSize,
+                                        .SourcePosition = UpdatePosition,
+                                        .DestPosition = UpdatePosition});
+                }
                 break;
             default:
                 break;

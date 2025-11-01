@@ -8,8 +8,177 @@
 #include "RHIStaticStates.h"  // TStaticBlendState, etc.
 #include "RHICommandList.h"   // FRHICommandList
 #include "RenderGraphUtils.h" // Graph building helpers
+#include "rive/renderer/draw.hpp"
 
 using namespace rive::gpu;
+
+TEnumAsByte<EStencilOp> StencilOpForStencilFaceOps(const StencilOp Op)
+{
+    switch (Op)
+    {
+        case StencilOp::keep:
+            return SO_Keep;
+        case StencilOp::replace:
+            return SO_Replace;
+        case StencilOp::zero:
+            return SO_Zero;
+        case StencilOp::decrClamp:
+            return SO_SaturatedDecrement;
+        case StencilOp::incrWrap:
+            return SO_Increment;
+        case StencilOp::decrWrap:
+            return SO_Decrement;
+    }
+
+    // This won't compile without a default return here.
+    return SO_Keep;
+}
+
+TEnumAsByte<ECompareFunction> CompareOpForStencilCompareOps(
+    const StencilCompareOp Op)
+{
+    switch (Op)
+    {
+        case StencilCompareOp::less:
+            return CF_Less;
+        case StencilCompareOp::equal:
+            return CF_Equal;
+        case StencilCompareOp::lessOrEqual:
+            return CF_LessEqual;
+        case StencilCompareOp::notEqual:
+            return CF_NotEqual;
+        case StencilCompareOp::always:
+            return CF_Always;
+    }
+
+    // This won't compile without a default return here.
+    return CF_Always;
+}
+
+FDepthStencilStateRHIRef StencilStateForPipeline(
+    const PipelineState& PipelineState)
+{
+    // We shouldn't need locks here because this should only ever happen from
+    // the render thread.
+    static TMap<uint32_t, FDepthStencilStateRHIRef> StencilStates;
+    if (FDepthStencilStateRHIRef* Value =
+            StencilStates.Find(PipelineState.uniqueKey))
+    {
+        return *Value;
+    }
+
+    // RHI expects the front face to be CCW and rive expects it to be CW. So
+    // reverse the logic here to make the stencil tests line up.
+
+    const auto& FrontOps = PipelineState.stencilDoubleSided
+                               ? PipelineState.stencilBackOps
+                               : PipelineState.stencilFrontOps;
+    const auto& BackOps = PipelineState.stencilFrontOps;
+
+    FDepthStencilStateInitializerRHI Initializer(
+        PipelineState.depthWriteEnabled,
+        PipelineState.depthTestEnabled ? CF_Less : CF_Always,
+        PipelineState.stencilTestEnabled,
+        CompareOpForStencilCompareOps(FrontOps.compareOp),
+        StencilOpForStencilFaceOps(FrontOps.failOp),
+        StencilOpForStencilFaceOps(FrontOps.depthFailOp),
+        StencilOpForStencilFaceOps(FrontOps.passOp),
+        PipelineState.stencilTestEnabled,
+        CompareOpForStencilCompareOps(BackOps.compareOp),
+        StencilOpForStencilFaceOps(BackOps.failOp),
+        StencilOpForStencilFaceOps(BackOps.depthFailOp),
+        StencilOpForStencilFaceOps(BackOps.passOp),
+        PipelineState.stencilCompareMask,
+        PipelineState.stencilWriteMask);
+
+    auto State = RHICreateDepthStencilState(Initializer);
+    StencilStates.Add(PipelineState.uniqueKey, State);
+    return State;
+}
+
+FBlendStateRHIRef BlendStateForPipeline(const PipelineState& PipelineState)
+{
+    if (!PipelineState.colorWriteEnabled)
+        return TStaticBlendState<CW_NONE>::GetRHI();
+    switch (PipelineState.blendEquation)
+    {
+        case BlendEquation::none:
+        case BlendEquation::srcOver:
+            return TStaticBlendState<CW_RGBA,
+                                     BO_Add,
+                                     BF_One,
+                                     BF_InverseSourceAlpha,
+                                     BO_Add,
+                                     BF_One,
+                                     BF_InverseSourceAlpha>::GetRHI();
+        case BlendEquation::plus:
+        case BlendEquation::max:
+        case BlendEquation::screen:
+        case BlendEquation::overlay:
+        case BlendEquation::darken:
+        case BlendEquation::lighten:
+        case BlendEquation::colorDodge:
+        case BlendEquation::colorBurn:
+        case BlendEquation::hardLight:
+        case BlendEquation::softLight:
+        case BlendEquation::difference:
+        case BlendEquation::exclusion:
+        case BlendEquation::multiply:
+        case BlendEquation::hue:
+        case BlendEquation::saturation:
+        case BlendEquation::color:
+        case BlendEquation::luminosity:
+            RIVE_UNREACHABLE();
+            break;
+    }
+
+    return TStaticBlendState<CW_NONE>::GetRHI();
+}
+
+template <bool EnableMSAA>
+FRHIRasterizerState* RasterStateForCullModeAndDrawMode(CullFace CF,
+                                                       bool WireFrame)
+{
+    switch (CF)
+    {
+        case CullFace::none:
+            if (WireFrame)
+                return RASTER_STATE(FM_Wireframe,
+                                    CM_None,
+                                    ERasterizerDepthClipMode::DepthClip,
+                                    EnableMSAA);
+            return RASTER_STATE(FM_Solid,
+                                CM_None,
+                                ERasterizerDepthClipMode::DepthClip,
+                                EnableMSAA);
+        case CullFace::clockwise:
+            if (WireFrame)
+                return RASTER_STATE(FM_Wireframe,
+                                    CM_CW,
+                                    ERasterizerDepthClipMode::DepthClip,
+                                    EnableMSAA);
+            return RASTER_STATE(FM_Solid,
+                                CM_CW,
+                                ERasterizerDepthClipMode::DepthClip,
+                                EnableMSAA);
+        case CullFace::counterclockwise:
+            if (WireFrame)
+                return RASTER_STATE(FM_Wireframe,
+                                    CM_CCW,
+                                    ERasterizerDepthClipMode::DepthClip,
+                                    EnableMSAA);
+            return RASTER_STATE(FM_Solid,
+                                CM_CCW,
+                                ERasterizerDepthClipMode::DepthClip,
+                                EnableMSAA);
+    }
+
+    // This won't compile without a default return here.
+    return RASTER_STATE(FM_Solid,
+                        CM_None,
+                        ERasterizerDepthClipMode::DepthClamp,
+                        EnableMSAA);
+}
 
 template <typename PassParamType>
 void SetFlushUniformsPerShader(PassParamType* PassParams)
@@ -71,7 +240,8 @@ FRDGPassRef AddGradientPass(FRDGBuilder& GraphBuilder,
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
                              CM_None,
-                             ERasterizerDepthClipMode::DepthClamp);
+                             ERasterizerDepthClipMode::DepthClamp,
+                             false);
             GraphicsPSOInit.DepthStencilState =
                 TStaticDepthStencilState<false,
                                          ECompareFunction::CF_Always>::GetRHI();
@@ -95,7 +265,7 @@ FRDGPassRef AddGradientPass(FRDGBuilder& GraphBuilder,
                 VertexShader.GetVertexShader();
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit, 0);
 
             SetShaderParameters(RHICmdList,
                                 PixelShader,
@@ -155,7 +325,8 @@ FRDGPassRef AddTessellationPass(
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
                              CM_CCW,
-                             ERasterizerDepthClipMode::DepthClamp);
+                             ERasterizerDepthClipMode::DepthClamp,
+                             false);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -168,7 +339,7 @@ FRDGPassRef AddTessellationPass(
                 VertexShader.GetVertexShader();
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit, 0);
 
             SetShaderParameters(RHICmdList,
                                 PixelShader,
@@ -200,6 +371,7 @@ FRDGPassRef AddTessellationPass(
 
 FRDGPassRef AddDrawPatchesPass(
     FRDGBuilder& GraphBuilder,
+    const FString& PassName,
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveFlushPassParameters* PassParameters)
 {
@@ -216,7 +388,7 @@ FRDGPassRef AddDrawPatchesPass(
     ClearUnusedGraphResources(VertexShader, &PassParameters->VS);
     // PassParameters->VS.baseInstance = 0;
     return GraphBuilder.AddPass(
-        RDG_EVENT_NAME("Rive_Draw_Patch"),
+        RDG_EVENT_NAME("Rive_Draw_Patch %s", *PassName),
         PassParameters,
         ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
@@ -251,6 +423,12 @@ FRDGPassRef AddDrawPatchesPass(
                                    CommonPassParameters->Viewport.Max.Y,
                                    1);
 
+            RHICmdList.SetScissorRect(true,
+                                      CommonPassParameters->Scissor.Min.X,
+                                      CommonPassParameters->Scissor.Min.Y,
+                                      CommonPassParameters->Scissor.Max.X,
+                                      CommonPassParameters->Scissor.Max.Y);
+
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
                 CommonPassParameters->VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
@@ -258,7 +436,7 @@ FRDGPassRef AddDrawPatchesPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit, 0);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -281,6 +459,324 @@ FRDGPassRef AddDrawPatchesPass(
                 PatchIndexCount(CommonPassParameters->DrawBatch.drawType) / 3,
                 CommonPassParameters->DrawBatch.elementCount);
         });
+}
+
+void AddDrawMSAAPatchesPass(
+    FRHICommandList& RHICmdList,
+    const FString& PassName,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters)
+{
+    RHI_BREADCRUMB_EVENT(RHICmdList, "rive.MSAAPatches %f", PassName);
+
+    TShaderMapRef<FRiveRDGPathMSAAVertexShader> VertexShader(
+        CommonPassParameters->ShaderMap,
+        CommonPassParameters->VertexPermutationDomain);
+    TShaderMapRef<FRiveRDGPathMSAAPixelShader> PixelShader(
+        CommonPassParameters->ShaderMap,
+        CommonPassParameters->PixelPermutationDomain);
+
+    SetFlushUniformsPerShader(PassParameters);
+
+    auto DepthStencil =
+        StencilStateForPipeline(CommonPassParameters->PipelineState);
+
+    FGraphicsPipelineStateInitializer GraphicsPSOInit;
+    GraphicsPSOInit.DepthStencilState = DepthStencil;
+
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode<true>(
+        CommonPassParameters->PipelineState.cullFace,
+        CommonPassParameters->bWireframe);
+
+    GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
+    GraphicsPSOInit.BlendState =
+        BlendStateForPipeline(CommonPassParameters->PipelineState);
+    GraphicsPSOInit.bDepthBounds = true;
+
+    RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+    GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+        CommonPassParameters->VertexDeclarationRHI;
+    GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+        VertexShader.GetVertexShader();
+    GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+        PixelShader.GetPixelShader();
+
+    GraphicsPSOInit.bAllowVariableRateShading = false;
+
+    SET_PIPELINE_STATE(RHICmdList,
+                       GraphicsPSOInit,
+                       CommonPassParameters->PipelineState.stencilReference);
+
+    RHICmdList.SetViewport(CommonPassParameters->Viewport.Min.X,
+                           CommonPassParameters->Viewport.Min.Y,
+                           0,
+                           CommonPassParameters->Viewport.Max.X,
+                           CommonPassParameters->Viewport.Max.Y,
+                           1);
+
+    RHICmdList.SetScissorRect(true,
+                              CommonPassParameters->Scissor.Min.X,
+                              CommonPassParameters->Scissor.Min.Y,
+                              CommonPassParameters->Scissor.Max.X,
+                              CommonPassParameters->Scissor.Max.Y);
+
+    RHICmdList.SetDepthBounds(rive::gpu::DEPTH_MIN, rive::gpu::DEPTH_MAX);
+
+    SetShaderParameters(RHICmdList,
+                        VertexShader,
+                        VertexShader.GetVertexShader(),
+                        PassParameters->VS);
+    SetShaderParameters(RHICmdList,
+                        PixelShader,
+                        PixelShader.GetPixelShader(),
+                        PassParameters->PS);
+
+    RHICmdList.SetStreamSource(0, CommonPassParameters->VertexBuffers[0], 0);
+    RHICmdList.DrawIndexedPrimitive(
+        CommonPassParameters->IndexBuffer,
+        0,
+        0,
+        kPatchVertexBufferCount,
+        PatchBaseIndex(CommonPassParameters->DrawBatch.drawType),
+        PatchIndexCount(CommonPassParameters->DrawBatch.drawType) / 3,
+        CommonPassParameters->DrawBatch.elementCount);
+}
+
+void AddDrawMSAAStencilClipResetPass(
+    FRHICommandList& RHICmdList,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters)
+{
+    RHI_BREADCRUMB_EVENT(RHICmdList, "rive.MSAAStencilClipReset");
+
+    TShaderMapRef<FRiveRDGStencilMSAAVertexShader> VertexShader(
+        CommonPassParameters->ShaderMap);
+    TShaderMapRef<FRiveRDGStencilMSAAPixelShader> PixelShader(
+        CommonPassParameters->ShaderMap);
+
+    SetFlushUniformsPerShader(PassParameters);
+
+    auto DepthStencil =
+        StencilStateForPipeline(CommonPassParameters->PipelineState);
+
+    FGraphicsPipelineStateInitializer GraphicsPSOInit;
+    GraphicsPSOInit.DepthStencilState = DepthStencil;
+
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode<true>(
+        CommonPassParameters->PipelineState.cullFace,
+        CommonPassParameters->bWireframe);
+
+    GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
+    GraphicsPSOInit.BlendState =
+        BlendStateForPipeline(CommonPassParameters->PipelineState);
+    RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+    GraphicsPSOInit.bDepthBounds = true;
+
+    GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+        CommonPassParameters->VertexDeclarationRHI;
+    GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+        VertexShader.GetVertexShader();
+    GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+        PixelShader.GetPixelShader();
+
+    GraphicsPSOInit.bAllowVariableRateShading = false;
+
+    SET_PIPELINE_STATE(RHICmdList,
+                       GraphicsPSOInit,
+                       CommonPassParameters->PipelineState.stencilReference);
+
+    RHICmdList.SetViewport(CommonPassParameters->Viewport.Min.X,
+                           CommonPassParameters->Viewport.Min.Y,
+                           0,
+                           CommonPassParameters->Viewport.Max.X,
+                           CommonPassParameters->Viewport.Max.Y,
+                           1);
+
+    RHICmdList.SetScissorRect(true,
+                              CommonPassParameters->Scissor.Min.X,
+                              CommonPassParameters->Scissor.Min.Y,
+                              CommonPassParameters->Scissor.Max.X,
+                              CommonPassParameters->Scissor.Max.Y);
+
+    RHICmdList.SetDepthBounds(rive::gpu::DEPTH_MIN, rive::gpu::DEPTH_MAX);
+    SetShaderParameters(RHICmdList,
+                        VertexShader,
+                        VertexShader.GetVertexShader(),
+                        PassParameters->VS);
+    SetShaderParameters(RHICmdList,
+                        PixelShader,
+                        PixelShader.GetPixelShader(),
+                        PassParameters->PS);
+
+    RHICmdList.SetStreamSource(0, CommonPassParameters->VertexBuffers[0], 0);
+    RHICmdList.DrawPrimitive(CommonPassParameters->DrawBatch.baseElement,
+                             CommonPassParameters->DrawBatch.elementCount / 3,
+                             1);
+}
+
+void AddDrawMSAAAtlasBlitPass(
+    FRHICommandList& RHICmdList,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters)
+{
+    RHI_BREADCRUMB_EVENT(RHICmdList, "rive.MSAAAtlasBlit");
+
+    TShaderMapRef<FRiveRDGAtlasBlitMSAAVertexShader> VertexShader(
+        CommonPassParameters->ShaderMap,
+        CommonPassParameters->VertexPermutationDomain);
+    TShaderMapRef<FRiveRDGAtlasBlitMSAAPixelShader> PixelShader(
+        CommonPassParameters->ShaderMap,
+        CommonPassParameters->PixelPermutationDomain);
+
+    SetFlushUniformsPerShader(PassParameters);
+
+    auto DepthStencil =
+        StencilStateForPipeline(CommonPassParameters->PipelineState);
+
+    FGraphicsPipelineStateInitializer GraphicsPSOInit;
+    GraphicsPSOInit.DepthStencilState = DepthStencil;
+
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode<true>(
+        CommonPassParameters->PipelineState.cullFace,
+        CommonPassParameters->bWireframe);
+
+    GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
+
+    GraphicsPSOInit.BlendState =
+        BlendStateForPipeline(CommonPassParameters->PipelineState);
+
+    GraphicsPSOInit.bDepthBounds = true;
+
+    RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+    GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+        CommonPassParameters->VertexDeclarationRHI;
+    GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+        VertexShader.GetVertexShader();
+    GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+        PixelShader.GetPixelShader();
+
+    GraphicsPSOInit.bAllowVariableRateShading = false;
+
+    SET_PIPELINE_STATE(RHICmdList,
+                       GraphicsPSOInit,
+                       CommonPassParameters->PipelineState.stencilReference);
+
+    RHICmdList.SetViewport(CommonPassParameters->Viewport.Min.X,
+                           CommonPassParameters->Viewport.Min.Y,
+                           0,
+                           CommonPassParameters->Viewport.Max.X,
+                           CommonPassParameters->Viewport.Max.Y,
+                           1);
+
+    RHICmdList.SetScissorRect(true,
+                              CommonPassParameters->Scissor.Min.X,
+                              CommonPassParameters->Scissor.Min.Y,
+                              CommonPassParameters->Scissor.Max.X,
+                              CommonPassParameters->Scissor.Max.Y);
+
+    RHICmdList.SetDepthBounds(rive::gpu::DEPTH_MIN, rive::gpu::DEPTH_MAX);
+
+    SetShaderParameters(RHICmdList,
+                        VertexShader,
+                        VertexShader.GetVertexShader(),
+                        PassParameters->VS);
+    SetShaderParameters(RHICmdList,
+                        PixelShader,
+                        PixelShader.GetPixelShader(),
+                        PassParameters->PS);
+
+    RHICmdList.SetStreamSource(0, CommonPassParameters->VertexBuffers[0], 0);
+    RHICmdList.DrawPrimitive(CommonPassParameters->DrawBatch.baseElement,
+                             CommonPassParameters->DrawBatch.elementCount / 3,
+                             1);
+}
+
+void AddDrawMSAAImageMeshPass(
+    FRHICommandList& RHICmdList,
+    uint32_t NumVertices,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters)
+{
+    RHI_BREADCRUMB_EVENT(RHICmdList, "rive.MSAAImageMesh");
+
+    TShaderMapRef<FRiveRDGImageMeshMSAAVertexShader> VertexShader(
+        CommonPassParameters->ShaderMap,
+        CommonPassParameters->VertexPermutationDomain);
+    TShaderMapRef<FRiveRDGImageMeshMSAAPixelShader> PixelShader(
+        CommonPassParameters->ShaderMap,
+        CommonPassParameters->PixelPermutationDomain);
+
+    SetFlushUniformsPerShader(PassParameters);
+
+    auto DepthStencil =
+        StencilStateForPipeline(CommonPassParameters->PipelineState);
+
+    FGraphicsPipelineStateInitializer GraphicsPSOInit;
+    GraphicsPSOInit.DepthStencilState = DepthStencil;
+
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode<true>(
+        CommonPassParameters->PipelineState.cullFace,
+        CommonPassParameters->bWireframe);
+
+    GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+    GraphicsPSOInit.BlendState =
+        BlendStateForPipeline(CommonPassParameters->PipelineState);
+
+    GraphicsPSOInit.bDepthBounds = true;
+
+    RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+    GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+        CommonPassParameters->VertexDeclarationRHI;
+    GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+        VertexShader.GetVertexShader();
+    GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+        PixelShader.GetPixelShader();
+
+    GraphicsPSOInit.bAllowVariableRateShading = false;
+
+    SET_PIPELINE_STATE(RHICmdList,
+                       GraphicsPSOInit,
+                       CommonPassParameters->PipelineState.stencilReference);
+
+    RHICmdList.SetViewport(CommonPassParameters->Viewport.Min.X,
+                           CommonPassParameters->Viewport.Min.Y,
+                           0,
+                           CommonPassParameters->Viewport.Max.X,
+                           CommonPassParameters->Viewport.Max.Y,
+                           1);
+
+    RHICmdList.SetScissorRect(true,
+                              CommonPassParameters->Scissor.Min.X,
+                              CommonPassParameters->Scissor.Min.Y,
+                              CommonPassParameters->Scissor.Max.X,
+                              CommonPassParameters->Scissor.Max.Y);
+
+    RHICmdList.SetDepthBounds(rive::gpu::DEPTH_MIN, rive::gpu::DEPTH_MAX);
+
+    SetShaderParameters(RHICmdList,
+                        VertexShader,
+                        VertexShader.GetVertexShader(),
+                        PassParameters->VS);
+    SetShaderParameters(RHICmdList,
+                        PixelShader,
+                        PixelShader.GetPixelShader(),
+                        PassParameters->PS);
+
+    RHICmdList.SetStreamSource(0, CommonPassParameters->VertexBuffers[0], 0);
+    RHICmdList.SetStreamSource(1, CommonPassParameters->VertexBuffers[1], 0);
+    RHICmdList.DrawIndexedPrimitive(
+        CommonPassParameters->IndexBuffer,
+        0,
+        0,
+        NumVertices,
+        0,
+        CommonPassParameters->DrawBatch.elementCount / 3,
+        1);
 }
 
 FRDGPassRef AddDrawInteriorTrianglesPass(
@@ -329,13 +825,6 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
-            RHICmdList.SetViewport(CommonPassParameters->Viewport.Min.X,
-                                   CommonPassParameters->Viewport.Min.Y,
-                                   0,
-                                   CommonPassParameters->Viewport.Max.X,
-                                   CommonPassParameters->Viewport.Max.Y,
-                                   1);
-
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
                 CommonPassParameters->VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
@@ -343,7 +832,23 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(
+                RHICmdList,
+                GraphicsPSOInit,
+                CommonPassParameters->PipelineState.stencilReference);
+
+            RHICmdList.SetViewport(CommonPassParameters->Viewport.Min.X,
+                                   CommonPassParameters->Viewport.Min.Y,
+                                   0,
+                                   CommonPassParameters->Viewport.Max.X,
+                                   CommonPassParameters->Viewport.Max.Y,
+                                   1);
+
+            RHICmdList.SetScissorRect(true,
+                                      CommonPassParameters->Scissor.Min.X,
+                                      CommonPassParameters->Scissor.Min.Y,
+                                      CommonPassParameters->Scissor.Max.X,
+                                      CommonPassParameters->Scissor.Max.Y);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -382,7 +887,7 @@ FRDGPassRef AddDrawAtlasBlitPass(
     ClearUnusedGraphResources(VertexShader, &PassParameters->VS);
 
     return GraphBuilder.AddPass(
-        RDG_EVENT_NAME("Rive_Draw_Interior_Triangles"),
+        RDG_EVENT_NAME("Rive_Draw_Atlas_Blit"),
         PassParameters,
         ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
@@ -417,6 +922,12 @@ FRDGPassRef AddDrawAtlasBlitPass(
                                    CommonPassParameters->Viewport.Max.Y,
                                    1);
 
+            RHICmdList.SetScissorRect(true,
+                                      CommonPassParameters->Scissor.Min.X,
+                                      CommonPassParameters->Scissor.Min.Y,
+                                      CommonPassParameters->Scissor.Max.X,
+                                      CommonPassParameters->Scissor.Max.Y);
+
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
                 CommonPassParameters->VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
@@ -424,7 +935,10 @@ FRDGPassRef AddDrawAtlasBlitPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(
+                RHICmdList,
+                GraphicsPSOInit,
+                CommonPassParameters->PipelineState.stencilReference);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -475,7 +989,8 @@ FRDGPassRef AddDrawImageRectPass(
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
                              CM_None,
-                             ERasterizerDepthClipMode::DepthClamp);
+                             ERasterizerDepthClipMode::DepthClamp,
+                             false);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
             if (CommonPassParameters->NeedsSourceBlending)
@@ -500,6 +1015,12 @@ FRDGPassRef AddDrawImageRectPass(
                                    CommonPassParameters->Viewport.Max.Y,
                                    1.0);
 
+            RHICmdList.SetScissorRect(true,
+                                      CommonPassParameters->Scissor.Min.X,
+                                      CommonPassParameters->Scissor.Min.Y,
+                                      CommonPassParameters->Scissor.Max.X,
+                                      CommonPassParameters->Scissor.Max.Y);
+
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
                 CommonPassParameters->VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
@@ -507,7 +1028,10 @@ FRDGPassRef AddDrawImageRectPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(
+                RHICmdList,
+                GraphicsPSOInit,
+                CommonPassParameters->PipelineState.stencilReference);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -565,7 +1089,8 @@ FRDGPassRef AddDrawImageMeshPass(
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
                              CM_None,
-                             ERasterizerDepthClipMode::DepthClamp);
+                             ERasterizerDepthClipMode::DepthClamp,
+                             false);
             GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
             if (CommonPassParameters->NeedsSourceBlending)
@@ -590,6 +1115,12 @@ FRDGPassRef AddDrawImageMeshPass(
                                    CommonPassParameters->Viewport.Max.Y,
                                    1.0);
 
+            RHICmdList.SetScissorRect(true,
+                                      CommonPassParameters->Scissor.Min.X,
+                                      CommonPassParameters->Scissor.Min.Y,
+                                      CommonPassParameters->Scissor.Max.X,
+                                      CommonPassParameters->Scissor.Max.Y);
+
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
                 CommonPassParameters->VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
@@ -597,7 +1128,10 @@ FRDGPassRef AddDrawImageMeshPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(
+                RHICmdList,
+                GraphicsPSOInit,
+                CommonPassParameters->PipelineState.stencilReference);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -655,7 +1189,8 @@ FRDGPassRef AddAtomicResolvePass(
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
                              CM_None,
-                             ERasterizerDepthClipMode::DepthClamp);
+                             ERasterizerDepthClipMode::DepthClamp,
+                             false);
             GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
 
             if (CommonPassParameters->NeedsSourceBlending)
@@ -680,6 +1215,12 @@ FRDGPassRef AddAtomicResolvePass(
                                    CommonPassParameters->Viewport.Max.Y,
                                    1.0);
 
+            RHICmdList.SetScissorRect(true,
+                                      CommonPassParameters->Scissor.Min.X,
+                                      CommonPassParameters->Scissor.Min.Y,
+                                      CommonPassParameters->Scissor.Max.X,
+                                      CommonPassParameters->Scissor.Max.Y);
+
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
                 CommonPassParameters->VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
@@ -687,7 +1228,10 @@ FRDGPassRef AddAtomicResolvePass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(
+                RHICmdList,
+                GraphicsPSOInit,
+                CommonPassParameters->PipelineState.stencilReference);
 
             SetShaderParameters(RHICmdList,
                                 PixelShader,
@@ -704,6 +1248,7 @@ FRDGPassRef AddAtomicResolvePass(
 
 FRDGPassRef AddDrawRasterOrderPatchesPass(
     FRDGBuilder& GraphBuilder,
+    const FString& PassName,
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveFlushPassParameters* PassParameters)
 {
@@ -720,7 +1265,7 @@ FRDGPassRef AddDrawRasterOrderPatchesPass(
     ClearUnusedGraphResources(VertexShader, &PassParameters->VS);
     // PassParameters->VS.baseInstance = 0;
     return GraphBuilder.AddPass(
-        RDG_EVENT_NAME("Rive_Raster_Order_Draw_Patch"),
+        RDG_EVENT_NAME("Rive_Raster_Order_Draw_Patch %s", *PassName),
         PassParameters,
         ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
@@ -755,6 +1300,12 @@ FRDGPassRef AddDrawRasterOrderPatchesPass(
                                    CommonPassParameters->Viewport.Max.Y,
                                    1);
 
+            RHICmdList.SetScissorRect(true,
+                                      CommonPassParameters->Scissor.Min.X,
+                                      CommonPassParameters->Scissor.Min.Y,
+                                      CommonPassParameters->Scissor.Max.X,
+                                      CommonPassParameters->Scissor.Max.Y);
+
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
                 CommonPassParameters->VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
@@ -762,7 +1313,10 @@ FRDGPassRef AddDrawRasterOrderPatchesPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(
+                RHICmdList,
+                GraphicsPSOInit,
+                CommonPassParameters->PipelineState.stencilReference);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -840,6 +1394,12 @@ FRDGPassRef AddDrawRasterOrderInteriorTrianglesPass(
                                    CommonPassParameters->Viewport.Max.Y,
                                    1);
 
+            RHICmdList.SetScissorRect(true,
+                                      CommonPassParameters->Scissor.Min.X,
+                                      CommonPassParameters->Scissor.Min.Y,
+                                      CommonPassParameters->Scissor.Max.X,
+                                      CommonPassParameters->Scissor.Max.Y);
+
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
                 CommonPassParameters->VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
@@ -847,7 +1407,10 @@ FRDGPassRef AddDrawRasterOrderInteriorTrianglesPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(
+                RHICmdList,
+                GraphicsPSOInit,
+                CommonPassParameters->PipelineState.stencilReference);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -902,7 +1465,8 @@ FRDGPassRef AddDrawRasterOrderImageMeshPass(
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
                              CM_None,
-                             ERasterizerDepthClipMode::DepthClamp);
+                             ERasterizerDepthClipMode::DepthClamp,
+                             false);
             GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
             if (CommonPassParameters->NeedsSourceBlending)
@@ -927,6 +1491,12 @@ FRDGPassRef AddDrawRasterOrderImageMeshPass(
                                    CommonPassParameters->Viewport.Max.Y,
                                    1.0);
 
+            RHICmdList.SetScissorRect(true,
+                                      CommonPassParameters->Scissor.Min.X,
+                                      CommonPassParameters->Scissor.Min.Y,
+                                      CommonPassParameters->Scissor.Max.X,
+                                      CommonPassParameters->Scissor.Max.Y);
+
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
                 CommonPassParameters->VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
@@ -934,7 +1504,10 @@ FRDGPassRef AddDrawRasterOrderImageMeshPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(
+                RHICmdList,
+                GraphicsPSOInit,
+                CommonPassParameters->PipelineState.stencilReference);
 
             SetShaderParameters(RHICmdList,
                                 VertexShader,
@@ -992,7 +1565,8 @@ FRDGPassRef AddFeatherAtlasFillDrawPass(FRDGBuilder& GraphBuilder,
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
                              CM_CCW,
-                             ERasterizerDepthClipMode::DepthClamp);
+                             ERasterizerDepthClipMode::DepthClamp,
+                             false);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -1014,7 +1588,7 @@ FRDGPassRef AddFeatherAtlasFillDrawPass(FRDGBuilder& GraphBuilder,
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit, 0);
 
             SetShaderParameters(RHICmdList,
                                 PixelShader,
@@ -1078,7 +1652,8 @@ FRDGPassRef AddFeatherAtlasStrokeDrawPass(
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
                              CM_CCW,
-                             ERasterizerDepthClipMode::DepthClamp);
+                             ERasterizerDepthClipMode::DepthClamp,
+                             false);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -1100,7 +1675,7 @@ FRDGPassRef AddFeatherAtlasStrokeDrawPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit, 0);
 
             SetShaderParameters(RHICmdList,
                                 PixelShader,
@@ -1141,14 +1716,9 @@ FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
     TShaderMapRef<FRiveBltTextureAsDrawVertexShader> VertexShader(ShaderMap);
     TShaderMapRef<FRiveBltTextureAsDrawPixelShader> PixelShader(ShaderMap);
 
-#if UE_VERSION_OLDER_THAN(5, 5, 0)
-#else
-    PassParameters->PS.GLSL_FlushUniforms_raw = PassParameters->FlushUniforms;
-#endif
-
     ClearUnusedGraphResources(PixelShader, &PassParameters->PS);
     return GraphBuilder.AddPass(
-        RDG_EVENT_NAME("Rive_Draw_Atomic_Resolve"),
+        RDG_EVENT_NAME("Rive_Draw_Texture_Blt"),
         PassParameters,
         ERDGPassFlags::Raster,
         [Viewport,
@@ -1163,7 +1733,8 @@ FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
                              CM_None,
-                             ERasterizerDepthClipMode::DepthClamp);
+                             ERasterizerDepthClipMode::DepthClamp,
+                             false);
             GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
 
             GraphicsPSOInit.BlendState =
@@ -1191,7 +1762,7 @@ FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit);
+            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit, 0);
 
             SetShaderParameters(RHICmdList,
                                 PixelShader,
@@ -1200,4 +1771,73 @@ FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
 
             RHICmdList.DrawPrimitive(0, 2, 1);
         });
+}
+
+void AddDrawTextureBlt(FRHICommandList& RHICmdList,
+                       FVertexDeclarationRHIRef VertexDeclarationRHI,
+                       FGlobalShaderMap* ShaderMap,
+                       FRiveDrawTextureBltParameters& PassParameters,
+                       const rive::gpu::DrawBatch& Batch)
+{
+    TShaderMapRef<FRiveBltTextureAsDrawVertexShader> VertexShader(ShaderMap);
+    TShaderMapRef<FRiveBltTextureAsDrawPixelShader> PixelShader(ShaderMap);
+
+    // PassParameters.PS.beRed = 1;
+    RHICmdList.BeginRenderPass(GetRenderPassInfo(&PassParameters),
+                               TEXT("Rive_Draw_Texture_Blt"));
+
+    FGraphicsPipelineStateInitializer GraphicsPSOInit;
+    GraphicsPSOInit.DepthStencilState =
+        TStaticDepthStencilState<false, ECompareFunction::CF_Always>::GetRHI();
+    GraphicsPSOInit.RasterizerState =
+        RASTER_STATE(FM_Solid,
+                     CM_None,
+                     ERasterizerDepthClipMode::DepthClamp,
+                     false);
+    GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+    GraphicsPSOInit.BlendState =
+        TStaticBlendState<CW_RGBA,
+                          BO_Add,
+                          BF_One,
+                          BF_InverseSourceAlpha,
+                          BO_Add,
+                          BF_One,
+                          BF_InverseSourceAlpha>::GetRHI();
+
+    RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+    auto RT = PassParameters.RenderTargets[0].GetTexture();
+    check(RT);
+    auto RTSize = RT->Desc.GetSize();
+
+    RHICmdList.SetViewport(0, 0, 0, RTSize.X, RTSize.Y, 1.0);
+
+    GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+        VertexDeclarationRHI;
+    GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+        VertexShader.GetVertexShader();
+    GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+        PixelShader.GetPixelShader();
+
+    SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit, 0);
+
+    SetShaderParameters(RHICmdList,
+                        PixelShader,
+                        PixelShader.GetPixelShader(),
+                        PassParameters.PS);
+    for (const rive::gpu::Draw* draw = Batch.dstReadList; draw != nullptr;
+         draw = draw->nextDstRead())
+    {
+        const auto& PixelBounds = draw->pixelBounds();
+        RHICmdList.SetScissorRect(true,
+                                  PixelBounds.left,
+                                  PixelBounds.top,
+                                  PixelBounds.right,
+                                  PixelBounds.bottom);
+
+        RHICmdList.DrawPrimitive(0, 2, 1);
+    }
+
+    RHICmdList.EndRenderPass();
 }

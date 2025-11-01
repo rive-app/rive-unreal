@@ -40,6 +40,14 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
     {
         Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
         Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+        // Vulkan is commented out because currently we have no control of
+        // subpass dependencies and inputs. The goal is to make a PR for unreal
+        // (to epic) with engine changes that add this ability, and once that
+        // lands, we can uncomment this code.
+        if (/*IsTargetVulkan(Params) ||*/ IsTargetMetal(Params))
+        {
+            Environment.SetDefine(TEXT("SUPPORTS_SUBPASS_LOAD"), TEXT("1"));
+        }
     }
 // 5.4 and up
 #if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 4
@@ -48,182 +56,18 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
 #endif
 }
 
-void FRiveRDGGradientPixelShader::ModifyCompilationEnvironment(
+void FRiveBasePixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
     ModifyShaderEnvironment(Params, Environment, false);
 }
 
-void FRiveRDGGradientVertexShader::ModifyCompilationEnvironment(
+void FRiveBaseVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
     ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGTessPixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-    Environment.SetRenderTargetOutputFormat(0, PF_R32G32B32A32_UINT);
-}
-
-void FRiveRDGTessVertexShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGPathPixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-}
-
-void FRiveRDGPathVertexShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGInteriorTrianglesPixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-}
-
-void FRiveRDGInteriorTrianglesVertexShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGAtlasBlitPixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-}
-
-void FRiveRDGAtlasBlitVertexShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGImageRectPixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-}
-
-void FRiveRDGImageRectVertexShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGImageMeshPixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-}
-
-void FRiveRDGImageMeshVertexShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGAtomicResolvePixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-}
-
-void FRiveRDGAtomicResolveVertexShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGDrawAtlasFillPixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-    Environment.SetRenderTargetOutputFormat(0, PF_R32_FLOAT);
-}
-
-void FRiveRDGDrawAtlasStrokePixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-    Environment.SetRenderTargetOutputFormat(0, PF_R32_FLOAT);
-}
-
-void FRiveRDGDrawAtlasVertexShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGRasterOrderPathVertexShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGRasterOrderPathPixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-}
-
-void FRiveRDGRasterOrderInteriorTrianglesVertexShader::
-    ModifyCompilationEnvironment(const FShaderPermutationParameters& Params,
-                                 FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGRasterOrderInteriorTrianglesPixelShader::
-    ModifyCompilationEnvironment(const FShaderPermutationParameters& Params,
-                                 FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
-}
-
-void FRiveRDGRasterOrderImageMeshVertexShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveRDGRasterOrderImageMeshPixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
 }
 
 void FRiveBltTextureAsDrawVertexShader::ModifyCompilationEnvironment(
@@ -231,13 +75,6 @@ void FRiveBltTextureAsDrawVertexShader::ModifyCompilationEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     ModifyShaderEnvironment(Params, Environment, true);
-}
-
-void FRiveBltTextureAsDrawPixelShader::ModifyCompilationEnvironment(
-    const FShaderPermutationParameters& Params,
-    FShaderCompilerEnvironment& Environment)
-{
-    ModifyShaderEnvironment(Params, Environment, false);
 }
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGGradientPixelShader,
@@ -348,6 +185,46 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGRasterOrderImageMeshPixelShader,
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGRasterOrderImageMeshVertexShader,
                         "/Plugin/Rive/Private/Rive/draw_image_mesh.usf",
                         GLSL_drawVertexMain,
+                        SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitMSAAPixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_atlas_blit.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitMSAAVertexShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_atlas_blit.usf",
+                        GLSL_drawVertexMain,
+                        SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGImageMeshMSAAPixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_image_mesh.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGImageMeshMSAAVertexShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_image_mesh.usf",
+                        GLSL_drawVertexMain,
+                        SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAAPixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_path.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAAVertexShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_path.usf",
+                        GLSL_drawVertexMain,
+                        SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGStencilMSAAPixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_stencil.usf",
+                        GLSL_blitFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGStencilMSAAVertexShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_stencil.usf",
+                        GLSL_stencilVertexMain,
                         SF_Vertex);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGDrawAtlasFillPixelShader,

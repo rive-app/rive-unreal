@@ -194,14 +194,17 @@ void URiveWidget::PostEditChangeChainProperty(
         TArray<FString> StateMachineNames = GetStateMachineNamesForDropdown();
         if (StateMachineNames.Num() == 1)
         {
-            RiveDescriptor.StateMachineName =
-                StateMachineNames[0]; // No state machine, use blank
+            RiveDescriptor.StateMachineName = StateMachineNames[0];
         }
         else if (RiveDescriptor.StateMachineName.IsEmpty() ||
                  !StateMachineNames.Contains(RiveDescriptor.StateMachineName) &&
                      !StateMachineNames.IsEmpty())
         {
-            RiveDescriptor.StateMachineName = StateMachineNames[1];
+            RiveDescriptor.StateMachineName = StateMachineNames[0];
+        }
+        else
+        {
+            RiveDescriptor.StateMachineName = "None";
         }
 
         if (IsValid(RiveDescriptor.RiveFile))

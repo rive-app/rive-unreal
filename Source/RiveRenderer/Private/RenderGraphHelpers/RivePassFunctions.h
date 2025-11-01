@@ -18,15 +18,21 @@ struct FRiveCommonPassParameters
     FBufferRHIRef VertexBuffers[2];
     FBufferRHIRef IndexBuffer = nullptr;
     FUint32Rect Viewport;
+    FUint32Rect Scissor;
+    bool bWireframe = false;
     FGlobalShaderMap* ShaderMap;
     const rive::gpu::DrawBatch
-        DrawBatch; // Copy intentionally since lamnda execution is defered for
+        DrawBatch; // Copy intentionally since lambda execution is deferred for
                    // RenderGraph
     bool NeedsSourceBlending = false;
-
+    // Copy for the same reason as above.
+    // This is currently only used for MSAA mode, but may get used for other
+    // modes in the future
+    rive::gpu::PipelineState PipelineState;
     FRiveCommonPassParameters(const rive::gpu::DrawBatch& DrawBatch,
+                              const rive::gpu::PipelineState& PipelineState,
                               FGlobalShaderMap* ShaderMap) :
-        ShaderMap(ShaderMap), DrawBatch(DrawBatch)
+        ShaderMap(ShaderMap), DrawBatch(DrawBatch), PipelineState(PipelineState)
     {}
 };
 
@@ -97,10 +103,42 @@ RENDER_TARGET_BINDING_SLOTS()
 
 END_SHADER_PARAMETER_STRUCT()
 
+BEGIN_SHADER_PARAMETER_STRUCT(FRiveMSAAFlushPassParameters, )
+
+SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
+SHADER_PARAMETER_STRUCT_INCLUDE(FRiveMSAAVertexDrawUniforms, VS)
+SHADER_PARAMETER_STRUCT_INCLUDE(FRiveMSAAPixelDrawUniforms, PS)
+RENDER_TARGET_BINDING_SLOTS()
+
+END_SHADER_PARAMETER_STRUCT()
+
 FRDGPassRef AddDrawPatchesPass(
     FRDGBuilder& GraphBuilder,
+    const FString& PassName,
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveFlushPassParameters* PassParameters);
+
+void AddDrawMSAAPatchesPass(
+    FRHICommandList& RHICmdList,
+    const FString& PassName,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters);
+
+void AddDrawMSAAStencilClipResetPass(
+    FRHICommandList& RHICmdList,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters);
+
+void AddDrawMSAAAtlasBlitPass(
+    FRHICommandList& RHICmdList,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters);
+
+void AddDrawMSAAImageMeshPass(
+    FRHICommandList& RHICmdList,
+    uint32_t NumVertices,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters);
 
 FRDGPassRef AddDrawInteriorTrianglesPass(
     FRDGBuilder& GraphBuilder,
@@ -130,6 +168,7 @@ FRDGPassRef AddAtomicResolvePass(
 
 FRDGPassRef AddDrawRasterOrderPatchesPass(
     FRDGBuilder& GraphBuilder,
+    const FString& PassName,
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveFlushPassParameters* PassParameters);
 
@@ -145,8 +184,6 @@ FRDGPassRef AddDrawRasterOrderImageMeshPass(
     FRiveFlushPassParameters* PassParameters);
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRiveDrawTextureBltParameters, )
-
-SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
 SHADER_PARAMETER_STRUCT_INCLUDE(FRiveBltTextureDrawUniforms, PS)
 RENDER_TARGET_BINDING_SLOTS()
 
@@ -157,3 +194,9 @@ FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
                               FUint32Rect Viewport,
                               FGlobalShaderMap* ShaderMap,
                               FRiveDrawTextureBltParameters* PassParameters);
+
+void AddDrawTextureBlt(FRHICommandList& RHICmdList,
+                       FVertexDeclarationRHIRef VertexDeclarationRHI,
+                       FGlobalShaderMap* ShaderMap,
+                       FRiveDrawTextureBltParameters& PassParameters,
+                       const rive::gpu::DrawBatch& Batch);

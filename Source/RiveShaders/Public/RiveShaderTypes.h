@@ -31,8 +31,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogRiveShaderCompiler, Display, All);
 #elif UE_VERSION_OLDER_THAN(5, 5, 0)
 #define CREATE_TEXTURE_ASYNC(RHICmdList, Desc) RHICmdList->CreateTexture(Desc)
 #define CREATE_TEXTURE(RHICmdList, Desc) RHICmdList.CreateTexture(Desc)
-#define RASTER_STATE(FillMode, CullMode, DepthClip)                            \
-    TStaticRasterizerState<FillMode, CullMode, DepthClip, false>::GetRHI()
+#define RASTER_STATE(FillMode, CullMode, DepthClip, EnableMSAA)                \
+    TStaticRasterizerState<FillMode, CullMode, DepthClip, EnableMSAA>::GetRHI()
 #define SET_PIPELINE_STATE(CommandList, GraphicsPSOInit)                       \
     SetGraphicsPipelineState(CommandList,                                      \
                              GraphicsPSOInit,                                  \
@@ -43,10 +43,11 @@ DECLARE_LOG_CATEGORY_EXTERN(LogRiveShaderCompiler, Display, All);
 #else // UE_VERSION_NEWER_OR_EQUAL_TO (5, 5,0)
 #define CREATE_TEXTURE_ASYNC(RHICmdList, Desc) RHICmdList.CreateTexture(Desc)
 #define CREATE_TEXTURE(RHICmdList, Desc) RHICmdList.CreateTexture(Desc)
-#define RASTER_STATE(FillMode, CullMode, DepthClip)                            \
-    TStaticRasterizerState<FillMode, CullMode, DepthClip, false>::GetRHI()
-#define SET_PIPELINE_STATE(CommandList, GraphicsPSOInit)                       \
-    SetGraphicsPipelineState(CommandList, GraphicsPSOInit, 0)
+#define RASTER_STATE(FillMode, CullMode, DepthClip, EnableMSAA)                \
+    TStaticRasterizerState<FillMode, CullMode, DepthClip, EnableMSAA>::GetRHI()
+
+#define SET_PIPELINE_STATE(CommandList, GraphicsPSOInit, StencilRef)           \
+    SetGraphicsPipelineState(CommandList, GraphicsPSOInit, StencilRef)
 #endif
 
 namespace rive::gpu
@@ -73,15 +74,17 @@ class FEnableTypedUAVLoads
 class FEnableClockwiseFill : SHADER_PERMUTATION_BOOL("CLOCKWISE_FILL");
 class FEnableGammaCorrection
     : SHADER_PERMUTATION_BOOL("NEEDS_GAMMA_CORRECTION");
+class FCoalescedPlsResolveAndTransfer
+    : SHADER_PERMUTATION_BOOL("COALESCED_PLS_RESOLVE_AND_TRANSFER");
 
 typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableClipRect,
                                  FEnableNestedClip,
                                  FEnableFixedFunctionColorOutput,
+                                 FCoalescedPlsResolveAndTransfer,
                                  FEnableAdvanceBlend,
                                  FEnableEvenOdd,
                                  FEnableHSLBlendMode,
-                                 FEnableTypedUAVLoads,
                                  FEnableFeather,
                                  FEnableClockwiseFill,
                                  FEnableGammaCorrection>
@@ -156,11 +159,13 @@ SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_atlasTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_imageTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DMS, GLSL_dstColorTexture_raw)
 
-SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageCountBuffer)
 #if PLATFORM_APPLE
+SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, coverageCountBuffer)
 SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, coverageAtomicBuffer)
 #else
+SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageCountBuffer)
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
 #endif
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, clipBuffer)
@@ -195,40 +200,96 @@ SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
 SHADER_PARAMETER(unsigned int, baseInstance)
 END_SHADER_PARAMETER_STRUCT()
 
-template <typename ShaderClass>
-static bool RiveShouldCompilePermutation(
+BEGIN_SHADER_PARAMETER_STRUCT(FRiveMSAAPixelDrawUniforms, RIVESHADERS_API)
+#if !UE_VERSION_OLDER_THAN(5, 5, 0)
+SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
+#endif
+SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
+
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_atlasTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_imageTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DMS, GLSL_dstColorTexture_raw)
+
+SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, atlasSampler)
+SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
+SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
+                                GLSL_paintAuxBuffer_raw)
+
+END_SHADER_PARAMETER_STRUCT()
+
+BEGIN_SHADER_PARAMETER_STRUCT(FRiveMSAAVertexDrawUniforms, RIVESHADERS_API)
+#if !UE_VERSION_OLDER_THAN(5, 5, 0)
+SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
+#endif
+SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE_SRV(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
+SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
+SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
+SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
+SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
+                                GLSL_paintAuxBuffer_raw)
+SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
+SHADER_PARAMETER(unsigned int, baseInstance)
+END_SHADER_PARAMETER_STRUCT()
+
+static constexpr bool IsTargetVulkan(
     const FShaderPermutationParameters& Parameters)
+{
+    return Parameters.Platform == SP_VULKAN_PCES3_1 ||
+           Parameters.Platform == SP_VULKAN_ES3_1_ANDROID ||
+           Parameters.Platform == SP_VULKAN_SM5 ||
+           Parameters.Platform == SP_VULKAN_SM5_ANDROID ||
+           Parameters.Platform == SP_VULKAN_SM6;
+}
+
+static constexpr bool IsTargetMetal(
+    const FShaderPermutationParameters& Parameters)
+{
+    return Parameters.Platform == SP_METAL_SM5 ||
+           Parameters.Platform == SP_METAL_SM5_IOS ||
+           Parameters.Platform == SP_METAL_SM5_TVOS ||
+           Parameters.Platform == SP_METAL_SM6;
+}
+
+template <typename ShaderClass>
+static bool RiveShouldCompilePixelPermutation(
+    const FShaderPermutationParameters& Parameters,
+    bool isResolve = false)
 {
     typename ShaderClass::FPermutationDomain PermutationVector(
         Parameters.PermutationId);
 
-    // there is a bug here somewhere causing the correct shaders to not get
-    // pacaked for vulkan. im not sure if the bug is on our end or unreals but
-    // for now just compile everything
-#ifdef ENABLE_SHADER_PERMUTATION_OPTIMIZATIONS
-    // don't compile typed UAV permutations if they aren't supported.
-    if (PermutationVector.Get<FEnableTypedUAVLoads>() &&
-        !(RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
-          GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+    if (PermutationVector.template Get<FCoalescedPlsResolveAndTransfer>() &&
+        !isResolve)
+        return false;
+
+    if (PermutationVector.template Get<FEnableHSLBlendMode>() &&
+        !PermutationVector.template Get<FEnableAdvanceBlend>())
     {
-        UE_LOG(LogRiveShaderCompiler,
-               Verbose,
-               TEXT("Skipping Permutation %i for FRiveRDGPathPixelShader "
-                    "because typed uavs are not supported"),
-               Parameters.PermutationId);
         return false;
     }
 
-    // only compile typed UAV permutations if they are supported
-    if (!PermutationVector.Get<FEnableTypedUAVLoads>() &&
-        (RHISupports4ComponentUAVReadWrite(Parameters.Platform) ||
-         GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan))
+    if (PermutationVector.template Get<FEnableEvenOdd>() &&
+        PermutationVector.template Get<FEnableClockwiseFill>())
     {
-        UE_LOG(LogRiveShaderCompiler,
-               Verbose,
-               TEXT("Skipping Permutation %i for FRiveRDGPathPixelShader "
-                    "because typed uavs are supported"),
-               Parameters.PermutationId);
+        return false;
+    }
+
+    if (PermutationVector.template Get<FEnableFixedFunctionColorOutput>() &&
+        PermutationVector.template Get<FEnableAdvanceBlend>())
+    {
+        return false;
+    }
+
+    if (PermutationVector.template Get<FCoalescedPlsResolveAndTransfer>() &&
+        PermutationVector.template Get<FEnableFixedFunctionColorOutput>())
+    {
         return false;
     }
 
@@ -236,61 +297,74 @@ static bool RiveShouldCompilePermutation(
            VeryVerbose,
            TEXT("Building Permutation %i for FRiveRDGPathPixelShader"),
            Parameters.PermutationId)
-#endif
     return true;
 }
 
-class FRiveRDGGradientPixelShader : public FGlobalShader
+template <typename ShaderClass>
+bool ShouldCompilePixelMSAAPermutation(
+    const FShaderPermutationParameters& Parameters)
+{
+    return RiveShouldCompilePixelPermutation<ShaderClass>(Parameters);
+}
+
+class FRiveBasePixelShader : public FGlobalShader
+{
+public:
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+class FRiveBaseVertexShader : public FGlobalShader
+{
+public:
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+};
+
+class FRiveRDGGradientPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGGradientPixelShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGGradientPixelShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGGradientPixelShader,
+                                FRiveBasePixelShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
     END_SHADER_PARAMETER_STRUCT()
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGGradientVertexShader : public FGlobalShader
+class FRiveRDGGradientVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGGradientVertexShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGGradientVertexShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGGradientVertexShader,
+                                FRiveBaseVertexShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
     END_SHADER_PARAMETER_STRUCT()
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGTessPixelShader : public FGlobalShader
+class FRiveRDGTessPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGTessPixelShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGTessPixelShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGTessPixelShader, FRiveBasePixelShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
     END_SHADER_PARAMETER_STRUCT()
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGTessVertexShader : public FGlobalShader
+class FRiveRDGTessVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGTessVertexShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGTessVertexShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGTessVertexShader,
+                                FRiveBaseVertexShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
@@ -302,304 +376,255 @@ public:
     SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
 
     END_SHADER_PARAMETER_STRUCT()
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-/* Atomic Shaders */
+// Atomic Shaders
 
-class FRiveRDGPathPixelShader : public FGlobalShader
+class FRiveRDGPathPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGPathPixelShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGPathPixelShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGPathPixelShader, FRiveBasePixelShader);
     using FParameters = FRivePixelDrawUniforms;
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
 
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
-
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePermutation<FRiveRDGPathPixelShader>(
+        return RiveShouldCompilePixelPermutation<FRiveRDGPathPixelShader>(
             Parameters);
     }
 };
 
-class FRiveRDGPathVertexShader : public FGlobalShader
+class FRiveRDGPathVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGPathVertexShader, RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGPathVertexShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGPathVertexShader,
+                                FRiveBaseVertexShader);
     using FParameters = FRiveVertexDrawUniforms;
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGInteriorTrianglesPixelShader : public FGlobalShader
+class FRiveRDGInteriorTrianglesPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGInteriorTrianglesPixelShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGInteriorTrianglesPixelShader,
-                                FGlobalShader);
+                                FRiveBasePixelShader);
     using FParameters = FRivePixelDrawUniforms;
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
 
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePermutation<
+        return RiveShouldCompilePixelPermutation<
             FRiveRDGInteriorTrianglesPixelShader>(Parameters);
     }
 };
 
-class FRiveRDGInteriorTrianglesVertexShader : public FGlobalShader
+class FRiveRDGInteriorTrianglesVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGInteriorTrianglesVertexShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGInteriorTrianglesVertexShader,
-                                FGlobalShader);
+                                FRiveBaseVertexShader);
     using FParameters = FRiveVertexDrawUniforms;
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGAtlasBlitPixelShader : public FGlobalShader
+class FRiveRDGAtlasBlitPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtlasBlitPixelShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtlasBlitPixelShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtlasBlitPixelShader,
+                                FRiveBasePixelShader);
     using FParameters = FRivePixelDrawUniforms;
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
 
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePermutation<
+        return RiveShouldCompilePixelPermutation<
             FRiveRDGInteriorTrianglesPixelShader>(Parameters);
     }
 };
 
-class FRiveRDGAtlasBlitVertexShader : public FGlobalShader
+class FRiveRDGAtlasBlitVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtlasBlitVertexShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtlasBlitVertexShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtlasBlitVertexShader,
+                                FRiveBaseVertexShader);
     using FParameters = FRiveVertexDrawUniforms;
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGImageRectPixelShader : public FGlobalShader
+class FRiveRDGImageRectPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGImageRectPixelShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageRectPixelShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageRectPixelShader,
+                                FRiveBasePixelShader);
 
     using FParameters = FRivePixelDrawUniforms;
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
 
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePermutation<FRiveRDGImageRectPixelShader>(
+        return RiveShouldCompilePixelPermutation<FRiveRDGImageRectPixelShader>(
             Parameters);
     }
 };
 
-class FRiveRDGImageRectVertexShader : public FGlobalShader
+class FRiveRDGImageRectVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGImageRectVertexShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageRectVertexShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageRectVertexShader,
+                                FRiveBaseVertexShader);
 
     using FParameters = FRiveVertexDrawUniforms;
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGImageMeshPixelShader : public FGlobalShader
+class FRiveRDGImageMeshPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGImageMeshPixelShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageMeshPixelShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageMeshPixelShader,
+                                FRiveBasePixelShader);
 
     using FParameters = FRivePixelDrawUniforms;
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
 
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePermutation<FRiveRDGImageMeshPixelShader>(
+        return RiveShouldCompilePixelPermutation<FRiveRDGImageMeshPixelShader>(
             Parameters);
     }
 };
 
-class FRiveRDGImageMeshVertexShader : public FGlobalShader
+class FRiveRDGImageMeshVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGImageMeshVertexShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageMeshVertexShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageMeshVertexShader,
+                                FRiveBaseVertexShader);
 
     using FParameters = FRiveVertexDrawUniforms;
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGAtomicResolvePixelShader : public FGlobalShader
+class FRiveRDGAtomicResolvePixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtomicResolvePixelShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtomicResolvePixelShader,
-                                FGlobalShader);
+                                FRiveBasePixelShader);
 
     using FParameters = FRivePixelDrawUniforms;
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
 
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePermutation<FRiveRDGAtomicResolvePixelShader>(
-            Parameters);
+        return RiveShouldCompilePixelPermutation<
+            FRiveRDGAtomicResolvePixelShader>(Parameters, true);
     }
 };
 
-class FRiveRDGAtomicResolveVertexShader : public FGlobalShader
+class FRiveRDGAtomicResolveVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtomicResolveVertexShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtomicResolveVertexShader,
-                                FGlobalShader);
+                                FRiveBaseVertexShader);
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
 
     using FParameters = FRiveVertexDrawUniforms;
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-/* Raster Order Shaders */
+// Raster Ordered Shaders
 
-class FRiveRDGRasterOrderPathPixelShader : public FGlobalShader
+class FRiveRDGRasterOrderPathPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGRasterOrderPathPixelShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGRasterOrderPathPixelShader,
-                                FGlobalShader);
+                                FRiveBasePixelShader);
     using FParameters = FRivePixelDrawUniforms;
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
 
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
-
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePermutation<FRiveRDGPathPixelShader>(
+        return RiveShouldCompilePixelPermutation<FRiveRDGPathPixelShader>(
             Parameters);
     }
 };
 
-class FRiveRDGRasterOrderPathVertexShader : public FGlobalShader
+class FRiveRDGRasterOrderPathVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGRasterOrderPathVertexShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGRasterOrderPathVertexShader,
-                                FGlobalShader);
+                                FRiveBaseVertexShader);
     using FParameters = FRiveVertexDrawUniforms;
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGRasterOrderInteriorTrianglesPixelShader : public FGlobalShader
+class FRiveRDGRasterOrderInteriorTrianglesPixelShader
+    : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(
         FRiveRDGRasterOrderInteriorTrianglesPixelShader,
         RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGRasterOrderInteriorTrianglesPixelShader,
-                                FGlobalShader);
+                                FRiveBasePixelShader);
     using FParameters = FRivePixelDrawUniforms;
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
 
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePermutation<
+        return RiveShouldCompilePixelPermutation<
             FRiveRDGInteriorTrianglesPixelShader>(Parameters);
     }
 };
 
-class FRiveRDGRasterOrderInteriorTrianglesVertexShader : public FGlobalShader
+class FRiveRDGRasterOrderInteriorTrianglesVertexShader
+    : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(
@@ -607,70 +632,173 @@ public:
         RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(
         FRiveRDGRasterOrderInteriorTrianglesVertexShader,
-        FGlobalShader);
+        FRiveBaseVertexShader);
     using FParameters = FRiveVertexDrawUniforms;
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGRasterOrderImageMeshPixelShader : public FGlobalShader
+class FRiveRDGRasterOrderImageMeshPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGRasterOrderImageMeshPixelShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGRasterOrderImageMeshPixelShader,
-                                FGlobalShader);
+                                FRiveBasePixelShader);
 
     using FParameters = FRivePixelDrawUniforms;
 
     USE_ATOMIC_PIXEL_PERMUTATIONS
 
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePermutation<FRiveRDGImageMeshPixelShader>(
+        return RiveShouldCompilePixelPermutation<FRiveRDGImageMeshPixelShader>(
             Parameters);
     }
 };
 
-class FRiveRDGRasterOrderImageMeshVertexShader : public FGlobalShader
+class FRiveRDGRasterOrderImageMeshVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGRasterOrderImageMeshVertexShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGRasterOrderImageMeshVertexShader,
-                                FGlobalShader);
+                                FRiveBaseVertexShader);
 
     using FParameters = FRiveVertexDrawUniforms;
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-/* Atlas Render */
+// MSAA Shaders
 
-class FRiveRDGDrawAtlasVertexShader : public FGlobalShader
+class FRiveRDGAtlasBlitMSAAVertexShader : public FRiveBaseVertexShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtlasBlitMSAAVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtlasBlitMSAAVertexShader,
+                                FRiveBaseVertexShader);
+
+    using FParameters = FRiveMSAAVertexDrawUniforms;
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
+};
+
+class FRiveRDGAtlasBlitMSAAPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGAtlasBlitMSAAPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGAtlasBlitMSAAPixelShader,
+                                FRiveBasePixelShader);
+
+    using FParameters = FRiveMSAAPixelDrawUniforms;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return ShouldCompilePixelMSAAPermutation<
+            FRiveRDGAtlasBlitMSAAPixelShader>(Parameters);
+    }
+};
+
+class FRiveRDGImageMeshMSAAVertexShader : public FRiveBaseVertexShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGImageMeshMSAAVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageMeshMSAAVertexShader,
+                                FRiveBaseVertexShader);
+    using FParameters = FRiveMSAAVertexDrawUniforms;
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
+};
+
+class FRiveRDGImageMeshMSAAPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGImageMeshMSAAPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGImageMeshMSAAPixelShader,
+                                FRiveBasePixelShader);
+    using FParameters = FRiveMSAAPixelDrawUniforms;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return ShouldCompilePixelMSAAPermutation<
+            FRiveRDGImageMeshMSAAPixelShader>(Parameters);
+    }
+};
+
+class FRiveRDGPathMSAAVertexShader : public FRiveBaseVertexShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGPathMSAAVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGPathMSAAVertexShader,
+                                FRiveBaseVertexShader);
+    using FParameters = FRiveMSAAVertexDrawUniforms;
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
+};
+
+class FRiveRDGPathMSAAPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGPathMSAAPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGPathMSAAPixelShader,
+                                FRiveBasePixelShader);
+    using FParameters = FRiveMSAAPixelDrawUniforms;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return ShouldCompilePixelMSAAPermutation<FRiveRDGPathMSAAPixelShader>(
+            Parameters);
+    }
+};
+
+class FRiveRDGStencilMSAAVertexShader : public FRiveBaseVertexShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGStencilMSAAVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGStencilMSAAVertexShader,
+                                FRiveBaseVertexShader);
+    using FParameters = FRiveMSAAVertexDrawUniforms;
+};
+
+class FRiveRDGStencilMSAAPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGStencilMSAAPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGStencilMSAAPixelShader,
+                                FRiveBasePixelShader);
+    using FParameters = FRiveMSAAPixelDrawUniforms;
+};
+
+// Atlas Render
+
+class FRiveRDGDrawAtlasVertexShader : public FRiveBaseVertexShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGDrawAtlasVertexShader,
                                    RIVESHADERS_API);
-    SHADER_USE_PARAMETER_STRUCT(FRiveRDGDrawAtlasVertexShader, FGlobalShader);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGDrawAtlasVertexShader,
+                                FRiveBaseVertexShader);
 
     using FParameters = FRiveVertexDrawUniforms;
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
 BEGIN_SHADER_PARAMETER_STRUCT(FAtlasDrawUniforms, RIVESHADERS_API)
@@ -686,34 +814,26 @@ SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_featherTexture_raw)
 SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
 END_SHADER_PARAMETER_STRUCT()
 
-class FRiveRDGDrawAtlasFillPixelShader : public FGlobalShader
+class FRiveRDGDrawAtlasFillPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGDrawAtlasFillPixelShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGDrawAtlasFillPixelShader,
-                                FGlobalShader);
+                                FRiveBasePixelShader);
 
     using FParameters = FAtlasDrawUniforms;
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
-class FRiveRDGDrawAtlasStrokePixelShader : public FGlobalShader
+class FRiveRDGDrawAtlasStrokePixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGDrawAtlasStrokePixelShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGDrawAtlasStrokePixelShader,
-                                FGlobalShader);
+                                FRiveBasePixelShader);
 
     using FParameters = FAtlasDrawUniforms;
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
 class FRiveBltTextureAsDrawVertexShader : public FGlobalShader
@@ -728,25 +848,18 @@ public:
 };
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRiveBltTextureDrawUniforms, RIVESHADERS_API)
-#if !UE_VERSION_OLDER_THAN(5, 5, 0)
-SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
-#endif
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_sourceTexture_raw)
 END_SHADER_PARAMETER_STRUCT()
 
-class FRiveBltTextureAsDrawPixelShader : public FGlobalShader
+class FRiveBltTextureAsDrawPixelShader : public FRiveBasePixelShader
 {
 public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveBltTextureAsDrawPixelShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveBltTextureAsDrawPixelShader,
-                                FGlobalShader);
+                                FRiveBasePixelShader);
 
     using FParameters = FRiveBltTextureDrawUniforms;
-
-    static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
 };
 
 /*
