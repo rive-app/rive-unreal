@@ -77,6 +77,7 @@ void FRiveStateMachine::Initialize(FRiveCommandBuilder& CommandBuilder,
                                    rive::ArtboardHandle InOwningArtboardHandle,
                                    const FString& InStateMachineName)
 {
+    bStateMachineSettled = false;
     if (InStateMachineName.IsEmpty())
     {
         NativeStateMachineHandle = CommandBuilder.CreateDefaultStateMachine(
@@ -104,8 +105,6 @@ void FRiveStateMachine::Advance(FRiveCommandBuilder& CommandBuilder,
 }
 
 uint32 FRiveStateMachine::GetInputCount() const { return 0; }
-
-void FRiveStateMachine::FireTrigger(const FString& InPropertyName) const {}
 
 bool FRiveStateMachine::PointerDown(const FGeometry& InGeometry,
                                     const FRiveDescriptor& InDescriptor,
@@ -141,7 +140,7 @@ bool FRiveStateMachine::PointerMove(const FGeometry& InGeometry,
                                     const FRiveDescriptor& InDescriptor,
                                     const FPointerEvent& InMouseEvent)
 {
-    // Ignore when mouse doesn't move.
+    // Ignore when the mouse doesn't move.
     if (InMouseEvent.GetCursorDelta().GetAbsMax() <= 0)
     {
         return false;

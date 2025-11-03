@@ -28,9 +28,9 @@ struct FRiveList
     int32 ListSize = 0;
 
     // This is not an exhaustive list of view models. It is only to prevent GC
-    // of added view models. and allow mapping of value -> index
+    // of added view models.
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
-    TMap<URiveViewModel*, int32> ViewModels;
+    TArray<TObjectPtr<URiveViewModel>> ViewModels;
 };
 
 class URiveTriggerDelegate;
@@ -63,6 +63,14 @@ public:
     bool GetEnumValue(const FString& PropertyName, FString& EnumValue) const;
     bool GetNumberValue(const FString& PropertyName, float& OutNumber) const;
     bool GetListSize(const FString& PropertyName, size_t& OutSize) const;
+    bool ContainsLists(const FRiveList& InList) const;
+
+    bool SetBoolValue(const FString& PropertyName, bool InValue);
+    bool SetColorValue(const FString& PropertyName,
+                       const FLinearColor& InColor);
+    bool SetStringValue(const FString& PropertyName, const FString& InString);
+    bool SetEnumValue(const FString& PropertyName, const FString& InEnumValue);
+    bool SetNumberValue(const FString& PropertyName, float InNumber);
 
     UFUNCTION(BlueprintCallable,
               Category = "FieldNotify",
@@ -84,19 +92,27 @@ public:
               Category = "Lists",
               meta = (DisplayName = "Append View Model At End Of List",
                       ScriptName = "AppendToList"))
-    void K2_AppendToList(FRiveList List, URiveViewModel* Value);
+    void K2_AppendToList(UPARAM(ref) FRiveList& List, URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable,
               Category = "Lists",
               meta = (DisplayName = "Insert View Model Into List",
                       ScriptName = "InsertToList"))
-    void K2_InsertToList(FRiveList List, int32 Index, URiveViewModel* Value);
+    void K2_InsertToList(UPARAM(ref) FRiveList& List,
+                         int32 Index,
+                         URiveViewModel* Value);
+
+    UFUNCTION(BlueprintCallable,
+              Category = "Lists",
+              meta = (DisplayName = "Remove View Model From List",
+                      ScriptName = "RemoveFromList"))
+    void K2_RemoveFromList(UPARAM(ref) FRiveList& List, URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable,
               Category = "Lists",
               meta = (DisplayName = "Remove View Model From List At Index",
-                      ScriptName = "RemoveFromList"))
-    void K2_RemoveFromList(FRiveList List, URiveViewModel* Value);
+                      ScriptName = "RemoveFromListAtIndex"))
+    void K2_RemoveFromListAtIndex(UPARAM(ref) FRiveList& List, int32 Index);
 
     UFUNCTION(BlueprintCallable, Category = "Rive|ViewModel")
     void SetTrigger(const FString& TriggerName);
@@ -233,8 +249,7 @@ private:
         const FFieldValueChangedDynamicDelegate& Delegate);
 
     void UpdateListWithViewModelData(const FString& ListPath,
-                                     URiveViewModel* Value,
-                                     int32 Index);
+                                     URiveViewModel* Value);
 
     rive::ViewModelInstanceHandle NativeViewModelInstance = RIVE_NULL_HANDLE;
 
@@ -249,6 +264,8 @@ private:
     // Used for forwarding trigger names to the delegate callback without having
     // to make changes to how multicast delegates work
     TArray<URiveTriggerDelegate> TriggerDelegates;
+
+    void UnsettleStateMachine(const TCHAR* Context) const;
 
     // Checked in SetTrigger to make sure we don't infinite recurse when a
     // trigger is fired from the riv state machine

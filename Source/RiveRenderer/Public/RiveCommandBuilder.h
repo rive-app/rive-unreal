@@ -468,6 +468,20 @@ struct RIVERENDERER_API FRiveCommandBuilder
         return CurrentRequestId;
     }
 
+    uint64_t RemoveViewModelList(
+        rive::ViewModelInstanceHandle ViewModel,
+        const FString& Path,
+        rive::ViewModelInstanceHandle viewModelToRemove)
+    {
+        FTCHARToUTF8 ConvertPath(*Path);
+        CommandQueue->removeViewModelInstanceListViewModel(ViewModel,
+                                                           ConvertPath.Get(),
+                                                           INDEX_NONE /*= -1*/,
+                                                           viewModelToRemove,
+                                                           ++CurrentRequestId);
+        return CurrentRequestId;
+    }
+
     uint64_t DestroyArtboard(rive::ArtboardHandle Artboard)
     {
         CommandQueue->deleteArtboard(Artboard, ++CurrentRequestId);

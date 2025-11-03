@@ -40,8 +40,6 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
 
     uint32 GetInputCount() const;
 
-    void FireTrigger(const FString& InPropertyName) const;
-
     bool PointerDown(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,
                      const FPointerEvent& MouseEvent);

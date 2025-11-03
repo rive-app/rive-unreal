@@ -40,7 +40,8 @@ public class RiveEditor : ModuleRules
                 "RiveRenderer",
                 "RHI",
                 "RenderCore",
-                "BlueprintGraph"
+                "BlueprintGraph", 
+                "EditorScriptingUtilities"
             }
         );
 

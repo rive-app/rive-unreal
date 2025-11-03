@@ -168,6 +168,7 @@ static UBlueprint* GenerateBlueprintForViewModel(
     FString SanitizedPackageName =
         UPackageTools::SanitizePackageName(PackageName);
     UPackage* FolderPackage = UPackageTools::LoadPackage(*SanitizedPackageName);
+
     if (!FolderPackage)
     {
         FolderPackage = CreatePackage(*SanitizedPackageName);
@@ -354,6 +355,7 @@ static UBlueprint* GenerateBlueprintForViewModel(
             else if (PropertyDefinition.Type == ERiveDataType::List)
             {
                 PinType.PinSubCategoryObject = FRiveList::StaticStruct();
+                PinType.bIsReference = true;
             }
 
             FBPVariableDescription VariableDescription = {};
@@ -364,6 +366,7 @@ static UBlueprint* GenerateBlueprintForViewModel(
             VariableDescription.VarType = PinType;
             VariableDescription.PropertyFlags |=
                 (CPF_Edit | CPF_BlueprintVisible);
+
             if (PropertyDefinition.Type == ERiveDataType::String)
             {
                 VariableDescription.SetMetaData(TEXT("MultiLine"),
@@ -375,9 +378,13 @@ static UBlueprint* GenerateBlueprintForViewModel(
                     FString::Format(TEXT("(Path=\"{0}\")"),
                                     {PropertyDefinition.Name});
             }
-
-            VariableDescription.SetMetaData(FBlueprintMetadata::MD_FieldNotify,
-                                            TEXT(""));
+            if (PropertyDefinition.Type != ERiveDataType::List)
+            {
+                // Lists don't need to be field notifies.
+                VariableDescription.SetMetaData(
+                    FBlueprintMetadata::MD_FieldNotify,
+                    TEXT(""));
+            }
 
             Blueprint->NewVariables.Add(VariableDescription);
 
@@ -488,7 +495,7 @@ static void GenerateBlueprintsForFile(URiveFile* RiveFile)
         }
     }
 
-    // 3. Ensure everthing was Saved to disk.
+    // 3. Ensure everything was Saved to disk.
     const bool bPromptUserToSave = false;
     const bool bSaveMapPackages = true;
     const bool bSaveContentPackages = true;
@@ -713,11 +720,12 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
     }
 
     TWeakObjectPtr<URiveFileFactory> WeakThis(this);
-    auto Lambda = [WeakThis](URiveFile* RiveFile) {
+    auto Lambda = [Handle = OnDataReadyHandle](URiveFile* RiveFile) {
+        if (Handle.IsValid())
+        {
+            RiveFile->OnDataReady.Remove(Handle);
+        }
         GenerateBlueprintsForFile(RiveFile);
-        if (auto StrongThis = WeakThis.Pin();
-            StrongThis.IsValid() && StrongThis->OnDataReadyHandle.IsValid())
-            RiveFile->OnDataReady.Remove(StrongThis->OnDataReadyHandle);
     };
 
     if (RiveFile->GetHasData())
