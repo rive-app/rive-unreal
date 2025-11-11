@@ -26,7 +26,7 @@ FRiveCommandBuilder::FRiveCommandBuilder(
 uint64_t FRiveCommandBuilder::SetViewModelImage(
     rive::ViewModelInstanceHandle ViewModel,
     const FString& Name,
-    UTexture2D* Value)
+    UTexture* Value)
 {
     FTCHARToUTF8 ConvertName(*Name);
     std::string ConvertedName(ConvertName.Get(), ConvertName.Length());
@@ -37,7 +37,7 @@ uint64_t FRiveCommandBuilder::SetViewModelImage(
 
     // Make a strong reference to the texture so we can guarantee it won't get
     // GC'd.
-    TStrongObjectPtr<UTexture2D> StrongValue(Value);
+    TStrongObjectPtr<UTexture> StrongValue(Value);
     auto RenderImageHandle = ExternalImages.Find(StrongValue);
     if (RenderImageHandle == nullptr)
     {
@@ -97,8 +97,8 @@ void FRiveCommandBuilder::DrawArtboard(
 {
     auto& RenderTargetDrawCommands =
         FindOrAddDrawCommands(std::move(RenderTarget));
-    RenderTargetDrawCommands.ArtboardDrawCommands.Add(
-        std::move(DrawArtboardCommand));
+    RenderTargetDrawCommands.DrawCommands.Add(
+        {EDrawType::Artboard, nullptr, MoveTemp(DrawArtboardCommand)});
 }
 
 void FRiveCommandBuilder::Draw(TSharedPtr<FRiveRenderTarget> RenderTarget,
@@ -106,7 +106,8 @@ void FRiveCommandBuilder::Draw(TSharedPtr<FRiveRenderTarget> RenderTarget,
 {
     auto& RenderTargetDrawCommands =
         FindOrAddDrawCommands(MoveTemp(RenderTarget));
-    RenderTargetDrawCommands.DrawCommands.Add(MoveTemp(Callback));
+    RenderTargetDrawCommands.DrawCommands.Add(
+        {EDrawType::Direct, MoveTemp(Callback), {}});
 }
 
 static rive::AABB AABBFromAlignmentBox(const FBox2f& AlignmentBox)
@@ -176,16 +177,25 @@ void FRiveCommandBuilder::Execute()
 
                 SCOPED_DRAW_EVENT(RHICmdList, RiveDrawArtboard);
 
-                for (auto& ArtboardCommand : CommandSet.ArtboardDrawCommands)
-                {
-                    DrawArtboard(ArtboardCommand,
-                                 CommandServer,
-                                 Renderer.Get());
-                }
-
                 for (auto& DrawCommand : CommandSet.DrawCommands)
                 {
-                    DrawCommand(Key, CommandServer, Renderer.Get(), Factory);
+                    switch (DrawCommand.DrawType)
+                    {
+                        case EDrawType::Artboard:
+                            check(DrawCommand.ArtboardCommand.Handle !=
+                                  RIVE_NULL_HANDLE);
+                            DrawArtboard(DrawCommand.ArtboardCommand,
+                                         CommandServer,
+                                         Renderer.Get());
+                            break;
+                        case EDrawType::Direct:
+                            check(DrawCommand.DrawCallback);
+                            DrawCommand.DrawCallback(Key,
+                                                     CommandServer,
+                                                     Renderer.Get(),
+                                                     Factory);
+                            break;
+                    }
                 }
 
                 RenderTarget->EndRenderFrame(RiveRenderContext);

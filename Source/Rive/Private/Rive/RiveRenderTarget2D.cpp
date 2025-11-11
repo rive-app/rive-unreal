@@ -69,12 +69,33 @@ void URiveRenderTarget2D::PostLoad()
     Draw();
 }
 
+void URiveRenderTarget2D::DrawTestClear()
+{
+    // Empty draw to clear
+    Draw([](rive::DrawKey,
+            rive::CommandServer*,
+            rive::Renderer* Renderer,
+            rive::Factory* Factory) {
+        auto Paint = Factory->makeRenderPaint();
+        Paint->color(0xFFFFFFFF);
+        rive::RawPath Path;
+        Path.addRect(rive::AABB(10, 10, 40, 40));
+
+        auto RenderPath =
+            Factory->makeRenderPath(Path, rive::FillRule::nonZero);
+        Renderer->drawPath(RenderPath.get(), Paint.get());
+    });
+}
+
 void URiveRenderTarget2D::InitRiveRenderTarget2D()
 {
+    InitAutoFormat(SizeX, SizeY);
+
     auto Renderer = IRiveRendererModule::Get().GetRenderer();
     check(Renderer);
     RenderTarget = Renderer->CreateRenderTarget(*GetName(), this);
     RenderTarget->SetClearRenderTarget(bShouldClear);
+
     RenderTarget->Initialize();
 
     if (!IsValid(RiveDescriptor.RiveFile))

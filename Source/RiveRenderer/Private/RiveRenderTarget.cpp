@@ -124,8 +124,10 @@ TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
         FrameDescriptor.loadAction =
             bClearRenderTarget ? rive::gpu::LoadAction::clear
                                : rive::gpu::LoadAction::preserveRenderTarget;
-        FrameDescriptor.clearColor =
-            rive::colorARGB(Color.A, Color.R, Color.G, Color.B);
+        FrameDescriptor.clearColor = rive::colorARGB(Color.A * 0xFF,
+                                                     Color.R * 0xFF,
+                                                     Color.G * 0xFF,
+                                                     Color.B * 0xFF);
         FrameDescriptor.wireframe = false;
         FrameDescriptor.fillsDisabled = false;
         FrameDescriptor.strokesDisabled = false;
@@ -145,8 +147,10 @@ TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
         FrameDescriptor.loadAction =
             bClearRenderTarget ? rive::gpu::LoadAction::clear
                                : rive::gpu::LoadAction::preserveRenderTarget;
-        FrameDescriptor.clearColor =
-            rive::colorARGB(Color.A, Color.R, Color.G, Color.B);
+        FrameDescriptor.clearColor = rive::colorARGB(Color.A * 0xFF,
+                                                     Color.R * 0xFF,
+                                                     Color.G * 0xFF,
+                                                     Color.B * 0xFF);
         FrameDescriptor.wireframe = false;
         FrameDescriptor.fillsDisabled = false;
         FrameDescriptor.strokesDisabled = false;
@@ -164,8 +168,10 @@ TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
         FrameDescriptor.loadAction =
             bClearRenderTarget ? rive::gpu::LoadAction::clear
                                : rive::gpu::LoadAction::preserveRenderTarget;
-        FrameDescriptor.clearColor =
-            rive::colorARGB(Color.A, Color.R, Color.G, Color.B);
+        FrameDescriptor.clearColor = rive::colorARGB(Color.A * 0xFF,
+                                                     Color.R * 0xFF,
+                                                     Color.G * 0xFF,
+                                                     Color.B * 0xFF);
         FrameDescriptor.wireframe = false;
         FrameDescriptor.fillsDisabled = false;
         FrameDescriptor.strokesDisabled = false;

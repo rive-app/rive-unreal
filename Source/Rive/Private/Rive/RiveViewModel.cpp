@@ -997,9 +997,9 @@ void URiveViewModel::OnUpdatedField(UE::FieldNotification::FFieldId InFieldId)
                     ViewModelObject->NativeViewModelInstance);
             }
         }
-        else if (ObjectClass == UTexture2D::StaticClass())
+        else if (ObjectClass == UTexture::StaticClass())
         {
-            if (UTexture2D* TextureObject = Cast<UTexture2D>(Object))
+            if (UTexture* TextureObject = Cast<UTexture>(Object))
             {
                 // Var was set.
                 Builder.SetViewModelImage(NativeViewModelInstance,

@@ -297,8 +297,8 @@ void UK2Node_MakeArtboard::UpdatePins(UEdGraphPin* UpdatedPin)
     bool bNeedsEnumPins = RiveFile != nullptr;
 
     auto ArtboardPin = GetArtboardSourcePin();
-    if ((bNeedsEnumPins && ArtboardPin == nullptr) ||
-        (SelectedRiveFile != RiveFile && IsValid(RiveFile)))
+    if ((bNeedsEnumPins && ArtboardPin == nullptr) &&
+        SelectedRiveFile != RiveFile && IsValid(RiveFile))
     {
         SelectedRiveFile = RiveFile;
         UEnum* Enum = RiveFile->ArtboardEnum;
@@ -331,6 +331,8 @@ void UK2Node_MakeArtboard::UpdatePins(UEdGraphPin* UpdatedPin)
     else if (!bNeedsEnumPins && ArtboardPin)
     {
         RemovePin(ArtboardPin);
+        RemovePin(GetAutoBindPin());
+        SelectedRiveFile = nullptr;
     }
 
     GetGraph()->NotifyNodeChanged(this);

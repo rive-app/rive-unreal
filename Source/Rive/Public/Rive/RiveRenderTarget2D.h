@@ -32,6 +32,9 @@ public:
 
     virtual void PostLoad() override;
 
+    UFUNCTION(BlueprintCallable)
+    void DrawTestClear();
+
     UFUNCTION()
     TArray<FString> GetArtboardNamesForDropdown() const;
 

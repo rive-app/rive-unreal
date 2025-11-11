@@ -263,7 +263,7 @@ static UBlueprint* GenerateBlueprintForViewModel(
             }
             else if (PropertyDefinition.Type == ERiveDataType::AssetImage)
             {
-                PinType.PinSubCategoryObject = UTexture2D::StaticClass();
+                PinType.PinSubCategoryObject = UTexture::StaticClass();
             }
             else if (PropertyDefinition.Type == ERiveDataType::Trigger)
             {

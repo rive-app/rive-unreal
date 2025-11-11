@@ -16,21 +16,34 @@ THIRD_PARTY_INCLUDES_END
 
 class FRiveRenderTarget;
 
-// Nothing here needs to be garbage collected, so we don't need to make it a
-// USTRUCT.
+typedef TFunction<void(rive::CommandServer*)> ServerSideCallback;
+typedef TFunction<
+    void(rive::DrawKey, rive::CommandServer*, rive::Renderer*, rive::Factory*)>
+    DirectDrawCallback;
+
+enum EDrawType
+{
+    Artboard,
+    Direct
+};
+
 struct FDrawArtboardCommand
 {
-    rive::ArtboardHandle Handle;
+    rive::ArtboardHandle Handle = RIVE_NULL_HANDLE;
     FBox2f AlignmentBox;
     ERiveAlignment Alignment;
     ERiveFitType FitType;
     float ScaleFactor;
 };
 
-typedef TFunction<void(rive::CommandServer*)> ServerSideCallback;
-typedef TFunction<
-    void(rive::DrawKey, rive::CommandServer*, rive::Renderer*, rive::Factory*)>
-    DirectDrawCallback;
+struct FDrawCommand
+{
+    EDrawType DrawType;
+    // For Direct draw type.
+    DirectDrawCallback DrawCallback = nullptr;
+    // For Artboard draw type.
+    FDrawArtboardCommand ArtboardCommand;
+};
 
 // Contains all commands for a given render target, all commands held here are
 // expected to happen between BeginFrame and Flush.
@@ -43,9 +56,7 @@ struct FRiveCommandSet
     rive::DrawKey DrawKey = RIVE_NULL_HANDLE;
 
     // Array of commands to submit specifically for drawing Artboards.
-    TArray<FDrawArtboardCommand> ArtboardDrawCommands;
-    // Array of draw commands to submit that could be anything.
-    TArray<DirectDrawCallback> DrawCommands;
+    TArray<FDrawCommand> DrawCommands;
 };
 
 /*
@@ -403,7 +414,7 @@ struct RIVERENDERER_API FRiveCommandBuilder
 
     uint64_t SetViewModelImage(rive::ViewModelInstanceHandle ViewModel,
                                const FString& Name,
-                               UTexture2D* Value);
+                               UTexture* Value);
 
     uint64_t SetViewModelViewModel(rive::ViewModelInstanceHandle ViewModel,
                                    const FString& Name,
@@ -705,7 +716,7 @@ private:
     TMap<TSharedPtr<FRiveRenderTarget>, FRiveCommandSet> DrawCommands;
 
     // Used for data binding external UTextures.
-    TMap<TStrongObjectPtr<UTexture2D>, rive::RenderImageHandle> ExternalImages;
+    TMap<TStrongObjectPtr<UTexture>, rive::RenderImageHandle> ExternalImages;
 
     uint64_t CurrentRequestId = 0;
 };
