@@ -31,6 +31,7 @@ public class Rive : ModuleRules
 				"InputCore",
 				"Projects",
 				"RHI",
+				"UMG",
 				"RenderCore",
 				"RiveLibrary",
 				"RiveRenderer",
@@ -61,7 +62,6 @@ public class Rive : ModuleRules
 				"RiveRenderer",
 				"Slate",
 				"SlateCore",
-				"UMG", 
 			}
 		);
 
