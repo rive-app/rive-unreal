@@ -446,7 +446,7 @@ bool URiveViewModel::GetNumberValue(const FString& PropertyName,
 }
 
 bool URiveViewModel::GetListSize(const FString& PropertyName,
-                                 size_t& OutSize) const
+                                 int32& OutSize) const
 {
     check(bIsGenerated);
     if (auto ListProperty = FindFProperty<FStructProperty>(*PropertyName))

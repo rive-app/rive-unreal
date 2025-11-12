@@ -243,6 +243,14 @@ struct RIVERENDERER_API FRiveCommandBuilder
             Listener);
     }
 
+    // Create a render image from a given UTexture. If the image already exists,
+    // the callback is called instantly and -1 is passed as the request id.
+    // Otherwise a value > 0 is returned and the callback happens later on the
+    // game thread with the valid handle.
+    uint64_t CreateRenderImage(
+        UTexture*,
+        TFunction<void(rive::RenderImageHandle, uint64_t)> CompletionCallback);
+
     uint64_t GetPropertyValue(rive::ViewModelInstanceHandle ViewModel,
                               const FString& Name,
                               rive::DataType Type)

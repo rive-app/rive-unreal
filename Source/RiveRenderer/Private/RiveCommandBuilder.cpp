@@ -23,14 +23,10 @@ FRiveCommandBuilder::FRiveCommandBuilder(
     check(IsInGameThread());
 }
 
-uint64_t FRiveCommandBuilder::SetViewModelImage(
-    rive::ViewModelInstanceHandle ViewModel,
-    const FString& Name,
-    UTexture* Value)
+uint64_t FRiveCommandBuilder::CreateRenderImage(
+    UTexture* Value,
+    TFunction<void(rive::RenderImageHandle, uint64_t)> CompletionCallback)
 {
-    FTCHARToUTF8 ConvertName(*Name);
-    std::string ConvertedName(ConvertName.Get(), ConvertName.Length());
-
     // This mess is to support using UTexture2D directly as a value for a
     // property instead of forcing people to use the command queue to create a
     // render image first.
@@ -39,11 +35,13 @@ uint64_t FRiveCommandBuilder::SetViewModelImage(
     // GC'd.
     TStrongObjectPtr<UTexture> StrongValue(Value);
     auto RenderImageHandle = ExternalImages.Find(StrongValue);
+    uint64_t RequestId = -1;
     if (RenderImageHandle == nullptr)
     {
+        RequestId = ++CurrentRequestId;
         // If we don't already have this texture we first dispatch to the render
         // thread to create a render image.
-        RunOnce([this, StrongValue, ViewModel, Name = MoveTemp(ConvertedName)](
+        RunOnce([this, StrongValue, RequestId, CompletionCallback](
                     rive::CommandServer* CommandServer) {
             // Everything in here is on the render thread.
             check(IsInRenderingThread());
@@ -53,26 +51,49 @@ uint64_t FRiveCommandBuilder::SetViewModelImage(
 
             // Now we dispatch back to the game thread because CommandQueue
             // should only ever be used there.
-            AsyncTask(
-                ENamedThreads::GameThread,
-                [this, RenderImage, ViewModel, StrongValue, Name]() {
-                    auto Handle = CommandQueue->addExternalImage(RenderImage);
-                    ExternalImages.Add(StrongValue, Handle);
-                    CommandQueue->setViewModelInstanceImage(ViewModel,
-                                                            Name,
-                                                            Handle,
-                                                            ++CurrentRequestId);
-                });
+            AsyncTask(ENamedThreads::GameThread,
+                      [this,
+                       RenderImage,
+                       StrongValue,
+                       RequestId,
+                       CompletionCallback]() {
+                          auto Handle =
+                              CommandQueue->addExternalImage(RenderImage);
+                          ExternalImages.Add(StrongValue, Handle);
+                          CompletionCallback(Handle, RequestId);
+                      });
         });
-
-        return -1; // -1 Here means we have to actually do the set async
+    }
+    else
+    {
+        CompletionCallback(*RenderImageHandle, RequestId);
     }
 
-    CommandQueue->setViewModelInstanceImage(ViewModel,
-                                            ConvertName.Get(),
-                                            *RenderImageHandle,
-                                            ++CurrentRequestId);
-    return CurrentRequestId;
+    return RequestId;
+}
+
+uint64_t FRiveCommandBuilder::SetViewModelImage(
+    rive::ViewModelInstanceHandle ViewModel,
+    const FString& Name,
+    UTexture* Value)
+{
+    FTCHARToUTF8 ConvertName(*Name);
+    std::string ConvertedName(ConvertName.Get(), ConvertName.Length());
+
+    rive::RenderImageHandle RenderImageHandle = RIVE_NULL_HANDLE;
+    auto RequestId = CreateRenderImage(
+        Value,
+        [this, ViewModel, Name = MoveTemp(ConvertedName)](
+            rive::RenderImageHandle Handle,
+            uint64_t RequestId) {
+            check(IsInGameThread());
+            CommandQueue->setViewModelInstanceImage(ViewModel,
+                                                    Name,
+                                                    Handle,
+                                                    ++CurrentRequestId);
+        });
+
+    return RequestId > 0 ? RequestId : CurrentRequestId;
 }
 
 void FRiveCommandBuilder::RunOnce(ServerSideCallback Callback)

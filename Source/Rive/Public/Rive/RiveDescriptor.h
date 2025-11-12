@@ -46,4 +46,17 @@ public:
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
     float ScaleFactor = 1.0f;
+
+    friend FArchive& operator<<(FArchive& Ar, FRiveDescriptor& Struct)
+    {
+        Ar << Struct.RiveFile;
+        Ar << Struct.ArtboardName;
+        Ar << Struct.StateMachineName;
+        Ar << Struct.bAutoBindDefaultViewModel;
+        Ar << Struct.FitType;
+        Ar << Struct.Alignment;
+        Ar << Struct.ScaleFactor;
+
+        return Ar;
+    }
 };

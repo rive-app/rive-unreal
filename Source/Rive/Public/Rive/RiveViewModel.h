@@ -56,20 +56,30 @@ public:
     // check HasDefaultValues() before using these or the value returned may be
     // incorrect.
 
+    UFUNCTION(BlueprintCallable)
     bool GetBoolValue(const FString& PropertyName, bool& OutValue) const;
+    UFUNCTION(BlueprintCallable)
     bool GetColorValue(const FString& PropertyName,
                        FLinearColor& OutColor) const;
     bool GetStringValue(const FString& PropertyName, FString& OutString) const;
+    UFUNCTION(BlueprintCallable)
     bool GetEnumValue(const FString& PropertyName, FString& EnumValue) const;
+    UFUNCTION(BlueprintCallable)
     bool GetNumberValue(const FString& PropertyName, float& OutNumber) const;
-    bool GetListSize(const FString& PropertyName, size_t& OutSize) const;
+    UFUNCTION(BlueprintCallable)
+    bool GetListSize(const FString& PropertyName, int32& OutSize) const;
+    UFUNCTION(BlueprintCallable)
     bool ContainsLists(const FRiveList& InList) const;
-
+    UFUNCTION(BlueprintCallable)
     bool SetBoolValue(const FString& PropertyName, bool InValue);
+    UFUNCTION(BlueprintCallable)
     bool SetColorValue(const FString& PropertyName,
                        const FLinearColor& InColor);
+    UFUNCTION(BlueprintCallable)
     bool SetStringValue(const FString& PropertyName, const FString& InString);
+    UFUNCTION(BlueprintCallable)
     bool SetEnumValue(const FString& PropertyName, const FString& InEnumValue);
+    UFUNCTION(BlueprintCallable)
     bool SetNumberValue(const FString& PropertyName, float InNumber);
 
     UFUNCTION(BlueprintCallable,
