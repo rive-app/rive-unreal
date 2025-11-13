@@ -428,6 +428,7 @@ bool URiveViewModel::GetEnumValue(const FString& PropertyName,
         const FName NameValue =
             EnumProperty->GetIntPropertyEnum()->GetNameByIndex(EnumIndex);
         EnumValue = NameValue.ToString();
+
         return true;
     }
     return false;
@@ -477,10 +478,15 @@ bool URiveViewModel::ContainsLists(const FRiveList& InList) const
 bool URiveViewModel::SetBoolValue(const FString& PropertyName, bool Value)
 {
     check(bIsGenerated);
-    if (auto BoolProperty = FindFProperty<FBoolProperty>(*PropertyName))
+    if (auto BoolProperty =
+            FindFProperty<FBoolProperty>(GetClass(), *PropertyName))
     {
         BoolProperty->SetPropertyValue_InContainer(this, Value);
         UnsettleStateMachine(TEXT("SetBoolValue"));
+        UE::FieldNotification::FFieldId Field =
+            GetFieldNotificationDescriptor().GetField(GetClass(),
+                                                      *PropertyName);
+        BroadcastFieldValueChanged(Field);
         return true;
     }
 
@@ -488,16 +494,21 @@ bool URiveViewModel::SetBoolValue(const FString& PropertyName, bool Value)
 }
 
 bool URiveViewModel::SetColorValue(const FString& PropertyName,
-                                   const FLinearColor& Color)
+                                   FLinearColor Color)
 {
     check(bIsGenerated);
-    if (auto BoolProperty = FindFProperty<FStructProperty>(*PropertyName))
+    if (auto BoolProperty =
+            FindFProperty<FStructProperty>(GetClass(), *PropertyName))
     {
         if (const auto LinearColor =
                 BoolProperty->ContainerPtrToValuePtr<FLinearColor>(this))
         {
             *LinearColor = Color;
             UnsettleStateMachine(TEXT("SetColorValue"));
+            UE::FieldNotification::FFieldId Field =
+                GetFieldNotificationDescriptor().GetField(GetClass(),
+                                                          *PropertyName);
+            BroadcastFieldValueChanged(Field);
             return true;
         }
     }
@@ -508,10 +519,15 @@ bool URiveViewModel::SetStringValue(const FString& PropertyName,
                                     const FString& String)
 {
     check(bIsGenerated);
-    if (auto StrProperty = FindFProperty<FStrProperty>(*PropertyName))
+    if (auto StrProperty =
+            FindFProperty<FStrProperty>(GetClass(), *PropertyName))
     {
         StrProperty->SetPropertyValue_InContainer(this, String);
         UnsettleStateMachine(TEXT("SetStringValue"));
+        UE::FieldNotification::FFieldId Field =
+            GetFieldNotificationDescriptor().GetField(GetClass(),
+                                                      *PropertyName);
+        BroadcastFieldValueChanged(Field);
         return true;
     }
     return false;
@@ -521,12 +537,17 @@ bool URiveViewModel::SetEnumValue(const FString& PropertyName,
                                   const FString& EnumValue)
 {
     check(bIsGenerated);
-    if (auto EnumProperty = FindFProperty<FByteProperty>(*PropertyName))
+    if (auto EnumProperty =
+            FindFProperty<FByteProperty>(GetClass(), *PropertyName))
     {
         const uint64 EnumIndex =
             EnumProperty->GetIntPropertyEnum()->GetIndexByNameString(EnumValue);
         EnumProperty->SetValue_InContainer(this, EnumIndex);
         UnsettleStateMachine(TEXT("SetEnumValue"));
+        UE::FieldNotification::FFieldId Field =
+            GetFieldNotificationDescriptor().GetField(GetClass(),
+                                                      *PropertyName);
+        BroadcastFieldValueChanged(Field);
         return true;
     }
     return false;
@@ -535,10 +556,15 @@ bool URiveViewModel::SetEnumValue(const FString& PropertyName,
 bool URiveViewModel::SetNumberValue(const FString& PropertyName, float Number)
 {
     check(bIsGenerated);
-    if (auto FloatProperty = FindFProperty<FFloatProperty>(*PropertyName))
+    if (auto FloatProperty =
+            FindFProperty<FFloatProperty>(GetClass(), *PropertyName))
     {
         FloatProperty->SetPropertyValue_InContainer(this, Number);
         UnsettleStateMachine(TEXT("SetNumberValue"));
+        UE::FieldNotification::FFieldId Field =
+            GetFieldNotificationDescriptor().GetField(GetClass(),
+                                                      *PropertyName);
+        BroadcastFieldValueChanged(Field);
         return true;
     }
     return false;

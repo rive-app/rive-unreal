@@ -73,8 +73,7 @@ public:
     UFUNCTION(BlueprintCallable)
     bool SetBoolValue(const FString& PropertyName, bool InValue);
     UFUNCTION(BlueprintCallable)
-    bool SetColorValue(const FString& PropertyName,
-                       const FLinearColor& InColor);
+    bool SetColorValue(const FString& PropertyName, FLinearColor InColor);
     UFUNCTION(BlueprintCallable)
     bool SetStringValue(const FString& PropertyName, const FString& InString);
     UFUNCTION(BlueprintCallable)
