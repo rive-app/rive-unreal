@@ -2050,9 +2050,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                           desc.renderTargetUpdateBounds.right,
                                           desc.renderTargetUpdateBounds.bottom);
 
-            for (const DrawBatch* RenderPassStart = desc.drawList->head();
+            for (const DrawBatch *
+                     RenderPassStart = desc.drawList->head(),
+                    *NextRenderPass = desc.firstDstBlendBarrier;
                  RenderPassStart != nullptr;
-                 RenderPassStart = RenderPassStart->nextDstBlendBarrier)
+                 RenderPassStart = NextRenderPass,
+                    NextRenderPass = RenderPassStart
+                                         ? RenderPassStart->nextDstBlendBarrier
+                                         : nullptr)
             {
                 GraphBuilder.AddPass(
                     RDG_EVENT_NAME("Rive_Draw_MSAA_Render_Pass"),
@@ -2066,6 +2071,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                      platformFeatures = m_platformFeatures,
                      imageSamplers = m_imageSamplers,
                      NeedsForceUAVTypes,
+                     NextRenderPass,
                      imageDrawUniformBuffer = m_imageDrawUniformBuffer.get(),
                      NeedsLinearColorOutput,
                      VertexDeclarations = VertexDeclarations,
@@ -2081,7 +2087,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
                         for (const DrawBatch* batch =
                                  const_cast<DrawBatch*>(&RenderPassStart);
-                             batch != RenderPassStart.nextDstBlendBarrier;
+                             batch != NextRenderPass;
                              batch = batch->next)
                         {
                             if (batch->elementCount == 0)
@@ -2267,7 +2273,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         }
                     });
 
-                if (RenderPassStart->nextDstBlendBarrier && MSAADstColorTexture)
+                if (NextRenderPass && MSAADstColorTexture)
                 {
                     if (bNeedsSeperateResolve)
                     {
