@@ -56,20 +56,23 @@ public:
     // check HasDefaultValues() before using these or the value returned may be
     // incorrect.
 
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintPure)
     bool GetBoolValue(const FString& PropertyName, bool& OutValue) const;
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintPure)
     bool GetColorValue(const FString& PropertyName,
                        FLinearColor& OutColor) const;
+    UFUNCTION(BlueprintPure)
     bool GetStringValue(const FString& PropertyName, FString& OutString) const;
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintPure)
     bool GetEnumValue(const FString& PropertyName, FString& EnumValue) const;
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintPure)
     bool GetNumberValue(const FString& PropertyName, float& OutNumber) const;
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintPure)
     bool GetListSize(const FString& PropertyName, int32& OutSize) const;
-    UFUNCTION(BlueprintCallable)
-    bool ContainsLists(const FRiveList& InList) const;
+    UFUNCTION(BlueprintPure)
+    bool ContainsListsByName(const FString& ListName) const;
+    UFUNCTION(BlueprintPure)
+    bool ContainsLists(FRiveList InList) const;
     UFUNCTION(BlueprintCallable)
     bool SetBoolValue(const FString& PropertyName, bool InValue);
     UFUNCTION(BlueprintCallable)
@@ -80,6 +83,20 @@ public:
     bool SetEnumValue(const FString& PropertyName, const FString& InEnumValue);
     UFUNCTION(BlueprintCallable)
     bool SetNumberValue(const FString& PropertyName, float InNumber);
+    UFUNCTION(BlueprintCallable)
+    bool SetImageValue(const FString& PropertyName, UTexture* InImage);
+    UFUNCTION(BlueprintCallable)
+    bool AppendToList(const FString& ListName, URiveViewModel* Value);
+    UFUNCTION(BlueprintCallable)
+    bool InsertToList(const FString& ListName,
+                      int32 Index,
+                      URiveViewModel* Value);
+
+    UFUNCTION(BlueprintCallable)
+    bool RemoveFromList(const FString& ListName, URiveViewModel* Value);
+
+    UFUNCTION(BlueprintCallable)
+    bool RemoveFromListAtIndex(const FString& ListName, int32 Index);
 
     UFUNCTION(BlueprintCallable,
               Category = "FieldNotify",
@@ -101,27 +118,25 @@ public:
               Category = "Lists",
               meta = (DisplayName = "Append View Model At End Of List",
                       ScriptName = "AppendToList"))
-    void K2_AppendToList(UPARAM(ref) FRiveList& List, URiveViewModel* Value);
+    void K2_AppendToList(FRiveList List, URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable,
               Category = "Lists",
               meta = (DisplayName = "Insert View Model Into List",
                       ScriptName = "InsertToList"))
-    void K2_InsertToList(UPARAM(ref) FRiveList& List,
-                         int32 Index,
-                         URiveViewModel* Value);
+    void K2_InsertToList(FRiveList List, int32 Index, URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable,
               Category = "Lists",
               meta = (DisplayName = "Remove View Model From List",
                       ScriptName = "RemoveFromList"))
-    void K2_RemoveFromList(UPARAM(ref) FRiveList& List, URiveViewModel* Value);
+    void K2_RemoveFromList(FRiveList List, URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable,
               Category = "Lists",
               meta = (DisplayName = "Remove View Model From List At Index",
                       ScriptName = "RemoveFromListAtIndex"))
-    void K2_RemoveFromListAtIndex(UPARAM(ref) FRiveList& List, int32 Index);
+    void K2_RemoveFromListAtIndex(FRiveList List, int32 Index);
 
     UFUNCTION(BlueprintCallable, Category = "Rive|ViewModel")
     void SetTrigger(const FString& TriggerName);
@@ -258,7 +273,8 @@ private:
         const FFieldValueChangedDynamicDelegate& Delegate);
 
     void UpdateListWithViewModelData(const FString& ListPath,
-                                     URiveViewModel* Value);
+                                     URiveViewModel* Value,
+                                     bool bRemove);
 
     rive::ViewModelInstanceHandle NativeViewModelInstance = RIVE_NULL_HANDLE;
 

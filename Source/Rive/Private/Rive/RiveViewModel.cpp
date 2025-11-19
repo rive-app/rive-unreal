@@ -380,7 +380,8 @@ bool URiveViewModel::GetBoolValue(const FString& PropertyName,
                                   bool& OutValue) const
 {
     check(bIsGenerated);
-    if (auto BoolProperty = FindFProperty<FBoolProperty>(*PropertyName))
+    if (auto BoolProperty =
+            FindFProperty<FBoolProperty>(GetClass(), *PropertyName))
     {
         OutValue = BoolProperty->GetPropertyValue_InContainer(this);
         return true;
@@ -393,7 +394,8 @@ bool URiveViewModel::GetColorValue(const FString& PropertyName,
                                    FLinearColor& OutColor) const
 {
     check(bIsGenerated);
-    if (auto BoolProperty = FindFProperty<FStructProperty>(*PropertyName))
+    if (auto BoolProperty =
+            FindFProperty<FStructProperty>(GetClass(), *PropertyName))
     {
         if (const auto LinearColor =
                 BoolProperty->ContainerPtrToValuePtr<FLinearColor>(this))
@@ -409,7 +411,8 @@ bool URiveViewModel::GetStringValue(const FString& PropertyName,
                                     FString& OutString) const
 {
     check(bIsGenerated);
-    if (auto StrProperty = FindFProperty<FStrProperty>(*PropertyName))
+    if (auto StrProperty =
+            FindFProperty<FStrProperty>(GetClass(), *PropertyName))
     {
         OutString = StrProperty->GetPropertyValue_InContainer(this);
         return true;
@@ -421,7 +424,8 @@ bool URiveViewModel::GetEnumValue(const FString& PropertyName,
                                   FString& EnumValue) const
 {
     check(bIsGenerated);
-    if (auto EnumProperty = FindFProperty<FByteProperty>(*PropertyName))
+    if (auto EnumProperty =
+            FindFProperty<FByteProperty>(GetClass(), *PropertyName))
     {
         const uint64 EnumIndex =
             EnumProperty->GetUnsignedIntPropertyValue_InContainer(this);
@@ -438,7 +442,8 @@ bool URiveViewModel::GetNumberValue(const FString& PropertyName,
                                     float& OutNumber) const
 {
     check(bIsGenerated);
-    if (auto FloatProperty = FindFProperty<FFloatProperty>(*PropertyName))
+    if (auto FloatProperty =
+            FindFProperty<FFloatProperty>(GetClass(), *PropertyName))
     {
         OutNumber = FloatProperty->GetPropertyValue_InContainer(this);
         return true;
@@ -450,7 +455,8 @@ bool URiveViewModel::GetListSize(const FString& PropertyName,
                                  int32& OutSize) const
 {
     check(bIsGenerated);
-    if (auto ListProperty = FindFProperty<FStructProperty>(*PropertyName))
+    if (auto ListProperty =
+            FindFProperty<FStructProperty>(GetClass(), *PropertyName))
     {
         if (const auto List =
                 ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
@@ -462,9 +468,24 @@ bool URiveViewModel::GetListSize(const FString& PropertyName,
     return false;
 }
 
-bool URiveViewModel::ContainsLists(const FRiveList& InList) const
+bool URiveViewModel::ContainsListsByName(const FString& ListName) const
 {
-    if (auto ListProperty = FindFProperty<FStructProperty>(*InList.Path))
+    if (auto ListProperty =
+            FindFProperty<FStructProperty>(GetClass(), *ListName))
+    {
+        if (auto List = ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool URiveViewModel::ContainsLists(FRiveList InList) const
+{
+    if (auto ListProperty =
+            FindFProperty<FStructProperty>(GetClass(), *InList.Path))
     {
         if (auto List = ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
         {
@@ -570,6 +591,168 @@ bool URiveViewModel::SetNumberValue(const FString& PropertyName, float Number)
     return false;
 }
 
+bool URiveViewModel::SetImageValue(const FString& PropertyName,
+                                   UTexture* InImage)
+{
+    check(bIsGenerated);
+    if (auto ObjectProperty =
+            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
+    {
+        if (ObjectProperty->PropertyClass != UTexture::StaticClass())
+        {
+            UE_LOG(LogRive,
+                   Error,
+                   TEXT("Invalid Property %s For Image Value Set"),
+                   *PropertyName);
+            return false;
+        }
+        ObjectProperty->SetPropertyValue_InContainer(this, InImage);
+        UnsettleStateMachine(TEXT("SetImageValue"));
+        UE::FieldNotification::FFieldId Field =
+            GetFieldNotificationDescriptor().GetField(GetClass(),
+                                                      *PropertyName);
+        BroadcastFieldValueChanged(Field);
+        return true;
+    }
+    return false;
+}
+
+bool URiveViewModel::AppendToList(const FString& ListName,
+                                  URiveViewModel* Value)
+{
+    if (!ContainsListsByName(ListName))
+        return false;
+
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& Builder = RiveRenderer->GetCommandBuilder();
+    Builder.AppendViewModelList(NativeViewModelInstance,
+                                ListName,
+                                Value->NativeViewModelInstance);
+    UpdateListWithViewModelData(ListName, Value, false);
+    UnsettleStateMachine(TEXT("AppendToList"));
+    Value->OwningArtboard = OwningArtboard;
+    return true;
+}
+
+bool URiveViewModel::InsertToList(const FString& ListName,
+                                  int32 Index,
+                                  URiveViewModel* Value)
+{
+    if (!ContainsListsByName(ListName))
+        return false;
+
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& Builder = RiveRenderer->GetCommandBuilder();
+    Builder.InsertViewModelList(NativeViewModelInstance,
+                                ListName,
+                                Value->NativeViewModelInstance,
+                                Index);
+    UpdateListWithViewModelData(ListName, Value, false);
+    Value->OwningArtboard = OwningArtboard;
+
+    UnsettleStateMachine(TEXT("InsertToList"));
+
+    return true;
+}
+
+bool URiveViewModel::RemoveFromList(const FString& ListName,
+                                    URiveViewModel* Value)
+{
+    if (!ContainsListsByName(ListName))
+        return false;
+
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& Builder = RiveRenderer->GetCommandBuilder();
+    Builder.RemoveViewModelList(NativeViewModelInstance,
+                                ListName,
+                                Value->GetNativeHandle());
+    UnsettleStateMachine(TEXT("RemoveFromList"));
+    Value->OwningArtboard.Reset();
+    UpdateListWithViewModelData(ListName, Value, true);
+    return true;
+}
+
+bool URiveViewModel::RemoveFromListAtIndex(const FString& ListName, int32 Index)
+{
+    if (!ContainsListsByName(ListName))
+        return false;
+
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& Builder = RiveRenderer->GetCommandBuilder();
+    TWeakObjectPtr<URiveViewModel> WeakThis(this);
+    Builder.RunOnceImmediate([ListPath = ListName,
+                              WeakThis,
+                              Handle = NativeViewModelInstance,
+                              Index](rive::CommandServer* Server) {
+        auto VM = Server->getViewModelInstance(Handle);
+        if (VM)
+        {
+            auto PropertyList = VM->propertyList(TCHAR_TO_UTF8(*ListPath));
+            if (PropertyList && PropertyList->size() > Index)
+            {
+                auto ViewModel = PropertyList->instanceAt(Index);
+                if (ViewModel)
+                {
+                    auto NestedHandle =
+                        Server->getHandleForInstance(ViewModel.get());
+                    AsyncTask(ENamedThreads::GameThread,
+                              [&ListPath, WeakThis, NestedHandle]() {
+                                  // Make sure this view model still exsists
+                                  // when trying to modify the list.
+                                  if (auto StrongThis = WeakThis.Pin())
+                                  {
+                                      auto ViewModelToRemove =
+                                          ViewModelInstances[NestedHandle];
+                                      check(ViewModelToRemove);
+                                      StrongThis->UpdateListWithViewModelData(
+                                          ListPath,
+                                          ViewModelToRemove,
+                                          true);
+                                  }
+                              });
+                }
+                else
+                {
+                    UE_LOG(
+                        LogRive,
+                        Error,
+                        TEXT(
+                            "Could not find nested view model at index %i for list %s"),
+                        Index,
+                        *ListPath);
+                }
+            }
+            else
+            {
+                UE_LOG(
+                    LogRive,
+                    Error,
+                    TEXT(
+                        "Invalid Index (%i) for removing list index on view model list %s"),
+                    Index,
+                    *ListPath);
+            }
+        }
+        else
+        {
+            UE_LOG(
+                LogRive,
+                Error,
+                TEXT(
+                    "Invalid view model root for removing list index %i on List %s"),
+                Index,
+                *ListPath);
+        }
+    });
+    Builder.RemoveViewModelList(NativeViewModelInstance, ListName, Index);
+    UnsettleStateMachine(TEXT("RemoveFromListAtIndex"));
+    return true;
+}
+
 void URiveViewModel::K2_AddFieldValueChangedDelegate(
     FFieldNotificationId InFieldId,
     FFieldValueChangedDynamicDelegate InDelegate)
@@ -592,98 +775,26 @@ void URiveViewModel::K2_RemoveFieldValueChangedDelegate(
     RemoveFieldValueChangedDelegate(InFieldId, MoveTemp(InDelegate));
 }
 
-void URiveViewModel::K2_AppendToList(FRiveList& List, URiveViewModel* Value)
+void URiveViewModel::K2_AppendToList(FRiveList List, URiveViewModel* Value)
 {
-    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    auto& Builder = RiveRenderer->GetCommandBuilder();
-    Builder.AppendViewModelList(NativeViewModelInstance,
-                                List.Path,
-                                Value->NativeViewModelInstance);
-    UpdateListWithViewModelData(List.Path, Value);
-    UnsettleStateMachine(TEXT("AppendToList"));
-    Value->OwningArtboard = OwningArtboard;
-
-    TWeakObjectPtr<URiveViewModel> WeakThis = this;
-    TStrongObjectPtr<URiveViewModel> StrongValue(Value);
+    AppendToList(List.Path, Value);
 }
 
-void URiveViewModel::K2_InsertToList(FRiveList& List,
+void URiveViewModel::K2_InsertToList(FRiveList List,
                                      int32 Index,
                                      URiveViewModel* Value)
 {
-    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    auto& Builder = RiveRenderer->GetCommandBuilder();
-    Builder.InsertViewModelList(NativeViewModelInstance,
-                                List.Path,
-                                Value->NativeViewModelInstance,
-                                Index);
-    UpdateListWithViewModelData(List.Path, Value);
-    Value->OwningArtboard = OwningArtboard;
-
-    UnsettleStateMachine(TEXT("InsertToList"));
+    InsertToList(List.Path, Index, Value);
 }
 
-void URiveViewModel::K2_RemoveFromList(FRiveList& List, URiveViewModel* Value)
+void URiveViewModel::K2_RemoveFromList(FRiveList List, URiveViewModel* Value)
 {
-    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    auto& Builder = RiveRenderer->GetCommandBuilder();
-    int32 Index = INDEX_NONE;
-    List.ViewModels.Remove(Value);
-    if (IsValid(Value))
-    {
-        Builder.RemoveViewModelList(NativeViewModelInstance,
-                                    List.Path,
-                                    Value->GetNativeHandle());
-        UnsettleStateMachine(TEXT("RemoveFromList"));
-        Value->OwningArtboard.Reset();
-    }
+    RemoveFromList(List.Path, Value);
 }
 
-void URiveViewModel::K2_RemoveFromListAtIndex(FRiveList& List, int32 Index)
+void URiveViewModel::K2_RemoveFromListAtIndex(FRiveList List, int32 Index)
 {
-    // ensure this is a list we contain.
-    check(ContainsLists(List));
-    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    auto& Builder = RiveRenderer->GetCommandBuilder();
-    TWeakObjectPtr<URiveViewModel> WeakThis(this);
-    Builder.RunOnceImmediate([&List,
-                              WeakThis,
-                              Handle = NativeViewModelInstance,
-                              ListPath = List.Path,
-                              Index](rive::CommandServer* Server) {
-        auto VM = Server->getViewModelInstance(Handle);
-        if (VM)
-        {
-            auto PropertyList = VM->propertyList(TCHAR_TO_UTF8(*ListPath));
-            if (PropertyList)
-            {
-                auto ViewModel = PropertyList->instanceAt(Index);
-                if (ViewModel)
-                {
-                    auto NestedHandle =
-                        Server->getHandleForInstance(ViewModel.get());
-                    AsyncTask(ENamedThreads::GameThread,
-                              [&List, WeakThis, NestedHandle]() {
-                                  // Make sure this view model still exsists
-                                  // when trying to modify the list.
-                                  if (auto StrongThis = WeakThis.Pin())
-                                  {
-                                      auto ViewModelToRemove =
-                                          ViewModelInstances[NestedHandle];
-                                      check(ViewModelToRemove);
-                                      List.ViewModels.Remove(ViewModelToRemove);
-                                  }
-                              });
-                }
-            }
-        }
-    });
-    Builder.RemoveViewModelList(NativeViewModelInstance, List.Path, Index);
-    UnsettleStateMachine(TEXT("RemoveFromListAtIndex"));
+    RemoveFromListAtIndex(List.Path, Index);
 }
 
 void URiveViewModel::SetTrigger(const FString& TriggerName)
@@ -796,10 +907,29 @@ void URiveViewModel::OnViewModelDataReceived(
                            *GetClass()->GetName());
                     return;
                 }
+
+                if (SignatureFunction->ParmsSize <= 0)
+                {
+                    UE_LOG(
+                        LogRive,
+                        Error,
+                        TEXT(
+                            "SignatureFunction->ParmsSize is invalid. Try re-importing riv file."));
+                    return;
+                }
+
                 uint8* Parameters = (uint8*)FMemory_Alloca_Aligned(
                     SignatureFunction->ParmsSize,
                     SignatureFunction->GetMinAlignment());
-                check(Parameters);
+                if (!ensure(Parameters))
+                {
+                    UE_LOG(
+                        LogRive,
+                        Error,
+                        TEXT(
+                            "FMemory_Alloca_Aligned Failed, Maybe out of memory ?"));
+                    return;
+                }
                 FMemory::Memzero(Parameters, SignatureFunction->ParmsSize);
                 if (FProperty* InputProperty = CastField<FProperty>(
                         SignatureFunction->ChildProperties))
@@ -1064,7 +1194,8 @@ bool URiveViewModel::RemoveFieldValueChangedDelegate(
 }
 
 void URiveViewModel::UpdateListWithViewModelData(const FString& ListPath,
-                                                 URiveViewModel* Value)
+                                                 URiveViewModel* Value,
+                                                 bool bRemove)
 {
     FStructProperty* Property =
         FindFProperty<FStructProperty>(GetClass(), *ListPath);
@@ -1078,7 +1209,14 @@ void URiveViewModel::UpdateListWithViewModelData(const FString& ListPath,
 
     FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
     check(List);
-    List->ViewModels.Add(Value);
+    if (bRemove)
+    {
+        List->ViewModels.Remove(Value);
+    }
+    else
+    {
+        List->ViewModels.Add(Value);
+    }
 }
 
 void URiveViewModel::UnsettleStateMachine(const TCHAR* Context) const
