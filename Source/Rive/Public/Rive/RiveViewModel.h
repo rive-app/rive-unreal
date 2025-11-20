@@ -86,6 +86,12 @@ public:
     UFUNCTION(BlueprintCallable)
     bool SetImageValue(const FString& PropertyName, UTexture* InImage);
     UFUNCTION(BlueprintCallable)
+    bool SetArtboardValue(const FString& PropertyName,
+                          URiveArtboard* InArtboard);
+    UFUNCTION(BlueprintCallable)
+    bool SetViewModelValue(const FString& PropertyName,
+                           URiveViewModel* InViewModel);
+    UFUNCTION(BlueprintCallable)
     bool AppendToList(const FString& ListName, URiveViewModel* Value);
     UFUNCTION(BlueprintCallable)
     bool InsertToList(const FString& ListName,

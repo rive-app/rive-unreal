@@ -617,6 +617,58 @@ bool URiveViewModel::SetImageValue(const FString& PropertyName,
     return false;
 }
 
+bool URiveViewModel::SetArtboardValue(const FString& PropertyName,
+                                      URiveArtboard* InArtboard)
+{
+    check(bIsGenerated);
+    if (auto ObjectProperty =
+            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
+    {
+        if (ObjectProperty->PropertyClass != URiveArtboard::StaticClass())
+        {
+            UE_LOG(LogRive,
+                   Error,
+                   TEXT("Invalid Property %s For Artboard Value Set"),
+                   *PropertyName);
+            return false;
+        }
+        ObjectProperty->SetPropertyValue_InContainer(this, InArtboard);
+        UnsettleStateMachine(TEXT("SetArtboardValue"));
+        UE::FieldNotification::FFieldId Field =
+            GetFieldNotificationDescriptor().GetField(GetClass(),
+                                                      *PropertyName);
+        BroadcastFieldValueChanged(Field);
+        return true;
+    }
+    return false;
+}
+
+bool URiveViewModel::SetViewModelValue(const FString& PropertyName,
+                                       URiveViewModel* InViewModel)
+{
+    check(bIsGenerated);
+    if (auto ObjectProperty =
+            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
+    {
+        if (ObjectProperty->PropertyClass != URiveViewModel::StaticClass())
+        {
+            UE_LOG(LogRive,
+                   Error,
+                   TEXT("Invalid Property %s For View Model Value Set"),
+                   *PropertyName);
+            return false;
+        }
+        ObjectProperty->SetPropertyValue_InContainer(this, InViewModel);
+        UnsettleStateMachine(TEXT("SetViewModelValue"));
+        UE::FieldNotification::FFieldId Field =
+            GetFieldNotificationDescriptor().GetField(GetClass(),
+                                                      *PropertyName);
+        BroadcastFieldValueChanged(Field);
+        return true;
+    }
+    return false;
+}
+
 bool URiveViewModel::AppendToList(const FString& ListName,
                                   URiveViewModel* Value)
 {
