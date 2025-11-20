@@ -72,6 +72,10 @@ public:
     UFUNCTION(BlueprintPure)
     bool ContainsListsByName(const FString& ListName) const;
     UFUNCTION(BlueprintPure)
+    // This is a copy that you get. So do not expect to be able to modify the
+    // list value here.
+    bool GetListByName(const FString ListName, FRiveList& OutList) const;
+    UFUNCTION(BlueprintPure)
     bool ContainsLists(FRiveList InList) const;
     UFUNCTION(BlueprintCallable)
     bool SetBoolValue(const FString& PropertyName, bool InValue);

@@ -181,42 +181,32 @@ public:
 
     UClass* GetGeneratedClassForViewModel(const FName& ViewModelName) const;
     // Creates a ViewModel Given the ViewModel name and Instance name
-    UFUNCTION(BlueprintCallable,
-              meta = (BlueprintInternalUseOnly = "true"),
-              Category = "Rive|File")
+    UFUNCTION(BlueprintCallable, Category = "Rive|File")
     static URiveViewModel* CreateViewModelByName(const URiveFile* InputFile,
                                                  const FString& ViewModelName,
                                                  const FString& InstanceName);
 
     // Creates a default view model for given artboard and isntance name
-    UFUNCTION(BlueprintCallable,
-              meta = (BlueprintInternalUseOnly = "true"),
-              Category = "Rive|File")
+    UFUNCTION(BlueprintCallable, Category = "Rive|File")
     static URiveViewModel* CreateViewModelByArtboardName(
         const URiveFile* InputFile,
         const FString& ArtboardName,
         const FString& InstanceName);
 
     // Creates a Default ViewModel Given the ViewModel Name
-    UFUNCTION(BlueprintCallable,
-              meta = (BlueprintInternalUseOnly = "true"),
-              Category = "Rive|File")
+    UFUNCTION(BlueprintCallable, Category = "Rive|File")
     static URiveViewModel* CreateDefaultViewModel(const URiveFile* InputFile,
                                                   const FString& ViewModelName);
 
     // Creates the default ViewModel for a given Artboard
-    UFUNCTION(BlueprintCallable,
-              meta = (BlueprintInternalUseOnly = "true"),
-              Category = "Rive|File")
+    UFUNCTION(BlueprintCallable, Category = "Rive|File")
     static URiveViewModel* CreateDefaultViewModelForArtboard(
         const URiveFile* InputFile,
         URiveArtboard* Artboard);
 
     // Creates the default ViewModel for a given Artboard and uses the given
     // InstanceName for the chosen instance
-    UFUNCTION(BlueprintCallable,
-              meta = (BlueprintInternalUseOnly = "true"),
-              Category = "Rive|File")
+    UFUNCTION(BlueprintCallable, Category = "Rive|File")
     static URiveViewModel* CreateArtboardViewModelByName(
         const URiveFile* InputFile,
         URiveArtboard* Artboard,

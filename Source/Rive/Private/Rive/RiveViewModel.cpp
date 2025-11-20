@@ -482,6 +482,22 @@ bool URiveViewModel::ContainsListsByName(const FString& ListName) const
     return false;
 }
 
+bool URiveViewModel::GetListByName(const FString ListName,
+                                   FRiveList& OutList) const
+{
+    if (auto ListProperty =
+            FindFProperty<FStructProperty>(GetClass(), *ListName))
+    {
+        if (auto List = ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
+        {
+            OutList = *List;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool URiveViewModel::ContainsLists(FRiveList InList) const
 {
     if (auto ListProperty =
