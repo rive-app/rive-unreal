@@ -1218,15 +1218,20 @@ rive::rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(
 
 EImageFormat imageFormatToUEImageFormat(const Bitmap::ImageFormat* format)
 {
-    switch (format->type)
+    if (format)
     {
-        case Bitmap::ImageType::png:
-            return EImageFormat::PNG;
-        case Bitmap::ImageType::jpeg:
-            return EImageFormat::JPEG;
-        default:
-            return EImageFormat::Invalid;
+        switch (format->type)
+        {
+            case Bitmap::ImageType::png:
+                return EImageFormat::PNG;
+            case Bitmap::ImageType::jpeg:
+                return EImageFormat::JPEG;
+            case Bitmap::ImageType::webp:
+                return EImageFormat::Invalid;
+        }
     }
+
+    return EImageFormat::Invalid;
 }
 
 rcp<Texture> RenderContextRHIImpl::platformDecodeImageTexture(
