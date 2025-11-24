@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/Texture2D.h"
+
 namespace rive
 {
 class Renderer;
@@ -725,6 +726,11 @@ private:
 
     // Used for data binding external UTextures.
     TMap<TStrongObjectPtr<UTexture>, rive::RenderImageHandle> ExternalImages;
+    // This is used for several requests at the same time for the same image.
+    // This way all callbacks happen eventually
+    TMap<TStrongObjectPtr<UTexture>,
+         TArray<TFunction<void(rive::RenderImageHandle, uint64_t)>>>
+        ExternalImageCallbackQueue;
 
     uint64_t CurrentRequestId = 0;
 };

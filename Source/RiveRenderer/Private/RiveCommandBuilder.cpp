@@ -35,34 +35,48 @@ uint64_t FRiveCommandBuilder::CreateRenderImage(
     // GC'd.
     TStrongObjectPtr<UTexture> StrongValue(Value);
     auto RenderImageHandle = ExternalImages.Find(StrongValue);
+
     uint64_t RequestId = -1;
     if (RenderImageHandle == nullptr)
     {
-        RequestId = ++CurrentRequestId;
-        // If we don't already have this texture we first dispatch to the render
-        // thread to create a render image.
-        RunOnce([this, StrongValue, RequestId, CompletionCallback](
-                    rive::CommandServer* CommandServer) {
-            // Everything in here is on the render thread.
-            check(IsInRenderingThread());
-            auto RHITexture = StrongValue->GetResource()->GetTexture2DRHI();
-            auto RenderImage =
-                RenderContextRHIImpl::MakeExternalRenderImage(RHITexture);
+        auto& Callbacks = ExternalImageCallbackQueue.FindOrAdd(StrongValue);
+        Callbacks.Add(CompletionCallback);
 
-            // Now we dispatch back to the game thread because CommandQueue
-            // should only ever be used there.
-            AsyncTask(ENamedThreads::GameThread,
-                      [this,
-                       RenderImage,
-                       StrongValue,
-                       RequestId,
-                       CompletionCallback]() {
-                          auto Handle =
-                              CommandQueue->addExternalImage(RenderImage);
-                          ExternalImages.Add(StrongValue, Handle);
-                          CompletionCallback(Handle, RequestId);
-                      });
-        });
+        RequestId = ++CurrentRequestId;
+
+        // Only schedule the run once for the first attempt
+        if (Callbacks.Num() == 1)
+        {
+            // If we don't already have this texture we first dispatch to the
+            // render thread to create a render image. this is safe here because
+            // the command builder never gets destroyed.
+
+            RunOnce([this, StrongValue, RequestId](
+                        rive::CommandServer* CommandServer) {
+                // Everything in here is on the render thread.
+                check(IsInRenderingThread());
+                auto RHITexture = StrongValue->GetResource()->GetTexture2DRHI();
+                auto RenderImage =
+                    RenderContextRHIImpl::MakeExternalRenderImage(RHITexture);
+
+                // Now we dispatch back to the game thread because CommandQueue
+                // should only ever be used there.
+                AsyncTask(ENamedThreads::GameThread,
+                          [this, RenderImage, StrongValue, RequestId]() {
+                              auto Handle =
+                                  CommandQueue->addExternalImage(RenderImage);
+                              ExternalImages.Add(StrongValue, Handle);
+                              auto& CallbackArray =
+                                  ExternalImageCallbackQueue[StrongValue];
+                              for (auto CompletionCallback : CallbackArray)
+                              {
+                                  CompletionCallback(Handle, RequestId);
+                              }
+
+                              ExternalImageCallbackQueue.Remove(StrongValue);
+                          });
+            });
+        }
     }
     else
     {
