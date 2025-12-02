@@ -43,7 +43,7 @@ public:
     virtual TStatId GetStatId() const override;
 
     virtual void Tick(float InDeltaSeconds) override;
-    virtual bool IsTickable() const override;
+    virtual bool IsTickable() const override { return true; }
 
     // Used by view model updates to unsettle the state machine.
     UFUNCTION(BlueprintCallable, Category = Rive)

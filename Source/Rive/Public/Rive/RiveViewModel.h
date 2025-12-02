@@ -300,6 +300,9 @@ private:
     // to make changes to how multicast delegates work
     TArray<URiveTriggerDelegate> TriggerDelegates;
 
+    // Used for triggers so that we don't accidentally call the delegate twice.
+    TArray<FName> IgnoredTriggerCallbacks;
+
     void UnsettleStateMachine(const TCHAR* Context) const;
 
     // Checked in SetTrigger to make sure we don't infinite recurse when a
@@ -319,23 +322,5 @@ public:
     TWeakObjectPtr<URiveViewModel> OwningViewModel;
 
     UFUNCTION(BlueprintCallable, Category = "Rive | Triggers")
-    void SetTrigger()
-    {
-        if (auto ViewModel = OwningViewModel.Pin())
-        {
-            check(TriggerIndex >= 0);
-            check(
-                ViewModel->ViewModelDefinition.PropertyDefinitions.IsValidIndex(
-                    TriggerIndex));
-
-            const auto& TriggerName =
-                ViewModel->ViewModelDefinition.PropertyDefinitions[TriggerIndex]
-                    .Name;
-            const auto& TriggerType =
-                ViewModel->ViewModelDefinition.PropertyDefinitions[TriggerIndex]
-                    .Type;
-            check(TriggerType == ERiveDataType::Trigger)
-                ViewModel->SetTrigger(TriggerName);
-        }
-    }
+    void SetTrigger();
 };

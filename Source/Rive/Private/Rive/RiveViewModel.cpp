@@ -351,7 +351,8 @@ void URiveViewModel::Initialize(
                 URiveTriggerDelegate* TriggerDelegate =
                     NewObject<URiveTriggerDelegate>(
                         this,
-                        FName(TriggerName + TEXT("_TriggerDelegate")));
+                        FName(PropertyDefinition.Name +
+                              TEXT("_TriggerDelegate")));
                 TriggerDelegate->OwningViewModel = this;
                 TriggerDelegate->TriggerIndex = Index;
                 GenericDelegate.BindUFunction(TriggerDelegate,
@@ -691,6 +692,8 @@ bool URiveViewModel::AppendToList(const FString& ListName,
     if (!ContainsListsByName(ListName))
         return false;
 
+    Value->SetOwningArtboard(OwningArtboard);
+
     auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     check(RiveRenderer);
     auto& Builder = RiveRenderer->GetCommandBuilder();
@@ -709,6 +712,8 @@ bool URiveViewModel::InsertToList(const FString& ListName,
 {
     if (!ContainsListsByName(ListName))
         return false;
+
+    Value->SetOwningArtboard(OwningArtboard);
 
     auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     check(RiveRenderer);
@@ -730,6 +735,8 @@ bool URiveViewModel::RemoveFromList(const FString& ListName,
 {
     if (!ContainsListsByName(ListName))
         return false;
+
+    Value->SetOwningArtboard(nullptr);
 
     auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     check(RiveRenderer);
@@ -780,6 +787,8 @@ bool URiveViewModel::RemoveFromListAtIndex(const FString& ListName, int32 Index)
                                           ListPath,
                                           ViewModelToRemove,
                                           true);
+                                      ViewModelToRemove->SetOwningArtboard(
+                                          nullptr);
                                   }
                               });
                 }
@@ -872,8 +881,8 @@ void URiveViewModel::SetTrigger(const FString& TriggerName)
     auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     check(RiveRenderer);
     auto& Builder = RiveRenderer->GetCommandBuilder();
-    uint64_t Id =
-        Builder.SetViewModelTrigger(NativeViewModelInstance, TriggerName);
+    Builder.SetViewModelTrigger(NativeViewModelInstance, TriggerName);
+    IgnoredTriggerCallbacks.Add(*TriggerName);
     UnsettleStateMachine(TEXT("SetTrigger"));
 }
 
@@ -893,6 +902,12 @@ void URiveViewModel::OnViewModelDataReceived(
                Conversion.Get(),
                *GetName(),
                *GetClass()->GetName());
+        return;
+    }
+
+    // Don't process trigger requests we made via "call" in blueprints
+    if (IgnoredTriggerCallbacks.Remove(Property->GetFName()))
+    {
         return;
     }
 
@@ -1311,5 +1326,24 @@ void URiveViewModel::FFieldNotificationClassDescriptor::ForEachField(
             Cast<const UBlueprintGeneratedClass>(Class))
     {
         BPClass->ForEachFieldNotify(Callback, true);
+    }
+}
+
+void URiveTriggerDelegate::SetTrigger()
+{
+    if (auto ViewModel = OwningViewModel.Pin())
+    {
+        check(TriggerIndex >= 0);
+        check(ViewModel->ViewModelDefinition.PropertyDefinitions.IsValidIndex(
+            TriggerIndex));
+
+        const auto& TriggerName =
+            ViewModel->ViewModelDefinition.PropertyDefinitions[TriggerIndex]
+                .Name;
+        const auto& TriggerType =
+            ViewModel->ViewModelDefinition.PropertyDefinitions[TriggerIndex]
+                .Type;
+        check(TriggerType == ERiveDataType::Trigger)
+            ViewModel->SetTrigger(TriggerName);
     }
 }
