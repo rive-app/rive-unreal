@@ -99,10 +99,21 @@ bool FRiveWidgetFactory::CreateWidgetStructure(
 
         if (URiveWidget* RiveWidget = Cast<URiveWidget>(Widget))
         {
+            FString StateMachineName = "";
+            FString ArtboardName = "";
+
+            if (RiveFile->ArtboardDefinitions.Num())
+            {
+                ArtboardName = RiveFile->ArtboardDefinitions[0].Name;
+                if (RiveFile->ArtboardDefinitions[0].StateMachineNames.Num())
+                    StateMachineName =
+                        RiveFile->ArtboardDefinitions[0].StateMachineNames[0];
+            }
+
             RiveWidget->RiveDescriptor =
                 FRiveDescriptor{RiveFile,
-                                "",
-                                "",
+                                ArtboardName,
+                                StateMachineName,
                                 false,
                                 ERiveFitType::Contain,
                                 ERiveAlignment::Center};
@@ -214,76 +225,5 @@ bool FRiveWidgetFactory::Create()
 
     return true;
 }
-
-namespace
-{
-static void SpawnRiveWidgetActor(const FToolMenuContext& MenuContext)
-{
-    if (const UContentBrowserAssetContextMenuContext* Context =
-            UContentBrowserAssetContextMenuContext::FindContextWithAssets(
-                MenuContext))
-    {
-        TArray<URiveFile*> RiveFiles =
-            Context->LoadSelectedObjects<URiveFile>();
-        for (URiveFile* RiveFile : RiveFiles)
-        {
-            if (UWorld* World = GEditor->GetEditorWorldContext().World())
-            {
-                ARiveWidgetActor* NewActor =
-                    Cast<ARiveWidgetActor>(World->SpawnActor<ARiveWidgetActor>(
-                        FVector::ZeroVector,
-                        FRotator::ZeroRotator,
-                        FActorSpawnParameters()));
-
-                if (NewActor)
-                {
-                    NewActor->SetWidgetClass(URiveWidget::StaticClass());
-                }
-            }
-        }
-    }
-}
-
-static FDelayedAutoRegisterHelper DelayedAutoRegister(
-    EDelayedRegisterRunPhase::EndOfEngineInit,
-    [] {
-        UToolMenus::RegisterStartupCallback(
-            FSimpleMulticastDelegate::FDelegate::CreateLambda([]() {
-                FToolMenuOwnerScoped OwnerScoped(UE_MODULE_NAME);
-                UToolMenu* Menu =
-                    UE::ContentBrowser::ExtendToolMenu_AssetContextMenu(
-                        URiveFile::StaticClass());
-
-                FToolMenuSection& Section =
-                    Menu->FindOrAddSection("GetAssetActions");
-                Section.AddDynamicEntry(
-                    TEXT("Rive"),
-                    FNewToolMenuSectionDelegate::CreateLambda(
-                        [](FToolMenuSection& InSection) {
-                            {
-                                const TAttribute<FText> Label =
-                                    LOCTEXT("RiveFile_SpawnRiveWidget",
-                                            "Spawn Rive Widget Actor");
-                                const TAttribute<FText> ToolTip =
-                                    LOCTEXT("RiveFile_SpawnRiveWidgetTooltip",
-                                            "Spawn Rive Widget Actors.");
-                                const FSlateIcon Icon =
-                                    FSlateIcon(FAppStyle::GetAppStyleSetName(),
-                                               "ClassIcon.Texture2D");
-                                const FToolMenuExecuteAction UIAction =
-                                    FToolMenuExecuteAction::CreateStatic(
-                                        &SpawnRiveWidgetActor);
-
-                                InSection.AddMenuEntry(
-                                    "RiveFile_SpawnRiveWidget",
-                                    Label,
-                                    ToolTip,
-                                    Icon,
-                                    UIAction);
-                            }
-                        }));
-            }));
-    });
-} // namespace
 
 #undef LOCTEXT_NAMESPACE

@@ -278,6 +278,10 @@ int32 SRiveLeafWidget::OnPaint(const FPaintArgs& Args,
     if (!bParentEnabled)
         return LayerId;
 
+    // Don't try to draw if we don't have an artboard.
+    if (!Artboard.IsValid())
+        return LayerId;
+
     RiveRendererDrawElement->SetRenderingBounds(
         AllottedGeometry.GetRenderBoundingRect());
     RiveRendererDrawElement->SetClipRect(MyCullingRect);

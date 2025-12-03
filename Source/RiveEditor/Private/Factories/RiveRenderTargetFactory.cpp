@@ -40,7 +40,8 @@ URiveRenderTarget2D* FRiveRenderTargetFactory::CreateRenderTarget()
 
     RiveRenderTarget2D->RiveDescriptor.RiveFile = RiveFile;
 
-    RiveRenderTarget2D->InitAutoFormat(256, 256);
+    RiveRenderTarget2D->bSupportsUAV = true;
+    RiveRenderTarget2D->InitCustomFormat(256, 256, PF_R8G8B8A8, false);
     RiveRenderTarget2D->InitRiveRenderTarget2D();
 
     return RiveRenderTarget2D;
