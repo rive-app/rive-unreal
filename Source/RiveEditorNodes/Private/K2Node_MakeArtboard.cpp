@@ -1,4 +1,6 @@
-﻿#include "K2Node_MakeArtboard.h"
+﻿// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
+#include "K2Node_MakeArtboard.h"
 
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintNodeSpawner.h"

@@ -56,56 +56,56 @@ public:
     // check HasDefaultValues() before using these or the value returned may be
     // incorrect.
 
-    UFUNCTION(BlueprintPure)
+    UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     bool GetBoolValue(const FString& PropertyName, bool& OutValue) const;
-    UFUNCTION(BlueprintPure)
+    UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     bool GetColorValue(const FString& PropertyName,
                        FLinearColor& OutColor) const;
-    UFUNCTION(BlueprintPure)
+    UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     bool GetStringValue(const FString& PropertyName, FString& OutString) const;
-    UFUNCTION(BlueprintPure)
+    UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     bool GetEnumValue(const FString& PropertyName, FString& EnumValue) const;
-    UFUNCTION(BlueprintPure)
+    UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     bool GetNumberValue(const FString& PropertyName, float& OutNumber) const;
-    UFUNCTION(BlueprintPure)
+    UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     bool GetListSize(const FString& PropertyName, int32& OutSize) const;
-    UFUNCTION(BlueprintPure)
+    UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     bool ContainsListsByName(const FString& ListName) const;
-    UFUNCTION(BlueprintPure)
+    UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     // This is a copy that you get. So do not expect to be able to modify the
     // list value here.
     bool GetListByName(const FString ListName, FRiveList& OutList) const;
-    UFUNCTION(BlueprintPure)
+    UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     bool ContainsLists(FRiveList InList) const;
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool SetBoolValue(const FString& PropertyName, bool InValue);
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool SetColorValue(const FString& PropertyName, FLinearColor InColor);
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool SetStringValue(const FString& PropertyName, const FString& InString);
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool SetEnumValue(const FString& PropertyName, const FString& InEnumValue);
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool SetNumberValue(const FString& PropertyName, float InNumber);
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool SetImageValue(const FString& PropertyName, UTexture* InImage);
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool SetArtboardValue(const FString& PropertyName,
                           URiveArtboard* InArtboard);
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool SetViewModelValue(const FString& PropertyName,
                            URiveViewModel* InViewModel);
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool AppendToList(const FString& ListName, URiveViewModel* Value);
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool InsertToList(const FString& ListName,
                       int32 Index,
                       URiveViewModel* Value);
 
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool RemoveFromList(const FString& ListName, URiveViewModel* Value);
 
-    UFUNCTION(BlueprintCallable)
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool RemoveFromListAtIndex(const FString& ListName, int32 Index);
 
     UFUNCTION(BlueprintCallable,
@@ -125,25 +125,25 @@ public:
         FFieldValueChangedDynamicDelegate Delegate);
 
     UFUNCTION(BlueprintCallable,
-              Category = "Lists",
+              Category = "Rive|Data Binding|Lists",
               meta = (DisplayName = "Append View Model At End Of List",
                       ScriptName = "AppendToList"))
     void K2_AppendToList(FRiveList List, URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable,
-              Category = "Lists",
+              Category = "Rive|Data Binding|Lists",
               meta = (DisplayName = "Insert View Model Into List",
                       ScriptName = "InsertToList"))
     void K2_InsertToList(FRiveList List, int32 Index, URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable,
-              Category = "Lists",
+              Category = "Rive|Data Binding|Lists",
               meta = (DisplayName = "Remove View Model From List",
                       ScriptName = "RemoveFromList"))
     void K2_RemoveFromList(FRiveList List, URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable,
-              Category = "Lists",
+              Category = "Rive|Data Binding|Lists",
               meta = (DisplayName = "Remove View Model From List At Index",
                       ScriptName = "RemoveFromListAtIndex"))
     void K2_RemoveFromListAtIndex(FRiveList List, int32 Index);

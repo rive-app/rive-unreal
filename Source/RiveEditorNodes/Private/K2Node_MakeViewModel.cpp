@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #include "K2Node_MakeViewModel.h"
 

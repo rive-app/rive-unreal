@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "RiveArtboard.h"
 #include "Engine/Texture2DDynamic.h"
+#include "RenderResource.h"
 #include "RiveTexture.generated.h"
 
 class URiveArtboard;

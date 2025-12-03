@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectPtr.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "UnrealClient.h"
+#include "RenderGraphResources.h"
 
 #if WITH_RIVE
 

@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
+#pragma once
 
 #include "RiveTypes.h"
 THIRD_PARTY_INCLUDES_START
