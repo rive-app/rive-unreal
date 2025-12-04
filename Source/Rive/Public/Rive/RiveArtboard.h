@@ -45,6 +45,15 @@ public:
     virtual void Tick(float InDeltaSeconds) override;
     virtual bool IsTickable() const override { return true; }
 
+    // Set the underlying artboard instance size. Used with layouts.
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    void SetNativeArtboardSizeWithScale(float Width,
+                                        float Height,
+                                        float Scale = 1.f);
+    // Reset the underlying artboard instance size.
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    void ResetNativeArtboardSize();
+
     // Used by view model updates to unsettle the state machine.
     UFUNCTION(BlueprintCallable, Category = Rive)
     void UnsettleStateMachine();
@@ -103,6 +112,8 @@ public:
     {
         return NativeArtboardHandle;
     }
+
+    rive::StateMachineHandle GetStateMachineHandle() const;
 
     bool PointerDown(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,

@@ -156,6 +156,25 @@ struct RIVERENDERER_API FRiveCommandBuilder
                                                       Listener);
     }
 
+    uint64_t SetArtboardSize(rive::ArtboardHandle Handle,
+                             float SizeX,
+                             float SizeY,
+                             float Scale)
+    {
+        CommandQueue->setArtboardSize(Handle,
+                                      SizeX,
+                                      SizeY,
+                                      Scale,
+                                      ++CurrentRequestId);
+        return CurrentRequestId;
+    }
+
+    uint64_t ResetArtboardSize(rive::ArtboardHandle Handle)
+    {
+        CommandQueue->resetArtboardSize(Handle, ++CurrentRequestId);
+        return CurrentRequestId;
+    }
+
     rive::ViewModelInstanceHandle CreateViewModel(
         rive::FileHandle File,
         const FName& ViewModelName,

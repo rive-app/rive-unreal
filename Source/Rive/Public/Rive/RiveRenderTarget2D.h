@@ -61,6 +61,7 @@ public:
 #endif // WITH_EDITOR
 
 private:
+    void UpdateArtboardSize();
     // Draw the given Artboard using Descriptor for fit and alignment
     void Draw(URiveArtboard* InArtboard, FRiveDescriptor InDescriptor);
 

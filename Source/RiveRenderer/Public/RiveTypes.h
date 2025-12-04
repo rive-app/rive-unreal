@@ -17,13 +17,26 @@ struct RIVERENDERER_API FRiveStateMachineEvent
 UENUM(BlueprintType)
 enum class ERiveFitType : uint8
 {
+    // Fill the bounds by scaling the artboard. Does not maintain aspect.
     Fill = 0,
+    // The same as FitWidth or FitHeight except chooses the largest side to fit,
+    // so that the entire artboard is always within the given bounds
     Contain = 1,
+    // The same as Contain except it fits the smallest side, so that some of the
+    // artboard is always outside of the bounds but the entire bounds is always
+    // covered.
     Cover = 2,
+    // Scale the artboard width so that the width completely fits within the
+    // given bounds while maintaining the aspect ratio.
     FitWidth = 3,
+    // Scale the artboard width so that the height completely fits within the
+    // given bounds while maintaining the aspect ratio.
     FitHeight = 4,
     None = 5,
+    // Scale down the artboard size so that it fits within the bounds
     ScaleDown = 6,
+    // Instead of scaling the artboard to fit the bounds, fill the space using
+    // layouts. Only works if layouts are used in the riv file.
     Layout = 7
 };
 

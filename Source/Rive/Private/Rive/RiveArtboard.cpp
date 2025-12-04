@@ -312,6 +312,13 @@ void URiveArtboard::SetViewModel(URiveViewModel* RiveViewModelInstance)
     }
 }
 
+rive::StateMachineHandle URiveArtboard::GetStateMachineHandle() const
+{
+    if (StateMachine.IsValid())
+        return StateMachine->GetNativeStateMachineHandle();
+    return RIVE_NULL_HANDLE;
+}
+
 void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
 {
     auto& CommandBuilder =
@@ -416,6 +423,28 @@ void URiveArtboard::Tick(float InDeltaSeconds)
         check(RiveRenderer);
         auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
         StateMachine->Advance(CommandBuilder, InDeltaSeconds);
+    }
+}
+
+void URiveArtboard::SetNativeArtboardSizeWithScale(float Width,
+                                                   float Height,
+                                                   float Scale)
+{
+    auto& Builder = IRiveRendererModule::Get().GetCommandBuilder();
+    Builder.SetArtboardSize(NativeArtboardHandle, Width, Height, Scale);
+    if (StateMachine.IsValid())
+    {
+        StateMachine->Advance(Builder, 0);
+    }
+}
+
+void URiveArtboard::ResetNativeArtboardSize()
+{
+    auto& Builder = IRiveRendererModule::Get().GetCommandBuilder();
+    Builder.ResetArtboardSize(NativeArtboardHandle);
+    if (StateMachine.IsValid())
+    {
+        StateMachine->Advance(Builder, 0);
     }
 }
 

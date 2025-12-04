@@ -207,7 +207,33 @@ public:
         Renderer->align(Fit,
                         Alignment,
                         AABBForSlateRect(RenderBoundsLocal),
-                        ArtboardInstance->bounds());
+                        ArtboardInstance->bounds(),
+                        Scale);
+        if (bDirty)
+        {
+            bDirty = false;
+            if (Fit == rive::Fit::layout)
+            {
+                ArtboardInstance->width(RenderBoundsLocal.GetSize().X / Scale);
+                ArtboardInstance->height(RenderBoundsLocal.GetSize().Y / Scale);
+            }
+            else
+            {
+                ArtboardInstance->resetSize();
+            }
+
+            // If we updated the size we need to advance for it to be applied
+            if (auto NativeStateMachineHandle =
+                    RiveArtboardLocal->GetStateMachineHandle();
+                NativeStateMachineHandle != RIVE_NULL_HANDLE)
+            {
+                if (auto StateMachine = CommandServer->getStateMachineInstance(
+                        NativeStateMachineHandle))
+                {
+                    StateMachine->advanceAndApply(0);
+                }
+            }
+        }
         ArtboardInstance->draw(Renderer.Get());
         Renderer->restore();
         Context->flush({.renderTarget = renderTarget.get(),
@@ -217,16 +243,20 @@ public:
     void SetArtboard(TWeakObjectPtr<URiveArtboard> InRiveArtboard)
     {
         RiveArtboard = InRiveArtboard;
+        bDirty = true;
     }
 
     void SetFromDescriptor(const FRiveDescriptor& InRiveDescriptor)
     {
         Alignment = RiveAlignementToAlignment(InRiveDescriptor.Alignment);
         Fit = RiveFitTypeToFit(InRiveDescriptor.FitType);
+        Scale = InRiveDescriptor.ScaleFactor;
+        bDirty = true;
     }
 
     void SetRenderingBounds(const FSlateRect& InRenderBounds)
     {
+        bDirty |= RenderBounds != InRenderBounds;
         RenderBounds = InRenderBounds;
     }
 
@@ -240,8 +270,10 @@ private:
     // Locally copy of descriptor so we can pass it to the renderer
     rive::Alignment Alignment;
     rive::Fit Fit;
+    float Scale = 1;
     FSlateRect RenderBounds;
     FSlateRect ClipRect;
+    bool bDirty = true;
 };
 
 void SRiveLeafWidget::SetRiveDescriptor(const FRiveDescriptor& InDescriptor)

@@ -123,6 +123,7 @@ void URiveRenderTarget2D::InitRiveRenderTarget2D()
             Builder,
             RiveDescriptor.ArtboardName,
             RiveDescriptor.bAutoBindDefaultViewModel);
+        UpdateArtboardSize();
         Draw();
     }
 }
@@ -197,10 +198,30 @@ void URiveRenderTarget2D::PostEditChangeProperty(
         RenderTarget->Initialize();
     }
 
+    UpdateArtboardSize();
+
     if (IsValid(RiveDescriptor.RiveFile) &&
         !RiveDescriptor.ArtboardName.IsEmpty())
     {
         Draw();
+    }
+}
+
+void URiveRenderTarget2D::UpdateArtboardSize()
+{
+    if (IsValid(RiveArtboard))
+    {
+        if (RiveDescriptor.FitType == ERiveFitType::Layout)
+        {
+            RiveArtboard->SetNativeArtboardSizeWithScale(
+                SizeX,
+                SizeY,
+                RiveDescriptor.ScaleFactor);
+        }
+        else
+        {
+            RiveArtboard->ResetNativeArtboardSize();
+        }
     }
 }
 #endif
