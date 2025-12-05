@@ -10,12 +10,14 @@
 class SImage;
 class URiveArtboard;
 struct FRiveStateMachine;
+class UUserWidget;
 class URiveTexture;
 
 class RIVE_API SRiveLeafWidget : public SLeafWidget
 {
 public:
     SLATE_BEGIN_ARGS(SRiveLeafWidget) {}
+    SLATE_ATTRIBUTE(TObjectPtr<UUserWidget>, OwningWidget)
     SLATE_ATTRIBUTE(TWeakObjectPtr<URiveArtboard>, Artboard)
     SLATE_ATTRIBUTE(FRiveDescriptor, Descriptor)
     SLATE_END_ARGS()
@@ -36,6 +38,9 @@ public:
     virtual FVector2D ComputeDesiredSize(float) const override;
 
 private:
+    TObjectPtr<UUserWidget> OwningWidget;
     TWeakObjectPtr<URiveArtboard> Artboard;
     TSharedPtr<class FRiveRendererDrawElement> RiveRendererDrawElement;
+
+    bool bScaleByDPI = false;
 };

@@ -269,9 +269,8 @@ struct RIVERENDERER_API FRiveCommandBuilder
     // the callback is called instantly and -1 is passed as the request id.
     // Otherwise a value > 0 is returned and the callback happens later on the
     // game thread with the valid handle.
-    uint64_t CreateRenderImage(
-        UTexture*,
-        TFunction<void(rive::RenderImageHandle, uint64_t)> CompletionCallback);
+    rive::RenderImageHandle CreateRenderImage(UTexture*,
+                                              uint64_t* outRequestId = nullptr);
 
     uint64_t GetPropertyValue(rive::ViewModelInstanceHandle ViewModel,
                               const FString& Name,

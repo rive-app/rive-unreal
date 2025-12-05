@@ -7,7 +7,7 @@
 class URiveTextureObject;
 class URiveFile;
 class IDetailsView;
-class SRiveWidget;
+class SRiveLeafWidget;
 
 class RIVEEDITOR_API FRiveFileEditor : public FAssetEditorToolkit
 {
@@ -39,7 +39,7 @@ private:
 
     TSharedPtr<SDockTab> DetailsTab;
     TSharedPtr<IDetailsView> DetailsAssetView;
-    TSharedPtr<SRiveWidget> RiveWidget;
+    TSharedPtr<SRiveLeafWidget> RiveWidget;
 
     /** The rive file asset being edited. */
     TObjectPtr<URiveFile> RiveFile;

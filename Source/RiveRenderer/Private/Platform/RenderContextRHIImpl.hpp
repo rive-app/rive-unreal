@@ -366,6 +366,9 @@ public:
     static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
         const FTextureRHIRef& InTargetTexture);
 
+    static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
+        UTexture* InTargetTexture);
+
     RenderContextRHIImpl(FRHICommandListImmediate& CommandListImmediate,
                          const RHICapabilitiesOverrides& Overrides);
 #if WITH_EDITOR

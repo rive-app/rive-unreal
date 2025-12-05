@@ -35,6 +35,7 @@
 #include "RiveShaderTypes.h"
 #include "RiveStats.h"
 #include "ScreenPass.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
@@ -562,6 +563,17 @@ public:
         m_texture(InTexture)
     {}
 
+    // Variants for data binding render targets.
+    TextureRHIImpl(UTextureRenderTarget2D* InTexture) :
+        Texture(InTexture->SizeX, InTexture->SizeY), m_UTexture(InTexture)
+    {}
+
+    // Variant for data binding utextures
+    TextureRHIImpl(UTexture2D* InTexture) :
+        Texture(InTexture->GetSizeX(), InTexture->GetSizeY()),
+        m_UTexture(InTexture)
+    {}
+
     TextureRHIImpl(uint32_t width,
                    uint32_t height,
                    uint32_t mipLevelCount,
@@ -590,17 +602,23 @@ public:
 
     FRDGTextureRef asRDGTexture(FRDGBuilder& Builder) const
     {
-        check(m_texture);
         return Builder.RegisterExternalTexture(
-            CreateRenderTarget(m_texture, TEXT("rive.PLSTextureRHIImpl_")));
+            CreateRenderTarget(contents(), TEXT("rive.PLSTextureRHIImpl_")));
     }
 
     virtual ~TextureRHIImpl() override {}
 
-    FTextureRHIRef contents() const { return m_texture; }
+    FTextureRHIRef contents() const
+    {
+        return m_UTexture.IsValid()
+                   ? FTextureRHIRef(
+                         m_UTexture->GetResource()->GetTexture2DRHI())
+                   : m_texture;
+    }
 
 private:
     FTextureRHIRef m_texture;
+    TStrongObjectPtr<UTexture> m_UTexture;
 };
 #endif
 
@@ -867,6 +885,23 @@ rive::rcp<rive::RenderImage> RenderContextRHIImpl::MakeExternalRenderImage(
     const FTextureRHIRef& InTargetTexture)
 {
     return make_rcp<RiveRenderImage>(make_rcp<TextureRHIImpl>(InTargetTexture));
+}
+
+rive::rcp<rive::RenderImage> RenderContextRHIImpl::MakeExternalRenderImage(
+    UTexture* InTargetTexture)
+{
+    if (auto Texture = Cast<UTexture2D>(InTargetTexture))
+    {
+        return make_rcp<RiveRenderImage>(make_rcp<TextureRHIImpl>(Texture));
+    }
+    if (auto TextureRenderTarget =
+            Cast<UTextureRenderTarget2D>(InTargetTexture))
+    {
+        return make_rcp<RiveRenderImage>(
+            make_rcp<TextureRHIImpl>(TextureRenderTarget));
+    }
+
+    return nullptr;
 }
 
 RenderContextRHIImpl::RenderContextRHIImpl(

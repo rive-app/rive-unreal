@@ -16,7 +16,9 @@
 #include "RiveRenderTarget.h"
 #include "RiveTypeConversions.h"
 #include "TimerManager.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Logs/RiveLog.h"
+#include "Blueprint/UserWidget.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/SOverlay.h"
 
@@ -114,6 +116,8 @@ public:
         auto RiveArtboardLocal = RiveArtboard.Pin();
         auto RenderBoundsLocal = RenderBounds;
 
+        const float TotalScale = Scale * DPIScale;
+
         if (!RiveArtboardLocal.IsValid())
         {
             UE_LOG(LogRive,
@@ -208,14 +212,16 @@ public:
                         Alignment,
                         AABBForSlateRect(RenderBoundsLocal),
                         ArtboardInstance->bounds(),
-                        Scale);
+                        TotalScale);
         if (bDirty)
         {
             bDirty = false;
             if (Fit == rive::Fit::layout)
             {
-                ArtboardInstance->width(RenderBoundsLocal.GetSize().X / Scale);
-                ArtboardInstance->height(RenderBoundsLocal.GetSize().Y / Scale);
+                ArtboardInstance->width(RenderBoundsLocal.GetSize().X /
+                                        TotalScale);
+                ArtboardInstance->height(RenderBoundsLocal.GetSize().Y /
+                                         TotalScale);
             }
             else
             {
@@ -254,6 +260,8 @@ public:
         bDirty = true;
     }
 
+    void SetDPIScale(float InDPIScale) { DPIScale = InDPIScale; }
+
     void SetRenderingBounds(const FSlateRect& InRenderBounds)
     {
         bDirty |= RenderBounds != InRenderBounds;
@@ -271,6 +279,7 @@ private:
     rive::Alignment Alignment;
     rive::Fit Fit;
     float Scale = 1;
+    float DPIScale = 1;
     FSlateRect RenderBounds;
     FSlateRect ClipRect;
     bool bDirty = true;
@@ -279,6 +288,7 @@ private:
 void SRiveLeafWidget::SetRiveDescriptor(const FRiveDescriptor& InDescriptor)
 {
     RiveRendererDrawElement->SetFromDescriptor(InDescriptor);
+    bScaleByDPI = InDescriptor.bScaleLayoutByDPI;
 }
 
 void SRiveLeafWidget::SetArtboard(TWeakObjectPtr<URiveArtboard> InArtboard)
@@ -290,6 +300,8 @@ void SRiveLeafWidget::SetArtboard(TWeakObjectPtr<URiveArtboard> InArtboard)
 void SRiveLeafWidget::Construct(const FArguments& InArgs)
 {
     FRiveDescriptor Descriptor;
+    if (InArgs._OwningWidget.IsSet())
+        OwningWidget = InArgs._OwningWidget.Get();
     if (InArgs._Artboard.IsSet())
         Artboard = InArgs._Artboard.Get();
     if (InArgs._Descriptor.IsSet())
@@ -313,6 +325,17 @@ int32 SRiveLeafWidget::OnPaint(const FPaintArgs& Args,
     // Don't try to draw if we don't have an artboard.
     if (!Artboard.IsValid())
         return LayerId;
+
+    if (bScaleByDPI && IsValid(OwningWidget))
+    {
+        const float Scale =
+            UWidgetLayoutLibrary::GetViewportScale(OwningWidget);
+        RiveRendererDrawElement->SetDPIScale(Scale);
+    }
+    else
+    {
+        RiveRendererDrawElement->SetDPIScale(1.0f);
+    }
 
     RiveRendererDrawElement->SetRenderingBounds(
         AllottedGeometry.GetRenderBoundingRect());

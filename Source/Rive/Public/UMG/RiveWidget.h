@@ -18,7 +18,7 @@ struct FRiveStateMachine;
 class URiveTextureObject;
 class URiveArtboard;
 class URiveTexture;
-class SRiveWidget;
+class SRiveLeafWidget;
 class URiveAudioEngine;
 class URiveFile;
 
@@ -99,7 +99,7 @@ private:
     UPROPERTY(Transient)
     TObjectPtr<URiveAudioEngine> RiveAudioEngine;
 
-    TSharedPtr<SRiveWidget> RiveWidget;
+    TSharedPtr<SRiveLeafWidget> RiveWidget;
     FTimerHandle TimerHandle;
 
     FVector2f InitialArtboardSize;

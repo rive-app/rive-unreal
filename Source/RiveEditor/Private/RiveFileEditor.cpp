@@ -2,8 +2,8 @@
 
 #include "RiveFileEditor.h"
 #include "Rive/RiveFile.h"
-#include "Slate/SRiveWidget.h"
 #include "PropertyEditorModule.h"
+#include "Slate/SRiveLeafWidget.h"
 #include "Widgets/Docking/SDockTab.h"
 
 const FName FRiveFileEditor::RiveViewportTabID(TEXT("RiveViewportTabID"));
@@ -16,7 +16,7 @@ FRiveFileEditor::~FRiveFileEditor()
 {
     if (RiveWidget)
     {
-        RiveWidget->SetRiveArtboard(nullptr);
+        RiveWidget->SetArtboard(nullptr);
         RiveWidget.Reset();
     }
 }
@@ -128,8 +128,8 @@ TSharedRef<SDockTab> FRiveFileEditor::SpawnTab_RiveViewportTab(
     if (RiveFile && ensure(RiveFile->GetHasData()) &&
         RiveFile->ArtboardDefinitions.Num() > 0)
     {
-        RiveWidget = SNew(SRiveWidget);
-        RiveWidget->SetRiveArtboard(
+        RiveWidget = SNew(SRiveLeafWidget);
+        RiveWidget->SetArtboard(
             RiveFile->CreateArtboardNamed(RiveFile->ArtboardDefinitions[0].Name,
                                           false));
         ViewportWidget = RiveWidget;

@@ -4,9 +4,9 @@
 #include "Logs/RiveLog.h"
 #include "Rive/RiveAudioEngine.h"
 #include "Rive/RiveArtboard.h"
-#include "Slate/SRiveWidget.h"
 #include "TimerManager.h"
 #include "Components/PanelWidget.h"
+#include "Slate/SRiveLeafWidget.h"
 
 #define LOCTEXT_NAMESPACE "RiveWidget"
 
@@ -14,7 +14,7 @@ URiveWidget::~URiveWidget()
 {
     if (RiveWidget != nullptr)
     {
-        RiveWidget->SetRiveArtboard(nullptr);
+        RiveWidget->SetArtboard(nullptr);
     }
 
     RiveWidget.Reset();
@@ -35,7 +35,7 @@ void URiveWidget::ReleaseSlateResources(bool bReleaseChildren)
 
     if (RiveWidget != nullptr && bReleaseChildren)
     {
-        RiveWidget->SetRiveArtboard(nullptr);
+        RiveWidget->SetArtboard(nullptr);
     }
 
     RiveWidget.Reset();
@@ -43,7 +43,7 @@ void URiveWidget::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> URiveWidget::RebuildWidget()
 {
-    RiveWidget = SNew(SRiveWidget);
+    RiveWidget = SNew(SRiveLeafWidget).OwningWidget(this);
 
     Setup();
 
@@ -124,7 +124,7 @@ void URiveWidget::SetArtboard(URiveArtboard* InArtboard)
     if (IsValid(RiveArtboard))
     {
         RiveDescriptor.ArtboardName = RiveArtboard->GetArtboardName();
-        RiveWidget->SetRiveArtboard(RiveArtboard);
+        RiveWidget->SetArtboard(RiveArtboard);
         if (IsValid(RiveAudioEngine))
         {
             RiveArtboard->SetAudioEngine(RiveAudioEngine);
@@ -227,7 +227,7 @@ void URiveWidget::PostEditChangeChainProperty(
                 RiveArtboard->SetAudioEngine(RiveAudioEngine);
             }
 
-            RiveWidget->SetRiveArtboard(RiveArtboard);
+            RiveWidget->SetArtboard(RiveArtboard);
             RiveWidget->SetRiveDescriptor(RiveDescriptor);
         }
     }
@@ -272,7 +272,7 @@ void URiveWidget::Setup()
     if (IsValid(RiveArtboard))
     {
         RiveDescriptor.ArtboardName = RiveArtboard->GetArtboardName();
-        RiveWidget->SetRiveArtboard(RiveArtboard);
+        RiveWidget->SetArtboard(RiveArtboard);
         RiveWidget->SetRiveDescriptor(RiveDescriptor);
         if (IsValid(RiveAudioEngine))
         {

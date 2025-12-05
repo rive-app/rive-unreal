@@ -47,6 +47,11 @@ public:
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
     float ScaleFactor = 1.0f;
 
+    // If true, use a combination of ScaleFactor * DPI when set to Layout Fit
+    // Type.
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+    bool bScaleLayoutByDPI;
+
     friend FArchive& operator<<(FArchive& Ar, FRiveDescriptor& Struct)
     {
         Ar << Struct.RiveFile;
