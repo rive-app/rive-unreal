@@ -123,8 +123,6 @@ private:
     FRenderTarget* m_renderTarget = nullptr;
     FRDGTextureRef m_rdgTextureTarget = nullptr;
     FTextureRHIRef m_textureTarget = nullptr;
-    FTextureRHIRef m_atomicCoverageTexture = nullptr;
-    FTextureRHIRef m_clipTexture = nullptr;
 
     bool m_targetTextureSupportsUAV;
     bool m_targetTextureSupportsRenderTarget;

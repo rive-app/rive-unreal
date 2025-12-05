@@ -621,24 +621,6 @@ RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
     m_textureTarget(InTextureTarget),
     m_capabilities(Capabilities)
 {
-    FRHITextureCreateDesc coverageDesc =
-        FRHITextureCreateDesc::Create2D(TEXT("rive.AtomicCoverage"),
-                                        width(),
-                                        height(),
-                                        PF_R32_UINT);
-    coverageDesc.SetNumMips(1);
-    coverageDesc.AddFlags(ETextureCreateFlags::UAV);
-    m_atomicCoverageTexture = CREATE_TEXTURE(RHICmdList, coverageDesc);
-
-    FRHITextureCreateDesc clipDesc =
-        FRHITextureCreateDesc::Create2D(TEXT("rive.Clip"),
-                                        width(),
-                                        height(),
-                                        PF_R32_UINT);
-    clipDesc.SetNumMips(1);
-    clipDesc.AddFlags(ETextureCreateFlags::UAV);
-    m_clipTexture = CREATE_TEXTURE(RHICmdList, clipDesc);
-
     m_targetTextureSupportsUAV = static_cast<bool>(
         m_textureTarget->GetDesc().Flags & ETextureCreateFlags::UAV);
 
@@ -662,24 +644,6 @@ RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
     m_renderTarget(InTextureTarget),
     m_capabilities(Capabilities)
 {
-    FRHITextureCreateDesc coverageDesc =
-        FRHITextureCreateDesc::Create2D(TEXT("rive.AtomicCoverage"),
-                                        width(),
-                                        height(),
-                                        PF_R32_UINT);
-    coverageDesc.SetNumMips(1);
-    coverageDesc.AddFlags(ETextureCreateFlags::UAV);
-    m_atomicCoverageTexture = CREATE_TEXTURE(RHICmdList, coverageDesc);
-
-    FRHITextureCreateDesc clipDesc =
-        FRHITextureCreateDesc::Create2D(TEXT("rive.Clip"),
-                                        width(),
-                                        height(),
-                                        PF_R32_UINT);
-    clipDesc.SetNumMips(1);
-    clipDesc.AddFlags(ETextureCreateFlags::UAV);
-    m_clipTexture = CREATE_TEXTURE(RHICmdList, clipDesc);
-
     const auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
 
     m_targetTextureSupportsUAV = static_cast<bool>(rhiTexture->GetDesc().Flags &
@@ -703,26 +667,6 @@ RenderTargetRHI::RenderTargetRHI(FRDGBuilder& GraphBuilder,
     m_rdgTextureTarget(InTextureTarget),
     m_capabilities(Capabilities)
 {
-    auto& RHICmdList = GraphBuilder.RHICmdList;
-
-    FRHITextureCreateDesc coverageDesc =
-        FRHITextureCreateDesc::Create2D(TEXT("rive.AtomicCoverage"),
-                                        width(),
-                                        height(),
-                                        PF_R32_UINT);
-    coverageDesc.SetNumMips(1);
-    coverageDesc.AddFlags(ETextureCreateFlags::UAV);
-    m_atomicCoverageTexture = CREATE_TEXTURE(RHICmdList, coverageDesc);
-
-    FRHITextureCreateDesc clipDesc =
-        FRHITextureCreateDesc::Create2D(TEXT("rive.Clip"),
-                                        width(),
-                                        height(),
-                                        PF_R32_UINT);
-    clipDesc.SetNumMips(1);
-    clipDesc.AddFlags(ETextureCreateFlags::UAV);
-    m_clipTexture = CREATE_TEXTURE(RHICmdList, clipDesc);
-
     m_targetTextureSupportsUAV = static_cast<bool>(
         m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::UAV);
 
@@ -801,9 +745,13 @@ FRDGTextureRef RenderTargetRHI::backBufferTexture(
 
 FRDGTextureRef RenderTargetRHI::clipTexture(FRDGBuilder& Builder)
 {
-    return Builder.RegisterExternalTexture(
-        CreateRenderTarget(m_clipTexture, TEXT("rive.Clip")),
-        ERDGTextureFlags::MultiFrame);
+    FRDGTextureDesc clipDesc = FRDGTextureDesc::Create2D(
+        {static_cast<int>(width()), static_cast<int>(height())},
+        PF_R32_UINT,
+        FClearValueBinding::Black,
+        ETextureCreateFlags::UAV);
+
+    return Builder.CreateTexture(clipDesc, TEXT("rive.Clip"));
 }
 #if PLATFORM_APPLE
 FRDGBufferRef RenderTargetRHI::coverageBuffer(FRDGBuilder& Builder)
@@ -815,10 +763,13 @@ FRDGBufferRef RenderTargetRHI::coverageBuffer(FRDGBuilder& Builder)
 #endif
 FRDGTextureRef RenderTargetRHI::coverageTexture(FRDGBuilder& Builder)
 {
-    return Builder.RegisterExternalTexture(
-        CreateRenderTarget(m_atomicCoverageTexture,
-                           TEXT("rive.AtomicCoverage")),
-        ERDGTextureFlags::MultiFrame);
+    FRDGTextureDesc coverageDesc = FRDGTextureDesc::Create2D(
+        {static_cast<int>(width()), static_cast<int>(height())},
+        PF_R32_UINT,
+        FClearValueBinding::Black,
+        ETextureCreateFlags::UAV);
+
+    return Builder.CreateTexture(coverageDesc, TEXT("rive.AtomicCoverage"));
 }
 
 FRDGTextureRef RenderTargetRHI::msaaColorTexture(FRDGBuilder& Builder,
