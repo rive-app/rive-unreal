@@ -54,6 +54,15 @@ protected:
         const FGeometry& InGeometry,
         const FPointerEvent& InMouseEvent) override;
     virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+    virtual FReply NativeOnTouchStarted(
+        const FGeometry& InGeometry,
+        const FPointerEvent& InGestureEvent) override;
+    virtual FReply NativeOnTouchMoved(
+        const FGeometry& InGeometry,
+        const FPointerEvent& InGestureEvent) override;
+    virtual FReply NativeOnTouchEnded(
+        const FGeometry& InGeometry,
+        const FPointerEvent& InGestureEvent) override;
     //~ END : UWidget Interface
 
     /**

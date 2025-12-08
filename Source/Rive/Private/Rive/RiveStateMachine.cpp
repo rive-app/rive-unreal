@@ -108,12 +108,17 @@ uint32 FRiveStateMachine::GetInputCount() const { return 0; }
 
 bool FRiveStateMachine::PointerDown(const FGeometry& InGeometry,
                                     const FRiveDescriptor& InDescriptor,
-                                    const FPointerEvent& InMouseEvent)
+                                    const FPointerEvent& InMouseEvent,
+                                    float DPI)
 {
     bStateMachineSettled = false;
     float ScaleFactor = 1.0f;
     if (InDescriptor.FitType == ERiveFitType::Layout)
+    {
         ScaleFactor = InDescriptor.ScaleFactor;
+        if (InDescriptor.bScaleLayoutByDPI)
+            ScaleFactor *= DPI;
+    }
 
     FVector2D Position = USlateBlueprintLibrary::AbsoluteToLocal(
         InGeometry,
@@ -138,7 +143,8 @@ bool FRiveStateMachine::PointerDown(const FGeometry& InGeometry,
 
 bool FRiveStateMachine::PointerMove(const FGeometry& InGeometry,
                                     const FRiveDescriptor& InDescriptor,
-                                    const FPointerEvent& InMouseEvent)
+                                    const FPointerEvent& InMouseEvent,
+                                    float DPI)
 {
     // Ignore when the mouse doesn't move.
     if (InMouseEvent.GetCursorDelta().GetAbsMax() <= 0)
@@ -149,7 +155,11 @@ bool FRiveStateMachine::PointerMove(const FGeometry& InGeometry,
     bStateMachineSettled = false;
     float ScaleFactor = 1.0f;
     if (InDescriptor.FitType == ERiveFitType::Layout)
+    {
         ScaleFactor = InDescriptor.ScaleFactor;
+        if (InDescriptor.bScaleLayoutByDPI)
+            ScaleFactor *= DPI;
+    }
 
     FVector2D Position = USlateBlueprintLibrary::AbsoluteToLocal(
         InGeometry,
@@ -174,12 +184,17 @@ bool FRiveStateMachine::PointerMove(const FGeometry& InGeometry,
 
 bool FRiveStateMachine::PointerUp(const FGeometry& InGeometry,
                                   const FRiveDescriptor& InDescriptor,
-                                  const FPointerEvent& InMouseEvent)
+                                  const FPointerEvent& InMouseEvent,
+                                  float DPI)
 {
     bStateMachineSettled = false;
     float ScaleFactor = 1.0f;
     if (InDescriptor.FitType == ERiveFitType::Layout)
+    {
         ScaleFactor = InDescriptor.ScaleFactor;
+        if (InDescriptor.bScaleLayoutByDPI)
+            ScaleFactor *= DPI;
+    }
 
     FVector2D Position = USlateBlueprintLibrary::AbsoluteToLocal(
         InGeometry,
@@ -204,12 +219,17 @@ bool FRiveStateMachine::PointerUp(const FGeometry& InGeometry,
 
 bool FRiveStateMachine::PointerExit(const FGeometry& InGeometry,
                                     const FRiveDescriptor& InDescriptor,
-                                    const FPointerEvent& InMouseEvent)
+                                    const FPointerEvent& InMouseEvent,
+                                    float DPI)
 {
     bStateMachineSettled = false;
     float ScaleFactor = 1.0f;
     if (InDescriptor.FitType == ERiveFitType::Layout)
+    {
         ScaleFactor = InDescriptor.ScaleFactor;
+        if (InDescriptor.bScaleLayoutByDPI)
+            ScaleFactor *= DPI;
+    }
 
     FVector2D Position = USlateBlueprintLibrary::AbsoluteToLocal(
         InGeometry,

@@ -117,38 +117,54 @@ public:
 
     bool PointerDown(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,
-                     const FPointerEvent& MouseEvent)
+                     const FPointerEvent& MouseEvent,
+                     float DPI)
     {
         if (!StateMachine.IsValid())
             return false;
-        return StateMachine->PointerDown(MyGeometry, InDescriptor, MouseEvent);
+        return StateMachine->PointerDown(MyGeometry,
+                                         InDescriptor,
+                                         MouseEvent,
+                                         DPI);
     }
 
     bool PointerMove(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,
-                     const FPointerEvent& MouseEvent)
+                     const FPointerEvent& MouseEvent,
+                     float DPI)
     {
         if (!StateMachine.IsValid())
             return false;
-        return StateMachine->PointerMove(MyGeometry, InDescriptor, MouseEvent);
+        return StateMachine->PointerMove(MyGeometry,
+                                         InDescriptor,
+                                         MouseEvent,
+                                         DPI);
     }
 
     bool PointerUp(const FGeometry& MyGeometry,
                    const FRiveDescriptor& InDescriptor,
-                   const FPointerEvent& MouseEvent)
+                   const FPointerEvent& MouseEvent,
+                   float DPI)
     {
         if (!StateMachine.IsValid())
             return false;
-        return StateMachine->PointerUp(MyGeometry, InDescriptor, MouseEvent);
+        return StateMachine->PointerUp(MyGeometry,
+                                       InDescriptor,
+                                       MouseEvent,
+                                       DPI);
     }
 
     bool PointerExit(const FGeometry& InGeometry,
                      const FRiveDescriptor& InDescriptor,
-                     const FPointerEvent& MouseEvent)
+                     const FPointerEvent& MouseEvent,
+                     float DPI)
     {
         if (!StateMachine.IsValid())
             return false;
-        return StateMachine->PointerExit(InGeometry, InDescriptor, MouseEvent);
+        return StateMachine->PointerExit(InGeometry,
+                                         InDescriptor,
+                                         MouseEvent,
+                                         DPI);
     }
 
     // This is the size of the artboard in the Rive file. It is not the size of

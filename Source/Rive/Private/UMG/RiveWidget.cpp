@@ -5,6 +5,7 @@
 #include "Rive/RiveAudioEngine.h"
 #include "Rive/RiveArtboard.h"
 #include "TimerManager.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/PanelWidget.h"
 #include "Slate/SRiveLeafWidget.h"
 
@@ -61,7 +62,10 @@ FReply URiveWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry,
 
     if (IsValid(RiveArtboard))
     {
-        RiveArtboard->PointerDown(InGeometry, RiveDescriptor, InMouseEvent);
+        RiveArtboard->PointerDown(InGeometry,
+                                  RiveDescriptor,
+                                  InMouseEvent,
+                                  UWidgetLayoutLibrary::GetViewportScale(this));
     }
 
     return FReply::Handled();
@@ -78,7 +82,10 @@ FReply URiveWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry,
 
     if (IsValid(RiveArtboard))
     {
-        RiveArtboard->PointerUp(InGeometry, RiveDescriptor, InMouseEvent);
+        RiveArtboard->PointerUp(InGeometry,
+                                RiveDescriptor,
+                                InMouseEvent,
+                                UWidgetLayoutLibrary::GetViewportScale(this));
     }
 
     return FReply::Handled();
@@ -91,7 +98,10 @@ FReply URiveWidget::NativeOnMouseMove(const FGeometry& InGeometry,
 
     if (IsValid(RiveArtboard))
     {
-        RiveArtboard->PointerMove(InGeometry, RiveDescriptor, InMouseEvent);
+        RiveArtboard->PointerMove(InGeometry,
+                                  RiveDescriptor,
+                                  InMouseEvent,
+                                  UWidgetLayoutLibrary::GetViewportScale(this));
     }
 
     return FReply::Handled();
@@ -105,8 +115,57 @@ void URiveWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
     {
         RiveArtboard->PointerExit(GetCachedGeometry(),
                                   RiveDescriptor,
-                                  InMouseEvent);
+                                  InMouseEvent,
+                                  UWidgetLayoutLibrary::GetViewportScale(this));
     }
+}
+
+FReply URiveWidget::NativeOnTouchStarted(const FGeometry& InGeometry,
+                                         const FPointerEvent& InGestureEvent)
+{
+    Super::NativeOnTouchStarted(InGeometry, InGestureEvent);
+
+    if (IsValid(RiveArtboard))
+    {
+        RiveArtboard->PointerDown(GetCachedGeometry(),
+                                  RiveDescriptor,
+                                  InGestureEvent,
+                                  UWidgetLayoutLibrary::GetViewportScale(this));
+    }
+
+    return FReply::Handled();
+}
+
+FReply URiveWidget::NativeOnTouchMoved(const FGeometry& InGeometry,
+                                       const FPointerEvent& InGestureEvent)
+{
+    Super::NativeOnTouchMoved(InGeometry, InGestureEvent);
+
+    if (IsValid(RiveArtboard))
+    {
+        RiveArtboard->PointerMove(GetCachedGeometry(),
+                                  RiveDescriptor,
+                                  InGestureEvent,
+                                  UWidgetLayoutLibrary::GetViewportScale(this));
+    }
+
+    return FReply::Handled();
+}
+
+FReply URiveWidget::NativeOnTouchEnded(const FGeometry& InGeometry,
+                                       const FPointerEvent& InGestureEvent)
+{
+    Super::NativeOnTouchEnded(InGeometry, InGestureEvent);
+
+    if (IsValid(RiveArtboard))
+    {
+        RiveArtboard->PointerUp(GetCachedGeometry(),
+                                RiveDescriptor,
+                                InGestureEvent,
+                                UWidgetLayoutLibrary::GetViewportScale(this));
+    }
+
+    return FReply::Handled();
 }
 
 void URiveWidget::SetAudioEngine(URiveAudioEngine* InRiveAudioEngine)

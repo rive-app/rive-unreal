@@ -42,19 +42,23 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
 
     bool PointerDown(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,
-                     const FPointerEvent& MouseEvent);
+                     const FPointerEvent& MouseEvent,
+                     float DPI);
 
     bool PointerMove(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,
-                     const FPointerEvent& MouseEvent);
+                     const FPointerEvent& MouseEvent,
+                     float DPI);
 
     bool PointerUp(const FGeometry& MyGeometry,
                    const FRiveDescriptor& InDescriptor,
-                   const FPointerEvent& MouseEvent);
+                   const FPointerEvent& MouseEvent,
+                   float DPI);
 
     bool PointerExit(const FGeometry& InGeometry,
                      const FRiveDescriptor& InDescriptor,
-                     const FPointerEvent& MouseEvent);
+                     const FPointerEvent& MouseEvent,
+                     float DPI);
 
     void BindViewModel(TObjectPtr<URiveViewModel> ViewModel);
 
