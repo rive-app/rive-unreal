@@ -206,6 +206,7 @@ void URiveRenderTarget2D::PostEditChangeProperty(
         Draw();
     }
 }
+#endif
 
 void URiveRenderTarget2D::UpdateArtboardSize()
 {
@@ -224,7 +225,6 @@ void URiveRenderTarget2D::UpdateArtboardSize()
         }
     }
 }
-#endif
 
 uint32 URiveRenderTarget2D::CalcTextureMemorySizeEnum(
     ETextureMipCount Enum) const

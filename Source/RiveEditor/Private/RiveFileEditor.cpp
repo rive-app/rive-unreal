@@ -2,6 +2,7 @@
 
 #include "RiveFileEditor.h"
 #include "Rive/RiveFile.h"
+#include "Rive/RiveArtboard.h"
 #include "PropertyEditorModule.h"
 #include "Slate/SRiveLeafWidget.h"
 #include "Widgets/Docking/SDockTab.h"
