@@ -520,35 +520,54 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                                rive::CommandServer* Server) {
         auto DefaultInstance =
             Server->getViewModelInstance(DefaultViewModelHandle);
-        check(DefaultInstance);
-        auto DefaultInstanceName = DefaultInstance->instance()->name();
-        AsyncTask(ENamedThreads::GameThread,
-                  [DefaultViewModelHandle,
-                   DefaultInstanceName,
-                   ViewModelName,
-                   WeakThis]() {
-                      if (auto StrongThis = WeakThis.Pin())
-                      {
-                          auto ViewModel =
-                              StrongThis->ViewModelDefinitions.FindByPredicate(
-                                  [ViewModelName](const auto& ViewModel) {
-                                      return ViewModel.Name == ViewModelName;
-                                  });
-                          check(ViewModel);
-                          FUTF8ToTCHAR DefaultInstanceNameConversion(
-                              DefaultInstanceName.c_str());
-                          ViewModel->DefaultInstanceName =
-                              DefaultInstanceNameConversion;
-                      }
-                      IRiveRendererModule::GetCommandBuilder().DestroyViewModel(
-                          DefaultViewModelHandle);
-                  });
+        if (DefaultInstance)
+        {
+            auto DefaultInstanceName = DefaultInstance->instance()->name();
+            AsyncTask(
+                ENamedThreads::GameThread,
+                [DefaultViewModelHandle,
+                 DefaultInstanceName,
+                 ViewModelName,
+                 WeakThis]() {
+                    if (auto StrongThis = WeakThis.Pin())
+                    {
+                        auto ViewModel =
+                            StrongThis->ViewModelDefinitions.FindByPredicate(
+                                [ViewModelName](const auto& ViewModel) {
+                                    return ViewModel.Name == ViewModelName;
+                                });
+                        check(ViewModel);
+                        FUTF8ToTCHAR DefaultInstanceNameConversion(
+                            DefaultInstanceName.c_str());
+                        ViewModel->DefaultInstanceName =
+                            DefaultInstanceNameConversion;
+                    }
+                    IRiveRendererModule::GetCommandBuilder().DestroyViewModel(
+                        DefaultViewModelHandle);
+                });
+        }
+        else
+        {
+            UE_LOG(LogRive,
+                   Error,
+                   TEXT("No View model for default instance name %s"),
+                   *ViewModelName);
+        }
     });
 
     for (const auto& InstanceName : ViewModelDefinition->InstanceNames)
     {
         // The editor was fixed so we should never have empty instance names
-        check(!InstanceName.IsEmpty());
+        if (InstanceName.IsEmpty())
+        {
+            UE_LOG(
+                LogRive,
+                Warning,
+                TEXT(
+                    "InstanceName is empty when getting view models %s instances !"),
+                *ViewModelName);
+            continue;
+        }
 
         bWasUpdated = true;
         const bool bCanBroadcast =
@@ -574,7 +593,16 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                                 InstanceName](rive::CommandServer* Server) {
             auto NativeViewModelInstance =
                 Server->getViewModelInstance(NativeViewModel);
-            check(NativeViewModelInstance);
+            if (!NativeViewModelInstance)
+            {
+                UE_LOG(
+                    LogRive,
+                    Error,
+                    TEXT(
+                        "NativeViewModelInstance for %s is null when getting view model definition"),
+                    *InstanceName);
+                return;
+            }
             TArray<FPropertyDefaultData> DefaultValues;
             for (const auto& Property : CopyPropertyDefinitions)
             {
@@ -692,7 +720,16 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                                 [CopyViewModelName](const auto& ViewModel) {
                                     return ViewModel.Name == CopyViewModelName;
                                 });
-                        check(ViewModel);
+                        if (!ViewModel)
+                        {
+                            UE_LOG(
+                                LogRive,
+                                Error,
+                                TEXT(
+                                    "View Model %s is null when setting view model definition"),
+                                *CopyViewModelName);
+                            return;
+                        }
                         ViewModel->InstanceDefaults.Add(
                             {InstanceName, DefaultValues});
 
@@ -812,7 +849,14 @@ URiveViewModel* URiveFile::CreateViewModelByName(const URiveFile* InputFile,
         RiveUtils::SanitizeObjectName(ViewModelName + TEXT("_") + InstanceName);
     auto ViewModelClass =
         InputFile->GetGeneratedClassForViewModel(*ViewModelName);
-    check(ViewModelClass);
+    if (!ViewModelClass)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("Could not find generated class for %s"),
+               *ViewModelName);
+        return nullptr;
+    }
 
     const auto ObjectName = MakeUniqueObjectName(ViewModelClass->GetOuter(),
                                                  ViewModelClass,
@@ -897,7 +941,14 @@ URiveViewModel* URiveFile::CreateViewModelByArtboardName(
 
     UClass* ViewModelClass =
         InputFile->GetGeneratedClassForViewModel(*ViewModelName);
-    check(ViewModelClass);
+    if (!ViewModelClass)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("Could not find generated class for %s"),
+               *ViewModelName);
+        return nullptr;
+    }
     const auto ObjectName = MakeUniqueObjectName(ViewModelClass->GetOuter(),
                                                  ViewModelClass,
                                                  *SanitizedName);

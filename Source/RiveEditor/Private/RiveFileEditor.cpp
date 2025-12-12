@@ -4,6 +4,7 @@
 #include "Rive/RiveFile.h"
 #include "Rive/RiveArtboard.h"
 #include "PropertyEditorModule.h"
+#include "Logs/RiveEditorLog.h"
 #include "Slate/SRiveLeafWidget.h"
 #include "Widgets/Docking/SDockTab.h"
 
@@ -26,7 +27,14 @@ void FRiveFileEditor::Initialize(URiveFile* InRiveFile,
                                  const EToolkitMode::Type InMode,
                                  const TSharedPtr<IToolkitHost>& InToolkitHost)
 {
-    check(InRiveFile);
+    if (!IsValid(InRiveFile))
+    {
+        UE_LOG(LogRiveEditor,
+               Error,
+               TEXT("FRiveFileEditor::Initialize InRiveFile is invalid !"));
+        return;
+    }
+
     RiveFile = InRiveFile;
 
     // Setup our default layout

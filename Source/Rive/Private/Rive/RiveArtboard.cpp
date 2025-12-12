@@ -147,7 +147,12 @@ void URiveArtboard::Initialize(URiveFile* InRiveFile,
                                bool InAutoBindViewModel,
                                FRiveCommandBuilder& InCommandBuilder)
 {
-    check(IsValid(InRiveFile));
+    if (!IsValid(InRiveFile))
+    {
+        UE_LOG(LogRive, Error, TEXT("Invalid RiveFile passed to Initialize."));
+        return;
+    }
+
     RiveFile = InRiveFile;
     ArtboardDefinition = InDefinition;
 

@@ -40,6 +40,18 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
 
     uint32 GetInputCount() const;
 
+    bool PointerDown(const FRiveDescriptor& InDescriptor,
+                     const FVector2D& NormalLocationOnSurface);
+
+    bool PointerMove(const FRiveDescriptor& InDescriptor,
+                     const FVector2D& NormalLocationOnSurface);
+
+    bool PointerUp(const FRiveDescriptor& InDescriptor,
+                   const FVector2D& NormalLocationOnSurface);
+
+    bool PointerExit(const FRiveDescriptor& InDescriptor,
+                     const FVector2D& NormalLocationOnSurface);
+
     bool PointerDown(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,
                      const FPointerEvent& MouseEvent,

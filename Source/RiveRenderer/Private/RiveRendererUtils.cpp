@@ -6,6 +6,7 @@
 #include "MediaShaders.h"
 #include "RenderGraphBuilder.h"
 #include "ScreenPass.h"
+#include "Logs/RiveRendererLog.h"
 #include "UObject/Package.h"
 
 UTextureRenderTarget2D* FRiveRendererUtils::CreateDefaultRenderTarget(
@@ -32,7 +33,15 @@ UTextureRenderTarget2D* FRiveRendererUtils::CreateDefaultRenderTarget(
 FIntPoint FRiveRendererUtils::GetRenderTargetSize(
     const UTextureRenderTarget2D* InRenderTarget)
 {
-    check(IsValid(InRenderTarget));
+    if (!IsValid(InRenderTarget))
+    {
+        UE_LOG(
+            LogRiveRenderer,
+            Error,
+            TEXT(
+                "FRiveRendererUtils::GetRenderTargetSize InRenderTarget is invalid"));
+        return {};
+    }
 
     return FIntPoint(InRenderTarget->SizeX, InRenderTarget->SizeY);
 }

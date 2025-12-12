@@ -18,7 +18,6 @@ ARiveWidgetActor::ARiveWidgetActor()
 
     RootComponent =
         CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent0"));
-    check(RootComponent);
 
     AudioEngine =
         CreateDefaultSubobject<URiveAudioEngine>(TEXT("RiveAudioEngine"));

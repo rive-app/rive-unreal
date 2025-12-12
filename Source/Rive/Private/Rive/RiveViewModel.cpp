@@ -144,8 +144,22 @@ void URiveViewModel::Initialize(
     const FViewModelDefinition& InViewModelDefinition,
     const FString& InstanceName)
 {
-    check(OwningFile);
-    check(!InViewModelDefinition.Name.IsEmpty());
+    if (!IsValid(OwningFile))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveViewModel::Initialize Invalid Rive File"));
+        return;
+    }
+
+    if (InViewModelDefinition.Name.IsEmpty())
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveViewModel::Initialize Invalid ViewModelDefinition"));
+        return;
+    }
+
     ViewModelDefinition = InViewModelDefinition;
 
     const bool bIsBlankInstance = InstanceName == GViewModelInstanceBlankName;
@@ -190,8 +204,22 @@ void URiveViewModel::Initialize(
                 });
         UBlueprintGeneratedClass* GeneratedClass =
             Cast<UBlueprintGeneratedClass>(GetClass());
-        check(ViewModelDefault);
-        check(GeneratedClass);
+        if (!ViewModelDefault)
+        {
+            UE_LOG(LogRive,
+                   Error,
+                   TEXT("URiveViewModel::Initialize No View Model Default !"));
+            return;
+        }
+        if (!GeneratedClass)
+        {
+            UE_LOG(
+                LogRive,
+                Error,
+                TEXT(
+                    "URiveViewModel::Initialize Class is not a generated class !"));
+            return;
+        }
         for (int32 Index = 0;
              Index < ViewModelDefinition.PropertyDefinitions.Num();
              ++Index)
@@ -214,7 +242,15 @@ void URiveViewModel::Initialize(
             {
                 const FPropertyDefaultData& DefaultData =
                     ViewModelDefault->PropertyValues[DefaultValueIndex++];
-                check(DefaultData.Name == PropertyDefinition.Name);
+                if (DefaultData.Name != PropertyDefinition.Name)
+                {
+                    UE_LOG(
+                        LogRive,
+                        Warning,
+                        TEXT(
+                            "URiveViewModel::Initialize Default Property Name Mismatch !"));
+                    continue;
+                }
                 const FString& DefaultValue = DefaultData.Value;
                 switch (PropertyDefinition.Type)
                 {
@@ -282,10 +318,12 @@ void URiveViewModel::Initialize(
                                 *PropertyDefinition.Name))
                         {
                             UEnum* Enum = Prop->GetIntPropertyEnum();
-                            check(Enum);
-                            Prop->SetPropertyValue_InContainer(
-                                this,
-                                Enum->GetIndexByNameString(DefaultValue));
+                            if (ensure(Enum))
+                            {
+                                Prop->SetPropertyValue_InContainer(
+                                    this,
+                                    Enum->GetIndexByNameString(DefaultValue));
+                            }
                         }
                     }
                     break;
@@ -774,23 +812,36 @@ bool URiveViewModel::RemoveFromListAtIndex(const FString& ListName, int32 Index)
                 {
                     auto NestedHandle =
                         Server->getHandleForInstance(ViewModel.get());
-                    AsyncTask(ENamedThreads::GameThread,
-                              [&ListPath, WeakThis, NestedHandle]() {
-                                  // Make sure this view model still exsists
-                                  // when trying to modify the list.
-                                  if (auto StrongThis = WeakThis.Pin())
-                                  {
-                                      auto ViewModelToRemove =
-                                          ViewModelInstances[NestedHandle];
-                                      check(ViewModelToRemove);
-                                      StrongThis->UpdateListWithViewModelData(
-                                          ListPath,
-                                          ViewModelToRemove,
-                                          true);
-                                      ViewModelToRemove->SetOwningArtboard(
-                                          nullptr);
-                                  }
-                              });
+                    AsyncTask(
+                        ENamedThreads::GameThread,
+                        [&ListPath, WeakThis, NestedHandle, Index]() {
+                            // Make sure this view model still exsists
+                            // when trying to modify the list.
+                            if (auto StrongThis = WeakThis.Pin())
+                            {
+                                auto ViewModelToRemove =
+                                    ViewModelInstances[NestedHandle];
+                                if (ensure(ViewModelToRemove))
+                                {
+                                    StrongThis->UpdateListWithViewModelData(
+                                        ListPath,
+                                        ViewModelToRemove,
+                                        true);
+                                    ViewModelToRemove->SetOwningArtboard(
+                                        nullptr);
+                                }
+                                else
+                                {
+                                    UE_LOG(
+                                        LogRive,
+                                        Error,
+                                        TEXT(
+                                            "Could not find nested view model at index %i for to remove for list %s"),
+                                        Index,
+                                        *ListPath);
+                                }
+                            }
+                        });
                 }
                 else
                 {
@@ -968,7 +1019,16 @@ void URiveViewModel::OnViewModelDataReceived(
 
                 auto Delegate = DelegateProperty->GetMulticastDelegate(
                     DelegateProperty->ContainerPtrToValuePtr<void>(this));
-                check(Delegate);
+                if (!Delegate)
+                {
+                    UE_LOG(
+                        LogRive,
+                        Error,
+                        TEXT(
+                            "Multicast Delegate for Delegate Property %s is null"),
+                        *PropName);
+                    return;
+                }
                 // We don't have any inputs or outputs for triggers
                 FString SigName =
                     Conversion +
@@ -1100,7 +1160,13 @@ void URiveViewModel::OnViewModelListSizeReceived(std::string Path,
     }
 
     FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
-    check(List);
+    if (!List)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("Failed to find list property to update !"));
+        return;
+    }
     List->ListSize = static_cast<int32>(ListSize);
 
     if (UBlueprintGeneratedClass* BlueprintClass =
@@ -1138,7 +1204,7 @@ void URiveViewModel::BeginDestroy()
                 RiveDataTypeToDataType(PropertyDefinition.Type));
         }
         Builder.DestroyViewModel(NativeViewModelInstance);
-        check(ViewModelInstances.Contains(NativeViewModelInstance));
+        ensure(ViewModelInstances.Contains(NativeViewModelInstance));
         ViewModelInstances.Remove(NativeViewModelInstance);
     }
     UObject::BeginDestroy();
@@ -1291,7 +1357,15 @@ void URiveViewModel::UpdateListWithViewModelData(const FString& ListPath,
     }
 
     FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
-    check(List);
+    if (!List)
+    {
+        UE_LOG(
+            LogRive,
+            Error,
+            TEXT(
+                "URiveViewModel::UpdateListWithViewModelData Failed to find list property to update !"));
+        return;
+    }
     if (bRemove)
     {
         List->ViewModels.Remove(Value);

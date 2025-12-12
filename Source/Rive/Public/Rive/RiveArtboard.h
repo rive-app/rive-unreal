@@ -115,6 +115,42 @@ public:
 
     rive::StateMachineHandle GetStateMachineHandle() const;
 
+    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+    bool PointerDown(const FRiveDescriptor& InDescriptor,
+                     const FVector2D& NormalLocationOnSurface)
+    {
+        if (!StateMachine.IsValid())
+            return false;
+        return StateMachine->PointerDown(InDescriptor, NormalLocationOnSurface);
+    }
+
+    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+    bool PointerMove(const FRiveDescriptor& InDescriptor,
+                     const FVector2D& NormalLocationOnSurface)
+    {
+        if (!StateMachine.IsValid())
+            return false;
+        return StateMachine->PointerMove(InDescriptor, NormalLocationOnSurface);
+    }
+
+    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+    bool PointerUp(const FRiveDescriptor& InDescriptor,
+                   const FVector2D& NormalLocationOnSurface)
+    {
+        if (!StateMachine.IsValid())
+            return false;
+        return StateMachine->PointerUp(InDescriptor, NormalLocationOnSurface);
+    }
+
+    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+    bool PointerExit(const FRiveDescriptor& InDescriptor,
+                     const FVector2D& NormalLocationOnSurface)
+    {
+        if (!StateMachine.IsValid())
+            return false;
+        return StateMachine->PointerExit(InDescriptor, NormalLocationOnSurface);
+    }
+
     bool PointerDown(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,
                      const FPointerEvent& MouseEvent,

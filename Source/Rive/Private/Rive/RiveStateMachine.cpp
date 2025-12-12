@@ -106,6 +106,74 @@ void FRiveStateMachine::Advance(FRiveCommandBuilder& CommandBuilder,
 
 uint32 FRiveStateMachine::GetInputCount() const { return 0; }
 
+bool FRiveStateMachine::PointerDown(const FRiveDescriptor& InDescriptor,
+                                    const FVector2D& NormalLocationOnSurface)
+{
+    bStateMachineSettled = false;
+    auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
+    CommandBuilder.StateMachineMouseDown(
+        NativeStateMachineHandle,
+        {.fit = RiveFitTypeToFit(InDescriptor.FitType),
+         .alignment = RiveAlignementToAlignment(InDescriptor.Alignment),
+         // Normalized Bounds 0-1
+         .screenBounds = {1, 1},
+         .position = {static_cast<float>(NormalLocationOnSurface.X),
+                      static_cast<float>(NormalLocationOnSurface.Y)},
+         .scaleFactor = InDescriptor.ScaleFactor});
+    return false;
+}
+
+bool FRiveStateMachine::PointerMove(const FRiveDescriptor& InDescriptor,
+                                    const FVector2D& NormalLocationOnSurface)
+{
+    bStateMachineSettled = false;
+    auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
+    CommandBuilder.StateMachineMouseMove(
+        NativeStateMachineHandle,
+        {.fit = RiveFitTypeToFit(InDescriptor.FitType),
+         .alignment = RiveAlignementToAlignment(InDescriptor.Alignment),
+         // Normalized Bounds 0-1
+         .screenBounds = {1, 1},
+         .position = {static_cast<float>(NormalLocationOnSurface.X),
+                      static_cast<float>(NormalLocationOnSurface.Y)},
+         .scaleFactor = InDescriptor.ScaleFactor});
+    return false;
+}
+
+bool FRiveStateMachine::PointerUp(const FRiveDescriptor& InDescriptor,
+                                  const FVector2D& NormalLocationOnSurface)
+{
+    bStateMachineSettled = false;
+    auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
+    CommandBuilder.StateMachineMouseUp(
+        NativeStateMachineHandle,
+        {.fit = RiveFitTypeToFit(InDescriptor.FitType),
+         .alignment = RiveAlignementToAlignment(InDescriptor.Alignment),
+         // Normalized Bounds 0-1
+         .screenBounds = {1, 1},
+         .position = {static_cast<float>(NormalLocationOnSurface.X),
+                      static_cast<float>(NormalLocationOnSurface.Y)},
+         .scaleFactor = InDescriptor.ScaleFactor});
+    return false;
+}
+
+bool FRiveStateMachine::PointerExit(const FRiveDescriptor& InDescriptor,
+                                    const FVector2D& NormalLocationOnSurface)
+{
+    bStateMachineSettled = false;
+    auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
+    CommandBuilder.StateMachineMouseOut(
+        NativeStateMachineHandle,
+        {.fit = RiveFitTypeToFit(InDescriptor.FitType),
+         .alignment = RiveAlignementToAlignment(InDescriptor.Alignment),
+         // Normalized Bounds 0-1
+         .screenBounds = {1, 1},
+         .position = {static_cast<float>(NormalLocationOnSurface.X),
+                      static_cast<float>(NormalLocationOnSurface.Y)},
+         .scaleFactor = InDescriptor.ScaleFactor});
+    return false;
+}
+
 bool FRiveStateMachine::PointerDown(const FGeometry& InGeometry,
                                     const FRiveDescriptor& InDescriptor,
                                     const FPointerEvent& InMouseEvent,
@@ -255,7 +323,13 @@ bool FRiveStateMachine::PointerExit(const FGeometry& InGeometry,
 void FRiveStateMachine::BindViewModel(TObjectPtr<URiveViewModel> ViewModel)
 {
     bStateMachineSettled = false;
-    check(ViewModel);
+    if (!::IsValid(ViewModel))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("FRiveStateMachine::BindViewModel ViewModel was invalid"));
+        return;
+    }
     FRiveRenderer* Renderer = IRiveRendererModule::Get().GetRenderer();
     check(Renderer);
     auto& CommandBuilder = Renderer->GetCommandBuilder();

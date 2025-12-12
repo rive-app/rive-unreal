@@ -55,6 +55,8 @@ public:
         ETextureMipCount Enum) const override;
     virtual ETextureRenderTargetSampleCount GetSampleCount() const override;
 
+    URiveArtboard* GetArtboard() const { return RiveArtboard; }
+
 #if WITH_EDITOR
     virtual void PostEditChangeProperty(
         FPropertyChangedEvent& PropertyChangedEvent) override;

@@ -73,8 +73,25 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object,
             auto CommandServer = RiveRenderer->GetCommandServer();
             auto RenderTarget = RiveRenderTarget->GetRenderTarget();
 
-            check(CommandServer);
-            check(RenderTarget);
+            if (!CommandServer)
+            {
+                UE_LOG(
+                    LogRiveEditor,
+                    Error,
+                    TEXT(
+                        "URiveFileThumbnailRenderer::Draw No Command Server !"));
+                return;
+            }
+
+            if (!RenderTarget)
+            {
+                UE_LOG(
+                    LogRiveEditor,
+                    Error,
+                    TEXT(
+                        "URiveFileThumbnailRenderer::Draw No Render Target !"));
+                return;
+            }
 
             auto File = CommandServer->getFile(NativeFileHandle);
 

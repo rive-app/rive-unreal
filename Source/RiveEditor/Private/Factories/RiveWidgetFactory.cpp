@@ -84,7 +84,15 @@ bool FRiveWidgetFactory::SaveAsset(UWidgetBlueprint* InWidgetBlueprint)
 bool FRiveWidgetFactory::CreateWidgetStructure(
     UWidgetBlueprint* InWidgetBlueprint)
 {
-    check(InWidgetBlueprint);
+    if (!IsValid(InWidgetBlueprint))
+    {
+        UE_LOG(
+            LogRiveEditor,
+            Error,
+            TEXT(
+                " FRiveWidgetFactory::CreateWidgetStructure Invalid Widget Blueprint"));
+        return false;
+    }
 
     // Create the desired root widget specified by the project
     if (InWidgetBlueprint->WidgetTree->RootWidget == nullptr)
