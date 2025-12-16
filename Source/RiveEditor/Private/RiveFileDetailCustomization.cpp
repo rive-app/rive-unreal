@@ -110,6 +110,8 @@ static FString GetIconForPropertyType(ERiveDataType Type)
             return FString(TEXT("\xf0e7")); // FontAwesome icon for bolt
         case ERiveDataType::List:
             return FString(TEXT("\xf00b")); // FontAwesome icon for list
+        case ERiveDataType::SymbolListIndex:
+            return FString(TEXT("\xf0e7"));
         case ERiveDataType::ViewModel:
             return FString(
                 TEXT("\xf542")); // FontAwesome icon for Project Diagram
@@ -142,6 +144,8 @@ static FString GetTextForPropertyType(ERiveDataType Type)
             return FString(TEXT("Texture"));
         case ERiveDataType::Artboard:
             return FString(TEXT("Artboard"));
+        case ERiveDataType::SymbolListIndex:
+            return FString(TEXT("Symbol List Index"));
         case ERiveDataType::None:
             UE_LOG(
                 LogRiveEditor,

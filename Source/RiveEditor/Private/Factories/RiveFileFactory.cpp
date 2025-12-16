@@ -37,6 +37,8 @@ static FName RiveDataTypeToPinCatagory(ERiveDataType DataType)
             return "None";
         case ERiveDataType::String:
             return UEdGraphSchema_K2::PC_String;
+        case ERiveDataType::SymbolListIndex:
+            return UEdGraphSchema_K2::PC_Int;
         case ERiveDataType::Number:
             return UEdGraphSchema_K2::PC_Real;
         case ERiveDataType::Boolean:

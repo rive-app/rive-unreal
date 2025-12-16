@@ -47,7 +47,10 @@ static ERiveDataType RiveDataTypeFromDataType(rive::DataType type)
         case rive::DataType::string:
             return ERiveDataType::String;
         case rive::DataType::number:
+        case rive::DataType::integer:
             return ERiveDataType::Number;
+        case rive::DataType::symbolListIndex:
+            return ERiveDataType::SymbolListIndex;
         case rive::DataType::boolean:
             return ERiveDataType::Boolean;
         case rive::DataType::color:
@@ -64,9 +67,6 @@ static ERiveDataType RiveDataTypeFromDataType(rive::DataType type)
             return ERiveDataType::AssetImage;
         case rive::DataType::artboard:
             return ERiveDataType::Artboard;
-        case rive::DataType::integer:
-        case rive::DataType::symbolListIndex:
-            RIVE_UNREACHABLE();
     }
 
     return ERiveDataType::None;
@@ -632,6 +632,16 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                                 {Property.Name,
                                  FString::SanitizeFloat(Prop->value())});
                         }
+                    }
+                    break;
+                    case ERiveDataType::SymbolListIndex:
+                    {
+                        UE_LOG(
+                            LogRive,
+                            Warning,
+                            TEXT(
+                                "Property of type SymbolListIndex is getting ignored !"));
+                        continue;
                     }
                     break;
                     case ERiveDataType::Boolean:

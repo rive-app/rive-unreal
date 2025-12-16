@@ -16,7 +16,8 @@ enum class ERiveDataType : uint8
     Trigger = 7,
     ViewModel = 8,
     AssetImage = 11,
-    Artboard = 12
+    Artboard = 12,
+    SymbolListIndex = 13,
 };
 
 USTRUCT(BlueprintType)

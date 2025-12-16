@@ -41,7 +41,10 @@ static rive::DataType RiveDataTypeToDataType(ERiveDataType Type)
             return rive::DataType::assetImage;
         case ERiveDataType::Artboard:
             return rive::DataType::artboard;
+        case ERiveDataType::SymbolListIndex:
+            return rive::DataType::symbolListIndex;
     }
+
     return rive::DataType::none;
 }
 
@@ -131,6 +134,7 @@ constexpr bool GetIsPropertyTypeWithDefault(ERiveDataType Type)
         case ERiveDataType::AssetImage:
         case ERiveDataType::List:
         case ERiveDataType::Trigger:
+        case ERiveDataType::SymbolListIndex:
         case ERiveDataType::None:
             break;
     }
@@ -1115,13 +1119,17 @@ void URiveViewModel::OnViewModelDataReceived(
         case rive::DataType::viewModel:
         case rive::DataType::artboard:
         case rive::DataType::assetImage:
+        case rive::DataType::symbolListIndex:
             break;
         // Invalid values
         case rive::DataType::none:
         case rive::DataType::input:
         case rive::DataType::integer:
-        case rive::DataType::symbolListIndex:
-            RIVE_UNREACHABLE();
+            UE_LOG(
+                LogRive,
+                Error,
+                TEXT(
+                    "URiveViewModel::OnViewModelDataReceived Invalid property type received for update"));
             break;
     }
 
@@ -1331,6 +1339,14 @@ void URiveViewModel::OnUpdatedField(UE::FieldNotification::FFieldId InFieldId)
                         "Type %s."),
                    *ObjectClass->GetName());
         }
+    }
+    else
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveViewModel::OnUpdatedField Unsupported Property "
+                    "%s."),
+               *Property->GetName());
     }
 }
 
