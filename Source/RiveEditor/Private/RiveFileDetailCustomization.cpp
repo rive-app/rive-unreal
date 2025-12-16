@@ -142,9 +142,19 @@ static FString GetTextForPropertyType(ERiveDataType Type)
             return FString(TEXT("Texture"));
         case ERiveDataType::Artboard:
             return FString(TEXT("Artboard"));
-        default:
-            RIVE_UNREACHABLE();
+        case ERiveDataType::None:
+            UE_LOG(
+                LogRiveEditor,
+                Warning,
+                TEXT(
+                    "Getting ERiveDataType Text value for \"None\" Which is likey not intended!"));
+            return FString(TEXT("None"));
     }
+
+    UE_LOG(LogRiveEditor,
+           Warning,
+           TEXT("GetTextForPropertyType \"Type\" is invalid."));
+    return FString(TEXT("Invalid"));
 }
 } // namespace RiveArtboardDetailCustomizationPrivate
 
