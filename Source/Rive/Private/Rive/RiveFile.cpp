@@ -549,7 +549,7 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
         else
         {
             UE_LOG(LogRive,
-                   Error,
+                   Warning,
                    TEXT("No View model for default instance name %s"),
                    *ViewModelName);
         }

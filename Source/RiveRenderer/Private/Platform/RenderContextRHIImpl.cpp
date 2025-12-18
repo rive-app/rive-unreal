@@ -11,6 +11,7 @@
 #include "RenderResource.h"
 #include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
+#include "TextureResource.h"
 
 #if UE_VERSION_OLDER_THAN(5, 5, 0)
 #include "RHIResourceUpdates.h"
