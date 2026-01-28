@@ -37,6 +37,8 @@
 #include "RiveStats.h"
 #include "ScreenPass.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture.h"
+#include "Engine/Texture2D.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"

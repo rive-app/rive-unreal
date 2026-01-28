@@ -1,10 +1,12 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
 
 #include "Rive/RiveRenderTargetUpdater.h"
 
 #include "Kismet/GameplayStatics.h"
 #include "Rive/RiveArtboard.h"
 #include "Rive/RiveRenderTarget2D.h"
+
+#include "Engine/World.h"
 
 // Sets default values for this component's properties
 URiveRenderTargetUpdater::URiveRenderTargetUpdater()

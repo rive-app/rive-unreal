@@ -1,4 +1,6 @@
-﻿#include "RiveRenderTargetFactory.h"
+// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+
+#include "RiveRenderTargetFactory.h"
 
 #include "AssetToolsModule.h"
 #include "Logs/RiveEditorLog.h"

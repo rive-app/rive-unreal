@@ -17,6 +17,9 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/buffer_ring.hpp"
 THIRD_PARTY_INCLUDES_END
 
+class UTexture;
+class UTexture2D;
+
 struct RHICapabilities
 {
     RHICapabilities();
