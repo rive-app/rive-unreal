@@ -369,6 +369,27 @@ FRDGPassRef AddTessellationPass(
         });
 }
 
+FRHIBlendState* RHIBlendStateForBlendType(EBlendType BlendType)
+{
+    switch (BlendType)
+    {
+        case EBlendType::None:
+            return TStaticBlendState<CW_NONE>::GetRHI();
+        case EBlendType::WriteOnly:
+            return TStaticBlendState<CW_RGB>::GetRHI();
+        case EBlendType::Blend:
+            return TStaticBlendState<CW_RGBA,
+                                     BO_Add,
+                                     BF_One,
+                                     BF_InverseSourceAlpha,
+                                     BO_Add,
+                                     BF_One,
+                                     BF_InverseSourceAlpha>::GetRHI();
+    }
+
+    return TStaticBlendState<CW_NONE>::GetRHI();
+}
+
 FRDGPassRef AddDrawPatchesPass(
     FRDGBuilder& GraphBuilder,
     const FString& PassName,
@@ -401,18 +422,8 @@ FRDGPassRef AddDrawPatchesPass(
                 GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
-            if (CommonPassParameters->NeedsSourceBlending)
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_RGBA,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha>::GetRHI();
-            else
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::GetRHI();
+            GraphicsPSOInit.BlendState =
+                RHIBlendStateForBlendType(CommonPassParameters->BlendType);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -810,18 +821,8 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
                 GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
-            if (CommonPassParameters->NeedsSourceBlending)
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_RGBA,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha>::GetRHI();
-            else
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::GetRHI();
+            GraphicsPSOInit.BlendState =
+                RHIBlendStateForBlendType(CommonPassParameters->BlendType);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -900,18 +901,8 @@ FRDGPassRef AddDrawAtlasBlitPass(
                 GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
-            if (CommonPassParameters->NeedsSourceBlending)
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_RGBA,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha>::GetRHI();
-            else
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::GetRHI();
+            GraphicsPSOInit.BlendState =
+                RHIBlendStateForBlendType(CommonPassParameters->BlendType);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -993,18 +984,8 @@ FRDGPassRef AddDrawImageRectPass(
                              false);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
-            if (CommonPassParameters->NeedsSourceBlending)
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_RGBA,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha>::GetRHI();
-            else
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::GetRHI();
+            GraphicsPSOInit.BlendState =
+                RHIBlendStateForBlendType(CommonPassParameters->BlendType);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -1093,18 +1074,8 @@ FRDGPassRef AddDrawImageMeshPass(
                              false);
             GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-            if (CommonPassParameters->NeedsSourceBlending)
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_RGBA,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha>::GetRHI();
-            else
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::GetRHI();
+            GraphicsPSOInit.BlendState =
+                RHIBlendStateForBlendType(CommonPassParameters->BlendType);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -1193,18 +1164,8 @@ FRDGPassRef AddAtomicResolvePass(
                              false);
             GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
 
-            if (CommonPassParameters->NeedsSourceBlending)
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_RGBA,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha>::GetRHI();
-            else
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::GetRHI();
+            GraphicsPSOInit.BlendState =
+                RHIBlendStateForBlendType(CommonPassParameters->BlendType);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -1278,18 +1239,8 @@ FRDGPassRef AddDrawRasterOrderPatchesPass(
                 GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
-            if (CommonPassParameters->NeedsSourceBlending)
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_RGBA,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha>::GetRHI();
-            else
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::CreateRHI();
+            GraphicsPSOInit.BlendState =
+                RHIBlendStateForBlendType(CommonPassParameters->BlendType);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -1372,18 +1323,8 @@ FRDGPassRef AddDrawRasterOrderInteriorTrianglesPass(
                 GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
-            if (CommonPassParameters->NeedsSourceBlending)
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_RGBA,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha>::GetRHI();
-            else
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::CreateRHI();
+            GraphicsPSOInit.BlendState =
+                RHIBlendStateForBlendType(CommonPassParameters->BlendType);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -1469,18 +1410,8 @@ FRDGPassRef AddDrawRasterOrderImageMeshPass(
                              false);
             GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-            if (CommonPassParameters->NeedsSourceBlending)
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_RGBA,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha,
-                                      BO_Add,
-                                      BF_One,
-                                      BF_InverseSourceAlpha>::GetRHI();
-            else
-                GraphicsPSOInit.BlendState =
-                    TStaticBlendState<CW_NONE>::CreateRHI();
+            GraphicsPSOInit.BlendState =
+                RHIBlendStateForBlendType(CommonPassParameters->BlendType);
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 

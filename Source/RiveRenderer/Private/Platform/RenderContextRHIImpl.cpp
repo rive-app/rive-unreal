@@ -2132,8 +2132,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                 PixelPermutationDomain;
                             CommonPassParameters.Viewport = Viewport;
                             CommonPassParameters.Scissor = Scissor;
-                            CommonPassParameters.NeedsSourceBlending =
-                                FixedFunctionColorOutput;
+                            CommonPassParameters.BlendType =
+                                FixedFunctionColorOutput ? EBlendType::Blend
+                                                         : EBlendType::None;
                             CommonPassParameters.bWireframe =
                                 CVarRiveWireframe.GetValueOnRenderThread() ||
                                 desc.wireframe;
@@ -2359,8 +2360,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                               desc.renderTargetUpdateBounds.top,
                               desc.renderTargetUpdateBounds.right,
                               desc.renderTargetUpdateBounds.bottom);
-                CommonPassParameters->NeedsSourceBlending =
-                    desc.fixedFunctionColorOutput || NeedsCoalesceResolve;
+                if (desc.fixedFunctionColorOutput)
+                    CommonPassParameters->BlendType = EBlendType::Blend;
+                else if (NeedsCoalesceResolve)
+                    CommonPassParameters->BlendType = EBlendType::WriteOnly;
+                else
+                    CommonPassParameters->BlendType = EBlendType::None;
                 CommonPassParameters->bWireframe =
                     CVarRiveWireframe.GetValueOnRenderThread() ||
                     desc.wireframe;

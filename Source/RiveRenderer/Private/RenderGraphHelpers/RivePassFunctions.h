@@ -10,6 +10,13 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/gpu.hpp"
 THIRD_PARTY_INCLUDES_END
 
+enum EBlendType
+{
+    None,
+    WriteOnly,
+    Blend
+};
+
 struct FRiveCommonPassParameters
 {
     AtomicPixelPermutationDomain PixelPermutationDomain;
@@ -24,7 +31,7 @@ struct FRiveCommonPassParameters
     const rive::gpu::DrawBatch
         DrawBatch; // Copy intentionally since lambda execution is deferred for
                    // RenderGraph
-    bool NeedsSourceBlending = false;
+    EBlendType BlendType = EBlendType::None;
     // Copy for the same reason as above.
     // This is currently only used for MSAA mode, but may get used for other
     // modes in the future
