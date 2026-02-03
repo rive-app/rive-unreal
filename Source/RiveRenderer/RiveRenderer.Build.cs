@@ -1,4 +1,4 @@
-// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+// Copyright 2024-2026 Rive, Inc. All rights reserved.
 
 using System.IO;
 #if UE_5_0_OR_LATER

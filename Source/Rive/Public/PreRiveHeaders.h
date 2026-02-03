@@ -1,4 +1,4 @@
-// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+// Copyright 2024-2026 Rive, Inc. All rights reserved.
 
 //  ---- File to be imported before any Rive Header waiting for fix by Rive
 // The issue is that the Rive Libraries are currently compiled for debug, and

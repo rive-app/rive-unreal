@@ -1,4 +1,4 @@
-// Copyright 2024, 2025 Rive, Inc. All rights reserved.
+// Copyright 2024-2026 Rive, Inc. All rights reserved.
 
 #include "UMG/RiveWidget.h"
 #include "Logs/RiveLog.h"
