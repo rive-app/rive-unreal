@@ -6,7 +6,7 @@
 #include "ThumbnailRendering/TextureThumbnailRenderer.h"
 #include "RiveFileThumbnailRenderer.generated.h"
 
-class FRiveRenderTarget;
+class FRiveRenderTargetRHI;
 class URiveArtboard;
 class URiveTexture;
 
@@ -34,5 +34,5 @@ class RIVEEDITOR_API URiveFileThumbnailRenderer
                       bool bAdditionalViewFamily) override;
 
 private:
-    TSharedPtr<FRiveRenderTarget> RiveRenderTarget;
+    TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget;
 };

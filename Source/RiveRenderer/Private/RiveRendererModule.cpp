@@ -4,7 +4,7 @@
 
 #include "RiveRenderer.h"
 #include "Logs/RiveRendererLog.h"
-#include "Platform/RiveRendererRHI.h"
+#include "RiveRenderer.h"
 #include "rive/command_queue.hpp"
 
 #define LOCTEXT_NAMESPACE "RiveRendererModule"
@@ -41,7 +41,7 @@ void FRiveRendererModule::StartupRiveRenderer()
     }
 
     UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI."))
-    RiveRenderer = MakeUnique<FRiveRendererRHI>();
+    RiveRenderer = MakeUnique<FRiveRenderer>();
 }
 
 #undef LOCTEXT_NAMESPACE

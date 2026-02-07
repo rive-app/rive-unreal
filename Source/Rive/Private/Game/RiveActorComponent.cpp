@@ -1,6 +1,7 @@
 // Copyright 2024-2026 Rive, Inc. All rights reserved.
 
 #include "Game/RiveActorComponent.h"
+#include "Rive/RiveRenderTarget2D.h"
 
 #include "GameFramework/Actor.h"
 #include "IRiveRendererModule.h"
@@ -149,16 +150,9 @@ void URiveActorComponent::TickComponent(
                                 STAT_RIVEACTORCOMPONENT_TICK,
                                 STATGROUP_Rive);
 
-    FRiveCommandBuilder& CommandBuilder =
-        IRiveRendererModule::Get().GetRenderer()->GetCommandBuilder();
-
     if (RiveRenderTarget)
     {
-        for (URiveArtboard* Artboard : Artboards)
-        {
-            Artboard->Tick(DeltaTime);
-            Artboard->DrawToRenderTarget(CommandBuilder, RiveRenderTarget);
-        }
+        RiveRenderTarget->Draw();
     }
 }
 
@@ -169,118 +163,22 @@ void URiveActorComponent::Initialize()
     if (!ensure(RiveRenderer))
         return;
 
-    RiveTexture = NewObject<URiveTexture>();
-    RiveRenderTarget = RiveRenderer->CreateRenderTarget("", RiveTexture);
-    RiveTexture->ResizeRenderTargets(FIntPoint(Size.X, Size.Y));
-
-    if (DefaultRiveDescriptor.RiveFile)
-    {
-        URiveArtboard* Artboard =
-            AddArtboard(DefaultRiveDescriptor.RiveFile,
-                        DefaultRiveDescriptor.ArtboardName,
-                        DefaultRiveDescriptor.StateMachineName);
-    }
+    RiveRenderTarget = NewObject<URiveRenderTarget2D>();
+    RiveRenderTarget->RiveDescriptor = DefaultRiveDescriptor;
+    RiveRenderTarget->SizeX = Size.X;
+    RiveRenderTarget->SizeY = Size.Y;
+    RiveRenderTarget->InitRiveRenderTarget2D();
 
     InitializeAudioEngine();
-
-    OnRiveReady.Broadcast();
 }
 
 void URiveActorComponent::ResizeRenderTarget(int32 InSizeX, int32 InSizeY)
 {
-    if (!RiveTexture)
-    {
+    if (!RiveRenderTarget)
         return;
-    }
 
-    RiveTexture->ResizeRenderTargets(FIntPoint(InSizeX, InSizeY));
+    RiveRenderTarget->ResizeTarget(InSizeX, InSizeY);
 }
-
-URiveArtboard* URiveActorComponent::AddArtboard(
-    URiveFile* InRiveFile,
-    const FString& InArtboardName,
-    const FString& InStateMachineName)
-{
-    if (!IsValid(InRiveFile))
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Can't instantiate an artboard without a valid RiveFile."));
-        return nullptr;
-    }
-
-    check(IRiveRendererModule::IsAvailable());
-
-    FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-
-    if (!RiveRenderer)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Failed to instantiate the Artboard of Rive file '%s' as "
-                    "we do not have a "
-                    "valid renderer."),
-               *GetFullNameSafe(InRiveFile));
-        return nullptr;
-    }
-
-    auto Definition = InRiveFile->GetArtboardDefinition(InArtboardName);
-    if (!Definition)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Artboard '%s' not found in Rive file '%s'."),
-               *InArtboardName,
-               *InRiveFile->GetName())
-        return nullptr;
-    }
-
-    URiveArtboard* Artboard = NewObject<URiveArtboard>();
-    Artboard->Initialize(InRiveFile,
-                         *Definition,
-                         false,
-                         RiveRenderer->GetCommandBuilder());
-
-    Artboards.Add(Artboard);
-
-    if (RiveAudioEngine != nullptr)
-    {
-        Artboard->SetAudioEngine(RiveAudioEngine);
-    }
-
-    return Artboard;
-}
-
-void URiveActorComponent::RemoveArtboard(URiveArtboard* InArtboard)
-{
-    Artboards.RemoveSingle(InArtboard);
-}
-
-URiveArtboard* URiveActorComponent::GetDefaultArtboard() const
-{
-    return GetArtboardAtIndex(0);
-}
-
-URiveArtboard* URiveActorComponent::GetArtboardAtIndex(int32 InIndex) const
-{
-    if (Artboards.IsEmpty())
-    {
-        return nullptr;
-    }
-
-    if (InIndex >= Artboards.Num())
-    {
-        UE_LOG(LogRive,
-               Warning,
-               TEXT("GetArtboardAtIndex with index %d is out of bounds"),
-               InIndex);
-        return nullptr;
-    }
-
-    return Artboards[InIndex];
-}
-
-int32 URiveActorComponent::GetArtboardCount() const { return Artboards.Num(); }
 
 void URiveActorComponent::SetAudioEngine(URiveAudioEngine* InRiveAudioEngine)
 {
@@ -316,16 +214,16 @@ void URiveActorComponent::PostEditChangeChainProperty(
         {
             DefaultRiveDescriptor.StateMachineName = StateMachineNames[0];
         }
-        else if (DefaultRiveDescriptor.StateMachineName.IsEmpty() ||
-                 !StateMachineNames.Contains(
-                     DefaultRiveDescriptor.StateMachineName) &&
-                     !StateMachineNames.IsEmpty())
+        else if (DefaultRiveDescriptor.StateMachineName.IsEmpty() &&
+                 !StateMachineNames.IsEmpty())
         {
             DefaultRiveDescriptor.StateMachineName = StateMachineNames[0];
         }
     }
 }
 #endif
+
+UTexture* URiveActorComponent::GetTexture() const { return RiveRenderTarget; }
 
 TArray<FString> URiveActorComponent::GetArtboardNamesForDropdown() const
 {
@@ -375,32 +273,9 @@ void URiveActorComponent::InitializeAudioEngine()
 
     if (RiveAudioEngine != nullptr)
     {
-        if (RiveAudioEngine->GetNativeAudioEngine() == nullptr)
+        if (auto Artboard = RiveRenderTarget->GetArtboard())
         {
-            if (AudioEngineLambdaHandle.IsValid())
-            {
-                RiveAudioEngine->OnRiveAudioReady.Remove(
-                    AudioEngineLambdaHandle);
-                AudioEngineLambdaHandle.Reset();
-            }
-
-            TFunction<void()> AudioLambda = [this]() {
-                for (URiveArtboard* Artboard : Artboards)
-                {
-                    Artboard->SetAudioEngine(RiveAudioEngine);
-                }
-                RiveAudioEngine->OnRiveAudioReady.Remove(
-                    AudioEngineLambdaHandle);
-            };
-            AudioEngineLambdaHandle =
-                RiveAudioEngine->OnRiveAudioReady.AddLambda(AudioLambda);
-        }
-        else
-        {
-            for (URiveArtboard* Artboard : Artboards)
-            {
-                Artboard->SetAudioEngine(RiveAudioEngine);
-            }
+            Artboard->SetAudioEngine(RiveAudioEngine);
         }
     }
 }

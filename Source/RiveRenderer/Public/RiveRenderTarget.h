@@ -35,7 +35,7 @@ class UTexture2DDynamic;
 
 class FRiveRenderer;
 
-class FRiveRenderTarget
+class RIVERENDERER_API FRiveRenderTarget
 {
 public:
     FRiveRenderTarget(FRiveRenderer* Renderer,

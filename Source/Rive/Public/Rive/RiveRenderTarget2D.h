@@ -9,7 +9,7 @@
 #include "RiveRenderTarget2D.generated.h"
 
 class URiveArtboard;
-class FRiveRenderTarget;
+class FRiveRenderTargetRHI;
 /**
  *
  */
@@ -41,6 +41,8 @@ public:
     UFUNCTION()
     TArray<FString> GetStateMachineNamesForDropdown() const;
 
+    URiveArtboard* GetArtboard() const { return RiveArtboard; }
+
     URiveRenderTarget2D();
 
     void InitRiveRenderTarget2D();
@@ -55,8 +57,6 @@ public:
         ETextureMipCount Enum) const override;
     virtual ETextureRenderTargetSampleCount GetSampleCount() const override;
 
-    URiveArtboard* GetArtboard() const { return RiveArtboard; }
-
 #if WITH_EDITOR
     virtual void PostEditChangeProperty(
         FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -68,7 +68,7 @@ private:
     void Draw(URiveArtboard* InArtboard, FRiveDescriptor InDescriptor);
 
     UPROPERTY(Transient)
-    TObjectPtr<URiveArtboard> RiveArtboard;
+    TObjectPtr<URiveArtboard> RiveArtboard = nullptr;
     // Internal render target to rive
-    TSharedPtr<FRiveRenderTarget> RenderTarget;
+    TSharedPtr<FRiveRenderTargetRHI> RenderTarget;
 };

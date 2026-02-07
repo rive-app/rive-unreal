@@ -6,7 +6,7 @@
 #include "RenderGraphBuilder.h"
 #include "Containers/DynamicRHIResourceArray.h"
 #include "Logs/RiveRendererLog.h"
-#include <RiveShaders/Public/RiveShaderTypes.h>
+#include "RiveShaderTypes.h"
 #include "UnrealClient.h"
 
 THIRD_PARTY_INCLUDES_START
@@ -42,8 +42,7 @@ public:
                     const RHICapabilities& Capabilities,
                     FRenderTarget* InTextureTarget);
 
-    RenderTargetRHI(FRDGBuilder& GraphBuilder,
-                    const RHICapabilities& Capabilities,
+    RenderTargetRHI(const RHICapabilities& Capabilities,
                     FRDGTextureRef InTextureTarget);
 
     virtual ~RenderTargetRHI() override {}
@@ -98,7 +97,7 @@ public:
                                      const rive::gpu::FlushDescriptor& desc);
 
     FRDGTextureRef clipTexture(FRDGBuilder& Builder);
-#if PLATFORM_APPLE
+#if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
     FRDGBufferRef coverageBuffer(FRDGBuilder& Builder);
 #endif
     FRDGTextureRef coverageTexture(FRDGBuilder& Builder);
@@ -243,15 +242,20 @@ private:
 template <typename HighLevelStruct> class StructuredBufferRHIImpl final
 {
 public:
-    StructuredBufferRHIImpl(EBufferUsageFlags flags) :
-        m_flags(flags), m_sizeInBytes(0), m_lastMapSizeInBytes(0), m_data(true)
+    StructuredBufferRHIImpl(EBufferUsageFlags flags, const TCHAR* name) :
+        m_flags(flags),
+        m_sizeInBytes(0),
+        m_lastMapSizeInBytes(0),
+        m_data(true),
+        m_name(name)
     {}
 
-    StructuredBufferRHIImpl() :
+    StructuredBufferRHIImpl(const TCHAR* name) :
         m_flags(EBufferUsageFlags::ShaderResource),
         m_sizeInBytes(0),
         m_lastMapSizeInBytes(0),
-        m_data(true)
+        m_data(true),
+        m_name(name)
     {}
 
     void Resize(size_t newSizeInBytes, size_t gpuStride)
@@ -276,7 +280,7 @@ public:
             FRDGBufferDesc::CreateStructuredDesc(
                 m_gpuStride,
                 elementCount * (m_cpuStride / m_gpuStride)),
-            TEXT("rive.StructuredBufferRHIImpl"));
+            m_name);
 
         Builder.QueueBufferUpload(buffer,
                                   &m_data[elementOffset],
@@ -310,6 +314,7 @@ private:
     static constexpr size_t m_gpuStride =
         rive::gpu::StorageBufferElementSizeInBytes(
             HighLevelStruct::kBufferStructure);
+    const TCHAR* m_name;
 };
 
 class DelayLoadedTexture
@@ -366,6 +371,11 @@ public:
         FRHICommandListImmediate& CommandListImmediate,
         const RHICapabilitiesOverrides& Overrides);
 
+    // This must use the same GraphBuilder as Flush. Currently only used for GM
+    // testing.
+    static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
+        FRDGTextureRef& InTargetTexture);
+
     static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
         const FTextureRHIRef& InTargetTexture);
 
@@ -385,8 +395,7 @@ public:
         FRHICommandListImmediate& RHICmdList,
         FRenderTarget* InTargetTexture);
 
-    rive::rcp<RenderTargetRHI> makeRenderTarget(FRDGBuilder& GraphBuilder,
-                                                FRDGTextureRef InTargetTexture);
+    rive::rcp<RenderTargetRHI> makeRenderTarget(FRDGTextureRef InTargetTexture);
 
     virtual double secondsNow() const override
     {

@@ -12,6 +12,7 @@
 #include "RiveRenderer.h"
 #include "RiveRenderTarget.h"
 #include "Logs/RiveEditorLog.h"
+#include "RiveRenderer/Private/Platform/RiveRenderTargetRHI.h"
 THIRD_PARTY_INCLUDES_START
 #include "rive/command_server.hpp"
 #include "rive/renderer/gpu.hpp"

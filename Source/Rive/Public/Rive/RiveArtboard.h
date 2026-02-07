@@ -282,7 +282,11 @@ private:
 
     uint64_t GetDefaultViewModelRequestId = 0;
 #endif
-
+    uint64_t StateMachineCreateRequestId = 0;
     /** The Matrix at the time of the last call to Draw for this Artboard **/
     FMatrix LastDrawTransform = FMatrix::Identity;
+
+    // This is for when we don't have a state machine. Consider it legacy
+    // support.
+    std::unique_ptr<rive::LinearAnimationInstance> LinearAnimation;
 };

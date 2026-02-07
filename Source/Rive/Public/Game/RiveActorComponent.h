@@ -48,28 +48,8 @@ public:
 
     void Initialize();
 
-    UPROPERTY(BlueprintAssignable, Category = Rive)
-    FRiveReadyDelegate OnRiveReady;
-
     UFUNCTION(BlueprintCallable, Category = Rive)
     void ResizeRenderTarget(int32 InSizeX, int32 InSizeY);
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    URiveArtboard* AddArtboard(URiveFile* InRiveFile,
-                               const FString& InArtboardName,
-                               const FString& InStateMachineName);
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void RemoveArtboard(URiveArtboard* InArtboard);
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    URiveArtboard* GetDefaultArtboard() const;
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    URiveArtboard* GetArtboardAtIndex(int32 InIndex) const;
-
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    int32 GetArtboardCount() const;
 
     UFUNCTION(BlueprintCallable, Category = Rive)
     void SetAudioEngine(URiveAudioEngine* InRiveAudioEngine);
@@ -88,14 +68,11 @@ public:
               meta = (ClampMin = 1, UIMin = 1, ClampMax = 3840, UIMax = 3840))
     FIntPoint Size;
 
-    UPROPERTY(BlueprintReadWrite, SkipSerialization, Transient, Category = Rive)
-    TArray<TObjectPtr<URiveArtboard>> Artboards;
-
-    UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
-    TObjectPtr<URiveTexture> RiveTexture;
-
     UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
     TObjectPtr<URiveAudioEngine> RiveAudioEngine;
+
+    UFUNCTION(BlueprintPure)
+    UTexture* GetTexture() const;
 
 private:
     UFUNCTION()
@@ -106,5 +83,5 @@ private:
 
     void InitializeAudioEngine();
     FDelegateHandle AudioEngineLambdaHandle;
-    TSharedPtr<FRiveRenderTarget> RiveRenderTarget;
+    TObjectPtr<class URiveRenderTarget2D> RiveRenderTarget;
 };

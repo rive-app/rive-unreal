@@ -2,25 +2,30 @@
 
 #include "RiveRenderer.h"
 
-#include "Async/Async.h"
-#include "Engine/TextureRenderTarget2D.h"
-#include "Logs/RiveRendererLog.h"
-#include "RenderingThread.h"
-#include "TextureResource.h"
-#include "rive/command_server.hpp"
-#include "UObject/Package.h"
-#include "RiveStats.h"
-#include "Platform/RenderContextRHIImpl.hpp"
+#include <rive/command_server.hpp>
 
-THIRD_PARTY_INCLUDES_START
-#undef PI
-#include "rive/renderer/render_context.hpp"
-THIRD_PARTY_INCLUDES_END
+#include "RenderContextRHIImpl.hpp"
+#include "RiveRenderTargetRHI.h"
+#include "RHICommandList.h"
+#include "RenderGraphUtils.h"
+#include "RenderGraphResources.h"
+#include "RiveStats.h"
+
+static const FString RiveRenderOverrideDescription =
+    TEXT("Forces a specific rendering interlock mode for rive renderer.\n"
+         "\tatomics: Forces atomic interlock mode\n"
+         "\traster: Forces raster ordered interlock mode\n"
+         "\tmsaa: Forces msaa interlock mode\n");
 
 FRiveRenderer::FRiveRenderer() :
     CommandQueue(rive::make_rcp<rive::CommandQueue>()),
     CommandBuilder(CommandQueue)
 {
+    FCommandLine::RegisterArgument(TEXT("riveRenderOverride"),
+                                   ECommandLineArgumentFlags::GameContexts |
+                                       ECommandLineArgumentFlags::EditorContext,
+                                   RiveRenderOverrideDescription);
+
     RIVE_DEBUG_FUNCTION_INDENT;
 
     OnBeingFrameGameThreadHandle = FCoreDelegates::OnBeginFrame.AddRaw(
@@ -41,7 +46,6 @@ FRiveRenderer::FRiveRenderer() :
             &FRiveRenderer::BeginFrameRenderThread);
     });
 }
-
 FRiveRenderer::~FRiveRenderer()
 {
     RIVE_DEBUG_FUNCTION_INDENT;
@@ -130,23 +134,87 @@ rive::gpu::RenderContext* FRiveRenderer::GetRenderContext()
     return RenderContext.get();
 }
 
-TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
+TSharedPtr<FRiveRenderTargetRHI> FRiveRenderer::CreateRenderTarget(
     const FName& InRiveName,
-    FRenderTarget* RenderTarget)
+    UTexture2DDynamic* InRenderTarget)
 {
-    UE_LOG(LogRiveRenderer,
-           Error,
-           TEXT("CreateRenderTarget with FRenderTarget is not supported"));
-    return nullptr;
+    check(IsInGameThread());
+
+    const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget =
+        MakeShared<FRiveRenderTargetRHI>(this, InRiveName, InRenderTarget);
+
+    return RiveRenderTarget;
 }
 
-TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
+TSharedPtr<FRiveRenderTargetRHI> FRiveRenderer::CreateRenderTarget(
+    const FName& InRiveName,
+    UTextureRenderTarget2D* InRenderTarget)
+{
+    check(IsInGameThread());
+
+    const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget =
+        MakeShared<FRiveRenderTargetRHI>(this, InRiveName, InRenderTarget);
+
+    return RiveRenderTarget;
+}
+
+TSharedPtr<FRiveRenderTargetRHI> FRiveRenderer::CreateRenderTarget(
     FRDGBuilder& GraphBuilder,
     const FName& InRiveName,
     FRDGTextureRef InRenderTarget)
 {
-    UE_LOG(LogRiveRenderer,
-           Error,
-           TEXT("CreateRenderTarget with FRDGTexture is not supported"));
-    return nullptr;
+    return MakeShared<FRiveRenderTargetRHI>(GraphBuilder,
+                                            this,
+                                            InRiveName,
+                                            InRenderTarget);
+    ;
+}
+
+TSharedPtr<FRiveRenderTargetRHI> FRiveRenderer::CreateRenderTarget(
+    const FName& InRiveName,
+    FRenderTarget* RenderTarget)
+{
+    return MakeShared<FRiveRenderTargetRHI>(this, InRiveName, RenderTarget);
+}
+
+DECLARE_GPU_STAT_NAMED(CreateRenderContext,
+                       TEXT("FRiveRendererRHI::CreateRenderContext"));
+void FRiveRenderer::CreateRenderContext(FRHICommandListImmediate& RHICmdList)
+{
+    check(IsInRenderingThread());
+    check(GDynamicRHI);
+
+    SCOPED_GPU_STAT(RHICmdList, CreateRenderContext);
+
+    if (GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Null)
+    {
+        return;
+    }
+
+    RenderContextRHIImpl::RHICapabilitiesOverrides Overrides;
+
+    FString renderOverrides;
+    if (FParse::Value(FCommandLine::Get(),
+                      TEXT("riveRenderOverride="),
+                      renderOverrides))
+    {
+        auto lower = renderOverrides.ToLower();
+        if (lower == TEXT("atomics"))
+        {
+            Overrides.bSupportsPixelShaderUAVs = true;
+            Overrides.bSupportsRasterOrderViews = false;
+        }
+        else if (lower == TEXT("raster"))
+        {
+            Overrides.bSupportsPixelShaderUAVs = false;
+            Overrides.bSupportsRasterOrderViews = true;
+        }
+        else if (lower == TEXT("msaa"))
+        {
+            Overrides.bSupportsPixelShaderUAVs = false;
+            Overrides.bSupportsRasterOrderViews = false;
+        }
+    }
+
+    RenderContext = RenderContextRHIImpl::MakeContext(RHICmdList, Overrides);
 }

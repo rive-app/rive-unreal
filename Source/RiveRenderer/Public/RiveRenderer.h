@@ -1,7 +1,6 @@
 // Copyright 2024-2026 Rive, Inc. All rights reserved.
 
 #pragma once
-
 #include <memory>
 
 #include "RiveCommandBuilder.h"
@@ -9,6 +8,8 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "UnrealClient.h"
 #include "RenderGraphFwd.h"
+
+class FRiveRenderTargetRHI;
 
 namespace rive::gpu
 {
@@ -33,13 +34,32 @@ class RenderContext;
 
 class FRiveRenderTarget;
 
-class FRiveRenderer
+class RIVERENDERER_API FRiveRenderer
 {
 public:
     FRiveRenderer();
+    ~FRiveRenderer();
 
-    virtual ~FRiveRenderer();
-    virtual void Initialize() {};
+    TSharedPtr<FRiveRenderTargetRHI> CreateRenderTarget(
+        const FName& InRiveName,
+        UTexture2DDynamic* InRenderTarget);
+
+    TSharedPtr<FRiveRenderTargetRHI> CreateRenderTarget(
+        const FName& InRiveName,
+        UTextureRenderTarget2D* InRenderTarget);
+
+    TSharedPtr<FRiveRenderTargetRHI> CreateRenderTarget(
+        FRDGBuilder& GraphBuilder,
+        const FName& InRiveName,
+        FRDGTextureRef InRenderTarget);
+
+    TSharedPtr<FRiveRenderTargetRHI> CreateRenderTarget(
+        const FName& InRiveName,
+        FRenderTarget* RenderTarget);
+
+    void CreateRenderContext(FRHICommandListImmediate& RHICmdList);
+
+    rive::gpu::RenderContext* GetRenderContext();
 
     void BeginFrameRenderThread();
     void BeginFrameGameThread();
@@ -65,32 +85,10 @@ public:
         return CommandServer.Get();
     }
 
-    virtual rive::gpu::RenderContext* GetRenderContext();
-
-    virtual TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
-        const FName& InRiveName,
-        UTexture2DDynamic* InRenderTarget) = 0;
-
-    virtual TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
-        const FName& InRiveName,
-        UTextureRenderTarget2D* InRenderTarget) = 0;
-
-    virtual TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
-        const FName& InRiveName,
-        FRenderTarget* RenderTarget);
-
-    virtual TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
-        FRDGBuilder& GraphBuilder,
-        const FName& InRiveName,
-        FRDGTextureRef InRenderTarget);
-
-protected:
-    virtual void CreateRenderContext(FRHICommandListImmediate& RHICmdList) = 0;
-
+private:
     std::unique_ptr<rive::gpu::RenderContext> RenderContext;
     TMap<FName, TSharedPtr<FRiveRenderTarget>> RenderTargets;
 
-private:
     FDelegateHandle OnBeingFrameRenderThreadHandle;
     FDelegateHandle OnBeingFrameGameThreadHandle;
     FDelegateHandle OnEndFrameGameThreadHandle;

@@ -3,7 +3,7 @@
 #include "RiveRenderTargetRHI.h"
 
 #include "RiveRendererModule.h"
-#include "RiveRendererRHI.h"
+#include "RiveRenderer.h"
 #include "Engine/Texture2DDynamic.h"
 
 THIRD_PARTY_INCLUDES_START
@@ -54,8 +54,7 @@ FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRDGBuilder& GraphBuilder,
         RiveRenderer->GetRenderContext();
     RenderContextRHIImpl* const PLSRenderContextImpl =
         PLSRenderContext->static_impl_cast<RenderContextRHIImpl>();
-    CachedRenderTarget =
-        PLSRenderContextImpl->makeRenderTarget(GraphBuilder, InRenderTarget);
+    CachedRenderTarget = PLSRenderContextImpl->makeRenderTarget(InRenderTarget);
 }
 
 FRiveRenderTargetRHI::~FRiveRenderTargetRHI() {}

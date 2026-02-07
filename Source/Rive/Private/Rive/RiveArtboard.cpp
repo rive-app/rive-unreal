@@ -214,9 +214,9 @@ void URiveArtboard::SetupStateMachine(FRiveCommandBuilder& InCommandBuilder,
                                       bool InAutoBindViewModel)
 {
     StateMachine = MakeShared<FRiveStateMachine>();
-    StateMachine->Initialize(InCommandBuilder,
-                             NativeArtboardHandle,
-                             InStateMachineName);
+    StateMachineCreateRequestId = StateMachine->Initialize(InCommandBuilder,
+                                                           NativeArtboardHandle,
+                                                           InStateMachineName);
     StateMachine->Advance(InCommandBuilder, 0); // Just to setup everything.
 
     // Legacy code that make artboards draw without state machines.
@@ -271,6 +271,27 @@ void URiveArtboard::SetupStateMachine(FRiveCommandBuilder& InCommandBuilder,
 
 void URiveArtboard::ErrorReceived(uint64_t RequestId)
 {
+    if (StateMachineCreateRequestId == RequestId && StateMachine.IsValid())
+    {
+        StateMachine->SetValid(false);
+        auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+        check(RiveRenderer);
+        auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
+        TWeakObjectPtr<URiveArtboard> WeakThis(this);
+        CommandBuilder.RunOnce([WeakThis](rive::CommandServer* Server) {
+            if (auto Artboard = WeakThis.Pin(); Artboard.IsValid())
+            {
+                if (auto instance = Server->getArtboardInstance(
+                        Artboard->GetNativeArtboardHandle()))
+                {
+                    if (instance->animationCount() > 0)
+                    {
+                        Artboard->LinearAnimation = instance->animationAt(0);
+                    }
+                }
+            }
+        });
+    }
 #if WITH_EDITORONLY_DATA
     // There is not a default view model for this artboard.
     if (RequestId == GetDefaultViewModelRequestId)
@@ -422,12 +443,44 @@ TStatId URiveArtboard::GetStatId() const
 
 void URiveArtboard::Tick(float InDeltaSeconds)
 {
-    if (StateMachine.IsValid() && !StateMachine->IsStateMachineSettled())
+    if (NativeArtboardHandle == RIVE_NULL_HANDLE)
+    {
+        return;
+    }
+
+    if (StateMachine.IsValid() && StateMachine->IsValid() &&
+        !StateMachine->IsStateMachineSettled())
     {
         auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
         check(RiveRenderer);
         auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
         StateMachine->Advance(CommandBuilder, InDeltaSeconds);
+    }
+    else
+    {
+        auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+        check(RiveRenderer);
+        auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
+        TWeakObjectPtr<URiveArtboard> WeakThis(this);
+        CommandBuilder.RunOnce([WeakThis,
+                                InDeltaSeconds](rive::CommandServer* Server) {
+            auto StrongThis = WeakThis.Pin();
+            if (!StrongThis)
+                return;
+
+            if (StrongThis->LinearAnimation)
+            {
+                StrongThis->LinearAnimation->advanceAndApply(InDeltaSeconds);
+            }
+            else
+            {
+                if (auto artboardInstance = Server->getArtboardInstance(
+                        StrongThis->NativeArtboardHandle))
+                {
+                    artboardInstance->advance(InDeltaSeconds);
+                }
+            }
+        });
     }
 }
 

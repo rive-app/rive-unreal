@@ -4,9 +4,9 @@
 #include "RenderContextRHIImpl.hpp"
 #include "RiveRenderTarget.h"
 
-class FRiveRendererRHI;
+class FRiveRenderer;
 
-class FRiveRenderTargetRHI final : public FRiveRenderTarget
+class RIVERENDERER_API FRiveRenderTargetRHI final : public FRiveRenderTarget
 {
 public:
     FRiveRenderTargetRHI(FRiveRenderer* Renderer,

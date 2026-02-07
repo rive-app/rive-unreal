@@ -28,13 +28,13 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
 {
     bool IsValid() const
     {
-        return NativeStateMachineHandle != RIVE_NULL_HANDLE;
+        return NativeStateMachineHandle != RIVE_NULL_HANDLE && bIsValid;
     }
 
     void Destroy(FRiveCommandBuilder& CommandBuilder);
-    void Initialize(FRiveCommandBuilder& CommandBuilder,
-                    rive::ArtboardHandle InOwningArtboardHandle,
-                    const FString& StateMachineName);
+    uint64_t Initialize(FRiveCommandBuilder& CommandBuilder,
+                        rive::ArtboardHandle InOwningArtboardHandle,
+                        const FString& StateMachineName);
 
     void Advance(FRiveCommandBuilder&, float InSeconds);
 
@@ -75,6 +75,7 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
     void BindViewModel(TObjectPtr<URiveViewModel> ViewModel);
 
     void SetStateMachineSettled(bool inStateMachineSettled);
+    void OnStateMachineError(uint64_t requestId, std::string error);
 
     bool IsStateMachineSettled() const { return bStateMachineSettled; }
 
@@ -89,9 +90,12 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
     TArray<FString> NumberInputNames;
     TArray<FString> TriggerInputNames;
 
+    void SetValid(bool InValid) { bIsValid = InValid; }
+
 private:
     FString StateMachineName;
     rive::StateMachineHandle NativeStateMachineHandle = RIVE_NULL_HANDLE;
     static rive::EventReport NullEvent;
     bool bStateMachineSettled = false;
+    bool bIsValid = true;
 };

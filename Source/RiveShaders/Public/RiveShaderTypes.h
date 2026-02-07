@@ -8,10 +8,23 @@
 #include "GlobalShader.h"
 #include "DataDrivenShaderPlatformInfo.h"
 #include "ShaderCompilerCore.h"
+#include "UniformBuffer.h"
 
 #include "HLSLTypeAliases.h"
 #include "rive/generated/shaders/rhi.glsl.exports.h"
 #include "Misc/EngineVersionComparison.h"
+
+#ifndef RIVE_FORCE_USE_GENERATED_UNIFORMS
+#define RIVE_FORCE_USE_GENERATED_UNIFORMS 1
+#endif
+
+#ifndef ENABLE_TYPED_UAV_LOAD_STORE
+#define ENABLE_TYPED_UAV_LOAD_STORE 1
+#endif
+
+#ifndef FORCE_ATOMIC_BUFFER
+#define FORCE_ATOMIC_BUFFER 0
+#endif
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRiveShaderCompiler, Display, All);
 
@@ -130,6 +143,7 @@ SHADER_PARAMETER(float, vertexDiscardValue)
 SHADER_PARAMETER(float, mipMapLODBias)
 // Debugging.
 SHADER_PARAMETER(UE::HLSL::uint, wireframeEnabled)
+SHADER_PARAMETER(UE::HLSL::uint, maxPathId)
 END_UNIFORM_BUFFER_STRUCT();
 
 RIVESHADERS_API void BindStaticFlushUniforms(FRHICommandList&,
@@ -161,13 +175,38 @@ SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_imageTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DMS, GLSL_dstColorTexture_raw)
 
-#if PLATFORM_APPLE
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, coverageCountBuffer)
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, coverageAtomicBuffer)
-#else
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageCountBuffer)
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
+
+SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, clipBuffer)
+SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
+SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, scratchColorBuffer)
+SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, atlasSampler)
+SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
+SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
+                                GLSL_paintAuxBuffer_raw)
+
+END_SHADER_PARAMETER_STRUCT()
+
+BEGIN_SHADER_PARAMETER_STRUCT(FRivePixelDrawUniformsAtomicBuffers,
+                              RIVESHADERS_API)
+#if !UE_VERSION_OLDER_THAN(5, 5, 0)
+SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
+SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
+
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_atlasTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_imageTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DMS, GLSL_dstColorTexture_raw)
+
+SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, coverageCountBuffer)
+SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, coverageAtomicBuffer)
+
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, clipBuffer)
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, scratchColorBuffer)
@@ -185,12 +224,12 @@ END_SHADER_PARAMETER_STRUCT()
 // and tesselation. Params not used will be marked null
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRiveVertexDrawUniforms, RIVESHADERS_API)
-#if !UE_VERSION_OLDER_THAN(5, 5, 0)
+#if !UE_VERSION_OLDER_THAN(5, 5, 0) && !RIVE_FORCE_USE_GENERATED_UNIFORMS
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
-SHADER_PARAMETER_RDG_TEXTURE_SRV(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
@@ -201,7 +240,7 @@ SHADER_PARAMETER(unsigned int, baseInstance)
 END_SHADER_PARAMETER_STRUCT()
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRiveMSAAPixelDrawUniforms, RIVESHADERS_API)
-#if !UE_VERSION_OLDER_THAN(5, 5, 0)
+#if !UE_VERSION_OLDER_THAN(5, 5, 0) && !RIVE_FORCE_USE_GENERATED_UNIFORMS
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
 SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
@@ -228,7 +267,7 @@ SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
 SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
-SHADER_PARAMETER_RDG_TEXTURE_SRV(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
@@ -260,10 +299,19 @@ static constexpr bool IsTargetMetal(
 template <typename ShaderClass>
 static bool RiveShouldCompilePixelPermutation(
     const FShaderPermutationParameters& Parameters,
-    bool isResolve = false)
+    bool isResolve = false,
+    bool isAtomicBuffer = false)
 {
     typename ShaderClass::FPermutationDomain PermutationVector(
         Parameters.PermutationId);
+
+    if (isAtomicBuffer && !IsTargetMetal(Parameters) &&
+        Parameters.Platform != 39)
+        return false;
+
+    if (!isAtomicBuffer &&
+        (IsTargetMetal(Parameters) || Parameters.Platform == 39))
+        return false;
 
     if (PermutationVector.template Get<FCoalescedPlsResolveAndTransfer>() &&
         !isResolve)
@@ -331,7 +379,9 @@ public:
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGGradientPixelShader,
                                 FRiveBasePixelShader);
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+#if !UE_VERSION_OLDER_THAN(5, 5, 0) && !RIVE_FORCE_USE_GENERATED_UNIFORMS
     SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
+#endif
     END_SHADER_PARAMETER_STRUCT()
 };
 
@@ -344,7 +394,9 @@ public:
                                 FRiveBaseVertexShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+#if !UE_VERSION_OLDER_THAN(5, 5, 0) && !RIVE_FORCE_USE_GENERATED_UNIFORMS
     SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
+#endif
     END_SHADER_PARAMETER_STRUCT()
 };
 
@@ -355,7 +407,9 @@ public:
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGTessPixelShader, FRiveBasePixelShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+#if !UE_VERSION_OLDER_THAN(5, 5, 0) && !RIVE_FORCE_USE_GENERATED_UNIFORMS
     SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
+#endif
     END_SHADER_PARAMETER_STRUCT()
 };
 
@@ -367,7 +421,9 @@ public:
                                 FRiveBaseVertexShader);
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+#if !UE_VERSION_OLDER_THAN(5, 5, 0) && !RIVE_FORCE_USE_GENERATED_UNIFORMS
     SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
+#endif
     SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>,
                                     GLSL_pathBuffer_raw)
     SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>,
@@ -394,6 +450,26 @@ public:
     {
         return RiveShouldCompilePixelPermutation<FRiveRDGPathPixelShader>(
             Parameters);
+    }
+};
+
+class FRiveABRDGPathPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveABRDGPathPixelShader, RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveABRDGPathPixelShader,
+                                FRiveBasePixelShader);
+    using FParameters = FRivePixelDrawUniformsAtomicBuffers;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return RiveShouldCompilePixelPermutation<FRiveRDGPathPixelShader>(
+            Parameters,
+            false,
+            true);
     }
 };
 
@@ -424,6 +500,25 @@ public:
     {
         return RiveShouldCompilePixelPermutation<
             FRiveRDGInteriorTrianglesPixelShader>(Parameters);
+    }
+};
+
+class FRiveABRDGInteriorTrianglesPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveABRDGInteriorTrianglesPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveABRDGInteriorTrianglesPixelShader,
+                                FRiveBasePixelShader);
+    using FParameters = FRivePixelDrawUniformsAtomicBuffers;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return RiveShouldCompilePixelPermutation<
+            FRiveRDGInteriorTrianglesPixelShader>(Parameters, false, true);
     }
 };
 
@@ -458,6 +553,25 @@ public:
     }
 };
 
+class FRiveABRDGAtlasBlitPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveABRDGAtlasBlitPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveABRDGAtlasBlitPixelShader,
+                                FRiveBasePixelShader);
+    using FParameters = FRivePixelDrawUniformsAtomicBuffers;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return RiveShouldCompilePixelPermutation<
+            FRiveRDGInteriorTrianglesPixelShader>(Parameters, false, true);
+    }
+};
+
 class FRiveRDGAtlasBlitVertexShader : public FRiveBaseVertexShader
 {
 public:
@@ -487,6 +601,28 @@ public:
     {
         return RiveShouldCompilePixelPermutation<FRiveRDGImageRectPixelShader>(
             Parameters);
+    }
+};
+
+class FRiveABRDGImageRectPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveABRDGImageRectPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveABRDGImageRectPixelShader,
+                                FRiveBasePixelShader);
+
+    using FParameters = FRivePixelDrawUniformsAtomicBuffers;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return RiveShouldCompilePixelPermutation<FRiveRDGImageRectPixelShader>(
+            Parameters,
+            false,
+            true);
     }
 };
 
@@ -523,6 +659,28 @@ public:
     }
 };
 
+class FRiveABRDGImageMeshPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveABRDGImageMeshPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveABRDGImageMeshPixelShader,
+                                FRiveBasePixelShader);
+
+    using FParameters = FRivePixelDrawUniformsAtomicBuffers;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return RiveShouldCompilePixelPermutation<FRiveRDGImageMeshPixelShader>(
+            Parameters,
+            false,
+            true);
+    }
+};
+
 class FRiveRDGImageMeshVertexShader : public FRiveBaseVertexShader
 {
 public:
@@ -553,6 +711,26 @@ public:
     {
         return RiveShouldCompilePixelPermutation<
             FRiveRDGAtomicResolvePixelShader>(Parameters, true);
+    }
+};
+
+class FRiveABRDGAtomicResolvePixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveABRDGAtomicResolvePixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveABRDGAtomicResolvePixelShader,
+                                FRiveBasePixelShader);
+
+    using FParameters = FRivePixelDrawUniformsAtomicBuffers;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return RiveShouldCompilePixelPermutation<
+            FRiveRDGAtomicResolvePixelShader>(Parameters, true, true);
     }
 };
 
@@ -805,11 +983,6 @@ BEGIN_SHADER_PARAMETER_STRUCT(FAtlasDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
-#if PLATFORM_APPLE
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, coverageAtomicBuffer)
-#else
-SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<uint>, coverageAtomicBuffer)
-#endif
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_featherTexture_raw)
 SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
 END_SHADER_PARAMETER_STRUCT()
@@ -846,6 +1019,7 @@ public:
         const FShaderPermutationParameters&,
         FShaderCompilerEnvironment&);
 };
+class FEnableMSAASourceTexture : SHADER_PERMUTATION_BOOL("SOURCE_TEXTURE_MSAA");
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRiveBltTextureDrawUniforms, RIVESHADERS_API)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_sourceTexture_raw)
@@ -860,6 +1034,8 @@ public:
                                 FRiveBasePixelShader);
 
     using FParameters = FRiveBltTextureDrawUniforms;
+    using FPermutationDomain =
+        TShaderPermutationDomain<FEnableMSAASourceTexture>;
 };
 
 /*

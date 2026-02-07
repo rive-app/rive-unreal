@@ -8,6 +8,7 @@
 #include "RiveRenderer.h"
 #include "RiveRenderTarget.h"
 #include "Logs/RiveLog.h"
+#include "RiveRenderer/Private/Platform/RiveRenderTargetRHI.h"
 
 TArray<FString> URiveRenderTarget2D::GetArtboardNamesForDropdown() const
 {
@@ -134,7 +135,13 @@ void URiveRenderTarget2D::Draw(DirectDrawCallback DrawCallback)
     Builder.Draw(RenderTarget, DrawCallback);
 }
 
-void URiveRenderTarget2D::Draw() { Draw(RiveArtboard, RiveDescriptor); }
+void URiveRenderTarget2D::Draw()
+{
+    if (RiveArtboard)
+    {
+        Draw(RiveArtboard, RiveDescriptor);
+    }
+}
 
 void URiveRenderTarget2D::Draw(URiveArtboard* InArtboard,
                                FRiveDescriptor InDescriptor)

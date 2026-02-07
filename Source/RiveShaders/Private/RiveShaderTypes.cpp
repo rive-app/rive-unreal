@@ -21,11 +21,20 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
                              FShaderCompilerEnvironment& Environment,
                              const bool IsVertexShader)
 {
-
-#if UE_VERSION_OLDER_THAN(5, 5, 0)
+#if UE_VERSION_OLDER_THAN(5, 5, 0) || RIVE_FORCE_USE_GENERATED_UNIFORMS
     Environment.SetDefine(TEXT("UNIFORM_DEFINITIONS_AUTO_GENERATED"),
                           TEXT("1"));
 #endif
+
+    Environment.SetDefine(TEXT("FORCE_ATOMIC_BUFFER"), Params.Platform == 39);
+    if (Params.Platform != 39)
+    {
+        Environment.SetDefine(TEXT("ENABLE_TYPED_UAV_LOAD_STORE"), 1);
+    }
+    else
+    {
+        Environment.SetDefine(TEXT("NEEDS_PATH_ID_CLAMP_WORKAROUND"), 1);
+    }
 
     if (Params.Platform != 33)
     {
@@ -100,6 +109,11 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathPixelShader,
                         GLSL_drawFragmentMain,
                         SF_Pixel);
 
+IMPLEMENT_GLOBAL_SHADER(FRiveABRDGPathPixelShader,
+                        "/Plugin/Rive/Private/Rive/atomic_draw_path.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathVertexShader,
                         "/Plugin/Rive/Private/Rive/atomic_draw_path.usf",
                         GLSL_drawVertexMain,
@@ -107,6 +121,12 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathVertexShader,
 
 IMPLEMENT_GLOBAL_SHADER(
     FRiveRDGInteriorTrianglesPixelShader,
+    "/Plugin/Rive/Private/Rive/atomic_draw_interior_triangles.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveABRDGInteriorTrianglesPixelShader,
     "/Plugin/Rive/Private/Rive/atomic_draw_interior_triangles.usf",
     GLSL_drawFragmentMain,
     SF_Pixel);
@@ -122,12 +142,22 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitPixelShader,
                         GLSL_drawFragmentMain,
                         SF_Pixel);
 
+IMPLEMENT_GLOBAL_SHADER(FRiveABRDGAtlasBlitPixelShader,
+                        "/Plugin/Rive/Private/Rive/atomic_draw_atlas_blit.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitVertexShader,
                         "/Plugin/Rive/Private/Rive/atomic_draw_atlas_blit.usf",
                         GLSL_drawVertexMain,
                         SF_Vertex);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGImageRectPixelShader,
+                        "/Plugin/Rive/Private/Rive/atomic_draw_image_rect.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveABRDGImageRectPixelShader,
                         "/Plugin/Rive/Private/Rive/atomic_draw_image_rect.usf",
                         GLSL_drawFragmentMain,
                         SF_Pixel);
@@ -142,12 +172,22 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGImageMeshPixelShader,
                         GLSL_drawFragmentMain,
                         SF_Pixel);
 
+IMPLEMENT_GLOBAL_SHADER(FRiveABRDGImageMeshPixelShader,
+                        "/Plugin/Rive/Private/Rive/atomic_draw_image_mesh.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGImageMeshVertexShader,
                         "/Plugin/Rive/Private/Rive/atomic_draw_image_mesh.usf",
                         GLSL_drawVertexMain,
                         SF_Vertex);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtomicResolvePixelShader,
+                        "/Plugin/Rive/Private/Rive/atomic_resolve_pls.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveABRDGAtomicResolvePixelShader,
                         "/Plugin/Rive/Private/Rive/atomic_resolve_pls.usf",
                         GLSL_drawFragmentMain,
                         SF_Pixel);
@@ -268,7 +308,7 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGVisualizeBufferPixelShader,
                         "FragmentMain",
                         SF_Pixel);
 
-#if UE_VERSION_OLDER_THAN(5, 5, 0)
+#if UE_VERSION_OLDER_THAN(5, 5, 0) || RIVE_FORCE_USE_GENERATED_UNIFORMS
 IMPLEMENT_STATIC_UNIFORM_BUFFER_SLOT(FlushUniformSlot);
 IMPLEMENT_STATIC_UNIFORM_BUFFER_STRUCT(FFlushUniforms,
                                        "uniforms",

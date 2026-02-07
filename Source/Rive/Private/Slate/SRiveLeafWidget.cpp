@@ -32,6 +32,8 @@
 #include "rive/renderer/rive_renderer.hpp"
 #include "Streaming/TextureMipDataProvider.h"
 
+#include <IRenderCaptureProvider.h>
+
 DECLARE_GPU_STAT_NAMED(FRiveRendererDrawElementDraw,
                        TEXT("FRiveRendererDrawElement::Draw_RenderThread"));
 
@@ -242,8 +244,38 @@ public:
         }
         ArtboardInstance->draw(Renderer.Get());
         Renderer->restore();
-        Context->flush({.renderTarget = renderTarget.get(),
-                        .externalCommandBuffer = &GraphBuilder});
+
+        // This is left as a comment because it could be useful later,
+        // This had the abililty to capture a frame of only rive but its very
+        // slow to leave in
+
+        // if (IRenderCaptureProvider::IsAvailable())
+        //{
+        //     GraphBuilder.AddPass(RDG_EVENT_NAME("End Frame Capture"),
+        //                          ERDGPassFlags::NeverCull,
+        //                          [](FRHICommandListImmediate& RHICmdList) {
+        //                              IRenderCaptureProvider::Get().BeginCapture(
+        //                                  &RHICmdList,
+        //                                  0,
+        //                                  FString());
+        //                          });
+        //
+        //     Context->flush({.renderTarget = renderTarget.get(),
+        //                     .externalCommandBuffer = &GraphBuilder});
+        //
+        //     GraphBuilder.AddPass(
+        //         RDG_EVENT_NAME("Begin Frame Capture"),
+        //                         ERDGPassFlags::NeverCull,
+        //                         [](FRHICommandListImmediate& RHICmdList) {
+        //                             IRenderCaptureProvider::Get().EndCapture(
+        //                                 &RHICmdList);
+        //                         });
+        // }
+        //  else
+        {
+            Context->flush({.renderTarget = renderTarget.get(),
+                            .externalCommandBuffer = &GraphBuilder});
+        }
     }
 
     void SetArtboard(TWeakObjectPtr<URiveArtboard> InRiveArtboard)

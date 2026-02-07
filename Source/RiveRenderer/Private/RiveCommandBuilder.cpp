@@ -81,7 +81,9 @@ void FRiveCommandBuilder::RunOnceImmediate(ServerSideCallback Callback)
 void FRiveCommandBuilder::AdvanceStateMachine(rive::StateMachineHandle Handle,
                                               float AdvanceAmount)
 {
-    CommandQueue->advanceStateMachine(Handle, AdvanceAmount);
+    CommandQueue->advanceStateMachine(Handle,
+                                      AdvanceAmount,
+                                      ++CurrentRequestId);
 }
 
 void FRiveCommandBuilder::DrawArtboard(

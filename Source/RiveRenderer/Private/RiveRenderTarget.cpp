@@ -157,7 +157,7 @@ TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
 
         RenderContextPtr->beginFrame(std::move(FrameDescriptor));
     }
-    else if (RenderTargetRDG)
+    else if (RenderTargetRDG != nullptr)
     {
         // Assume black because FRenderTarget does not have a way to query clear
         // color

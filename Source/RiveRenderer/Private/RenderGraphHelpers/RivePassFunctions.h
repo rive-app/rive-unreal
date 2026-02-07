@@ -61,10 +61,12 @@ struct FRiveAtlasParameters
 };
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRDGAtlasPassParameters, )
+
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
 SHADER_PARAMETER_STRUCT_INCLUDE(FRiveVertexDrawUniforms, VS)
 SHADER_PARAMETER_STRUCT_INCLUDE(FAtlasDrawUniforms, PS)
 RENDER_TARGET_BINDING_SLOTS()
+
 END_SHADER_PARAMETER_STRUCT()
 
 FRDGPassRef AddGradientPass(FRDGBuilder& GraphBuilder,
@@ -102,6 +104,19 @@ FRDGPassRef AddFeatherAtlasStrokeDrawPass(
     FRDGAtlasPassParameters* PassParameters);
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRiveFlushPassParameters, )
+
+SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
+SHADER_PARAMETER_STRUCT_INCLUDE(FRiveVertexDrawUniforms, VS)
+#if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
+SHADER_PARAMETER_STRUCT_INCLUDE(FRivePixelDrawUniformsAtomicBuffers, PS)
+#else
+SHADER_PARAMETER_STRUCT_INCLUDE(FRivePixelDrawUniforms, PS)
+#endif
+RENDER_TARGET_BINDING_SLOTS()
+
+END_SHADER_PARAMETER_STRUCT()
+
+BEGIN_SHADER_PARAMETER_STRUCT(FRiveRasterOrderFlushPassParameters, )
 
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
 SHADER_PARAMETER_STRUCT_INCLUDE(FRiveVertexDrawUniforms, VS)
@@ -177,18 +192,23 @@ FRDGPassRef AddDrawRasterOrderPatchesPass(
     FRDGBuilder& GraphBuilder,
     const FString& PassName,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveFlushPassParameters* PassParameters);
+    FRiveRasterOrderFlushPassParameters* PassParameters);
 
 FRDGPassRef AddDrawRasterOrderInteriorTrianglesPass(
     FRDGBuilder& GraphBuilder,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveFlushPassParameters* PassParameters);
+    FRiveRasterOrderFlushPassParameters* PassParameters);
 
 FRDGPassRef AddDrawRasterOrderImageMeshPass(
     FRDGBuilder& GraphBuilder,
     uint32_t NumVertices,
     const FRiveCommonPassParameters* CommonPassParameters,
-    FRiveFlushPassParameters* PassParameters);
+    FRiveRasterOrderFlushPassParameters* PassParameters);
+
+FRDGPassRef AddDrawRasterOrderAtlasBlitPass(
+    FRDGBuilder& GraphBuilder,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveRasterOrderFlushPassParameters* PassParameters);
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRiveDrawTextureBltParameters, )
 SHADER_PARAMETER_STRUCT_INCLUDE(FRiveBltTextureDrawUniforms, PS)
@@ -200,10 +220,16 @@ FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
                               FVertexDeclarationRHIRef VertexDeclarationRHI,
                               FUint32Rect Viewport,
                               FGlobalShaderMap* ShaderMap,
-                              FRiveDrawTextureBltParameters* PassParameters);
+                              FRiveDrawTextureBltParameters* PassParameters,
+                              bool isMSAAResolve);
 
 void AddDrawTextureBlt(FRHICommandList& RHICmdList,
                        FVertexDeclarationRHIRef VertexDeclarationRHI,
                        FGlobalShaderMap* ShaderMap,
                        FRiveDrawTextureBltParameters& PassParameters,
-                       const rive::gpu::DrawBatch& Batch);
+                       const rive::gpu::DrawBatch& Batch,
+                       bool isMSAAResolve);
+
+FRDGPassRef AddDrawClearQuadPass(FRDGBuilder& GraphBuilder,
+                                 FRDGTextureRef RenderTarget,
+                                 FLinearColor ClearColor);

@@ -26,6 +26,19 @@ public:
         ListeningStateMachine(MoveTemp(ListeningStateMachine))
     {}
 
+    virtual void onStateMachineError(const rive::StateMachineHandle,
+                                     uint64_t requestId,
+                                     std::string error) override
+    {
+        check(IsInGameThread());
+        if (auto StrongStateMachine = ListeningStateMachine.Pin();
+            StrongStateMachine.IsValid())
+        {
+            StrongStateMachine->OnStateMachineError(requestId,
+                                                    std::move(error));
+        }
+    }
+
     virtual void onStateMachineDeleted(const rive::StateMachineHandle Handle,
                                        uint64_t requestId) override
     {
@@ -73,25 +86,31 @@ void FRiveStateMachine::Destroy(FRiveCommandBuilder& CommandBuilder)
     CommandBuilder.DestroyStateMachine(NativeStateMachineHandle);
 }
 
-void FRiveStateMachine::Initialize(FRiveCommandBuilder& CommandBuilder,
-                                   rive::ArtboardHandle InOwningArtboardHandle,
-                                   const FString& InStateMachineName)
+uint64_t FRiveStateMachine::Initialize(
+    FRiveCommandBuilder& CommandBuilder,
+    rive::ArtboardHandle InOwningArtboardHandle,
+    const FString& InStateMachineName)
 {
+    uint64_t CreateRequestId = 0;
     bStateMachineSettled = false;
     if (InStateMachineName.IsEmpty())
     {
         NativeStateMachineHandle = CommandBuilder.CreateDefaultStateMachine(
             InOwningArtboardHandle,
-            new FRiveStateMachineListener(AsWeak()));
+            new FRiveStateMachineListener(AsWeak()),
+            &CreateRequestId);
     }
     else
     {
         NativeStateMachineHandle = CommandBuilder.CreateStateMachine(
             InOwningArtboardHandle,
             InStateMachineName,
-            new FRiveStateMachineListener(AsWeak()));
+            new FRiveStateMachineListener(AsWeak()),
+            &CreateRequestId);
         StateMachineName = InStateMachineName;
     }
+
+    return CreateRequestId;
 }
 
 void FRiveStateMachine::Advance(FRiveCommandBuilder& CommandBuilder,
@@ -346,5 +365,9 @@ void FRiveStateMachine::SetStateMachineSettled(bool inStateMachineSettled)
            inStateMachineSettled ? TEXT("True") : TEXT("False"));
     bStateMachineSettled = inStateMachineSettled;
 }
+
+void FRiveStateMachine::OnStateMachineError(uint64_t requestId,
+                                            std::string error)
+{}
 
 #endif // WITH_RIVE
