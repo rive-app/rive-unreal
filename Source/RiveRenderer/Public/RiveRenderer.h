@@ -9,8 +9,6 @@
 #include "UnrealClient.h"
 #include "RenderGraphFwd.h"
 
-class FRiveRenderTargetRHI;
-
 namespace rive::gpu
 {
 class RenderTarget;
@@ -40,20 +38,20 @@ public:
     FRiveRenderer();
     ~FRiveRenderer();
 
-    TSharedPtr<FRiveRenderTargetRHI> CreateRenderTarget(
+    TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
         const FName& InRiveName,
         UTexture2DDynamic* InRenderTarget);
 
-    TSharedPtr<FRiveRenderTargetRHI> CreateRenderTarget(
+    TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
         const FName& InRiveName,
         UTextureRenderTarget2D* InRenderTarget);
 
-    TSharedPtr<FRiveRenderTargetRHI> CreateRenderTarget(
+    TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
         FRDGBuilder& GraphBuilder,
         const FName& InRiveName,
         FRDGTextureRef InRenderTarget);
 
-    TSharedPtr<FRiveRenderTargetRHI> CreateRenderTarget(
+    TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
         const FName& InRiveName,
         FRenderTarget* RenderTarget);
 

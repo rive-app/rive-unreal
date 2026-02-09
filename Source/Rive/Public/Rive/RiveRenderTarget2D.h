@@ -9,7 +9,7 @@
 #include "RiveRenderTarget2D.generated.h"
 
 class URiveArtboard;
-class FRiveRenderTargetRHI;
+class FRiveRenderTarget;
 /**
  *
  */
@@ -70,5 +70,5 @@ private:
     UPROPERTY(Transient)
     TObjectPtr<URiveArtboard> RiveArtboard = nullptr;
     // Internal render target to rive
-    TSharedPtr<FRiveRenderTargetRHI> RenderTarget;
+    TSharedPtr<FRiveRenderTarget> RenderTarget;
 };
