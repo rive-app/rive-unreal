@@ -411,6 +411,10 @@ public:
     SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
     END_SHADER_PARAMETER_STRUCT()
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
 };
 
 class FRiveRDGTessVertexShader : public FRiveBaseVertexShader
@@ -995,6 +999,10 @@ public:
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGDrawAtlasFillPixelShader,
                                 FRiveBasePixelShader);
 
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
+
     using FParameters = FAtlasDrawUniforms;
 };
 
@@ -1005,6 +1013,10 @@ public:
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGDrawAtlasStrokePixelShader,
                                 FRiveBasePixelShader);
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters&,
+        FShaderCompilerEnvironment&);
 
     using FParameters = FAtlasDrawUniforms;
 };

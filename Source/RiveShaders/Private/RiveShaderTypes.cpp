@@ -79,6 +79,33 @@ void FRiveBaseVertexShader::ModifyCompilationEnvironment(
     ModifyShaderEnvironment(Params, Environment, true);
 }
 
+void FRiveRDGTessPixelShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    FRiveBasePixelShader::ModifyCompilationEnvironment(Params, Environment);
+    auto& Value = Environment.RenderTargetOutputFormatsMap.FindOrAdd(0);
+    Value = static_cast<uint8>(EPixelFormat::PF_R32G32B32A32_UINT);
+}
+
+void FRiveRDGDrawAtlasFillPixelShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    FRiveBasePixelShader::ModifyCompilationEnvironment(Params, Environment);
+    auto& Value = Environment.RenderTargetOutputFormatsMap.FindOrAdd(0);
+    Value = static_cast<uint8>(EPixelFormat::PF_R32_FLOAT);
+}
+
+void FRiveRDGDrawAtlasStrokePixelShader::ModifyCompilationEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    FRiveBasePixelShader::ModifyCompilationEnvironment(Params, Environment);
+    auto& Value = Environment.RenderTargetOutputFormatsMap.FindOrAdd(0);
+    Value = static_cast<uint8>(EPixelFormat::PF_R32_FLOAT);
+}
+
 void FRiveBltTextureAsDrawVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
