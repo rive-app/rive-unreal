@@ -168,13 +168,29 @@ public class RiveLibrary : ModuleRules
 	            detail.GetLibPath("rive_decoders"),
 	            detail.GetLibPath("rive_pls_renderer"),
 	            detail.GetLibPath("rive_yoga"),
-	            detail.GetLibPath("rive"),
+                detail.GetLibPath("rive"),
 	        });
+
+            // You don't have to build with scripting enabled.
+            // This checks for the library to be in the folder
+            // before attempting to add it.
+            var luauPath = detail.GetLibPath("rive_luau_vm");
+            if (File.Exists(luauPath))
+            {
+                PublicAdditionalLibraries.Add(luauPath);
+            }
 		}
 
         PublicDefinitions.Add("WITH_RIVE=1");
         PublicDefinitions.Add("WITH_RIVE_AUDIO=1");
         PublicDefinitions.Add("EXTERNAL_RIVE_AUDIO_ENGINE=1");
-        
+
+        // If we are linking against GMs, define WITH_RIVE_TOOLS
+        // This has to be done here because it affects FlushDescriptor
+        var GMPluginsFldr = Path.Combine(PluginDirectory, "../", "GM");
+        if (Directory.Exists(GMPluginsFldr))
+        {
+            PublicDefinitions.Add("WITH_RIVE_TOOLS=1");
+        }
     }
 }

@@ -141,9 +141,11 @@ SHADER_PARAMETER(UE::HLSL::uint,
                                     // IEEE compliant).
 SHADER_PARAMETER(float, vertexDiscardValue)
 SHADER_PARAMETER(float, mipMapLODBias)
+SHADER_PARAMETER(UE::HLSL::uint, maxPathId)
+SHADER_PARAMETER(float, ditherScale)
+SHADER_PARAMETER(float, ditherBias)
 // Debugging.
 SHADER_PARAMETER(UE::HLSL::uint, wireframeEnabled)
-SHADER_PARAMETER(UE::HLSL::uint, maxPathId)
 END_UNIFORM_BUFFER_STRUCT();
 
 RIVESHADERS_API void BindStaticFlushUniforms(FRHICommandList&,

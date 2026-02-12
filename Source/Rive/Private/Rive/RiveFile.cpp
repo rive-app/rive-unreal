@@ -572,7 +572,7 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
         bWasUpdated = true;
         const bool bCanBroadcast =
             bIsLastViewModel &&
-            ViewModelDefinition->InstanceNames.Last() == InstanceName;
+            &ViewModelDefinition->InstanceNames.Last() == &InstanceName;
         // The simplest solution here is to generate each view model instance
         // and get the values with a run once and then delete each instance
         // afterwords.
