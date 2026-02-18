@@ -481,7 +481,7 @@ def copy_files(src, dst, extension, is_release, should_rename = True, files_to_c
     for file_name in files_to_copy:
         src_path = os.path.join(src, file_name)
         # ensure all libs are prefixed with "rive_" on non-darwin / apple platforms
-        if not sys.platform.startswith("darwin") and not file_name.startswith("rive") and not 'Android' in dst and should_rename:
+        if not sys.platform.startswith("darwin") and not file_name.startswith("rive") and not "luau" in file_name and not 'Android' in dst and should_rename:
             file_name = f'rive_{file_name}'
 
         dest_path = os.path.join(dst, file_name if is_release else file_name.replace(extension, f'_d{extension}'))

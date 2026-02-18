@@ -424,20 +424,21 @@ try {
             Write-Host "Deleted existing zip: $ZipPath"
         }
 
-        if ($ValidateBuild) {
-            Invoke-RunUATBuildPlugin `
-                -UEPath $UEPath `
-                -PluginFile $StagedUPluginPath `
-                -Platform $ValidatePlatform `
-                -KeepOutput:$KeepUATPackageOutput
-        }
-
         Write-Host "Compressing plugin folder to $ZipPath..."
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
         Compress-Archive -Path "$TempDir\*" -DestinationPath $ZipPath -Force
         $sw.Stop()
 
         Write-Host "Compressed to $ZipPath in $($sw.Elapsed.TotalSeconds.ToString("0.00")) seconds"
+    }
+
+    # Validate once on the baseline staged plugin before zipping any variants
+    if ($ValidateBuild) {
+        Invoke-RunUATBuildPlugin `
+            -UEPath $UEPath `
+            -PluginFile $StagedUPluginPath `
+            -Platform $ValidatePlatform `
+            -KeepOutput:$KeepUATPackageOutput
     }
 
     switch ($Distribution) {

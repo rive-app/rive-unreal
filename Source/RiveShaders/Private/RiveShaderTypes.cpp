@@ -59,7 +59,7 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
         }
     }
 // 5.4 and up
-#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 4
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 4 && !PLATFORM_APPLE
     // We are not bindless so this flag must be added for vulkan to work
     Environment.CompilerFlags.Add(CFLAG_ForceBindful);
 #endif

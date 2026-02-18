@@ -31,6 +31,7 @@ public class RiveLibrary : ModuleRules
             return Path.Combine(LibDirectory, LibPrefix + baseName + LibSuffix + Extension);
         }
     }
+
     public RiveLibrary(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
@@ -147,7 +148,7 @@ public class RiveLibrary : ModuleRules
 	                    detail.GetLibPath("libwebp"),
 	                    detail.GetLibPath("libpng"),
 	                    detail.GetLibPath("libjpeg"),
-                            detail.GetLibPath("miniaudio"),
+                        detail.GetLibPath("miniaudio"),
 	           });
 	        }
 	        else
@@ -157,7 +158,7 @@ public class RiveLibrary : ModuleRules
 	                    detail.GetLibPath("rive_libwebp"),
 	                    detail.GetLibPath("rive_libpng"),
 	                    detail.GetLibPath("rive_libjpeg"),
-                            detail.GetLibPath("rive_miniaudio"),
+                        detail.GetLibPath("rive_miniaudio"),
 	           });
 	        }
 
@@ -174,7 +175,7 @@ public class RiveLibrary : ModuleRules
             // You don't have to build with scripting enabled.
             // This checks for the library to be in the folder
             // before attempting to add it.
-            var luauPath = detail.GetLibPath("rive_luau_vm");
+            var luauPath = detail.GetLibPath("luau_vm");
             if (File.Exists(luauPath))
             {
                 PublicAdditionalLibraries.Add(luauPath);

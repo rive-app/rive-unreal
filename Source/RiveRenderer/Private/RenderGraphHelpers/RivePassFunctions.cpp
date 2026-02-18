@@ -11,6 +11,10 @@
 #include "rive/renderer/draw.hpp"
 #include <ClearQuad.h>
 
+#if !UE_VERSION_OLDER_THAN(5, 7, 0)
+#include <GlobalRenderResources.h>
+#endif
+
 #include "RiveShaderTypes.h"
 
 using namespace rive::gpu;

@@ -1202,7 +1202,7 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     auto PlaceholderDesc =
         FRHITextureCreateDesc::Create2D(TEXT("rive.Placeholder"),
                                         FIntPoint(1, 1),
-                                        PF_R32_UINT);
+                                        PF_R8G8B8A8);
     PlaceholderDesc.AddFlags(ETextureCreateFlags::ShaderResource |
                              ETextureCreateFlags::UAV);
     m_placeholderTexture =

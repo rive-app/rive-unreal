@@ -71,7 +71,7 @@ public:
     UPROPERTY(BlueprintReadWrite, Transient, Category = Rive)
     TObjectPtr<URiveAudioEngine> RiveAudioEngine;
 
-    UFUNCTION(BlueprintPure)
+    UFUNCTION(BlueprintPure, Category = Rive)
     UTexture* GetTexture() const;
 
 private:
