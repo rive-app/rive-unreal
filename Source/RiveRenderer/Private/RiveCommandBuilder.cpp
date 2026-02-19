@@ -138,14 +138,19 @@ DECLARE_GPU_STAT_NAMED(RiveRenderTargetExecute,
                        TEXT("FRiveCommandBuilder::RiveRenderTargetExecute"));
 void FRiveCommandBuilder::Execute()
 {
-    CommandQueue->runOnce([Commands =
-                               Commands](rive::CommandServer* CommandServer) {
-        UE_LOG(LogTemp, Verbose, TEXT("FRiveCommandBuilder::Execute RunOnce"));
-        for (auto& Command : Commands)
-        {
-            Command(CommandServer);
-        }
-    });
+    if (!Commands.IsEmpty())
+    {
+        CommandQueue->runOnce([Commands = MoveTemp(Commands)](
+                                  rive::CommandServer* CommandServer) {
+            UE_LOG(LogTemp,
+                   Verbose,
+                   TEXT("FRiveCommandBuilder::Execute RunOnce"));
+            for (auto& Command : Commands)
+            {
+                Command(CommandServer);
+            }
+        });
+    }
 
     for (auto& DrawCommand : DrawCommands)
     {

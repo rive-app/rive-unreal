@@ -456,7 +456,7 @@ void URiveArtboard::Tick(float InDeltaSeconds)
         auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
         StateMachine->Advance(CommandBuilder, InDeltaSeconds);
     }
-    else
+    else if (!StateMachine.IsValid() || !StateMachine->IsValid())
     {
         auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
         check(RiveRenderer);
