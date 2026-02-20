@@ -144,6 +144,7 @@ SHADER_PARAMETER(float, mipMapLODBias)
 SHADER_PARAMETER(UE::HLSL::uint, maxPathId)
 SHADER_PARAMETER(float, ditherScale)
 SHADER_PARAMETER(float, ditherBias)
+SHADER_PARAMETER(float, ditherConversionToRGB10)
 // Debugging.
 SHADER_PARAMETER(UE::HLSL::uint, wireframeEnabled)
 END_UNIFORM_BUFFER_STRUCT();
