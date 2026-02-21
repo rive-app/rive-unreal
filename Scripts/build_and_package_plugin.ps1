@@ -3,15 +3,15 @@
     Purpose: Packages the Rive Unreal plugin into one or more zip archives,
              tailored for distribution via GitHub and/or Fab.
 
-    Key policy (per your requirements):
     1) Original Rive.uplugin is a dev canonical file:
        - MUST NOT contain FabURL or EngineVersion (we strip them in-place).
     2) If building for Fab (Fab or Both), -UnrealEngineVersion is REQUIRED.
+       - AND it MUST be base engine version only (e.g. 5.7), NOT a patch (e.g. 5.7.3).
     3) Original "Version" (integer) MUST be monotonically incremented once per run,
        and BOTH output zips MUST use the same incremented "Version".
 
     Example usage:
-    .\build_and_package_plugin.ps1 -Version 0.4.20 -Distribution Both -UnrealEngineVersion 5.7.2 -UEPath "C:\Program Files\Epic Games\UE_5.7\"
+    .\build_and_package_plugin.ps1 -Version 0.4.20 -Distribution Both -UnrealEngineVersion 5.7 -UEPath "C:\Program Files\Epic Games\UE_5.7\"
 #>
 
 param (
@@ -41,7 +41,8 @@ Usage: ./build_and_package_plugin.ps1 [-Directory <path>] [-Output <name>] [-Ver
   -Directory             Root directory of the plugin (default: current dir)
   -Output                Output file base name (default: Rive)
   -Version               Version string like 0.4.20 (updates VersionName in packaged uplugin)
-  -UnrealEngineVersion   REQUIRED for Fab/Both. Sets EngineVersion in Fab package uplugin.
+  -UnrealEngineVersion   REQUIRED for Fab/Both. Must be base version only (e.g. 5.7, NOT 5.7.3).
+                         Sets EngineVersion in Fab package uplugin.
   -Distribution          Target distribution channel: Fab, Github, Both (default: Both)
   -ForceZipOverwrite     Do not prompt to overwrite existing zip files
   -Help                  Show this help message
@@ -53,8 +54,8 @@ Validation:
   -KeepUATPackageOutput  Keeps the UAT BuildPlugin -package output folder (for inspection)
 
 Examples:
-  .\build_and_package_plugin.ps1 -Version 0.4.20 -Distribution Both -UnrealEngineVersion 5.7.2
-  .\build_and_package_plugin.ps1 -Version 0.4.20 -Distribution Fab  -UnrealEngineVersion 5.7.2 -ValidateBuild -UEPath "C:\Program Files\Epic Games\UE_5.7"
+  .\build_and_package_plugin.ps1 -Version 0.4.20 -Distribution Both -UnrealEngineVersion 5.7
+  .\build_and_package_plugin.ps1 -Version 0.4.20 -Distribution Fab  -UnrealEngineVersion 5.7 -ValidateBuild -UEPath "C:\Program Files\Epic Games\UE_5.7"
 "@
 }
 
@@ -68,10 +69,19 @@ try {
         exit 1
     }
 
-    # Requirement #2: If building for Fab, EngineVersion MUST be passed
+    # If building for Fab, EngineVersion MUST be passed
     if (($Distribution -eq "Fab" -or $Distribution -eq "Both") -and [string]::IsNullOrWhiteSpace($UnrealEngineVersion)) {
-        Write-Error "Fab packaging requires -UnrealEngineVersion (e.g. -UnrealEngineVersion 5.7.2)."
+        Write-Error "Fab packaging requires -UnrealEngineVersion (e.g. -UnrealEngineVersion 5.7)."
         exit 1
+    }
+
+    # Enforce ONLY base engine version (Major.Minor), NOT patch version.
+    if (($Distribution -eq "Fab" -or $Distribution -eq "Both")) {
+        # Enforce strictly Major.Minor (e.g. 5.7)
+        if ($UnrealEngineVersion -notmatch '^\d+\.\d+$') {
+            Write-Error "Invalid -UnrealEngineVersion '$UnrealEngineVersion'. Must be base engine version only (e.g. 5.7). Patch versions like 5.7.3 are NOT allowed."
+            exit 1
+        }
     }
 
     Write-Host "Checking for missing platforms..."
