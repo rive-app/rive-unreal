@@ -312,6 +312,7 @@ FRDGPassRef AddTessellationPass(
     ClearUnusedGraphResources(VertexShader, &TesselationPassParameters->VS);
 
     ERDGPassFlags PassFlags = ERDGPassFlags::Raster;
+
     PassFlags |= GRHINeedsSRVGraphicsNonPixelWorkaround
                      ? ERDGPassFlags::SkipRenderPass
                      : ERDGPassFlags::None;
@@ -392,7 +393,7 @@ FRDGPassRef AddTessellationPass(
                 RHICmdList.EndRenderPass();
 
                 RHICmdList.Transition(
-                    FRHITransitionInfo(GDummyTransitionTexture->GetTextureRHI(),
+                    FRHITransitionInfo(GRiveTransitionTexture.GetTextureRHI(),
                                        ERHIAccess::Unknown,
                                        ERHIAccess::SRVGraphicsNonPixel));
             }
@@ -777,7 +778,7 @@ FRDGPassRef AddDrawPatchesPass(
             if (GRHINeedsSRVGraphicsNonPixelWorkaround)
             {
                 RHICmdList.Transition(
-                    FRHITransitionInfo(GDummyTransitionTexture->GetTextureRHI(),
+                    FRHITransitionInfo(GRiveTransitionTexture.GetTextureRHI(),
                                        ERHIAccess::Unknown,
                                        ERHIAccess::SRVGraphicsNonPixel));
 
@@ -887,7 +888,7 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
             if (GRHINeedsSRVGraphicsNonPixelWorkaround)
             {
                 RHICmdList.Transition(
-                    FRHITransitionInfo(GDummyTransitionTexture->GetTextureRHI(),
+                    FRHITransitionInfo(GRiveTransitionTexture.GetTextureRHI(),
                                        ERHIAccess::Unknown,
                                        ERHIAccess::SRVGraphicsNonPixel));
 
@@ -996,7 +997,7 @@ FRDGPassRef AddDrawAtlasBlitPass(
             if (GRHINeedsSRVGraphicsNonPixelWorkaround)
             {
                 RHICmdList.Transition(
-                    FRHITransitionInfo(GDummyTransitionTexture->GetTextureRHI(),
+                    FRHITransitionInfo(GRiveTransitionTexture.GetTextureRHI(),
                                        ERHIAccess::Unknown,
                                        ERHIAccess::SRVGraphicsNonPixel));
 
@@ -1104,7 +1105,7 @@ FRDGPassRef AddDrawImageRectPass(
             if (GRHINeedsSRVGraphicsNonPixelWorkaround)
             {
                 RHICmdList.Transition(
-                    FRHITransitionInfo(GDummyTransitionTexture->GetTextureRHI(),
+                    FRHITransitionInfo(GRiveTransitionTexture.GetTextureRHI(),
                                        ERHIAccess::Unknown,
                                        ERHIAccess::SRVGraphicsNonPixel));
 
@@ -1222,7 +1223,7 @@ FRDGPassRef AddDrawImageMeshPass(
             if (GRHINeedsSRVGraphicsNonPixelWorkaround)
             {
                 RHICmdList.Transition(
-                    FRHITransitionInfo(GDummyTransitionTexture->GetTextureRHI(),
+                    FRHITransitionInfo(GRiveTransitionTexture.GetTextureRHI(),
                                        ERHIAccess::Unknown,
                                        ERHIAccess::SRVGraphicsNonPixel));
 
@@ -1340,7 +1341,7 @@ FRDGPassRef AddAtomicResolvePass(
             if (GRHINeedsSRVGraphicsNonPixelWorkaround)
             {
                 RHICmdList.Transition(
-                    FRHITransitionInfo(GDummyTransitionTexture->GetTextureRHI(),
+                    FRHITransitionInfo(GRiveTransitionTexture.GetTextureRHI(),
                                        ERHIAccess::Unknown,
                                        ERHIAccess::SRVGraphicsNonPixel));
 
@@ -1607,7 +1608,7 @@ FRDGPassRef AddDrawRasterOrderAtlasBlitPass(
             if (GRHINeedsSRVGraphicsNonPixelWorkaround)
             {
                 RHICmdList.Transition(
-                    FRHITransitionInfo(GDummyTransitionTexture->GetTextureRHI(),
+                    FRHITransitionInfo(GRiveTransitionTexture.GetTextureRHI(),
                                        ERHIAccess::Unknown,
                                        ERHIAccess::SRVGraphicsNonPixel));
 
