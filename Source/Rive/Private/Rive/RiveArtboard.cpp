@@ -258,8 +258,12 @@ void URiveArtboard::SetupStateMachine(FRiveCommandBuilder& InCommandBuilder,
                    *RiveFile->GetName());
             return;
         }
+        const auto UniqueName =
+            MakeUniqueObjectName(GetOuter(),
+                                 URiveViewModel::StaticClass(),
+                                 *ViewModelName);
         auto ViewModel =
-            NewObject<URiveViewModel>(RiveFile->GetOuter(), *ViewModelName);
+            NewObject<URiveViewModel>(RiveFile->GetOuter(), UniqueName);
         ViewModel->Initialize(InCommandBuilder,
                               RiveFile.Get(),
                               *ViewModelDef,

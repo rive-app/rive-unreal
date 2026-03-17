@@ -511,6 +511,45 @@ bool URiveViewModel::GetListSize(const FString& PropertyName,
     return false;
 }
 
+bool URiveViewModel::GetArtboardValue(const FString& PropertyName,
+                                      URiveArtboard*& OutArtboard)
+{
+    check(bIsGenerated);
+    if (auto ObjectProperty =
+            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
+    {
+        if (ObjectProperty->PropertyClass != URiveArtboard::StaticClass())
+        {
+            return false;
+        }
+
+        OutArtboard =
+            ObjectProperty->ContainerPtrToValuePtr<URiveArtboard>(this);
+        return true;
+    }
+    return false;
+}
+
+bool URiveViewModel::GetViewModelValue(const FString& PropertyName,
+                                       URiveViewModel*& OutViewModel)
+{
+    check(bIsGenerated);
+    if (auto ObjectProperty =
+            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
+    {
+        if (ObjectProperty->PropertyClass != URiveViewModel::StaticClass())
+        {
+            return false;
+        }
+
+        OutViewModel =
+            ObjectProperty->ContainerPtrToValuePtr<URiveViewModel>(this);
+        return true;
+    }
+
+    return false;
+}
+
 bool URiveViewModel::ContainsListsByName(const FString& ListName) const
 {
     if (auto ListProperty =
@@ -717,12 +756,15 @@ bool URiveViewModel::SetViewModelValue(const FString& PropertyName,
                    *PropertyName);
             return false;
         }
+
+        InViewModel->SetOwningArtboard(OwningArtboard);
         ObjectProperty->SetPropertyValue_InContainer(this, InViewModel);
         UnsettleStateMachine(TEXT("SetViewModelValue"));
         UE::FieldNotification::FFieldId Field =
             GetFieldNotificationDescriptor().GetField(GetClass(),
                                                       *PropertyName);
         BroadcastFieldValueChanged(Field);
+
         return true;
     }
     return false;

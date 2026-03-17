@@ -69,6 +69,12 @@ public:
     bool GetNumberValue(const FString& PropertyName, float& OutNumber) const;
     UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     bool GetListSize(const FString& PropertyName, int32& OutSize) const;
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
+    bool GetArtboardValue(const FString& PropertyName,
+                          URiveArtboard*& OutArtboard);
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
+    bool GetViewModelValue(const FString& PropertyName,
+                           URiveViewModel*& OutViewModel);
     UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")
     bool ContainsListsByName(const FString& ListName) const;
     UFUNCTION(BlueprintPure, Category = "Rive|Data Binding")

@@ -41,6 +41,7 @@ public:
     UFUNCTION()
     TArray<FString> GetStateMachineNamesForDropdown() const;
 
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Rive")
     URiveArtboard* GetArtboard() const { return RiveArtboard; }
 
     URiveRenderTarget2D();

@@ -208,6 +208,9 @@ public:
     UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "RiveFileData")
     FVector2D ArtboardDefaultSize;
 
+    UFUNCTION(BlueprintPure, BlueprintCallable, Category = "Rive")
+    URiveViewModel* GetBoundViewModel() const { return BoundViewModel; }
+
 #if WITH_EDITORONLY_DATA
     void StateMachinesListed(std::vector<std::string> Names);
     void DefaultViewModelInfoReceived(std::string ViewModel,

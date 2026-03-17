@@ -116,8 +116,7 @@ void URiveRenderTarget2D::InitRiveRenderTarget2D()
                 RiveDescriptor.RiveFile->ArtboardDefinitions[0]
                     .StateMachineNames[0];
     }
-
-    if (!RiveDescriptor.ArtboardName.IsEmpty())
+    else if (!RiveDescriptor.ArtboardName.IsEmpty())
     {
         auto& Builder = Renderer->GetCommandBuilder();
         RiveArtboard = RiveDescriptor.RiveFile->CreateArtboardNamed(
