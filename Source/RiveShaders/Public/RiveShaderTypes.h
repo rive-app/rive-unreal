@@ -135,23 +135,26 @@ SHADER_PARAMETER(float, renderTargetInverseViewportX)
 SHADER_PARAMETER(float, renderTargetInverseViewportY)
 SHADER_PARAMETER(UE::HLSL::uint, renderTargetWidth)
 SHADER_PARAMETER(UE::HLSL::uint, renderTargetHeight)
-SHADER_PARAMETER(
-    UE::HLSL::uint,
-    colorClearValue) // Only used if clears are implemented as draws.
-SHADER_PARAMETER(
-    UE::HLSL::uint,
-    coverageClearValue) // Only used if clears are implemented as draws.
-SHADER_PARAMETER(UE::HLSL::int4,
-                 renderTargetUpdateBounds) // drawBounds, or renderTargetBounds
-                                           // if there is a clear. (LTRB.)
-SHADER_PARAMETER(UE::HLSL::float2,
-                 atlasTextureInverseSize) // 1 / [atlasWidth, atlasHeight]
-SHADER_PARAMETER(UE::HLSL::float2,
-                 atlasContentInverseViewport) // 2 / atlasContentBounds
+// Only used if clears are implemented as draws.
+SHADER_PARAMETER(UE::HLSL::uint, colorClearValue)
+// Only used if clears are implemented as draws.
+SHADER_PARAMETER(UE::HLSL::uint, coverageClearValue)
+// drawBounds, or renderTargetBounds if there is a clear. (LTRB.)
+SHADER_PARAMETER(UE::HLSL::int4, renderTargetUpdateBounds)
+// 1 / [atlasWidth, atlasHeight]
+SHADER_PARAMETER(UE::HLSL::float2, atlasTextureInverseSize)
+// 2 / atlasContentBounds
+SHADER_PARAMETER(UE::HLSL::float2, atlasContentInverseViewport)
 SHADER_PARAMETER(UE::HLSL::uint, coverageBufferPrefix)
-SHADER_PARAMETER(UE::HLSL::uint,
-                 pathIDGranularity) // Spacing between adjacent path IDs (1 if
-                                    // IEEE compliant).
+// GLSL doesn't appear to provide a lightweight, region-local barrier for memory
+// ordering outside of memoryBarrier*(), which have severe consequences for
+// tiling. When we are already relying on other API level barriers and only need
+// to guard against instruction reordering, we can multiply by a tiny epsilon
+// instead, and introduce artifical dependencies that enforce ordering but don't
+// actually have an effect on the final outcome.
+SHADER_PARAMETER(float, epsilonForPseudoMemoryBarrier)
+// Spacing between adjacent path IDs (1 if IEEE compliant).
+SHADER_PARAMETER(UE::HLSL::uint, pathIDGranularity)
 SHADER_PARAMETER(float, vertexDiscardValue)
 SHADER_PARAMETER(float, mipMapLODBias)
 SHADER_PARAMETER(UE::HLSL::uint, maxPathId)
