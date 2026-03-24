@@ -108,15 +108,33 @@ void URiveRenderTarget2D::InitRiveRenderTarget2D()
 
     if (!RiveDescriptor.RiveFile->ArtboardDefinitions.IsEmpty())
     {
-        RiveDescriptor.ArtboardName =
-            RiveDescriptor.RiveFile->ArtboardDefinitions[0].Name;
-        if (!RiveDescriptor.RiveFile->ArtboardDefinitions[0]
-                 .StateMachineNames.IsEmpty())
-            RiveDescriptor.StateMachineName =
-                RiveDescriptor.RiveFile->ArtboardDefinitions[0]
-                    .StateMachineNames[0];
+        if (RiveDescriptor.ArtboardName.IsEmpty())
+        {
+            RiveDescriptor.ArtboardName =
+                RiveDescriptor.RiveFile->ArtboardDefinitions[0].Name;
+        }
+
+        if (RiveDescriptor.StateMachineName.IsEmpty())
+        {
+            auto ArtboardDefinition =
+                RiveDescriptor.RiveFile->ArtboardDefinitions.FindByPredicate(
+                    [Name = RiveDescriptor.ArtboardName](auto& Itr) {
+                        return Itr.Name == Name;
+                    });
+
+            // We should definitely have an FArtboardDefinition at this point.
+            assert(ArtboardDefinition);
+
+            if (!ArtboardDefinition->StateMachineNames.IsEmpty())
+            {
+                RiveDescriptor.StateMachineName =
+                    RiveDescriptor.RiveFile->ArtboardDefinitions[0]
+                        .StateMachineNames[0];
+            }
+        }
     }
-    else if (!RiveDescriptor.ArtboardName.IsEmpty())
+
+    if (!RiveDescriptor.ArtboardName.IsEmpty())
     {
         auto& Builder = Renderer->GetCommandBuilder();
         RiveArtboard = RiveDescriptor.RiveFile->CreateArtboardNamed(
