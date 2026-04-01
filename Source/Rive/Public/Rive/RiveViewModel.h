@@ -270,6 +270,8 @@ public:
         return ViewModelDefinition;
     }
 
+    void SetPropertyMapping(const FName& InName, const FString& InPropertyName);
+
 protected:
     virtual void BeginDestroy() override;
 
@@ -314,6 +316,12 @@ private:
     // Checked in SetTrigger to make sure we don't infinite recurse when a
     // trigger is fired from the riv state machine
     bool bIsInDataCallback = false;
+
+    // FNames are case-insensitive. However, Rive properties are case-sensitive.
+    // So we need a mapping of FNames => FString to get the case-sensitive
+    // version.
+    UPROPERTY()
+    TMap<FName, FString> PropertyNameMap;
 
     friend class URiveTriggerDelegate;
 };

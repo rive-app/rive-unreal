@@ -868,9 +868,11 @@ URiveViewModel* URiveFile::CreateViewModelByName(const URiveFile* InputFile,
         return nullptr;
     }
 
-    const auto ObjectName = MakeUniqueObjectName(ViewModelClass->GetOuter(),
-                                                 ViewModelClass,
-                                                 *SanitizedViewModelName);
+    const auto ObjectName =
+        MakeUniqueObjectName(ViewModelClass->GetOuter(),
+                             ViewModelClass,
+                             *SanitizedViewModelName,
+                             EUniqueObjectNameOptions::UniversallyUnique);
 
     URiveViewModel* ViewModel = NewObject<URiveViewModel>(InputFile->GetOuter(),
                                                           ViewModelClass,

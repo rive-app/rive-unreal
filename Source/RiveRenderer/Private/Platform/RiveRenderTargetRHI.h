@@ -10,20 +10,20 @@ class RIVERENDERER_API FRiveRenderTargetRHI final : public FRiveRenderTarget
 {
 public:
     FRiveRenderTargetRHI(FRiveRenderer* Renderer,
-                         const FName& InRiveName,
+                         const FString& InRiveName,
                          UTexture2DDynamic* InRenderTarget);
 
     FRiveRenderTargetRHI(FRiveRenderer* Renderer,
-                         const FName& InRiveName,
+                         const FString& InRiveName,
                          UTextureRenderTarget2D* InRenderTarget);
 
     FRiveRenderTargetRHI(FRiveRenderer* Renderer,
-                         const FName& InRiveName,
+                         const FString& InRiveName,
                          FRenderTarget* InRenderTarget);
 
     FRiveRenderTargetRHI(FRDGBuilder& GraphBuilder,
                          FRiveRenderer* Renderer,
-                         const FName& InRiveName,
+                         const FString& InRiveName,
                          FRDGTextureRef InRenderTarget);
 
     virtual ~FRiveRenderTargetRHI() override;

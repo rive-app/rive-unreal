@@ -39,16 +39,16 @@ class RIVERENDERER_API FRiveRenderTarget
 {
 public:
     FRiveRenderTarget(FRiveRenderer* Renderer,
-                      const FName& InRiveName,
+                      const FString& InRiveName,
                       UTexture2DDynamic* InRenderTarget);
     FRiveRenderTarget(FRiveRenderer* Renderer,
-                      const FName& InRiveName,
+                      const FString& InRiveName,
                       UTextureRenderTarget2D* InRenderTarget);
     FRiveRenderTarget(FRiveRenderer* Renderer,
-                      const FName& InRiveName,
+                      const FString& InRiveName,
                       FRenderTarget* InRenderTarget);
     FRiveRenderTarget(FRiveRenderer* Renderer,
-                      const FName& InRiveName,
+                      const FString& InRiveName,
                       FRDGTextureRef InRenderTarget);
     virtual ~FRiveRenderTarget();
 

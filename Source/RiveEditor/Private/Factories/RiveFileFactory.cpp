@@ -226,6 +226,7 @@ static UBlueprint* GenerateBlueprintForViewModel(
         for (auto PropertyDefinition : ViewModelDefinition.PropertyDefinitions)
         {
             FName NewVariableName = FName(PropertyDefinition.Name);
+            CDO->SetPropertyMapping(NewVariableName, PropertyDefinition.Name);
             FEdGraphPinType PinType = {};
             PinType.PinCategory =
                 RiveDataTypeToPinCatagory(PropertyDefinition.Type);

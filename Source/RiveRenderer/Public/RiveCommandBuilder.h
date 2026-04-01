@@ -136,26 +136,6 @@ struct RIVERENDERER_API FRiveCommandBuilder
                                                       Listener);
     }
 
-    rive::ArtboardHandle CreateArtboard(
-        rive::FileHandle File,
-        const FName& ArtboardName,
-        rive::CommandQueue::ArtboardListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
-    {
-        FTCHARToUTF8 Convert(*ArtboardName.ToString());
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->instantiateArtboardNamed(File,
-                                                          Convert.Get(),
-                                                          Listener,
-                                                          *outRequestId);
-        }
-        return CommandQueue->instantiateArtboardNamed(File,
-                                                      Convert.Get(),
-                                                      Listener);
-    }
-
     uint64_t SetArtboardSize(rive::ArtboardHandle Handle,
                              float SizeX,
                              float SizeY,
@@ -177,13 +157,13 @@ struct RIVERENDERER_API FRiveCommandBuilder
 
     rive::ViewModelInstanceHandle CreateViewModel(
         rive::FileHandle File,
-        const FName& ViewModelName,
-        const FName& ViewModelInstanceName,
+        const FString& ViewModelName,
+        const FString& ViewModelInstanceName,
         rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
         uint64_t* outRequestId = nullptr)
     {
-        FTCHARToUTF8 ConvertViewModel(*ViewModelName.ToString());
-        FTCHARToUTF8 ConvertInstance(*ViewModelInstanceName.ToString());
+        FTCHARToUTF8 ConvertViewModel(*ViewModelName);
+        FTCHARToUTF8 ConvertInstance(*ViewModelInstanceName);
         if (outRequestId)
         {
             *outRequestId = ++CurrentRequestId;
@@ -203,11 +183,11 @@ struct RIVERENDERER_API FRiveCommandBuilder
 
     rive::ViewModelInstanceHandle CreateDefaultViewModel(
         rive::FileHandle File,
-        const FName& ViewModelName,
+        const FString& ViewModelName,
         rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
         uint64_t* outRequestId = nullptr)
     {
-        FTCHARToUTF8 ConvertViewModel(*ViewModelName.ToString());
+        FTCHARToUTF8 ConvertViewModel(*ViewModelName);
         if (outRequestId)
         {
             *outRequestId = ++CurrentRequestId;
@@ -245,11 +225,11 @@ struct RIVERENDERER_API FRiveCommandBuilder
 
     rive::ViewModelInstanceHandle CreateBlankViewModel(
         rive::FileHandle File,
-        const FName& ViewModelName,
+        const FString& ViewModelName,
         rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
         uint64_t* outRequestId = nullptr)
     {
-        FTCHARToUTF8 ConvertViewModel(*ViewModelName.ToString());
+        FTCHARToUTF8 ConvertViewModel(*ViewModelName);
         if (outRequestId)
         {
             *outRequestId = ++CurrentRequestId;
@@ -547,26 +527,6 @@ struct RIVERENDERER_API FRiveCommandBuilder
                                                                 *outRequestId);
         }
         return CommandQueue->instantiateDefaultStateMachine(Artboard, Listener);
-    }
-
-    rive::StateMachineHandle CreateStateMachine(
-        rive::ArtboardHandle Artboard,
-        const FName& StateMachineName,
-        rive::CommandQueue::StateMachineListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
-    {
-        FTCHARToUTF8 Convert(*StateMachineName.ToString());
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->instantiateStateMachineNamed(Artboard,
-                                                              Convert.Get(),
-                                                              Listener,
-                                                              *outRequestId);
-        }
-        return CommandQueue->instantiateStateMachineNamed(Artboard,
-                                                          Convert.Get(),
-                                                          Listener);
     }
 
     rive::StateMachineHandle CreateStateMachine(

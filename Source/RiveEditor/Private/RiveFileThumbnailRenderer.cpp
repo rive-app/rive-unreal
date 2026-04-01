@@ -49,7 +49,7 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object,
         if (!RiveRenderTarget)
         {
             RiveRenderTarget =
-                RiveRenderer->CreateRenderTarget(GetFName(), Viewport);
+                RiveRenderer->CreateRenderTarget(GetName(), Viewport);
         }
         else
         {

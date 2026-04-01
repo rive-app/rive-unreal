@@ -135,7 +135,7 @@ rive::gpu::RenderContext* FRiveRenderer::GetRenderContext()
 }
 
 TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
-    const FName& InRiveName,
+    const FString& InRiveName,
     UTexture2DDynamic* InRenderTarget)
 {
     check(IsInGameThread());
@@ -147,7 +147,7 @@ TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
 }
 
 TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
-    const FName& InRiveName,
+    const FString& InRiveName,
     UTextureRenderTarget2D* InRenderTarget)
 {
     check(IsInGameThread());
@@ -160,7 +160,7 @@ TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
 
 TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
     FRDGBuilder& GraphBuilder,
-    const FName& InRiveName,
+    const FString& InRiveName,
     FRDGTextureRef InRenderTarget)
 {
     return MakeShared<FRiveRenderTargetRHI>(GraphBuilder,
@@ -171,7 +171,7 @@ TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
 }
 
 TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
-    const FName& InRiveName,
+    const FString& InRiveName,
     FRenderTarget* RenderTarget)
 {
     return MakeShared<FRiveRenderTargetRHI>(this, InRiveName, RenderTarget);

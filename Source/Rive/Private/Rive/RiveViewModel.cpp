@@ -172,7 +172,7 @@ void URiveViewModel::Initialize(
     {
         NativeViewModelInstance =
             Builder.CreateBlankViewModel(OwningFile->GetNativeFileHandle(),
-                                         FName(ViewModelDefinition.Name),
+                                         ViewModelDefinition.Name,
                                          new FRiveViewModelListener(this));
     }
     else if (InstanceName == GViewModelInstanceDefaultName ||
@@ -180,15 +180,15 @@ void URiveViewModel::Initialize(
     {
         NativeViewModelInstance =
             Builder.CreateDefaultViewModel(OwningFile->GetNativeFileHandle(),
-                                           FName(ViewModelDefinition.Name),
+                                           ViewModelDefinition.Name,
                                            new FRiveViewModelListener(this));
     }
     else
     {
         NativeViewModelInstance =
             Builder.CreateViewModel(OwningFile->GetNativeFileHandle(),
-                                    FName(ViewModelDefinition.Name),
-                                    FName(InstanceName),
+                                    ViewModelDefinition.Name,
+                                    InstanceName,
                                     new FRiveViewModelListener(this));
     }
 
@@ -988,8 +988,23 @@ void URiveViewModel::OnViewModelDataReceived(
     rive::CommandQueue::ViewModelInstanceData Data)
 {
     FUTF8ToTCHAR Conversion(Data.metaData.name.c_str());
+    auto PropertyFNamePtr = PropertyNameMap.FindKey(Conversion.Get());
+    if (!PropertyFNamePtr)
+    {
+        UE_LOG(
+            LogRive,
+            Error,
+            TEXT(
+                "Failed to find property mapping for \"%s\" for view model named "
+                "\"%s\" with class \"%s\" on sub update !"),
+            Conversion.Get(),
+            *GetName(),
+            *GetClass()->GetName());
+        return;
+    }
+
     FProperty* Property =
-        FindFProperty<FProperty>(GetClass(), Conversion.Get());
+        FindFProperty<FProperty>(GetClass(), *PropertyFNamePtr);
     if (!Property)
     {
         UE_LOG(LogRive,
@@ -1237,6 +1252,20 @@ void URiveViewModel::OnViewModelListSizeReceived(std::string Path,
     }
 }
 
+void URiveViewModel::SetPropertyMapping(const FName& InName,
+                                        const FString& InPropertyName)
+{
+    if (PropertyNameMap.Contains(InName))
+    {
+        UE_LOG(LogRive,
+               Warning,
+               TEXT("Duplicate property name mapping: %s"),
+               *InName.ToString());
+    }
+
+    PropertyNameMap.Add(InName, InPropertyName);
+}
+
 void URiveViewModel::BeginDestroy()
 {
     if (NativeViewModelInstance != RIVE_NULL_HANDLE)
@@ -1284,7 +1313,18 @@ void URiveViewModel::OnUpdatedField(UE::FieldNotification::FFieldId InFieldId)
 
     UnsettleStateMachine(TEXT("OnUpdatedField"));
 
-    auto PropName = Property->GetName();
+    auto PropFName = Property->GetFName();
+    auto PropNamePtr = PropertyNameMap.Find(PropFName);
+    if (!ensure(PropNamePtr))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveViewModel::OnUpdatedField Failed to find property "
+                    "name for %s."),
+               *PropFName.ToString());
+        return;
+    }
+    auto PropName = *PropNamePtr;
     auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     check(RiveRenderer);
     auto& Builder = RiveRenderer->GetCommandBuilder();

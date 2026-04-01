@@ -39,20 +39,20 @@ public:
     ~FRiveRenderer();
 
     TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
-        const FName& InRiveName,
+        const FString& InRiveName,
         UTexture2DDynamic* InRenderTarget);
 
     TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
-        const FName& InRiveName,
+        const FString& InRiveName,
         UTextureRenderTarget2D* InRenderTarget);
 
     TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
         FRDGBuilder& GraphBuilder,
-        const FName& InRiveName,
+        const FString& InRiveName,
         FRDGTextureRef InRenderTarget);
 
     TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
-        const FName& InRiveName,
+        const FString& InRiveName,
         FRenderTarget* RenderTarget);
 
     void CreateRenderContext(FRHICommandListImmediate& RHICmdList);

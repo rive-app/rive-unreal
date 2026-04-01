@@ -11,20 +11,20 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 
 FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRiveRenderer* Renderer,
-                                           const FName& InRiveName,
+                                           const FString& InRiveName,
                                            UTexture2DDynamic* InRenderTarget) :
     FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
 {}
 
 FRiveRenderTargetRHI::FRiveRenderTargetRHI(
     FRiveRenderer* Renderer,
-    const FName& InRiveName,
+    const FString& InRiveName,
     UTextureRenderTarget2D* InRenderTarget) :
     FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
 {}
 
 FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRiveRenderer* Renderer,
-                                           const FName& InRiveName,
+                                           const FString& InRiveName,
                                            FRenderTarget* InRenderTarget) :
     FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
 {
@@ -43,7 +43,7 @@ FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRiveRenderer* Renderer,
 
 FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRDGBuilder& GraphBuilder,
                                            FRiveRenderer* Renderer,
-                                           const FName& InRiveName,
+                                           const FString& InRiveName,
                                            FRDGTextureRef InRenderTarget) :
     FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
 {
