@@ -273,33 +273,33 @@ void GetPermutationForFeatures(
     AtomicPixelPermutationDomain& PixelPermutationDomain,
     AtomicVertexPermutationDomain& VertexPermutationDomain)
 {
-    VertexPermutationDomain.Set<FEnableClip>(features &
-                                             ShaderFeatures::ENABLE_CLIPPING);
+    VertexPermutationDomain.Set<FEnableClip>(
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIPPING));
     VertexPermutationDomain.Set<FEnableClipRect>(
-        features & ShaderFeatures::ENABLE_CLIP_RECT);
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIP_RECT));
     VertexPermutationDomain.Set<FEnableAdvanceBlend>(
-        features & ShaderFeatures::ENABLE_ADVANCED_BLEND);
-    VertexPermutationDomain.Set<FEnableFeather>(features &
-                                                ShaderFeatures::ENABLE_FEATHER);
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_ADVANCED_BLEND));
+    VertexPermutationDomain.Set<FEnableFeather>(
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_FEATHER));
 
-    PixelPermutationDomain.Set<FEnableClip>(features &
-                                            ShaderFeatures::ENABLE_CLIPPING);
+    PixelPermutationDomain.Set<FEnableClip>(
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIPPING));
     PixelPermutationDomain.Set<FEnableClipRect>(
-        features & ShaderFeatures::ENABLE_CLIP_RECT);
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIP_RECT));
     PixelPermutationDomain.Set<FEnableNestedClip>(
-        features & ShaderFeatures::ENABLE_NESTED_CLIPPING);
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_NESTED_CLIPPING));
     PixelPermutationDomain.Set<FEnableAdvanceBlend>(
-        features & ShaderFeatures::ENABLE_ADVANCED_BLEND);
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_ADVANCED_BLEND));
     PixelPermutationDomain.Set<FEnableFixedFunctionColorOutput>(
-        !(features & ShaderFeatures::ENABLE_ADVANCED_BLEND));
-    PixelPermutationDomain.Set<FEnableEvenOdd>(features &
-                                               ShaderFeatures::ENABLE_EVEN_ODD);
+        !enums::is_flag_set(features, ShaderFeatures::ENABLE_ADVANCED_BLEND));
+    PixelPermutationDomain.Set<FEnableEvenOdd>(
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_EVEN_ODD));
     PixelPermutationDomain.Set<FEnableHSLBlendMode>(
-        features & ShaderFeatures::ENABLE_HSL_BLEND_MODES);
-    PixelPermutationDomain.Set<FEnableFeather>(features &
-                                               ShaderFeatures::ENABLE_FEATHER);
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_HSL_BLEND_MODES));
+    PixelPermutationDomain.Set<FEnableFeather>(
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_FEATHER));
     PixelPermutationDomain.Set<FEnableClockwiseFill>(
-        miscFlags & ShaderMiscFlags::clockwiseFill);
+        enums::is_flag_set(miscFlags, ShaderMiscFlags::clockwiseFill));
     PixelPermutationDomain.Set<FEnableGammaCorrection>(needsLinearGamma);
     PixelPermutationDomain.Set<FCoalescedPlsResolveAndTransfer>(needsCoalesce);
 }
@@ -540,7 +540,8 @@ RenderBufferRHIImpl::RenderBufferRHIImpl(RenderBufferType inType,
              stride),
     m_mappedBuffer(nullptr)
 {
-    if (inFlags & RenderBufferFlags::mappedOnceAtInitialization)
+    if (enums::is_flag_set(inFlags,
+                           RenderBufferFlags::mappedOnceAtInitialization))
     {
         m_mappedBuffer = m_buffer.mapBuffer(inSizeInBytes);
     }
@@ -553,7 +554,8 @@ FBufferRHIRef RenderBufferRHIImpl::Sync(FRHICommandList& commandList) const
 
 void* RenderBufferRHIImpl::onMap()
 {
-    if (flags() & RenderBufferFlags::mappedOnceAtInitialization)
+    if (enums::is_flag_set(flags(),
+                           RenderBufferFlags::mappedOnceAtInitialization))
     {
         check(m_mappedBuffer);
         return m_mappedBuffer;
@@ -1803,8 +1805,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                          desc.coverageClearValue));
 #endif
 
-            if (desc.combinedShaderFeatures &
-                gpu::ShaderFeatures::ENABLE_CLIPPING)
+            if (enums::is_flag_set(desc.combinedShaderFeatures,
+                                   gpu::ShaderFeatures::ENABLE_CLIPPING))
             {
                 AddClearUAVPass(GraphBuilder, clipUAV, FUintVector4(0));
             }
@@ -2107,8 +2109,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             }
             AddClearRenderTargetPass(GraphBuilder, MSAAColorTexture);
 
-            if (desc.combinedShaderFeatures &
-                gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND)
+            if (enums::is_flag_set(desc.combinedShaderFeatures,
+                                   gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND))
             {
                 // Used for reading back the framebuffer since we have no easy
                 // framebuffer fetch option
@@ -2254,8 +2256,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                 auto ShaderFeatures = batch->shaderFeatures;
                                 auto shaderMiscFlags = batch->shaderMiscFlags;
 
-                                if (batch->drawContents &
-                                    DrawContents::clockwiseFill)
+                                if (enums::is_flag_set(
+                                        batch->drawContents,
+                                        DrawContents::clockwiseFill))
                                     shaderMiscFlags |=
                                         ShaderMiscFlags::clockwiseFill;
 
@@ -2557,7 +2560,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 auto ShaderFeatures = batch.shaderFeatures;
                 auto ShaderMiscFlags = batch.shaderMiscFlags;
 
-                if (batch.drawContents & DrawContents::clockwiseFill)
+                if (enums::is_flag_set(batch.drawContents,
+                                       DrawContents::clockwiseFill))
                     ShaderMiscFlags &= ShaderMiscFlags::clockwiseFill;
 
                 GetPermutationForFeatures(ShaderFeatures,
@@ -2807,7 +2811,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 auto ShaderFeatures = desc.combinedShaderFeatures;
                 auto ShaderMiscFlags = batch.shaderMiscFlags;
 
-                if (batch.drawContents & DrawContents::clockwiseFill)
+                if (enums::is_flag_set(batch.drawContents,
+                                       DrawContents::clockwiseFill))
                     ShaderMiscFlags &= ShaderMiscFlags::clockwiseFill;
 
                 GetPermutationForFeatures(ShaderFeatures,
