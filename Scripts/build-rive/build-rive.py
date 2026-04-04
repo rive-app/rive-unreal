@@ -31,7 +31,7 @@ Finally on all platforms:
 """)
 
 parser.add_argument("-c", "--clean", action="store_true", default=False, help="Remove generated build output directories before building")
-parser.add_argument("-s", "--enable_scripting", action="store_true", default=False, help="enable scripting")
+parser.add_argument("-d", "--disable_scripting", action="store_true", default=False, help="disable scripting")
 parser.add_argument("-p", "--rive_runtime_path", type=str, help="path to rive runtime root folder, if not specified default path is used")
 parser.add_argument("-t", "--build_rive_tests", action='store_true',  default=False, help="If set, gms, goldens and player will be built and copied as well")
 parser.add_argument("-r", "--raw_shaders", action='store_true', default=False, help="If set, --raw_shaders will be passed to the premake file for building")
@@ -83,7 +83,7 @@ targets = [
     'zlib'
 ]
 
-if args.enable_scripting:
+if not args.disable_scripting:
     targets.extend(['luau_vm'])
 
 test_targets = [
@@ -138,7 +138,7 @@ class CompilePass(object):
             command_args.append("release")
         if args.raw_shaders:
             command_args.append("\"--raw_shaders\"")
-        if args.enable_scripting:
+        if not args.disable_scripting:
             command_args.append("\"--with_rive_scripting\"")
 
         tools_version = self.get_tools_version()

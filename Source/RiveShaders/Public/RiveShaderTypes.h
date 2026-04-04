@@ -24,7 +24,7 @@
 // RHI handles barriers as texture transitions like in D3D. However,
 // sometimes we don't want to change the state of a texture but still
 // want to barrier. This global texture is used instead in those cases.
-TGlobalResource<FTexture, FRenderResource::EInitPhase::Pre>
+static TGlobalResource<FTexture, FRenderResource::EInitPhase::Pre>
     GRiveTransitionTexture;
 
 #ifndef RIVE_FORCE_USE_GENERATED_UNIFORMS

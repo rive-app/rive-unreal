@@ -2228,6 +2228,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                          triangleBuffer,
                          Viewport,
                          Scissor,
+                         m_platformFeatures = m_platformFeatures,
                          FixedFunctionColorOutput =
                              desc.fixedFunctionColorOutput](
                             FRHICommandListImmediate& RHICmdList) {
@@ -2298,6 +2299,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                 FRiveCommonPassParameters CommonPassParameters(
                                     *batch,
                                     PipelineState,
+                                    m_platformFeatures,
                                     ShaderMap);
 
                                 CommonPassParameters.VertexPermutationDomain =
@@ -2579,6 +2581,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     GraphBuilder.AllocObject<FRiveCommonPassParameters>(
                         batch,
                         PipelineState,
+                        m_platformFeatures,
                         ShaderMap);
                 CommonPassParameters->VertexPermutationDomain =
                     VertexPermutationDomain;
@@ -2828,6 +2831,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     GraphBuilder.AllocObject<FRiveCommonPassParameters>(
                         batch,
                         PipelineState,
+                        m_platformFeatures,
                         ShaderMap);
                 CommonPassParameters->VertexPermutationDomain =
                     VertexPermutationDomain;

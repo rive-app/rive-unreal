@@ -36,11 +36,28 @@ struct FRiveCommonPassParameters
     // This is currently only used for MSAA mode, but may get used for other
     // modes in the future
     rive::gpu::PipelineState PipelineState;
-    FRiveCommonPassParameters(const rive::gpu::DrawBatch& DrawBatch,
-                              const rive::gpu::PipelineState& PipelineState,
-                              FGlobalShaderMap* ShaderMap) :
-        ShaderMap(ShaderMap), DrawBatch(DrawBatch), PipelineState(PipelineState)
+    const rive::gpu::PlatformFeatures& PlatformFeatures;
+    FRiveCommonPassParameters(
+        const rive::gpu::DrawBatch& DrawBatch,
+        const rive::gpu::PipelineState& PipelineState,
+        const rive::gpu::PlatformFeatures& PlatformFeatures,
+        FGlobalShaderMap* ShaderMap) :
+        ShaderMap(ShaderMap),
+        DrawBatch(DrawBatch),
+        PipelineState(PipelineState),
+        PlatformFeatures(PlatformFeatures)
     {}
+    uint32_t GetUniqueKey(rive::gpu::InterlockMode Interlock) const
+    {
+        return pipeline_unique_key(DrawBatch.drawType,
+                                   DrawBatch.shaderFeatures,
+                                   Interlock,
+                                   DrawBatch.shaderMiscFlags,
+                                   DrawBatch.drawContents,
+                                   BlendType == EBlendType::Blend,
+                                   rive::BlendMode::srcOver,
+                                   PlatformFeatures);
+    }
 };
 
 struct FRiveAtlasParameters
