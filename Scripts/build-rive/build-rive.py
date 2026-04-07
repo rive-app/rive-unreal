@@ -129,11 +129,13 @@ class CompilePass(object):
         if args.no_build:
             build_script = f"{build_script} nobuild "
             
+        DEFAULT_ARGS = ["\"--with_rive_audio=external\"", "\"--for_unreal\"", "\"--cpp20\""]
+
         # default command to use, build_rive.sh includes --with_rive_layout and --with_rive_text automatically
         if build_type != '' and build_type is not None:
-            command_args = build_type.split() + ["\"--with_rive_audio=external\"", "\"--for_unreal\""]
+            command_args = build_type.split() + DEFAULT_ARGS
         else:
-            command_args = ["\"--with_rive_audio=external\"", "\"--for_unreal\""]
+            command_args = DEFAULT_ARGS
         if is_release:
             command_args.append("release")
         if args.raw_shaders:

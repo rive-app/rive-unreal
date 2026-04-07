@@ -94,7 +94,7 @@ void FRiveRDGDrawAtlasFillPixelShader::ModifyCompilationEnvironment(
 {
     FRiveBasePixelShader::ModifyCompilationEnvironment(Params, Environment);
     auto& Value = Environment.RenderTargetOutputFormatsMap.FindOrAdd(0);
-    Value = static_cast<uint8>(EPixelFormat::PF_R32_FLOAT);
+    Value = static_cast<uint8>(EPixelFormat::PF_R16F);
 }
 
 void FRiveRDGDrawAtlasStrokePixelShader::ModifyCompilationEnvironment(
@@ -103,7 +103,7 @@ void FRiveRDGDrawAtlasStrokePixelShader::ModifyCompilationEnvironment(
 {
     FRiveBasePixelShader::ModifyCompilationEnvironment(Params, Environment);
     auto& Value = Environment.RenderTargetOutputFormatsMap.FindOrAdd(0);
-    Value = static_cast<uint8>(EPixelFormat::PF_R32_FLOAT);
+    Value = static_cast<uint8>(EPixelFormat::PF_R16F);
 }
 
 void FRiveBltTextureAsDrawVertexShader::ModifyCompilationEnvironment(

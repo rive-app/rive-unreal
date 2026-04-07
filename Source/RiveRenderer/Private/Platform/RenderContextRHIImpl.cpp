@@ -1163,7 +1163,7 @@ RenderContextRHIImpl::RenderContextRHIImpl(
                                           EBufferUsageFlags::IndexBuffer,
                                           GImageRectIndices);
 
-    m_atlasSampler = TStaticSamplerState<SF_Point,
+    m_atlasSampler = TStaticSamplerState<SF_Bilinear,
                                          AM_Clamp,
                                          AM_Clamp,
                                          AM_Clamp,
@@ -1601,7 +1601,7 @@ void RenderContextRHIImpl::resizeAtlasTexture(uint32_t width, uint32_t height)
     // support this
     auto RDGDesc = FRDGTextureDesc::Create2D(
         {static_cast<int32_t>(width), static_cast<int32_t>(height)},
-        PF_R32_FLOAT,
+        PF_R16F,
         FClearValueBinding::Black,
         ETextureCreateFlags::RenderTargetable |
             ETextureCreateFlags::ShaderResource);

@@ -1808,7 +1808,7 @@ FRDGPassRef AddFeatherAtlasFillDrawPass(FRDGBuilder& GraphBuilder,
             GraphicsPSOInit.PrimitiveType = PT_TriangleList;
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
-                             CM_CCW,
+                             CM_None,
                              ERasterizerDepthClipMode::DepthClamp,
                              false);
 
@@ -1896,7 +1896,7 @@ FRDGPassRef AddFeatherAtlasStrokeDrawPass(
             GraphicsPSOInit.PrimitiveType = PT_TriangleList;
             GraphicsPSOInit.RasterizerState =
                 RASTER_STATE(FM_Solid,
-                             CM_CCW,
+                             CM_None,
                              ERasterizerDepthClipMode::DepthClamp,
                              false);
 
