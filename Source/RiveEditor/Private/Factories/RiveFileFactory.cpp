@@ -208,6 +208,7 @@ static UBlueprint* GenerateBlueprintForViewModel(
             BlueprintClass->GetDefaultObject<URiveViewModel>();
         CDO->bIsGenerated = true;
         CDO->SetViewModelDefinition(ViewModelDefinition);
+        CDO->ClearPropertyMappings();
 
         static FText VariableCategory = FText::FromString(TEXT("Rive"));
         Blueprint->Modify();

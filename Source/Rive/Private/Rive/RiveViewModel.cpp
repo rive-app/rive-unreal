@@ -12,6 +12,11 @@
 #include "Rive/RiveUtils.h"
 #include "Engine/BlueprintGeneratedClass.h"
 
+#if WITH_EDITOR
+#include "Misc/MessageDialog.h"
+#include "Misc/FeedbackContext.h"
+#endif
+
 TMap<rive::ViewModelInstanceHandle, URiveViewModel*>
     URiveViewModel::ViewModelInstances;
 
@@ -1252,6 +1257,8 @@ void URiveViewModel::OnViewModelListSizeReceived(std::string Path,
     }
 }
 
+void URiveViewModel::ClearPropertyMappings() { PropertyNameMap.Empty(); }
+
 void URiveViewModel::SetPropertyMapping(const FName& InName,
                                         const FString& InPropertyName)
 {
@@ -1264,6 +1271,26 @@ void URiveViewModel::SetPropertyMapping(const FName& InName,
     }
 
     PropertyNameMap.Add(InName, InPropertyName);
+}
+
+const FString* URiveViewModel::GetPropertyMapping(const FName& InName) const
+{
+    auto Value = PropertyNameMap.Find(InName);
+#if WITH_EDITOR
+    if (!Value)
+    {
+        FFormatNamedArguments Arguments;
+        Arguments.Add(TEXT("Name"), FText::FromString(InName.ToString()));
+        // Show a Yes/No dialog
+        EAppReturnType::Type Response = FMessageDialog::Open(
+            EAppMsgType::Ok,
+            FText::Format(
+                FTextFormat::FromString(TEXT(
+                    "Mapping for {Name} missing, Please re-import riv file.")),
+                Arguments));
+    }
+#endif
+    return Value;
 }
 
 void URiveViewModel::BeginDestroy()
@@ -1314,8 +1341,8 @@ void URiveViewModel::OnUpdatedField(UE::FieldNotification::FFieldId InFieldId)
     UnsettleStateMachine(TEXT("OnUpdatedField"));
 
     auto PropFName = Property->GetFName();
-    auto PropNamePtr = PropertyNameMap.Find(PropFName);
-    if (!ensure(PropNamePtr))
+    auto PropNamePtr = GetPropertyMapping(PropFName);
+    if (!PropNamePtr)
     {
         UE_LOG(LogRive,
                Error,

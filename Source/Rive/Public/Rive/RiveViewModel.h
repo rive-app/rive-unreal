@@ -270,7 +270,10 @@ public:
         return ViewModelDefinition;
     }
 
+    void ClearPropertyMappings();
     void SetPropertyMapping(const FName& InName, const FString& InPropertyName);
+
+    const FString* GetPropertyMapping(const FName& InName) const;
 
 protected:
     virtual void BeginDestroy() override;
