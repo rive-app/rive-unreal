@@ -48,6 +48,8 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 
     Setup();
 
+    Initialize();
+
     return RiveWidget.ToSharedRef();
 }
 
