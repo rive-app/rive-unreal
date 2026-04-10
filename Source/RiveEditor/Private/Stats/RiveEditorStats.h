@@ -2,6 +2,6 @@
 
 #pragma once
 
-#include "Stats/Stats2.h"
+#include "Stats/Stats.h"
 
 DECLARE_STATS_GROUP(TEXT("RiveEditor"), STATGROUP_RiveEditor, STATCAT_Advanced);
