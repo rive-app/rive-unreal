@@ -6,7 +6,7 @@ import sys
 import stat
 from pathlib import Path
 from enum import Enum
-
+import importlib.util
 
 parser = argparse.ArgumentParser(description="""
 Build and copy rive C++ runtime library and copy it and it headers into the correct location for unreal
@@ -233,7 +233,6 @@ def print_green(text):
 
 def print_red(text):
     print(f'\033[91m{text}\033[0m')
-        
 
 def main(rive_runtime_path):
     print_green(f"using runtime location {rive_runtime_path}")
@@ -497,6 +496,8 @@ def remove_readonly(func, path, exc_info):
 def copy_includes(rive_runtime_path):
     print_green('Copying rive includes...')
     rive_constant_include_src = os.path.join(rive_runtime_path, "renderer", "src", "shaders", "constants.glsl")
+    rive_image_draw_uniforms_include_src = os.path.join(rive_runtime_path, "renderer", "src", "shaders", "image_draw_uniforms.glsl")
+    rive_flush_uniforms_include_src = os.path.join(rive_runtime_path, "renderer", "src", "shaders", "flush_uniforms.glsl")
     rive_includes_path = os.path.join(rive_runtime_path, 'include')
     rive_pls_includes_path = os.path.join(rive_runtime_path, 'renderer', 'include')
     rive_shaders_includes_path = os.path.join(rive_runtime_path, 'out', 'windows' if sys.platform.startswith('win32') else 'mac/x64', 'release', "include")
@@ -505,6 +506,8 @@ def copy_includes(rive_runtime_path):
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')
     shaders_target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes', "rive")
     rive_shader_source_target_path = os.path.join(script_directory, '..', '..', 'Shaders', 'Private', 'Rive')
+    rive_image_draw_uniforms_include_target_path = os.path.join(shaders_target_path, "shaders", "image_draw_uniforms.glsl")
+    rive_flush_uniforms_include_target_path = os.path.join(shaders_target_path, "shaders", "flush_uniforms.glsl")
     rive_constants_include_target_path = os.path.join(shaders_target_path, "shaders", "constants.glsl")
     generated_shader_path = os.path.join(script_directory, '..', '..', 'Shaders', 'Private', 'Rive', 'Generated')
     generated_shader_ush_path = os.path.join(rive_shaders_includes_path, "generated", "shaders")
@@ -518,6 +521,8 @@ def copy_includes(rive_runtime_path):
     # delete and re create generated shader path to clear it
     os.makedirs(generated_shader_path)
     os.makedirs(os.path.dirname(rive_constants_include_target_path), exist_ok=True)
+    shutil.copyfile(rive_flush_uniforms_include_src, rive_flush_uniforms_include_target_path)
+    shutil.copyfile(rive_image_draw_uniforms_include_src, rive_image_draw_uniforms_include_target_path)
     shutil.copyfile(rive_constant_include_src, rive_constants_include_target_path)
 
     shutil.copytree(rive_includes_path, target_path, dirs_exist_ok=True)

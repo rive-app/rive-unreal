@@ -128,57 +128,25 @@ typedef TShaderPermutationDomain<FEnableClip,
 #define USE_ATOMIC_VERTEX_PERMUTATIONS                                         \
     using FPermutationDomain = AtomicVertexPermutationDomain;
 
-BEGIN_UNIFORM_BUFFER_STRUCT(FFlushUniforms, RIVESHADERS_API)
-SHADER_PARAMETER(float, gradInverseViewportY)
-SHADER_PARAMETER(float, tessInverseViewportY)
-SHADER_PARAMETER(float, renderTargetInverseViewportX)
-SHADER_PARAMETER(float, renderTargetInverseViewportY)
-SHADER_PARAMETER(UE::HLSL::uint, renderTargetWidth)
-SHADER_PARAMETER(UE::HLSL::uint, renderTargetHeight)
-// Only used if clears are implemented as draws.
-SHADER_PARAMETER(UE::HLSL::uint, colorClearValue)
-// Only used if clears are implemented as draws.
-SHADER_PARAMETER(UE::HLSL::uint, coverageClearValue)
-// drawBounds, or renderTargetBounds if there is a clear. (LTRB.)
-SHADER_PARAMETER(UE::HLSL::int4, renderTargetUpdateBounds)
-// 1 / [atlasWidth, atlasHeight]
-SHADER_PARAMETER(UE::HLSL::float2, atlasTextureInverseSize)
-// 2 / atlasContentBounds
-SHADER_PARAMETER(UE::HLSL::float2, atlasContentInverseViewport)
-SHADER_PARAMETER(UE::HLSL::uint, coverageBufferPrefix)
-// GLSL doesn't appear to provide a lightweight, region-local barrier for memory
-// ordering outside of memoryBarrier*(), which have severe consequences for
-// tiling. When we are already relying on other API level barriers and only need
-// to guard against instruction reordering, we can multiply by a tiny epsilon
-// instead, and introduce artifical dependencies that enforce ordering but don't
-// actually have an effect on the final outcome.
-SHADER_PARAMETER(float, epsilonForPseudoMemoryBarrier)
-// Spacing between adjacent path IDs (1 if IEEE compliant).
-SHADER_PARAMETER(UE::HLSL::uint, pathIDGranularity)
-SHADER_PARAMETER(float, vertexDiscardValue)
-SHADER_PARAMETER(float, mipMapLODBias)
-SHADER_PARAMETER(UE::HLSL::uint, maxPathId)
-SHADER_PARAMETER(float, ditherScale)
-SHADER_PARAMETER(float, ditherBias)
-SHADER_PARAMETER(float, ditherConversionToRGB10)
-// Debugging.
-SHADER_PARAMETER(UE::HLSL::uint, wireframeEnabled)
-END_UNIFORM_BUFFER_STRUCT();
+#define DECLARE_UNIFORM_FLOAT(param) SHADER_PARAMETER(float, param)
+#define DECLARE_UNIFORM_UINT(param) SHADER_PARAMETER(UE::HLSL::uint, param)
+#define DECLARE_UNIFORM_INT4(param) SHADER_PARAMETER(UE::HLSL::int4, param)
+#define DECLARE_UNIFORM_FLOAT2(param) SHADER_PARAMETER(UE::HLSL::float2, param)
+#define DECLARE_UNIFORM_FLOAT4(param) SHADER_PARAMETER(UE::HLSL::float4, param)
+
+#define UNIFORM_BLOCK_BEGIN(IDX, NAME)                                         \
+    BEGIN_UNIFORM_BUFFER_STRUCT(NAME, RIVESHADERS_API)
+
+#define UNIFORM_BLOCK_END(NAME) END_UNIFORM_BUFFER_STRUCT();
+
+#define FLUSH_UNIFORMS_NAME FFlushUniforms
+#define DRAW_IMAGE_UNIFORMS_NAME FImageDrawUniforms
+
+#include "rive/shaders/flush_uniforms.glsl"
+#include "rive/shaders/image_draw_uniforms.glsl"
 
 RIVESHADERS_API void BindStaticFlushUniforms(FRHICommandList&,
                                              FUniformBufferRHIRef);
-
-BEGIN_UNIFORM_BUFFER_STRUCT(FImageDrawUniforms, RIVESHADERS_API)
-SHADER_PARAMETER(UE::HLSL::float4, viewMatrix)
-SHADER_PARAMETER(UE::HLSL::float2, translate)
-SHADER_PARAMETER(float, opacity)
-SHADER_PARAMETER(float, padding)
-SHADER_PARAMETER(UE::HLSL::float4, clipRectInverseMatrix)
-SHADER_PARAMETER(UE::HLSL::float2, clipRectInverseTranslate)
-SHADER_PARAMETER(UE::HLSL::uint, clipID)
-SHADER_PARAMETER(UE::HLSL::uint, blendMode)
-SHADER_PARAMETER(UE::HLSL::uint, zIndex)
-END_UNIFORM_BUFFER_STRUCT()
 
 // One shared uniform struct used for all atomic frament shaders besides
 // gradient and tesselation. Params not used will be marked null
