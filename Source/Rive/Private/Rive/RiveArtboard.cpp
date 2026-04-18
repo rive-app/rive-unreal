@@ -239,35 +239,21 @@ void URiveArtboard::SetupStateMachine(FRiveCommandBuilder& InCommandBuilder,
 
     if (InAutoBindViewModel)
     {
-        FString ViewModelName = ArtboardDefinition.DefaultViewModel;
-        if (!ArtboardDefinition.DefaultViewModelInstance.IsEmpty())
+        if (ArtboardDefinition.DefaultViewModel.IsEmpty())
         {
-            ViewModelName +=
-                TEXT("_") + ArtboardDefinition.DefaultViewModelInstance;
-        }
-        ViewModelName = RiveUtils::SanitizeObjectName(ViewModelName);
-        auto ViewModelDef = RiveFile->GetViewModelDefinition(
-            ArtboardDefinition.DefaultViewModel);
-        if (!ViewModelDef)
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("Failed to autobind view mode %s because it is not "
-                        "found in file %s"),
-                   *ArtboardDefinition.Name,
-                   *RiveFile->GetName());
+            UE_LOG(
+                LogRive,
+                Error,
+                TEXT(
+                    "Artboard %s does not have a default view model to autobind."),
+                *ArtboardDefinition.Name);
             return;
         }
-        const auto UniqueName =
-            MakeUniqueObjectName(GetOuter(),
-                                 URiveViewModel::StaticClass(),
-                                 *ViewModelName);
-        auto ViewModel =
-            NewObject<URiveViewModel>(RiveFile->GetOuter(), UniqueName);
-        ViewModel->Initialize(InCommandBuilder,
-                              RiveFile.Get(),
-                              *ViewModelDef,
-                              GetDefaultViewModelInstance());
+        auto ViewModel = RiveFile->CreateViewModelByName(
+            RiveFile.Get(),
+            ArtboardDefinition.DefaultViewModel,
+            ArtboardDefinition.DefaultViewModelInstance);
+
         StateMachine->BindViewModel(ViewModel);
         BoundViewModel = ViewModel;
     }
