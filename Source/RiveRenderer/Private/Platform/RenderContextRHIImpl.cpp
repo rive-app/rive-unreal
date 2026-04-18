@@ -87,8 +87,8 @@ static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
             return TEXT("msaaMidpointFanPathsCover");
         case rive::gpu::DrawType::interiorTriangulation:
             return TEXT("interiorTriangulation");
-        case rive::gpu::DrawType::msaaStencilClipReset:
-            return TEXT("msaaStencilClipReset");
+        case rive::gpu::DrawType::clipReset:
+            return TEXT("clipReset");
         case rive::gpu::DrawType::atlasBlit:
             return TEXT("atlasBlit");
         case rive::gpu::DrawType::imageRect:
@@ -2353,7 +2353,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                             PassParameters);
                                     }
                                     break;
-                                    case DrawType::msaaStencilClipReset:
+                                    case DrawType::clipReset:
                                     {
                                         CommonPassParameters
                                             .VertexDeclarationRHI =
@@ -2788,7 +2788,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::msaaMidpointFanPathsStencil:
                     case DrawType::msaaMidpointFanPathsCover:
                     case DrawType::msaaOuterCubics:
-                    case DrawType::msaaStencilClipReset:
+                    case DrawType::clipReset:
                         RIVE_UNREACHABLE();
                 }
             }
@@ -3086,7 +3086,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::msaaMidpointFanPathsStencil:
                     case DrawType::msaaMidpointFanPathsCover:
                     case DrawType::msaaOuterCubics:
-                    case DrawType::msaaStencilClipReset:
+                    case DrawType::clipReset:
                         RIVE_UNREACHABLE();
                 }
             }
