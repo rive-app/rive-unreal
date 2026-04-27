@@ -16,6 +16,7 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
 #include "rive/renderer/buffer_ring.hpp"
 #include "rive/renderer/render_context_impl.hpp"
+#include "rive/texture_archive.hpp"
 THIRD_PARTY_INCLUDES_END
 
 class UTexture;
@@ -411,6 +412,7 @@ public:
         uint32_t width,
         uint32_t height,
         uint32_t mipLevelCount,
+        rive::GPUTextureFormat format,
         const uint8_t imageDataRGBA[]) override;
 
     virtual void resizeFlushUniformBuffer(size_t sizeInBytes) override;

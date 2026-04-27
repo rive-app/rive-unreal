@@ -104,6 +104,33 @@ static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
     return TEXT("Unkown");
 }
 
+static const EPixelFormat PixelFormatForGPUTextureFormat(
+    rive::GPUTextureFormat Format)
+{
+    // Unreal supports
+    // BC Version:
+    // PF_BC4, PF_BC5, PF_BC6H and PF_BC7
+    // ASTC Versions:
+    // PF_ASTC_4x4, PF_ASTC_6x6, PF_ASTC_8x8, PF_ASTC_10x10, PF_ASTC_12x12,
+    // ETC2 Versions:
+    // PF_ETC2_RGB, PF_ETC2_RGBA
+    switch (Format)
+    {
+        case rive::GPUTextureFormat::bc1:
+        case rive::GPUTextureFormat::bc2:
+        case rive::GPUTextureFormat::bc3:
+        case rive::GPUTextureFormat::bc7:
+            return EPixelFormat::PF_BC7;
+        case rive::GPUTextureFormat::astc:
+            return EPixelFormat::PF_ASTC_6x6;
+        case rive::GPUTextureFormat::etc2:
+            return EPixelFormat::PF_ETC2_RGBA;
+        case rive::GPUTextureFormat::rgba32:
+        default:
+            return EPixelFormat::PF_R8G8B8A8;
+    }
+}
+
 template <typename DataType, size_t size>
 struct TStaticResourceData : public FResourceArrayInterface
 {
@@ -1359,6 +1386,7 @@ rcp<Texture> RenderContextRHIImpl::platformDecodeImageTexture(
     std::unique_ptr<Bitmap> bitmap =
         std::make_unique<Bitmap>(ImageWrapper->GetWidth(),
                                  ImageWrapper->GetHeight(),
+                                 UncompressedRGBA.Num(),
                                  Bitmap::PixelFormat::RGBA,
                                  std::move(data));
 
@@ -1367,6 +1395,7 @@ rcp<Texture> RenderContextRHIImpl::platformDecodeImageTexture(
     return makeImageTexture(bitmap->width(),
                             bitmap->height(),
                             1,
+                            rive::GPUTextureFormat::rgba32,
                             bitmap->bytes());
 }
 
@@ -1374,13 +1403,14 @@ rive::rcp<rive::gpu::Texture> RenderContextRHIImpl::makeImageTexture(
     uint32_t width,
     uint32_t height,
     uint32_t mipLevelCount,
+    GPUTextureFormat format,
     const uint8_t imageDataRGBA[])
 {
     return make_rcp<TextureRHIImpl>(width,
                                     height,
                                     mipLevelCount,
                                     imageDataRGBA,
-                                    EPixelFormat::PF_R8G8B8A8);
+                                    PixelFormatForGPUTextureFormat(format));
 }
 
 void RenderContextRHIImpl::resizeFlushUniformBuffer(size_t sizeInBytes)
