@@ -14,19 +14,6 @@
 #include "rive/generated/shaders/rhi.glsl.exports.h"
 #include "Misc/EngineVersionComparison.h"
 
-// This is first defined in unreal engine version 5.7.0.
-// We use it for some console compatibility workarounds.
-// Define it here in the case that it's not defined.
-#ifndef GRHINeedsSRVGraphicsNonPixelWorkaround
-#define GRHINeedsSRVGraphicsNonPixelWorkaround false
-#endif
-
-// RHI handles barriers as texture transitions like in D3D. However,
-// sometimes we don't want to change the state of a texture but still
-// want to barrier. This global texture is used instead in those cases.
-static TGlobalResource<FTexture, FRenderResource::EInitPhase::Pre>
-    GRiveTransitionTexture;
-
 #ifndef RIVE_FORCE_USE_GENERATED_UNIFORMS
 #define RIVE_FORCE_USE_GENERATED_UNIFORMS 1
 #endif

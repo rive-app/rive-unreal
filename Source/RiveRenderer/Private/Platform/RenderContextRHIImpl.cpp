@@ -1697,7 +1697,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
     {
-        SCOPED_GPU_STAT(STAT_RiveFlush);
+        SCOPED_GPU_STAT(GraphBuilder.RHICmdList, STAT_RiveFlush);
         RDG_GPU_STAT_SCOPE(GraphBuilder, STAT_RiveFlush);
 
         auto targetTexture = renderTarget->targetTexture(GraphBuilder);
@@ -2264,9 +2264,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                          FixedFunctionColorOutput =
                              desc.fixedFunctionColorOutput](
                             FRHICommandListImmediate& RHICmdList) {
-                            RDG_GPU_STAT_SCOPE(
-                                GraphBuilder,
-                                STAT_RiveFlush_RiveFlushRenderPass);
+                            SCOPED_GPU_STAT(RHICmdList,
+                                            STAT_RiveFlush_RiveFlushRenderPass);
 
                             for (const DrawBatch* batch =
                                      const_cast<DrawBatch*>(&RenderPassStart);

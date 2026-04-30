@@ -27,7 +27,7 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
 #endif
 
     Environment.SetDefine(TEXT("FORCE_ATOMIC_BUFFER"), Params.Platform == 39);
-    if (Params.Platform != 39)
+    if (Params.Platform != 39 && Params.Platform != 43)
     {
         Environment.SetDefine(TEXT("ENABLE_TYPED_UAV_LOAD_STORE"), 1);
     }
