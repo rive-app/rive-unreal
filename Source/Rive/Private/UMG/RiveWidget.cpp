@@ -62,15 +62,18 @@ FReply URiveWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry,
         return FReply::Unhandled();
     }
 
-    if (IsValid(RiveArtboard))
+    if (!IsValid(RiveArtboard))
     {
-        RiveArtboard->PointerDown(InGeometry,
-                                  RiveDescriptor,
-                                  InMouseEvent,
-                                  UWidgetLayoutLibrary::GetViewportScale(this));
+        return FReply::Unhandled();
     }
 
-    return FReply::Handled();
+    return RiveArtboard->PointerDown(
+               InGeometry,
+               RiveDescriptor,
+               InMouseEvent,
+               UWidgetLayoutLibrary::GetViewportScale(this))
+               ? FReply::Handled()
+               : FReply::Unhandled();
 }
 
 FReply URiveWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry,
@@ -82,15 +85,17 @@ FReply URiveWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry,
         return FReply::Unhandled();
     }
 
-    if (IsValid(RiveArtboard))
+    if (!IsValid(RiveArtboard))
     {
-        RiveArtboard->PointerUp(InGeometry,
-                                RiveDescriptor,
-                                InMouseEvent,
-                                UWidgetLayoutLibrary::GetViewportScale(this));
+        return FReply::Unhandled();
     }
 
-    return FReply::Handled();
+    return RiveArtboard->PointerUp(InGeometry,
+                                   RiveDescriptor,
+                                   InMouseEvent,
+                                   UWidgetLayoutLibrary::GetViewportScale(this))
+               ? FReply::Handled()
+               : FReply::Unhandled();
 }
 
 FReply URiveWidget::NativeOnMouseMove(const FGeometry& InGeometry,

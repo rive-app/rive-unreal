@@ -819,6 +819,18 @@ bool URiveViewModel::InsertToList(const FString& ListName,
     return true;
 }
 
+bool URiveViewModel::ClearList(const FString& ListName)
+{
+    if (!ContainsListsByName(ListName))
+        return false;
+
+    auto& Builder = IRiveRendererModule::Get().GetCommandBuilder();
+    Builder.ClearViewModelList(NativeViewModelInstance, ListName);
+    UnsettleStateMachine(TEXT("ClearList"));
+    ClearListData(ListName);
+    return true;
+}
+
 bool URiveViewModel::RemoveFromList(const FString& ListName,
                                     URiveViewModel* Value)
 {
@@ -965,6 +977,8 @@ void URiveViewModel::K2_InsertToList(FRiveList List,
 {
     InsertToList(List.Path, Index, Value);
 }
+
+void URiveViewModel::K2_ClearList(FRiveList List) { ClearList(List.Path); }
 
 void URiveViewModel::K2_RemoveFromList(FRiveList List, URiveViewModel* Value)
 {
@@ -1465,6 +1479,32 @@ bool URiveViewModel::RemoveFieldValueChangedDelegate(
 {
     auto RemoveResult = Delegates.Remove(InDelegate);
     return RemoveResult.bRemoved;
+}
+
+void URiveViewModel::ClearListData(const FString& ListPath)
+{
+    FStructProperty* Property =
+        FindFProperty<FStructProperty>(GetClass(), *ListPath);
+    if (!Property)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("Failed to find list property to update !"));
+        return;
+    }
+
+    FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
+    if (!List)
+    {
+        UE_LOG(
+            LogRive,
+            Error,
+            TEXT(
+                "URiveViewModel::UpdateListWithViewModelData Failed to find list property to update !"));
+        return;
+    }
+
+    List->ViewModels.Empty();
 }
 
 void URiveViewModel::UpdateListWithViewModelData(const FString& ListPath,

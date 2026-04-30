@@ -109,6 +109,9 @@ public:
                       URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
+    bool ClearList(const FString& ListName);
+
+    UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
     bool RemoveFromList(const FString& ListName, URiveViewModel* Value);
 
     UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
@@ -141,6 +144,12 @@ public:
               meta = (DisplayName = "Insert View Model Into List",
                       ScriptName = "InsertToList"))
     void K2_InsertToList(FRiveList List, int32 Index, URiveViewModel* Value);
+
+    UFUNCTION(BlueprintCallable,
+              Category = "Rive|Data Binding|Lists",
+              meta = (DisplayName = "Clear View Model List",
+                      ScriptName = "RemoveFromList"))
+    void K2_ClearList(FRiveList List);
 
     UFUNCTION(BlueprintCallable,
               Category = "Rive|Data Binding|Lists",
@@ -292,6 +301,8 @@ private:
     bool RemoveFieldValueChangedDelegate(
         FFieldNotificationId FieldId,
         const FFieldValueChangedDynamicDelegate& Delegate);
+
+    void ClearListData(const FString& ListPath);
 
     void UpdateListWithViewModelData(const FString& ListPath,
                                      URiveViewModel* Value,
