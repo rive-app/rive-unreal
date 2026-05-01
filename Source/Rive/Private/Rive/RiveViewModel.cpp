@@ -402,6 +402,7 @@ void URiveViewModel::Initialize(
                               TEXT("_TriggerDelegate")));
                 TriggerDelegate->OwningViewModel = this;
                 TriggerDelegate->TriggerIndex = Index;
+                TriggerDelegates.Add(PropertyDefinition.Name, TriggerDelegate);
                 GenericDelegate.BindUFunction(TriggerDelegate,
                                               FName(TriggerName));
                 if (auto DelegateProperty =
@@ -1584,5 +1585,7 @@ void URiveTriggerDelegate::SetTrigger()
                 .Type;
         check(TriggerType == ERiveDataType::Trigger)
             ViewModel->SetTrigger(TriggerName);
+
+        OnTrigger.Broadcast(ViewModel.Get(), TriggerName);
     }
 }

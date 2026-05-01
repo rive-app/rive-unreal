@@ -166,6 +166,13 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Rive|ViewModel")
     void SetTrigger(const FString& TriggerName);
 
+    // C++ access to trigger callbacks
+    URiveTriggerDelegate* GetTriggerDelegateForName(
+        const FString& TriggerName) const
+    {
+        return TriggerDelegates.FindRef(TriggerName);
+    }
+
     // INotifyFieldValueChanged Implementation
     /** Add a delegate that will be notified when the FieldId is value changed.
      */
@@ -320,7 +327,8 @@ private:
 
     // Used for forwarding trigger names to the delegate callback without having
     // to make changes to how multicast delegates work
-    TArray<URiveTriggerDelegate> TriggerDelegates;
+    UPROPERTY(Transient)
+    TMap<FString, TObjectPtr<URiveTriggerDelegate>> TriggerDelegates;
 
     // Used for triggers so that we don't accidentally call the delegate twice.
     TArray<FName> IgnoredTriggerCallbacks;
@@ -340,6 +348,12 @@ private:
     friend class URiveTriggerDelegate;
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveTriggerSignature,
+                                             URiveViewModel*,
+                                             ViewModel,
+                                             const FString&,
+                                             TriggerName);
+
 UCLASS(Blueprintable, BlueprintType)
 class URiveTriggerDelegate : public UObject
 {
@@ -351,4 +365,6 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Rive | Triggers")
     void SetTrigger();
+
+    FRiveTriggerSignature OnTrigger;
 };

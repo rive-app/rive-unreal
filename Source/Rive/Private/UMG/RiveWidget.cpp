@@ -354,6 +354,8 @@ void URiveWidget::SetRiveDescriptor(const FRiveDescriptor& newDescriptor)
         IsChangingFromLayout = true;
 
     RiveDescriptor = newDescriptor;
+    // reset artboard since we want to re create it.
+    RiveArtboard = nullptr;
 
     Setup();
 }
