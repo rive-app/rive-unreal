@@ -11,6 +11,7 @@
 #include "Rive/RiveFile.h"
 #include "Rive/RiveUtils.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "Misc/EngineVersionComparison.h"
 
 #if WITH_EDITOR
 #include "Misc/MessageDialog.h"
@@ -1173,7 +1174,11 @@ void URiveViewModel::OnViewModelDataReceived(
                                TEXT("Failed to get delegate input property"));
                     }
                 }
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
                 Delegate->ProcessMulticastDelegate<UObject>(Parameters);
+#else
+                Delegate->ProcessDelegate<UObject>(Parameters);
+#endif
             }
             break;
         case rive::DataType::number:

@@ -7,6 +7,7 @@
 #include "RenderingThread.h"
 #include "Rive/RiveArtboard.h"
 #include "Rive/RiveTextureResource.h"
+#include "Misc/EngineVersionComparison.h"
 
 URiveTexture::URiveTexture()
 {
@@ -138,13 +139,21 @@ void URiveTexture::InitializeResources() const
             RenderTargetTextureDesc.AddFlags(ETextureCreateFlags::SRGB);
         }
 #endif
-
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
         RenderableTexture = RHICreateTexture(RenderTargetTextureDesc);
+#else
+        RenderableTexture = RHICmdList.CreateTexture(RenderTargetTextureDesc);
+#endif
         RenderableTexture->SetName(GetFName());
         CurrentResource->TextureRHI = RenderableTexture;
 
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
         RHIUpdateTextureReference(TextureReference.TextureReferenceRHI,
                                   CurrentResource->TextureRHI);
+#else
+        RHICmdList.UpdateTextureReference(TextureReference.TextureReferenceRHI,
+                                          CurrentResource->TextureRHI);
+#endif
         // When the resource change, we need to tell the RiveFile otherwise
         // we will keep on drawing on an outdated RT
         OnResourceInitializedOnRenderThread.Broadcast(

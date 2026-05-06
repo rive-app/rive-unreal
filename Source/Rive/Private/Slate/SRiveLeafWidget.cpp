@@ -31,6 +31,7 @@
 #include "rive/renderer/render_context.hpp"
 #include "rive/renderer/rive_renderer.hpp"
 #include "Streaming/TextureMipDataProvider.h"
+#include "Misc/EngineVersionComparison.h"
 
 #include <IRenderCaptureProvider.h>
 
@@ -112,8 +113,6 @@ public:
             TEXT("FRiveRendererDrawElement::Draw_RenderThread"),
             STAT_RIVE_RENDER_ELEMENT_DRAW,
             STATGROUP_Rive);
-
-        SCOPED_GPU_STAT(GraphBuilder.RHICmdList, FRiveRendererDrawElementDraw);
 
         auto RiveArtboardLocal = RiveArtboard.Pin();
         auto RenderBoundsLocal = RenderBounds;

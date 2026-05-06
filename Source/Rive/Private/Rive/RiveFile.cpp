@@ -21,6 +21,7 @@
 #include "ObjectEditorUtils.h"
 #include "rive/command_queue.hpp"
 #include "StructUtils/PropertyBag.h"
+#include "Misc/EngineVersionComparison.h"
 
 #if WITH_EDITOR
 #include "EditorFramework/AssetImportData.h"
@@ -1036,7 +1037,15 @@ void URiveFile::GenerateArtboardEnum()
         EnumsValues.Add(TPair<FName, int64>(ArtboardEnumName, i));
     }
     ArtboardEnum->CppType = EnumName;
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
     ArtboardEnum->SetEnums(EnumsValues, UEnum::ECppForm::Namespaced);
+#else
+    ArtboardEnum->SetEnums(EnumsValues,
+                           UEnum::ECppForm::Namespaced,
+                           UEnum::EUnderlyingType::int8,
+                           EEnumFlags::None,
+                           UEnum::EAddMaxKeyIfMissing::Yes);
+#endif
 }
 
 void URiveFile::GenerateViewModelEnum()
@@ -1062,7 +1071,15 @@ void URiveFile::GenerateViewModelEnum()
     }
 
     ViewModelEnum->CppType = EnumName;
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
     ViewModelEnum->SetEnums(EnumsValues, UEnum::ECppForm::Namespaced);
+#else
+    ViewModelEnum->SetEnums(EnumsValues,
+                            UEnum::ECppForm::Namespaced,
+                            UEnum::EUnderlyingType::int8,
+                            EEnumFlags::None,
+                            UEnum::EAddMaxKeyIfMissing::Yes);
+#endif
 }
 
 void URiveFile::GenerateViewModelInstanceEnums(
@@ -1116,7 +1133,15 @@ void URiveFile::GenerateViewModelInstanceEnums(
     }
 
     Enum->CppType = EnumName;
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
     Enum->SetEnums(EnumsValues, UEnum::ECppForm::Namespaced);
+#else
+    Enum->SetEnums(EnumsValues,
+                   UEnum::ECppForm::Namespaced,
+                   UEnum::EUnderlyingType::int8,
+                   EEnumFlags::None,
+                   UEnum::EAddMaxKeyIfMissing::Yes);
+#endif
     if (EnumPtr == nullptr)
     {
         ViewModelInstanceEnums.Add(ViewModelName, Enum);
