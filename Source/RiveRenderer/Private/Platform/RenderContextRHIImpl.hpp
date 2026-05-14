@@ -16,7 +16,7 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
 #include "rive/renderer/buffer_ring.hpp"
 #include "rive/renderer/render_context_impl.hpp"
-#include "rive/texture_archive.hpp"
+#include "rive/gpu_texture_format.hpp"
 THIRD_PARTY_INCLUDES_END
 
 class UTexture;
