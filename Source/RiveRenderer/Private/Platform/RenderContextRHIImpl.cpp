@@ -1681,13 +1681,15 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 {
     check(IsInRenderingThread());
 
-    static std::once_flag onceFlag;
-    std::call_once(onceFlag, [interlockMode = desc.interlockMode]() {
-        UE_LOG(LogRiveRenderer,
-               Display,
-               TEXT("RenderContextRHIImpl::flush Interlock: %s"),
-               StrForInterlock(interlockMode))
-    });
+    {
+        static const bool callOnce = [interlockMode = desc.interlockMode]() {
+            UE_LOG(LogRiveRenderer,
+                   Display,
+                   TEXT("RenderContextRHIImpl::flush Interlock: %s"),
+                   StrForInterlock(interlockMode))
+            return true;
+        }();
+    }
 
     auto renderTarget = static_cast<RenderTargetRHI*>(desc.renderTarget);
     check(renderTarget);
