@@ -1,0 +1,7 @@
+﻿// This exists just to make the static shader compiler happy.
+#include "/Engine/Public/Platform.ush"
+
+void main()
+{
+    
+}

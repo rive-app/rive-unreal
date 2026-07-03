@@ -16,6 +16,7 @@ class Asset;
 }
 
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/file_asset_loader.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE

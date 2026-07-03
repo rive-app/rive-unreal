@@ -19,6 +19,7 @@
 
 #include "RenderGraphUtils.h"
 #include "VisualizeTexture.h"
+#include "Ore/OrePlatformRHI.h"
 #include "Logs/RiveRendererLog.h"
 
 #include "HAL/IConsoleManager.h"
@@ -38,6 +39,8 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/Texture.h"
 #include "Engine/Texture2D.h"
+#include "Ore/ore_context_rhi.hpp"
+#include "TextureRHIImpl.hpp"
 
 THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/rive_render_image.hpp"
@@ -591,133 +594,6 @@ void* RenderBufferRHIImpl::onMap()
 }
 
 void RenderBufferRHIImpl::onUnmap() { m_buffer.unmapAndSubmitBuffer(); }
-
-#if UE_VERSION_OLDER_THAN(5, 5, 0)
-class TextureRHIImpl : public Texture
-{
-public:
-    TextureRHIImpl(const FTextureRHIRef& Texture) :
-        Texture(Texture->GetSizeX(), Texture->GetSizeY()), m_texture(Texture)
-    {}
-
-    TextureRHIImpl(uint32_t width,
-                   uint32_t height,
-                   uint32_t mipLevelCount,
-                   const uint8_t* imageData,
-                   EPixelFormat PixelFormat = PF_B8G8R8A8) :
-        Texture(width, height)
-    {
-        FRHIAsyncCommandList commandList;
-        FRHICommandListScopedPipelineGuard Guard(*commandList);
-
-        auto Desc =
-            FRHITextureCreateDesc::Create2D(TEXT("rive.PLSTextureRHIImpl_"),
-                                            m_width,
-                                            m_height,
-                                            PixelFormat)
-                .SetNumMips(1);
-
-        m_texture = CREATE_TEXTURE_ASYNC(commandList, Desc);
-        commandList->UpdateTexture2D(
-            m_texture,
-            0,
-            FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height),
-            m_width * 4,
-            imageData);
-    }
-
-    FRDGTextureRef asRDGTexture(FRDGBuilder& Builder) const
-    {
-        check(m_texture);
-        return Builder.RegisterExternalTexture(
-            CreateRenderTarget(m_texture, TEXT("rive.PLSTextureRHIImpl_")));
-    }
-
-    virtual ~TextureRHIImpl() override {}
-
-    FTextureRHIRef contents() const { return m_texture; }
-
-private:
-    FTextureRHIRef m_texture;
-};
-#else // UE VERSION > 5_5:
-// FRHIAsyncCommandList was removed in 5.5 we should probably defer load these
-// instead but this works for now
-class TextureRHIImpl : public Texture
-{
-public:
-    TextureRHIImpl(const FTextureRHIRef& InTexture) :
-        Texture(InTexture->GetSizeX(), InTexture->GetSizeY()),
-        m_texture(InTexture)
-    {}
-
-    TextureRHIImpl(const FRDGTextureRef& InTexture) :
-        Texture(InTexture->Desc.GetSize().X, InTexture->Desc.GetSize().Y),
-        m_RDGTexture(InTexture)
-    {}
-
-    // Variants for data binding render targets.
-    TextureRHIImpl(UTextureRenderTarget2D* InTexture) :
-        Texture(InTexture->SizeX, InTexture->SizeY), m_UTexture(InTexture)
-    {}
-
-    // Variant for data binding utextures
-    TextureRHIImpl(UTexture2D* InTexture) :
-        Texture(InTexture->GetSizeX(), InTexture->GetSizeY()),
-        m_UTexture(InTexture)
-    {}
-
-    TextureRHIImpl(uint32_t width,
-                   uint32_t height,
-                   uint32_t mipLevelCount,
-                   const uint8_t* imageData,
-                   EPixelFormat PixelFormat = PF_B8G8R8A8) :
-        Texture(width, height)
-    {
-        FRHICommandList& RHICmdList = GRHICommandList.GetImmediateCommandList();
-        FRHICommandListScopedPipelineGuard Guard(RHICmdList);
-
-        auto Desc =
-            FRHITextureCreateDesc::Create2D(TEXT("rive.PLSTextureRHIImpl_"),
-                                            m_width,
-                                            m_height,
-                                            PixelFormat)
-                .SetNumMips(1);
-
-        m_texture = CREATE_TEXTURE_ASYNC(RHICmdList, Desc);
-        RHICmdList.UpdateTexture2D(
-            m_texture,
-            0,
-            FUpdateTextureRegion2D(0, 0, 0, 0, m_width, m_height),
-            m_width * 4,
-            imageData);
-    }
-
-    FRDGTextureRef asRDGTexture(FRDGBuilder& Builder) const
-    {
-        return m_RDGTexture
-                   ? m_RDGTexture
-                   : Builder.RegisterExternalTexture(
-                         CreateRenderTarget(contents(),
-                                            TEXT("rive.PLSTextureRHIImpl_")));
-    }
-
-    virtual ~TextureRHIImpl() override {}
-
-    FTextureRHIRef contents() const
-    {
-        return m_UTexture.IsValid()
-                   ? FTextureRHIRef(
-                         m_UTexture->GetResource()->GetTexture2DRHI())
-                   : m_texture;
-    }
-
-private:
-    FRDGTextureRef m_RDGTexture = nullptr;
-    FTextureRHIRef m_texture = nullptr;
-    TStrongObjectPtr<UTexture> m_UTexture;
-};
-#endif
 
 FString RHICapabilities::AsString() const
 {
@@ -1397,6 +1273,50 @@ rcp<Texture> RenderContextRHIImpl::platformDecodeImageTexture(
                             1,
                             rive::GPUTextureFormat::rgba32,
                             bitmap->bytes());
+}
+
+rive::rcp<rive::gpu::RenderCanvas> RenderContextRHIImpl::makeRenderCanvas(
+    uint32_t width,
+    uint32_t height)
+{
+    check(IsInRenderingThread());
+    auto& RHICmdList = GRHICommandList.GetImmediateCommandList();
+    // On some RHIs the native MSAA color resolve writes into this canvas only
+    // if it was created ResolveTargetable. D3D12, by contrast, makes
+    // RenderTargetable and ResolveTargetable mutually exclusive and asserts if
+    // both are set (D3D12Texture.cpp) and on D3D/Metal the RenderTargetable
+    // canvas already works as an auto-resolve dest. So add ResolveTargetable
+    // only where the RHI requires it; everywhere else the canvas is rendered
+    // into directly (UE auto-resolve dest on D3D/Metal, our manual resolve pass
+    // on Vulkan, or single-sample content). See OrePlatformRHI.h.
+    const ETextureCreateFlags CanvasResolveFlag =
+        GRHIOreNeedsResolveTargetFlag ? ETextureCreateFlags::ResolveTargetable
+                                      : ETextureCreateFlags::None;
+    auto RHITexture = RHICmdList.CreateTexture(
+        FRHITextureCreateDesc::Create2D(TEXT("Rive::Canvas"),
+                                        width,
+                                        height,
+                                        EPixelFormat::PF_R8G8B8A8)
+            .SetClearValue(FClearValueBinding(FLinearColor::Transparent))
+            .AddFlags(ETextureCreateFlags::RenderTargetable)
+            .AddFlags(CanvasResolveFlag)
+            .AddFlags(ETextureCreateFlags::UAV)
+            // The canvas is wrapped (wrapCanvasTexture) and sampled by Ore
+            // shaders. On Vulkan, sampling requires VK_IMAGE_USAGE_SAMPLED_BIT
+            // (ShaderResource). Without it, the SRV is invalid and the
+            // texture's usage set is also wrong, which skews UE's image memory
+            // sizing.
+            .AddFlags(ETextureCreateFlags::ShaderResource)
+            .SetNumSamples(1));
+    auto Image =
+        make_rcp<RiveRenderImage>(make_rcp<TextureRHIImpl>(RHITexture));
+    auto RenderTarget = makeRenderTarget(RHICmdList, RHITexture);
+    return make_rcp<RenderCanvas>(MoveTemp(Image), MoveTemp(RenderTarget));
+}
+
+std::unique_ptr<rive::ore::Context> RenderContextRHIImpl::makeOreContext()
+{
+    return OreContextRHI::make();
 }
 
 rive::rcp<rive::gpu::Texture> RenderContextRHIImpl::makeImageTexture(

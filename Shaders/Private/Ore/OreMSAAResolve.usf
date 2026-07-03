@@ -1,0 +1,35 @@
+// Copyright 2025 Rive
+//
+// Manual MSAA color resolve for the Ore backend on Vulkan. UE 5.9's Vulkan
+// dynamic-rendering auto-resolve derives the resolve view from the multisample
+// color target instead of the resolve target (engine bug), so the resolve
+// silently fails. Instead we render Ore to the MSAA target with no resolve
+// target, then run this pass: a fullscreen triangle that loads every sample of
+// the MSAA source and averages them into the single-sample resolve target.
+
+#include "/Engine/Public/Platform.ush"
+
+Texture2DMS<float4> OreResolveSource;
+
+void MainVS(uint VertexId : SV_VertexID, out float4 OutPosition : SV_POSITION)
+{
+    // Standard fullscreen triangle from the vertex id (no vertex buffer).
+    // Reads are by pixel coordinate, so UV orientation is irrelevant.
+    float2 UV = float2((VertexId << 1) & 2, VertexId & 2);
+    OutPosition = float4(UV * 2.0f - 1.0f, 0.0f, 1.0f);
+}
+
+void MainPS(float4 InPosition : SV_POSITION, out float4 OutColor : SV_Target0)
+{
+    int2 Coord = int2(InPosition.xy);
+
+    uint Width, Height, NumSamples;
+    OreResolveSource.GetDimensions(Width, Height, NumSamples);
+
+    float4 Sum = 0.0f;
+    for (uint s = 0; s < NumSamples; ++s)
+    {
+        Sum += OreResolveSource.Load(Coord, s);
+    }
+    OutColor = Sum / (float)NumSamples;
+}

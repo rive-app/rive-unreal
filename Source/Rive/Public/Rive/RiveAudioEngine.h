@@ -5,7 +5,10 @@
 #include "Components/SynthComponent.h"
 #include "CoreMinimal.h"
 #include "Sound/SoundWaveProcedural.h"
+THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/audio/audio_engine.hpp"
+THIRD_PARTY_INCLUDES_END
 #include "RiveAudioEngine.generated.h"
 
 namespace rive

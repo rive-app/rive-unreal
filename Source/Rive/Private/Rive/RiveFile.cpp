@@ -17,6 +17,12 @@
 #include "Rive/RiveUtils.h"
 #include "RiveRenderer.h"
 #include "RiveCommandBuilder.h"
+#include "Ore/RiveOrderShaderHandler.h"
+#include "RHIStrings.h"        // LegacyShaderPlatformToShaderFormat
+#include "RHIShaderPlatform.h" // GMaxRHIShaderPlatform
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/CustomVersion.h"
 #include "IRiveRendererModule.h"
 #include "ObjectEditorUtils.h"
 #include "rive/command_queue.hpp"
@@ -33,6 +39,9 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/animation/state_machine_input.hpp"
 #include "rive/renderer/render_context.hpp"
 #include "Rive/command_server.hpp"
+#include "rive/file.hpp"
+#include "rive/assets/file_asset.hpp"
+#include "rive/assets/shader_asset.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
@@ -228,11 +237,214 @@ void URiveFile::PostLoad()
 
 #endif
 
+    // Register precompiled Ore shaders (present only in cooked packages) before
+    // the .riv is processed, so makeShaderModule finds them with no compiler.
+    if (CookedOreShaderBytes.Num() > 0 && GRiveOreShaderHandler)
+    {
+        // The cooked block holds one module set per shader format (see
+        // BeginCacheForCookedPlatformData). Register only the set matching the
+        // RHI we're actually running on; the others belong to sibling formats
+        // the same package can also support (e.g. SM5 vs SM6).
+        const FName RunningFormat =
+            LegacyShaderPlatformToShaderFormat(GMaxRHIShaderPlatform);
+
+        FMemoryReader Reader(CookedOreShaderBytes);
+        int32 NumFormats = 0;
+        Reader << NumFormats;
+
+        bool bRegistered = false;
+        TArray<FString> CookedFormats;
+        for (int32 f = 0; f < NumFormats; ++f)
+        {
+            FString FormatName;
+            Reader << FormatName;
+            CookedFormats.Add(FormatName);
+            int32 NumModules = 0;
+            Reader << NumModules;
+
+            const bool bMatch = FName(*FormatName) == RunningFormat;
+            for (int32 i = 0; i < NumModules; ++i)
+            {
+                uint32 AssetId = 0;
+                FRiveOreShaderModuleData Data;
+                Reader << AssetId;
+                Reader << Data;
+                // Must read every module to keep the archive position valid,
+                // but only register the matching format's shaders.
+                if (bMatch)
+                {
+                    GRiveOreShaderHandler->registerCookedShaders(
+                        AssetId,
+                        MoveTemp(Data));
+                    bRegistered = true;
+                }
+            }
+        }
+
+        UE_LOG(LogRive,
+               Display,
+               TEXT("URiveFile '%s': Ore cooked shader formats [%s]; running "
+                    "format '%s'; matched=%s."),
+               *GetName(),
+               *FString::Join(CookedFormats, TEXT(", ")),
+               *RunningFormat.ToString(),
+               bRegistered ? TEXT("yes") : TEXT("NO"));
+
+        if (!bRegistered && NumFormats > 0)
+        {
+            UE_LOG(
+                LogRive,
+                Warning,
+                TEXT("URiveFile '%s': no cooked Ore shaders match the "
+                     "running shader format '%s' (cooked: [%s]); Ore content "
+                     "will not render. The cook didn't include this format — "
+                     "check the target's GetAllTargetedShaderFormats."),
+                *GetName(),
+                *RunningFormat.ToString(),
+                *FString::Join(CookedFormats, TEXT(", ")));
+        }
+    }
+
     if (!IsRunningCommandlet())
     {
         Initialize();
     }
 }
+
+// Asset format versioning for URiveFile. Required so new serialized data (e.g.
+// cooked Ore shaders) is only read from assets new enough to contain it —
+// otherwise loading a previously-saved asset reads past its stream and crashes.
+struct FRiveFileCustomVersion
+{
+    enum Type
+    {
+        BeforeCustomVersionWasAdded = 0,
+        // Cooked Ore shader bytecode block added to Serialize().
+        AddedCookedOreShaders,
+        // Add new versions above this line.
+        VersionPlusOne,
+        LatestVersion = VersionPlusOne - 1
+    };
+
+    static const FGuid GUID;
+
+private:
+    FRiveFileCustomVersion() {}
+};
+
+const FGuid FRiveFileCustomVersion::GUID(0x9E2C7A41,
+                                         0x5B6D4F38,
+                                         0xA1C09E2D,
+                                         0x7F3B6E14);
+static FCustomVersionRegistration GRegisterRiveFileCustomVersion(
+    FRiveFileCustomVersion::GUID,
+    FRiveFileCustomVersion::LatestVersion,
+    TEXT("RiveFileVer"));
+
+void URiveFile::Serialize(FArchive& Ar)
+{
+    Super::Serialize(Ar);
+
+    // Record the version on save; on load, read it back. Assets saved before
+    // this version simply don't have the block below (CustomVer returns -1).
+    Ar.UsingCustomVersion(FRiveFileCustomVersion::GUID);
+    if (Ar.CustomVer(FRiveFileCustomVersion::GUID) <
+        FRiveFileCustomVersion::AddedCookedOreShaders)
+    {
+        return;
+    }
+
+    // Precompiled Ore shaders live only in cooked packages. Standard pattern:
+    // write the IsCooking() flag so loads know whether the block follows.
+    bool bHasCookedOreShaders = Ar.IsCooking();
+    Ar << bHasCookedOreShaders;
+    if (bHasCookedOreShaders)
+    {
+        Ar << CookedOreShaderBytes;
+    }
+}
+
+#if WITH_EDITOR
+void URiveFile::BeginCacheForCookedPlatformData(
+    const ITargetPlatform* TargetPlatform)
+{
+    Super::BeginCacheForCookedPlatformData(TargetPlatform);
+
+    // The cooker may call this off the game thread (async caching); keep all
+    // the work below on the game thread.
+    if (!IsInGameThread())
+    {
+        return;
+    }
+
+    // Already cooked (e.g. cooking for multiple target platforms in one run).
+    if (!CookedOreShaderBytes.IsEmpty())
+    {
+        return;
+    }
+
+    if (RiveFileData.IsEmpty() || !GRiveOreShaderHandler)
+    {
+        return;
+    }
+
+    // Compile this file's Ore shaders for the target. The handler imports the
+    // .riv headlessly (no RHI needed) and compiles each shader asset with the
+    // editor shader compiler — which is available in the cook commandlet — so
+    // the package can build the RHI shaders from bytecode with no compiler.
+    TMap<FName, TMap<uint32, FRiveOreShaderModuleData>> ModulesByFormat;
+    if (!GRiveOreShaderHandler->compileFileShadersForCook(
+            RiveFileData.GetData(),
+            RiveFileData.Num(),
+            TargetPlatform,
+            ModulesByFormat))
+    {
+        // No Ore shaders in this file, or compilation failed (already logged).
+        return;
+    }
+
+    // Serialize, grouped by shader format so the runtime can pick the one
+    // matching its RHI:
+    //   [int32 formatCount]
+    //     { [FString formatName]
+    //       [int32 moduleCount]{ [uint32 assetId][FRiveOreShaderModuleData] } }
+    // Format names are written as FString (portable across the cook; FName
+    // index serialization isn't meaningful through a raw FMemoryWriter).
+    CookedOreShaderBytes.Reset();
+    FMemoryWriter Writer(CookedOreShaderBytes);
+    int32 NumFormats = ModulesByFormat.Num();
+    Writer << NumFormats;
+    int32 TotalModules = 0;
+    TArray<FString> FormatNames;
+    for (auto& FormatPair : ModulesByFormat)
+    {
+        FString FormatName = FormatPair.Key.ToString();
+        Writer << FormatName;
+        FormatNames.Add(FormatName);
+
+        TMap<uint32, FRiveOreShaderModuleData>& Modules = FormatPair.Value;
+        int32 NumModules = Modules.Num();
+        Writer << NumModules;
+        for (auto& Pair : Modules)
+        {
+            uint32 AssetId = Pair.Key;
+            Writer << AssetId;
+            Writer << Pair.Value;
+        }
+        TotalModules += NumModules;
+    }
+
+    UE_LOG(LogRive,
+           Display,
+           TEXT("URiveFile '%s': cooked %d Ore shader module(s) across %d "
+                "shader format(s) [%s] for target '%s'."),
+           *GetName(),
+           TotalModules,
+           NumFormats,
+           *FString::Join(FormatNames, TEXT(", ")),
+           *TargetPlatform->PlatformName());
+}
+#endif
 
 void URiveFile::Initialize()
 {
@@ -260,6 +472,23 @@ void URiveFile::Initialize(FRiveCommandBuilder& CommandBuilder)
                         RiveFileData.GetData(),
                         RiveFileData.Num() * sizeof(uint8_t));
     }
+
+#if WITH_EDITOR
+    // Register this file's Ore shaders before LoadFile. LoadFile can build the
+    // artboard's Ore pipelines (calling makeShaderModule) in the same
+    // render-thread pass, so the modules must already be in
+    // GRiveOreShaderHandler's map. compileFileShadersForEditor enqueues that
+    // registration as a render command; issuing it first keeps it ahead of
+    // LoadFile's commands (FIFO). Cooked packages register precompiled bytecode
+    // above instead, so this is skipped there.
+    if (!RiveNativeFileSpan.empty() && GRiveOreShaderHandler &&
+        CookedOreShaderBytes.IsEmpty())
+    {
+        GRiveOreShaderHandler->compileFileShadersForEditor(
+            RiveNativeFileSpan.data(),
+            static_cast<int32>(RiveNativeFileSpan.size()));
+    }
+#endif
 
 #if WITH_EDITORONLY_DATA
     if (bNeedsImport)
@@ -307,6 +536,13 @@ URiveArtboard* URiveFile::CreateArtboardNamed(FRiveCommandBuilder& builder,
                                               const FString& Name,
                                               bool inAutoBindViewModel)
 {
+    // UE does not guarantee our PostLoad runs before a referencing asset (e.g.
+    // a UMG widget's FRiveDescriptor) starts using us. ConditionalPostLoad
+    // forces it now if still pending, so Initialize has run — the native file
+    // handle is valid and its Ore shaders are registered — before we create an
+    // artboard from it.
+    ConditionalPostLoad();
+
     auto ArtboardDefinition = GetArtboardDefinition(Name);
     if (!ArtboardDefinition)
     {

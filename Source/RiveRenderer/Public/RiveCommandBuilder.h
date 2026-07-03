@@ -10,6 +10,7 @@ class Renderer;
 }
 
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/animation/state_machine_instance.hpp"
 #include "rive/command_queue.hpp"
 THIRD_PARTY_INCLUDES_END

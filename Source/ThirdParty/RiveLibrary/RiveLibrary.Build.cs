@@ -36,18 +36,12 @@ public class RiveLibrary : ModuleRules
     {
         Type = ModuleType.External;
         CppStandard = CppStandardVersion.Cpp20;
-		
-        PrivateDependencyModuleNames.Add("Vulkan");
-
-        AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
-
-        AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
-
+        
         string rootDir = ModuleDirectory;
         string includePath = Path.Combine(rootDir, "Includes");
 
         PublicSystemIncludePaths.Add(includePath);
-
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
         // NOTE: Incase if needed, otherwise feel free to remove it.
         // Unreal "Debug" configs don't set bDebugBuildsActuallyUseDebugCRT, so we never actually use the debug libs
         // https://dev.epicgames.com/documentation/en-us/unreal-engine/build-configuration-for-unreal-engine?application_version=5.1
@@ -59,12 +53,6 @@ public class RiveLibrary : ModuleRules
 
         if (Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
         {
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "DX9");
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
-            // AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
-
-            PublicSystemLibraries.Add("d3dcompiler.lib");
-            
             details.Add(new NativeLibraryDetails(".lib",libSuffix,"",Path.Combine(rootDir, "Libraries", "Win64")));
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
@@ -182,7 +170,13 @@ public class RiveLibrary : ModuleRules
             }
 		}
 
-        PublicDefinitions.Add("WITH_RIVE=1");
+		PublicDefinitions.Add("RIVE_UNREAL");
+		PublicDefinitions.Add("WITH_RIVE=1");
+		PublicDefinitions.Add("RIVE_CANVAS=1");
+		PublicDefinitions.Add("TRACK_RIVE_SHADER_ID");
+        PublicDefinitions.Add("RIVE_WITH_UNREAL=1");
+        PublicDefinitions.Add("ORE_BACKEND_RHI=1");
+        PublicDefinitions.Add("RIVE_ORE=1");
         PublicDefinitions.Add("WITH_RIVE_AUDIO=1");
         PublicDefinitions.Add("EXTERNAL_RIVE_AUDIO_ENGINE=1");
 

@@ -3,7 +3,7 @@
 #include "RiveRenderer.h"
 
 #include <rive/command_server.hpp>
-
+#include "Ore/RiveOrderShaderHandler.h"
 #include "RenderContextRHIImpl.hpp"
 #include "RiveRenderTargetRHI.h"
 #include "RHICommandList.h"
@@ -39,8 +39,9 @@ FRiveRenderer::FRiveRenderer() :
     ([this](FRHICommandListImmediate& RHICmdList) {
         CreateRenderContext(RHICmdList);
         check(RenderContext);
-        CommandServer =
-            MakeUnique<rive::CommandServer>(CommandQueue, RenderContext.get());
+        CommandServer = MakeUnique<rive::CommandServer>(CommandQueue,
+                                                        RenderContext.get(),
+                                                        GRiveOreShaderHandler);
         OnBeingFrameRenderThreadHandle = FCoreDelegates::OnBeginFrameRT.AddRaw(
             this,
             &FRiveRenderer::BeginFrameRenderThread);

@@ -5,6 +5,10 @@
 #include "RiveRenderer.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderer.h"
+#include "ShaderCore.h"
+#include "RHI.h" // RHIGetRuntimeBindlessConfiguration
+#include "Interfaces/IPluginManager.h"
+#include "Ore/OrePlatformRHI.h"
 #include "rive/command_queue.hpp"
 
 #define LOCTEXT_NAMESPACE "RiveRendererModule"
@@ -40,7 +44,21 @@ void FRiveRendererModule::StartupRiveRenderer()
         return;
     }
 
-    UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI."))
+    // When the running platform binds resources bindlessly (e.g. Metal's Shader
+    // Converter), the Ore shaders were cooked with UE's bindless rewrite, so
+    // their textures/SRVs/samplers must be bound through the bindless parameter
+    // setters at their reflected root-constant offsets rather than by register
+    // slot. ERHIBindlessConfiguration::All matches the cook-time condition
+    // (ShouldCompileWithBindlessEnabled) for our non-ray-tracing global
+    // shaders. See OrePlatformRHI.h and RiveOreShaderHandler's register-strip.
+    if (RHIGetRuntimeBindlessConfiguration(GMaxRHIShaderPlatform) ==
+        ERHIBindlessConfiguration::All)
+    {
+        GRHIOreNeedsReflectionSlotRemap = true;
+        GRHIOreNeedsBindlessParameters = true;
+    }
+
+    UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI."));
     RiveRenderer = MakeUnique<FRiveRenderer>();
 }
 

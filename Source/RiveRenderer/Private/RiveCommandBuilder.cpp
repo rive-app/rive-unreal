@@ -130,6 +130,7 @@ void FRiveCommandBuilder::DrawArtboard(const FDrawArtboardCommand& DrawCommand,
 
     Renderer->save();
     Renderer->align(Fit, Alignment, Frame, ArtboardInstance->bounds());
+    ArtboardInstance->drawCanvases();
     ArtboardInstance->draw(Renderer);
     Renderer->restore();
 }

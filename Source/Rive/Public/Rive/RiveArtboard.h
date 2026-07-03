@@ -6,7 +6,10 @@
 #include "RiveInternalTypes.h"
 #include "RiveTypes.h"
 #include "RiveStateMachine.h"
+THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/command_queue.hpp"
+THIRD_PARTY_INCLUDES_END
 #include "Input/Events.h"
 #include "Layout/Geometry.h"
 #include "Tickable.h"
@@ -19,6 +22,7 @@ class URiveFile;
 class URiveTextureObject;
 
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/file.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE

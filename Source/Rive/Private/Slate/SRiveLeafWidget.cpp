@@ -15,6 +15,7 @@
 #include "RiveRenderer.h"
 #include "RiveRenderTarget.h"
 #include "RiveTypeConversions.h"
+#include "Ore/ore_context_rhi.hpp"
 #include "TimerManager.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Logs/RiveLog.h"
@@ -241,6 +242,28 @@ public:
                 }
             }
         }
+        // New 3D ore drawing.
+        // The Ore canvas path is raw RHI (its own render target, separate from
+        // the artboard). Running it directly here would issue raw commands /
+        // transitions on the immediate command list while this function's
+        // FRDGBuilder is live, which desyncs RDG's resource-state tracking
+        // (e.g. the tessellation texture). Instead, run the whole synchronous
+        // drawCanvases() inside an untracked, never-culled, render-thread RDG
+        // pass: RDG brackets it (flushing its state before/after), and we hand
+        // the Ore context the command list RDG provides for the pass.
+        auto* OreContext =
+            static_cast<OreContextRHI*>(Context->getOreContext());
+        GraphBuilder.AddPass(
+            RDG_EVENT_NAME("RiveOreCanvases"),
+            ERDGPassFlags::NeverCull | ERDGPassFlags::NeverParallel,
+            [OreContext,
+             ArtboardInstance](FRHICommandListImmediate& RHICmdList) {
+                OreContext->setCurrentCommandList(&RHICmdList);
+                ArtboardInstance->drawCanvases();
+                OreContext->setCurrentCommandList(nullptr);
+            });
+
+        // Normal drawing. Must be done in this order !
         ArtboardInstance->draw(Renderer.Get());
         Renderer->restore();
 

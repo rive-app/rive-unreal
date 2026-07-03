@@ -13,6 +13,7 @@ struct FRiveCommandBuilder;
 #include "Layout/Geometry.h"
 
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/command_queue.hpp"
 #include "rive/event_report.hpp"
 THIRD_PARTY_INCLUDES_END

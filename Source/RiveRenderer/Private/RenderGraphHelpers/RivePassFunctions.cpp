@@ -16,6 +16,7 @@
 #endif
 
 #include "RiveShaderTypes.h"
+#include "PlatformRHI.h"
 
 using namespace rive::gpu;
 
@@ -326,13 +327,17 @@ FRDGPassRef AddTessellationPass(
          TesselationPassParameters](FRHICommandList& RHICmdList) {
             // Transition the tesselation texture since we are controlling its
             // state.
-            RHICmdList.Transition(
-                FRHITransitionInfo(TesselationPassParameters->RenderTargets[0]
-                                       .GetTexture()
-                                       ->GetRHI(),
-                                   ERHIAccess::Unknown,
-                                   ERHIAccess::RTV),
-                ERHITransitionCreateFlags::None);
+            if (GRiveRHINeedsExplicitVertexReadBarrier)
+            {
+                RHICmdList.Transition(
+                    FRHITransitionInfo(
+                        TesselationPassParameters->RenderTargets[0]
+                            .GetTexture()
+                            ->GetRHI(),
+                        ERHIAccess::Unknown,
+                        ERHIAccess::RTV),
+                    ERHITransitionCreateFlags::None);
+            }
             RHICmdList.BeginRenderPass(
                 GetRenderPassInfo(TesselationPassParameters),
                 TEXT("Rive_Tesselation_Update"));
@@ -392,12 +397,15 @@ FRDGPassRef AddTessellationPass(
             RHICmdList.EndRenderPass();
             // This is guaranteed not accessed from pixel shaders. So do
             // SRVGraphicsNonPixel as the final state.
-            RHICmdList.Transition(
-                FRHITransitionInfo(TesselationPassParameters->RenderTargets[0]
-                                       .GetTexture()
-                                       ->GetRHI(),
-                                   ERHIAccess::RTV,
-                                   ERHIAccess::SRVGraphicsNonPixel));
+            if (GRiveRHINeedsExplicitVertexReadBarrier)
+            {
+                RHICmdList.Transition(FRHITransitionInfo(
+                    TesselationPassParameters->RenderTargets[0]
+                        .GetTexture()
+                        ->GetRHI(),
+                    ERHIAccess::RTV,
+                    ERHIAccess::SRVGraphicsNonPixel));
+            }
         });
 }
 

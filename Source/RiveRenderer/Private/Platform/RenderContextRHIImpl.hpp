@@ -408,6 +408,15 @@ public:
     virtual rive::rcp<rive::gpu::Texture> platformDecodeImageTexture(
         rive::Span<const uint8_t> encodedBytes) override;
 
+    // Creates a RenderCanvas: a GPU texture usable as both a render target
+    // and a render image. Returns nullptr if not supported by this backend.
+    virtual rive::rcp<rive::gpu::RenderCanvas> makeRenderCanvas(
+        uint32_t width,
+        uint32_t height) override;
+
+    // If canvas is enabled then the backend Impl MUST implement this.
+    virtual std::unique_ptr<rive::ore::Context> makeOreContext() override;
+
     virtual rive::rcp<rive::gpu::Texture> makeImageTexture(
         uint32_t width,
         uint32_t height,

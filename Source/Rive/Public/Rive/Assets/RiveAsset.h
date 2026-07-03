@@ -8,6 +8,7 @@
 #if WITH_RIVE
 
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/assets/font_asset.hpp"
 #include "rive/assets/image_asset.hpp"
 THIRD_PARTY_INCLUDES_END

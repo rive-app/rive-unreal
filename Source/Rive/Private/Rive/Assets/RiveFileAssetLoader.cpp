@@ -102,8 +102,8 @@ URiveAsset* ReplaceAsset(UObject* Outer, URiveAsset* RiveAsset)
 
     FString Name = RiveAsset->GetName();
     const ERenameFlags PkgRenameFlags =
-        REN_ForceNoResetLoaders | REN_DoNotDirty | REN_DontCreateRedirectors |
-        REN_NonTransactional | REN_SkipGeneratedClasses;
+        REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional |
+        REN_SkipGeneratedClasses;
     RiveAsset->Rename(*FString::Printf(TEXT("%s_Old"), *Name),
                       Package,
                       PkgRenameFlags);

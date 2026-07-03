@@ -33,7 +33,7 @@ public class RiveRenderer : ModuleRules
 			{
 				"Core", "RiveLibrary",
 				"RiveShaders", 
-
+				"Projects"
 			}
 		);
 
@@ -52,6 +52,14 @@ public class RiveRenderer : ModuleRules
 				"RiveStats"
 			}
 		);
+
+		// Editor/cook-only: TargetPlatform provides the IShaderFormat used to
+		// compile Ore shaders to bytecode. It doesn't exist in a packaged game,
+		// where Ore shaders are loaded as precooked bytecode instead.
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("TargetPlatform");
+		}
 
 #if UE_5_0_OR_LATER
 		PublicDependencyModuleNames.Add("RHICore");

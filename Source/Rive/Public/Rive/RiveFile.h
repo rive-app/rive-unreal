@@ -3,16 +3,19 @@
 #pragma once
 
 #include <memory>
-#include "Assets/RiveAsset.h"
 #include "Blueprint/UserWidget.h"
 #include "CoreMinimal.h"
+THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/command_queue.hpp"
+THIRD_PARTY_INCLUDES_END
 #include "UObject/Object.h"
 
 #if WITH_RIVE
 
 enum class ETestEnum : uint8;
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/command_queue.hpp"
 THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
@@ -24,6 +27,7 @@ class URiveAsset;
 class URiveArtboard;
 class URiveViewModel;
 class UAssetImportData;
+class ITargetPlatform;
 struct FRiveCommandBuilder;
 
 static FName GViewModelInstanceBlankName = "--Blank--";
@@ -57,6 +61,14 @@ public:
 
     virtual void BeginDestroy() override;
     virtual void PostLoad() override;
+    virtual void Serialize(FArchive& Ar) override;
+#if WITH_EDITOR
+    // Compiles/gathers this file's Ore canvas shaders as bytecode at cook time
+    // so a packaged build (which has no shader compiler) can build the RHI
+    // shaders directly. See FRiveOreShaderHandler.
+    virtual void BeginCacheForCookedPlatformData(
+        const ITargetPlatform* TargetPlatform) override;
+#endif
     void Initialize();
     void Initialize(FRiveCommandBuilder&);
 
@@ -138,6 +150,13 @@ public:
 private:
     UPROPERTY()
     TArray<uint8> RiveFileData;
+
+    // Precompiled Ore canvas shaders for packaged builds, serialized only into
+    // cooked packages (see Serialize / BeginCacheForCookedPlatformData). Holds
+    // a serialized TMap<assetId, FRiveOreShaderModuleData>; decoded and
+    // registered with GRiveOreShaderHandler in PostLoad. Not a UPROPERTY —
+    // serialized by hand so the heavy shader types stay out of this header.
+    TArray<uint8> CookedOreShaderBytes;
 
     UPROPERTY(VisibleAnywhere, Category = "Rive|ViewModels")
     TMap<FName, FGeneratedClassEntry> GeneratedClassMap;

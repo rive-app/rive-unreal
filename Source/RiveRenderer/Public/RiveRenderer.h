@@ -15,6 +15,7 @@ class RenderTarget;
 }
 
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/refcnt.hpp"
 THIRD_PARTY_INCLUDES_END
 

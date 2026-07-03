@@ -4,6 +4,7 @@
 
 #include "RiveTypes.h"
 THIRD_PARTY_INCLUDES_START
+#undef PI
 #include "rive/layout.hpp"
 THIRD_PARTY_INCLUDES_END
 
