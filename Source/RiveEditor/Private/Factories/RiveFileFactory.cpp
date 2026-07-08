@@ -234,6 +234,12 @@ static UBlueprint* GenerateBlueprintForViewModel(
 
         for (auto PropertyDefinition : ViewModelDefinition.PropertyDefinitions)
         {
+            if (PropertyDefinition.Type == ERiveDataType::SymbolListIndex)
+            {
+                // Don't make a variable for list index.
+                continue;
+            }
+
             FName NewVariableName = FName(PropertyDefinition.Name);
             CDO->SetPropertyMapping(NewVariableName, PropertyDefinition.Name);
             FEdGraphPinType PinType = {};

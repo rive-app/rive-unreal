@@ -7,16 +7,50 @@
 #include "RiveRenderTarget.h"
 #include "RiveStats.h"
 #include "RiveTypeConversions.h"
+#include "Logs/RiveRendererLog.h"
 #include "Platform/RenderContextRHIImpl.hpp"
 #include "TextureResource.h"
 #include "Async/Async.h"
+
+#include <string>
 
 THIRD_PARTY_INCLUDES_START
 #undef PI
 #include "rive/artboard.hpp"
 #include "rive/command_server.hpp"
+#include "rive/logging_scripting_context.hpp"
 #include "rive/renderer.hpp"
 THIRD_PARTY_INCLUDES_END
+
+// Routes a single line of Rive script output to LogRiveScripting. Invoked on
+// the command server thread; UE_LOG is thread-safe. `Data` is valid only for
+// the duration of the call.
+static void RiveScriptingLogSink(rive::ScriptingLogLevel Level,
+                                 const char* Data,
+                                 size_t Length)
+{
+    const FUTF8ToTCHAR Conversion(Data, static_cast<int32>(Length));
+    const FString Message(Conversion.Length(), Conversion.Get());
+    switch (Level)
+    {
+        case rive::ScriptingLogLevel::error:
+            UE_LOG(LogRiveScripting, Error, TEXT("%s"), *Message);
+            break;
+        case rive::ScriptingLogLevel::warn:
+            UE_LOG(LogRiveScripting, Warning, TEXT("%s"), *Message);
+            break;
+        case rive::ScriptingLogLevel::info:
+        default:
+            UE_LOG(LogRiveScripting, Display, TEXT("%s"), *Message);
+            break;
+    }
+}
+
+rive::ScriptingContextFactory FRiveCommandBuilder::
+    MakeScriptingLogContextFactory()
+{
+    return rive::makeLoggingScriptingContextFactory(&RiveScriptingLogSink);
+}
 
 FRiveCommandBuilder::FRiveCommandBuilder(
     rive::rcp<rive::CommandQueue> CommandQueue) :
@@ -127,12 +161,22 @@ void FRiveCommandBuilder::DrawArtboard(const FDrawArtboardCommand& DrawCommand,
     const auto Alignment = RiveAlignementToAlignment(DrawCommand.Alignment);
     const auto Fit = RiveFitTypeToFit(DrawCommand.FitType);
     const auto Frame = AABBFromAlignmentBox(DrawCommand.AlignmentBox);
+    const auto Content = ArtboardInstance->bounds();
 
     Renderer->save();
-    Renderer->align(Fit, Alignment, Frame, ArtboardInstance->bounds());
+    Renderer->align(Fit, Alignment, Frame, Content);
     ArtboardInstance->drawCanvases();
     ArtboardInstance->draw(Renderer);
     Renderer->restore();
+    if (Fit == rive::Fit::layout)
+    {
+        ArtboardInstance->width(Frame.width());
+        ArtboardInstance->height(Frame.height());
+    }
+    else
+    {
+        ArtboardInstance->resetSize();
+    }
 }
 
 DECLARE_GPU_STAT_NAMED(RiveRenderTargetExecute,

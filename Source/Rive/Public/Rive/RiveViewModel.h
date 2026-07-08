@@ -44,7 +44,7 @@ class RIVE_API URiveViewModel : public UObject, public INotifyFieldValueChanged
     GENERATED_BODY()
 public:
     void Initialize(FRiveCommandBuilder&,
-                    const URiveFile* OwningFile,
+                    URiveFile* OwningFile,
                     const FViewModelDefinition& InViewModelDefinition,
                     const FString& InstanceName);
 
@@ -270,10 +270,10 @@ public:
         rive::CommandQueue::ViewModelInstanceData Data);
     void OnViewModelListSizeReceived(std::string Path, size_t ListSize);
 
-    FORCEINLINE void SetOwningArtboard(TWeakObjectPtr<URiveArtboard> Artboard)
-    {
-        OwningArtboard = MoveTemp(Artboard);
-    }
+    // Directly sets the view model that owns this view model. Every location
+    // that nests a view model should call this so that state machine unsettle
+    // requests can propagate up the ownership chain to the owning artboard.
+    void SetOwningViewModel(TWeakObjectPtr<URiveViewModel> ViewModel);
 
     FORCEINLINE void SetViewModelDefinition(
         const FViewModelDefinition& InViewModelDefinition)
@@ -290,15 +290,21 @@ public:
     void SetPropertyMapping(const FName& InName, const FString& InPropertyName);
 
     const FString* GetPropertyMapping(const FName& InName) const;
-
-protected:
     virtual void BeginDestroy() override;
 
+protected:
     void OnUpdatedField(UE::FieldNotification::FFieldId InFieldId);
 
     // This is used to unsettle the state machine when a property is updated.
+    // Only set for a root view model that is owned directly by an artboard.
     UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = Rive)
     TWeakObjectPtr<URiveArtboard> OwningArtboard;
+
+    // Set for nested view models to point at the view model that owns them.
+    // Used to walk up the ownership chain to the owning artboard when
+    // unsettling the state machine.
+    UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = Rive)
+    TWeakObjectPtr<URiveViewModel> OwningViewModel;
 
     // Set when the blueprint is generated
     UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = Rive)
@@ -333,6 +339,11 @@ private:
     // Used for triggers so that we don't accidentally call the delegate twice.
     TArray<FName> IgnoredTriggerCallbacks;
 
+    // Directly sets the artboard that owns this view model. This must only ever
+    // be called from URiveArtboard; every other location sets the owning view
+    // model instead.
+    void SetOwningArtboard(TWeakObjectPtr<URiveArtboard> Artboard);
+
     void UnsettleStateMachine(const TCHAR* Context) const;
 
     // Checked in SetTrigger to make sure we don't infinite recurse when a
@@ -346,6 +357,7 @@ private:
     TMap<FName, FString> PropertyNameMap;
 
     friend class URiveTriggerDelegate;
+    friend class URiveArtboard;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRiveTriggerSignature,

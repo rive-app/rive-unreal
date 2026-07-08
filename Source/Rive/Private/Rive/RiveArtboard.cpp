@@ -256,6 +256,7 @@ void URiveArtboard::SetupStateMachine(FRiveCommandBuilder& InCommandBuilder,
 
         StateMachine->BindViewModel(ViewModel);
         BoundViewModel = ViewModel;
+        ViewModel->SetOwningArtboard(this);
     }
 }
 

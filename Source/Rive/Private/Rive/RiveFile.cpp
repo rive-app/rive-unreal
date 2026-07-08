@@ -871,16 +871,6 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                         }
                     }
                     break;
-                    case ERiveDataType::SymbolListIndex:
-                    {
-                        UE_LOG(
-                            LogRive,
-                            Warning,
-                            TEXT(
-                                "Property of type SymbolListIndex is getting ignored !"));
-                        continue;
-                    }
-                    break;
                     case ERiveDataType::Boolean:
                     {
                         auto Prop = NativeViewModelInstance->propertyBoolean(
@@ -941,10 +931,12 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                         if (ensure(Prop))
                         {
                             DefaultValues.Add(
-                                {Property.Name, FString(Prop->name().c_str())});
+                                {Property.Name,
+                                 FString(Prop->artboardName().c_str())});
                         }
                     }
                     break;
+                    case ERiveDataType::SymbolListIndex:
                     case ERiveDataType::AssetImage:
                     case ERiveDataType::List:
                     default:
@@ -1043,7 +1035,7 @@ UClass* URiveFile::GetGeneratedClassForViewModel(
     return nullptr;
 }
 
-URiveViewModel* URiveFile::CreateViewModelByName(const URiveFile* InputFile,
+URiveViewModel* URiveFile::CreateViewModelByName(URiveFile* InputFile,
                                                  const FString& ViewModelName,
                                                  const FString& InstanceName)
 {
@@ -1122,7 +1114,7 @@ URiveViewModel* URiveFile::CreateViewModelByName(const URiveFile* InputFile,
 }
 
 URiveViewModel* URiveFile::CreateViewModelByArtboardName(
-    const URiveFile* InputFile,
+    URiveFile* InputFile,
     const FString& ArtboardName,
     const FString& InstanceName)
 {

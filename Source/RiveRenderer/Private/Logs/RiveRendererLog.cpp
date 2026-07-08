@@ -3,3 +3,4 @@
 #include "Logs/RiveRendererLog.h"
 
 DEFINE_LOG_CATEGORY(LogRiveRenderer);
+DEFINE_LOG_CATEGORY(LogRiveScripting);

@@ -179,6 +179,7 @@ public class RiveLibrary : ModuleRules
         PublicDefinitions.Add("RIVE_ORE=1");
         PublicDefinitions.Add("WITH_RIVE_AUDIO=1");
         PublicDefinitions.Add("EXTERNAL_RIVE_AUDIO_ENGINE=1");
+        PublicDefinitions.Add("WITH_RIVE_SCRIPTING=1");
 
         // If we are linking against GMs, define WITH_RIVE_TOOLS
         // This has to be done here because it affects FlushDescriptor

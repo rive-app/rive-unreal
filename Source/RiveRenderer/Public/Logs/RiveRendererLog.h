@@ -7,6 +7,10 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRiveRenderer, Display, All);
 
+// Output from Rive scripts (Lua) running on the command server. Routed here
+// from the runtime's ScriptingContext so it is visible in the Unreal log.
+DECLARE_LOG_CATEGORY_EXTERN(LogRiveScripting, Display, All);
+
 class FDebugLogger
 {
 private:

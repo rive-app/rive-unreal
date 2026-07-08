@@ -150,7 +150,7 @@ constexpr bool GetIsPropertyTypeWithDefault(ERiveDataType Type)
 
 void URiveViewModel::Initialize(
     FRiveCommandBuilder& Builder,
-    const URiveFile* OwningFile,
+    URiveFile* OwningFile,
     const FViewModelDefinition& InViewModelDefinition,
     const FString& InstanceName)
 {
@@ -358,6 +358,7 @@ void URiveViewModel::Initialize(
                                     OwningFile,
                                     ViewModelType,
                                     ViewModelInstanceName);
+                            NestedViewModel->SetOwningViewModel(this);
                             Prop->SetPropertyValue_InContainer(this,
                                                                NestedViewModel);
                             Builder.SetViewModelViewModel(
@@ -369,18 +370,27 @@ void URiveViewModel::Initialize(
                     break;
                     case ERiveDataType::Artboard:
                     {
-                        // Do nothing for this but it is a valid default. Maybe
-                        // we will do something with it later.
+                        auto NestedArtboard =
+                            OwningFile->CreateArtboardNamed(Builder,
+                                                            DefaultValue,
+                                                            false);
+                        SetArtboardValue(PropertyDefinition.Name,
+                                         NestedArtboard);
                     }
                     break;
                     case ERiveDataType::AssetImage:
                     case ERiveDataType::List:
+                    case ERiveDataType::None:
+                    case ERiveDataType::Trigger:
+                    case ERiveDataType::SymbolListIndex:
                         continue;
                 }
             }
 
-            // View model properties do not have subscriptions
-            if (PropertyDefinition.Type == ERiveDataType::ViewModel)
+            // These properties do not have subscriptions.
+            if (PropertyDefinition.Type == ERiveDataType::ViewModel ||
+                PropertyDefinition.Type == ERiveDataType::SymbolListIndex ||
+                PropertyDefinition.Type == ERiveDataType::AssetImage)
             {
                 continue;
             }
@@ -530,9 +540,15 @@ bool URiveViewModel::GetArtboardValue(const FString& PropertyName,
             return false;
         }
 
-        OutArtboard =
-            ObjectProperty->ContainerPtrToValuePtr<URiveArtboard>(this);
-        return true;
+        auto ValuePtr =
+            ObjectProperty->ContainerPtrToValuePtr<URiveArtboard*>(this);
+        if (ensureMsgf(
+                ValuePtr,
+                TEXT("URiveViewModel::GetArtboardValue Value Ptr is invalid")))
+        {
+            OutArtboard = *ValuePtr;
+            return true;
+        }
     }
     return false;
 }
@@ -549,9 +565,15 @@ bool URiveViewModel::GetViewModelValue(const FString& PropertyName,
             return false;
         }
 
-        OutViewModel =
-            ObjectProperty->ContainerPtrToValuePtr<URiveViewModel>(this);
-        return true;
+        auto ValuePtr =
+            ObjectProperty->ContainerPtrToValuePtr<URiveViewModel*>(this);
+        if (ensureMsgf(
+                ValuePtr,
+                TEXT("URiveViewModel::GetViewModelValue ValuePtr is invalid")))
+        {
+            OutViewModel = *ValuePtr;
+            return true;
+        }
     }
 
     return false;
@@ -764,7 +786,7 @@ bool URiveViewModel::SetViewModelValue(const FString& PropertyName,
             return false;
         }
 
-        InViewModel->SetOwningArtboard(OwningArtboard);
+        InViewModel->SetOwningViewModel(this);
         ObjectProperty->SetPropertyValue_InContainer(this, InViewModel);
         UnsettleStateMachine(TEXT("SetViewModelValue"));
         UE::FieldNotification::FFieldId Field =
@@ -783,7 +805,7 @@ bool URiveViewModel::AppendToList(const FString& ListName,
     if (!ContainsListsByName(ListName))
         return false;
 
-    Value->SetOwningArtboard(OwningArtboard);
+    Value->SetOwningViewModel(this);
 
     auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     check(RiveRenderer);
@@ -793,7 +815,6 @@ bool URiveViewModel::AppendToList(const FString& ListName,
                                 Value->NativeViewModelInstance);
     UpdateListWithViewModelData(ListName, Value, false);
     UnsettleStateMachine(TEXT("AppendToList"));
-    Value->OwningArtboard = OwningArtboard;
     return true;
 }
 
@@ -804,7 +825,7 @@ bool URiveViewModel::InsertToList(const FString& ListName,
     if (!ContainsListsByName(ListName))
         return false;
 
-    Value->SetOwningArtboard(OwningArtboard);
+    Value->SetOwningViewModel(this);
 
     auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     check(RiveRenderer);
@@ -814,7 +835,6 @@ bool URiveViewModel::InsertToList(const FString& ListName,
                                 Value->NativeViewModelInstance,
                                 Index);
     UpdateListWithViewModelData(ListName, Value, false);
-    Value->OwningArtboard = OwningArtboard;
 
     UnsettleStateMachine(TEXT("InsertToList"));
 
@@ -839,8 +859,6 @@ bool URiveViewModel::RemoveFromList(const FString& ListName,
     if (!ContainsListsByName(ListName))
         return false;
 
-    Value->SetOwningArtboard(nullptr);
-
     auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     check(RiveRenderer);
     auto& Builder = RiveRenderer->GetCommandBuilder();
@@ -848,7 +866,7 @@ bool URiveViewModel::RemoveFromList(const FString& ListName,
                                 ListName,
                                 Value->GetNativeHandle());
     UnsettleStateMachine(TEXT("RemoveFromList"));
-    Value->OwningArtboard.Reset();
+    Value->SetOwningViewModel(nullptr);
     UpdateListWithViewModelData(ListName, Value, true);
     return true;
 }
@@ -892,7 +910,7 @@ bool URiveViewModel::RemoveFromListAtIndex(const FString& ListName, int32 Index)
                                         ListPath,
                                         ViewModelToRemove,
                                         true);
-                                    ViewModelToRemove->SetOwningArtboard(
+                                    ViewModelToRemove->SetOwningViewModel(
                                         nullptr);
                                 }
                                 else
@@ -1201,12 +1219,12 @@ void URiveViewModel::OnViewModelDataReceived(
         case rive::DataType::viewModel:
         case rive::DataType::artboard:
         case rive::DataType::assetImage:
-        case rive::DataType::symbolListIndex:
             break;
         // Invalid values
         case rive::DataType::none:
         case rive::DataType::input:
         case rive::DataType::integer:
+        case rive::DataType::symbolListIndex:
             UE_LOG(
                 LogRive,
                 Error,
@@ -1275,6 +1293,22 @@ void URiveViewModel::OnViewModelListSizeReceived(std::string Path,
             }
         }
     }
+}
+
+void URiveViewModel::SetOwningArtboard(TWeakObjectPtr<URiveArtboard> Artboard)
+{
+    // Direct set only. Nested view models track their owner through
+    // OwningViewModel, so there is no need to recurse here. This must only ever
+    // be called from URiveArtboard.
+    OwningArtboard = Artboard;
+}
+
+void URiveViewModel::SetOwningViewModel(
+    TWeakObjectPtr<URiveViewModel> ViewModel)
+{
+    // Direct set only. UnsettleStateMachine walks up the ownership chain via
+    // OwningViewModel until it reaches the view model owned by the artboard.
+    OwningViewModel = ViewModel;
 }
 
 void URiveViewModel::ClearPropertyMappings() { PropertyNameMap.Empty(); }
@@ -1549,14 +1583,22 @@ void URiveViewModel::UpdateListWithViewModelData(const FString& ListPath,
 
 void URiveViewModel::UnsettleStateMachine(const TCHAR* Context) const
 {
-    if (auto StrongArtboard = OwningArtboard.Pin(); StrongArtboard.IsValid())
+    // Nested view models unsettle through their owning view model, walking up
+    // the ownership chain until a view model owned directly by an artboard is
+    // reached.
+    if (auto StrongViewModel = OwningViewModel.Pin(); StrongViewModel.IsValid())
+    {
+        StrongViewModel->UnsettleStateMachine(Context);
+    }
+    else if (auto StrongArtboard = OwningArtboard.Pin();
+             StrongArtboard.IsValid())
     {
         StrongArtboard->UnsettleStateMachine();
     }
     else
     {
         UE_LOG(LogRive,
-               Error,
+               Display,
                TEXT("Failed to unsettle view models artboard state machine %s"),
                Context);
     }

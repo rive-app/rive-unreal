@@ -225,7 +225,7 @@ public:
                 ArtboardInstance->height(RenderBoundsLocal.GetSize().Y /
                                          TotalScale);
             }
-            else
+            else if (PreviousFit == rive::Fit::layout)
             {
                 ArtboardInstance->resetSize();
             }
@@ -308,6 +308,7 @@ public:
 
     void SetFromDescriptor(const FRiveDescriptor& InRiveDescriptor)
     {
+        PreviousFit = Fit;
         Alignment = RiveAlignementToAlignment(InRiveDescriptor.Alignment);
         Fit = RiveFitTypeToFit(InRiveDescriptor.FitType);
         Scale = InRiveDescriptor.ScaleFactor;
@@ -331,7 +332,8 @@ private:
     TWeakObjectPtr<URiveArtboard> RiveArtboard;
     // Locally copy of descriptor so we can pass it to the renderer
     rive::Alignment Alignment;
-    rive::Fit Fit;
+    rive::Fit PreviousFit = rive::Fit::none;
+    rive::Fit Fit = rive::Fit::none;
     float Scale = 1;
     float DPIScale = 1;
     FSlateRect RenderBounds;

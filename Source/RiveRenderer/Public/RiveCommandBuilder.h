@@ -86,14 +86,26 @@ struct RIVERENDERER_API FRiveCommandBuilder
         rive::CommandQueue::FileListener* FileListener = nullptr,
         uint64_t* outRequestId = nullptr)
     {
+        uint64_t RequestId = 0;
         if (outRequestId)
         {
             *outRequestId = ++CurrentRequestId;
-            return CommandQueue->loadFile(MoveTemp(FileData),
-                                          FileListener,
-                                          *outRequestId);
+            RequestId = *outRequestId;
         }
-        return CommandQueue->loadFile(MoveTemp(FileData), FileListener);
+#ifdef WITH_RIVE_SCRIPTING
+        // Route the file's script (Lua) console/error output to
+        // LogRiveScripting so it is visible in the Unreal log.
+        rive::ScriptingContextFactory ScriptingFactory =
+            MakeScriptingLogContextFactory();
+        return CommandQueue->loadFile(MoveTemp(FileData),
+                                      FileListener,
+                                      RequestId,
+                                      MoveTemp(ScriptingFactory));
+#else
+        return CommandQueue->loadFile(MoveTemp(FileData),
+                                      FileListener,
+                                      RequestId);
+#endif
     }
 
     uint64_t DestroyFile(rive::FileHandle FileHandle)
@@ -705,6 +717,11 @@ private:
     static void DrawArtboard(const FDrawArtboardCommand& DrawCommand,
                              rive::CommandServer*,
                              rive::Renderer* Renderer);
+
+    // Builds the factory that creates a ScriptingContext routing a loaded
+    // file's Lua console/error output to LogRiveScripting. Empty when the
+    // runtime was built without scripting.
+    static rive::ScriptingContextFactory MakeScriptingLogContextFactory();
 
     rive::rcp<rive::CommandQueue> CommandQueue;
     // Array of commands that have been enqueued that are not draw commands i.e.

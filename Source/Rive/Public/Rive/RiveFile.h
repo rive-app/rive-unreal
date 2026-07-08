@@ -201,14 +201,14 @@ public:
     UClass* GetGeneratedClassForViewModel(const FName& ViewModelName) const;
     // Creates a ViewModel Given the ViewModel name and Instance name
     UFUNCTION(BlueprintCallable, Category = "Rive|File")
-    static URiveViewModel* CreateViewModelByName(const URiveFile* InputFile,
+    static URiveViewModel* CreateViewModelByName(URiveFile* InputFile,
                                                  const FString& ViewModelName,
                                                  const FString& InstanceName);
 
     // Creates a default view model for given artboard and isntance name
     UFUNCTION(BlueprintCallable, Category = "Rive|File")
     static URiveViewModel* CreateViewModelByArtboardName(
-        const URiveFile* InputFile,
+        URiveFile* InputFile,
         const FString& ArtboardName,
         const FString& InstanceName);
 

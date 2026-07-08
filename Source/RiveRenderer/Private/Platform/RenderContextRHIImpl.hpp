@@ -476,6 +476,8 @@ public:
 
     virtual void flush(const rive::gpu::FlushDescriptor&) override;
 
+    virtual void* makeCommandBuffer() override;
+
 private:
     DelayLoadedTexture m_gradientTexture;
     DelayLoadedTexture m_tesselationTexture;
@@ -524,4 +526,8 @@ private:
 #if WITH_EDITOR
     rive::gpu::PlatformFeatures m_originalPlatformFeatures;
 #endif
+
+    static FRDGBuilder* TestBuilder;
+
+    friend class UnrealTestingWindow;
 };

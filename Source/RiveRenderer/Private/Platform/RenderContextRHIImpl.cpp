@@ -883,6 +883,17 @@ rive::rcp<rive::RenderImage> RenderContextRHIImpl::MakeExternalRenderImage(
     return nullptr;
 }
 
+void* RenderContextRHIImpl::makeCommandBuffer()
+{
+    checkf(
+        TestBuilder,
+        TEXT(
+            "RenderContextRHIImpl::makeCommandBuffer called without TestBuilder set. Provide an external FRDGBuilder (externalCommandBuffer) or set RenderContextRHIImpl::TestBuilder before Lua Canvas:endFrame() is used."));
+    return TestBuilder;
+}
+
+FRDGBuilder* RenderContextRHIImpl::TestBuilder = nullptr;
+
 RenderContextRHIImpl::RenderContextRHIImpl(
     FRHICommandListImmediate& CommandListImmediate,
     const RHICapabilitiesOverrides& Overrides) :
@@ -1620,6 +1631,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
     FRDGBuilder& GraphBuilder = *GraphBuilderPtr;
     FRHICommandList& CommandList = GraphBuilder.RHICmdList;
+
     auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
     {
