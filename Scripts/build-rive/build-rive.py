@@ -37,6 +37,7 @@ parser.add_argument("-t", "--build_rive_tests", action='store_true',  default=Fa
 parser.add_argument("-r", "--raw_shaders", action='store_true', default=False, help="If set, --raw_shaders will be passed to the premake file for building")
 parser.add_argument("-n", "--no_build", action='store_true', default=False, help="If set, does not build the runtime, only generate shaders")
 parser.add_argument("-R", "--release_only", action='store_true', default=False, help="If set, does not build the debug runtime, only the release")
+parser.add_argument("-s", "--with_rive_test_signature", action='store_true', default=False, help="TESTING ONLY. Swaps the script verification public key for the one matching SampleSigningContext's sample keypair, so .riv files signed locally (RIVE_LOCAL_SIGNING=1 in the editor) will verify. NEVER use for a shipping build -- it accepts .riv files any attacker could produce.")
 
 class PlatformBuildTypes(Enum):
     Windows = 'Windows'
@@ -142,6 +143,10 @@ class CompilePass(object):
             command_args.append("\"--raw_shaders\"")
         if not args.disable_scripting:
             command_args.append("\"--with_rive_scripting\"")
+        if args.with_rive_test_signature:
+            # Testing only: accept .riv files signed with the sample keypair
+            # (editor exports with RIVE_LOCAL_SIGNING=1). See premake5_v2.lua.
+            command_args.append("\"--with_rive_test_signature\"")
 
         tools_version = self.get_tools_version()
         if tools_version is not None:
