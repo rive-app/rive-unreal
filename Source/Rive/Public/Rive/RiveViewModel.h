@@ -48,8 +48,26 @@ public:
                     const FViewModelDefinition& InViewModelDefinition,
                     const FString& InstanceName);
 
+    // Initialize this view model as a reference to a nested view model instance
+    // already bound to a property on the root view model, rather than creating
+    // a new instance. The referenced instance's data is owned and driven by the
+    // root view model.
+    void InitializeReferenced(FRiveCommandBuilder& Builder,
+                              URiveFile* OwningFile,
+                              const FViewModelDefinition& InViewModelDefinition,
+                              rive::ViewModelInstanceHandle RootViewModel,
+                              const FString& Path,
+                              const FString& InstanceName);
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     bool bIsGenerated = false;
+
+    // True when this view model wraps a reference to a nested view model
+    // instance bound to a property on the root view model (see
+    // InitializeReferenced), rather than being a newly created instance. Its
+    // data is owned and driven by the root view model.
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
+    bool bIsReferenced = false;
 
     // Getters for generated view model properties
     // These all use blueprint reflection to get the values. This means you must
@@ -311,6 +329,13 @@ protected:
     FViewModelDefinition ViewModelDefinition;
 
 private:
+    // Shared setup for both Initialize and InitializeReferenced: applies
+    // blueprint default values, subscribes to properties, and wires up nested
+    // view models/triggers. Assumes NativeViewModelInstance is already set.
+    void SetupGeneratedProperties(FRiveCommandBuilder& Builder,
+                                  URiveFile* OwningFile,
+                                  const FString& InstanceName);
+
     bool RemoveFieldValueChangedDelegate(
         FFieldNotificationId FieldId,
         const FFieldValueChangedDynamicDelegate& Delegate);

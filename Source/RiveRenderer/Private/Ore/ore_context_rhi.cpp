@@ -156,11 +156,13 @@ rive::rcp<rive::ore::Buffer> OreContextRHI::makeBuffer(
 
     if (desc.usage != rive::ore::BufferUsage::uniform)
     {
+        buffer->m_usageFlags = bd.Usage;
         buffer->m_buffer = CmdList.CreateBuffer(bd);
     }
 
-    // Seed the CPU shadow (uniform / upload usage) so ResolveUBO sees
-    // initial contents that never go through Buffer::update.
+    // Seed the CPU shadow (uniform / upload / index usage) so ResolveUBO and
+    // indexBufferWithStride see initial contents that never go through
+    // Buffer::update.
     if (desc.data != nullptr && !buffer->m_shadow.empty())
     {
         memcpy(buffer->m_shadow.data(), desc.data, desc.size);

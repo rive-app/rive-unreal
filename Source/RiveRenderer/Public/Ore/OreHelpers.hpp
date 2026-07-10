@@ -106,6 +106,32 @@ PixelFormatFromOreFormat(rive::ore::TextureFormat format)
         case TextureFormat::rgba32float:
             return PF_A32B32G32R32F;
 
+        case TextureFormat::rgba8snorm:
+            return PF_R8G8B8A8_SNORM;
+
+        case TextureFormat::rgb10a2unorm:
+            return PF_A2B10G10R10;
+
+        case TextureFormat::r11g11b10float:
+            return PF_FloatR11G11B10;
+
+        case TextureFormat::bc1unorm:
+            return PF_DXT1;
+        case TextureFormat::bc3unorm:
+            return PF_DXT5;
+        case TextureFormat::bc7unorm:
+            return PF_BC7;
+        case TextureFormat::etc2rgb8:
+            return PF_ETC2_RGB;
+        case TextureFormat::etc2rgba8:
+            return PF_ETC2_RGBA;
+        case TextureFormat::astc4x4:
+            return PF_ASTC_4x4;
+        case TextureFormat::astc6x6:
+            return PF_ASTC_6x6;
+        case TextureFormat::astc8x8:
+            return PF_ASTC_8x8;
+
         case TextureFormat::depth32floatStencil8:
         case TextureFormat::depth24plusStencil8:
             return PF_DepthStencil;

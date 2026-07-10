@@ -3,6 +3,7 @@
 #include "RiveRenderer.h"
 
 #include <rive/command_server.hpp>
+#include <rive/async/work_pool.hpp>
 #include "Ore/RiveOrderShaderHandler.h"
 #include "RenderContextRHIImpl.hpp"
 #include "RiveRenderTargetRHI.h"
@@ -96,6 +97,13 @@ void FRiveRenderer::BeginFrameRenderThread()
     DECLARE_SCOPE_CYCLE_COUNTER(TEXT("CommandServer->processCommands"),
                                 STAT_COMMANDSERVER_PROCESSCOMMANDS,
                                 STATGROUP_Rive);
+
+    // Deliver async work completions (script image decodes, etc.) before this
+    // frame's script advance callbacks run. Upstream this pump lives in
+    // Artboard::advance(), but StateMachineInstance::advanceAndApply which
+    // is how artboards advance here, via CommandQueue::advanceStateMachine
+    // calls advanceInternal() directly and skips it
+    rive::rive_pollAsyncWork();
 
     CommandServer->processCommands();
 }

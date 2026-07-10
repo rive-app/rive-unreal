@@ -205,6 +205,16 @@ public:
                                                  const FString& ViewModelName,
                                                  const FString& InstanceName);
 
+    // Creates a ViewModel of the given definition that references the
+    // nested view model instance already bound to Path on RootViewModel,
+    // instead of instantiating a new instance.
+    static URiveViewModel* CreateReferencedViewModelByName(
+        URiveFile* InputFile,
+        const FString& ViewModelName,
+        const FString& InstanceName,
+        rive::ViewModelInstanceHandle RootViewModel,
+        const FString& Path);
+
     // Creates a default view model for given artboard and isntance name
     UFUNCTION(BlueprintCallable, Category = "Rive|File")
     static URiveViewModel* CreateViewModelByArtboardName(
@@ -239,6 +249,11 @@ public:
         check(ViewModelDefinitions.Find(ViewModelDefinition) != INDEX_NONE);
         check(ViewModelInstanceEnums.Find(ViewModelDefinition.Name) != nullptr);
         return *ViewModelInstanceEnums.Find(ViewModelDefinition.Name);
+    }
+
+    UEnum* GetViewModelInstanceEnum(const FString& ViewModelName) const
+    {
+        return *ViewModelInstanceEnums.Find(ViewModelName);
     }
 
 #if WITH_EDITORONLY_DATA

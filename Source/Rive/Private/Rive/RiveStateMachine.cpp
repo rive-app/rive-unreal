@@ -14,6 +14,9 @@
 #include "Rive/RiveDescriptor.h"
 #include "Stats/RiveStats.h"
 #include "Rive/RiveUtils.h"
+#include "RenderingThread.h"
+
+#include <atomic>
 
 #if WITH_RIVE
 
@@ -193,6 +196,60 @@ bool FRiveStateMachine::PointerExit(const FRiveDescriptor& InDescriptor,
     return false;
 }
 
+// Runs a pointer event on the command server thread and blocks for its
+// HitResult. Queued via runOnce so it stays FIFO with pending commands
+// (moves, advances). The render command forces an early processCommands():
+// the per-frame drain in BeginFrameRT can't run while the game thread blocks
+// here. Timeout covers a suspended render thread (resize, teardown).
+static rive::HitResult SendPointerEventAndWait(
+    rive::StateMachineHandle Handle,
+    const rive::CommandQueue::PointerEvent& Event,
+    rive::HitResult (rive::CommandServer::*Send)(
+        rive::StateMachineHandle,
+        const rive::CommandQueue::PointerEvent&))
+{
+    FRiveRenderer* Renderer = IRiveRendererModule::Get().GetRenderer();
+    check(Renderer);
+
+    if (IsInRenderingThread())
+    {
+        return (Renderer->GetCommandServer()->*Send)(Handle, Event);
+    }
+
+    struct FPending
+    {
+        FEventRef Done;
+        std::atomic<rive::HitResult> Result{rive::HitResult::none};
+    };
+    // Shared so a timed-out wait can return while the callback still runs.
+    auto Pending = MakeShared<FPending>();
+
+    Renderer->GetCommandBuilder().RunOnceImmediate(
+        [Pending, Handle, Event, Send](rive::CommandServer* Server) {
+            Pending->Result = (Server->*Send)(Handle, Event);
+            Pending->Done->Trigger();
+        });
+
+    ENQUEUE_RENDER_COMMAND(RivePointerEventFlush)
+    ([Renderer](FRHICommandListImmediate&) {
+        if (auto* Server = Renderer->GetCommandServer())
+        {
+            Server->processCommands();
+        }
+    });
+
+    constexpr uint32 TimeoutMs = 100;
+    if (!Pending->Done->Wait(TimeoutMs))
+    {
+        UE_LOG(LogRive,
+               Warning,
+               TEXT("Pointer event timed out waiting on command server; "
+                    "treating as a miss"));
+        return rive::HitResult::none;
+    }
+    return Pending->Result;
+}
+
 bool FRiveStateMachine::PointerDown(const FGeometry& InGeometry,
                                     const FRiveDescriptor& InDescriptor,
                                     const FPointerEvent& InMouseEvent,
@@ -215,10 +272,7 @@ bool FRiveStateMachine::PointerDown(const FGeometry& InGeometry,
         ScreenBounds *= DPI;
     }
 
-    FRiveRenderer* Renderer = IRiveRendererModule::Get().GetRenderer();
-    check(Renderer);
-    auto CommandServer = Renderer->GetCommandServerUnsafe();
-    return CommandServer->pointerDownSynchronized(
+    return SendPointerEventAndWait(
                NativeStateMachineHandle,
                {.fit = RiveFitTypeToFit(InDescriptor.FitType),
                 .alignment = RiveAlignementToAlignment(InDescriptor.Alignment),
@@ -226,7 +280,9 @@ bool FRiveStateMachine::PointerDown(const FGeometry& InGeometry,
                                  static_cast<float>(ScreenBounds.Y)},
                 .position = {static_cast<float>(Position.X),
                              static_cast<float>(Position.Y)},
-                .scaleFactor = ScaleFactor}) != rive::HitResult::none;
+                .scaleFactor = ScaleFactor},
+               &rive::CommandServer::pointerDownSynchronized) !=
+           rive::HitResult::none;
 }
 
 bool FRiveStateMachine::PointerMove(const FGeometry& InGeometry,
@@ -293,10 +349,7 @@ bool FRiveStateMachine::PointerUp(const FGeometry& InGeometry,
         ScreenBounds *= DPI;
     }
 
-    FRiveRenderer* Renderer = IRiveRendererModule::Get().GetRenderer();
-    check(Renderer);
-    auto CommandServer = Renderer->GetCommandServerUnsafe();
-    return CommandServer->pointerUpSynchronized(
+    return SendPointerEventAndWait(
                NativeStateMachineHandle,
                {.fit = RiveFitTypeToFit(InDescriptor.FitType),
                 .alignment = RiveAlignementToAlignment(InDescriptor.Alignment),
@@ -304,7 +357,9 @@ bool FRiveStateMachine::PointerUp(const FGeometry& InGeometry,
                                  static_cast<float>(ScreenBounds.Y)},
                 .position = {static_cast<float>(Position.X),
                              static_cast<float>(Position.Y)},
-                .scaleFactor = ScaleFactor}) != rive::HitResult::none;
+                .scaleFactor = ScaleFactor},
+               &rive::CommandServer::pointerUpSynchronized) !=
+           rive::HitResult::none;
 }
 
 bool FRiveStateMachine::PointerExit(const FGeometry& InGeometry,

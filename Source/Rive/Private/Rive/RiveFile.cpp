@@ -1113,6 +1113,81 @@ URiveViewModel* URiveFile::CreateViewModelByName(URiveFile* InputFile,
     return ViewModel;
 }
 
+URiveViewModel* URiveFile::CreateReferencedViewModelByName(
+    URiveFile* InputFile,
+    const FString& ViewModelName,
+    const FString& InstanceName,
+    rive::ViewModelInstanceHandle RootViewModel,
+    const FString& Path)
+{
+    if (!ensure(IsValid(InputFile)))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateReferencedViewModelByName Input File was "
+                    "invalid"));
+        return nullptr;
+    }
+
+    if (!ensure(!ViewModelName.IsEmpty()))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateReferencedViewModelByName Input "
+                    "ViewModelName was empty"));
+        return nullptr;
+    }
+
+    auto ViewModelDefinition = InputFile->ViewModelDefinitions.FindByPredicate(
+        [ViewModelName](const FViewModelDefinition& L) {
+            return L.Name == ViewModelName;
+        });
+
+    if (!ensure(ViewModelDefinition))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateReferencedViewModelByName Could not find "
+                    "viewmodel with name %s"),
+               *ViewModelName);
+        return nullptr;
+    }
+
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& Builder = RiveRenderer->GetCommandBuilder();
+
+    const auto SanitizedViewModelName = RiveUtils::SanitizeObjectName(
+        TEXT("Referenced_") + ViewModelName + TEXT("_") + InstanceName);
+    auto ViewModelClass =
+        InputFile->GetGeneratedClassForViewModel(*ViewModelName);
+    if (!ViewModelClass)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("Could not find generated class for %s"),
+               *ViewModelName);
+        return nullptr;
+    }
+
+    const auto ObjectName =
+        MakeUniqueObjectName(ViewModelClass->GetOuter(),
+                             ViewModelClass,
+                             *SanitizedViewModelName,
+                             EUniqueObjectNameOptions::UniversallyUnique);
+
+    URiveViewModel* ViewModel = NewObject<URiveViewModel>(InputFile->GetOuter(),
+                                                          ViewModelClass,
+                                                          ObjectName);
+    ViewModel->InitializeReferenced(Builder,
+                                    InputFile,
+                                    *ViewModelDefinition,
+                                    RootViewModel,
+                                    Path,
+                                    InstanceName);
+    return ViewModel;
+}
+
 URiveViewModel* URiveFile::CreateViewModelByArtboardName(
     URiveFile* InputFile,
     const FString& ArtboardName,

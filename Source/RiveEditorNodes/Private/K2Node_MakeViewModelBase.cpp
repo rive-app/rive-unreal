@@ -364,6 +364,58 @@ bool UK2Node_MakeViewModelBase::CheckForErrors(
         return true;
     }
 
+    const auto SelectedViewModel =
+        GetViewModelSourcePin()->GetDefaultAsString();
+
+    if (SelectedViewModel.IsEmpty())
+    {
+        CompilerContext.MessageLog.Error(
+            *FString::Printf(TEXT("Node %s requires a view model selection."),
+                             *GetName()),
+            this);
+        return true;
+    }
+
+    const auto SelectedViewModelInstace =
+        GetViewModelInstancePin()->GetDefaultAsString();
+
+    if (SelectedViewModelInstace.IsEmpty())
+    {
+        CompilerContext.MessageLog.Error(
+            *FString::Printf(
+                TEXT("Node %s requires a view model instance selection."),
+                *GetName()),
+            this);
+        return true;
+    }
+
+    const auto InstanceEnum =
+        RiveFile->GetViewModelInstanceEnum(SelectedViewModel);
+    if (!InstanceEnum)
+    {
+        CompilerContext.MessageLog.Error(
+            *FString::Printf(TEXT("Node %s has invalid view model selection."),
+                             *GetName()),
+            this);
+        return true;
+    }
+
+    const auto Value =
+        InstanceEnum->GetValueByNameString(SelectedViewModelInstace,
+                                           EGetByNameFlags::CaseSensitive);
+    if (Value == INDEX_NONE)
+    {
+        CompilerContext.MessageLog.Error(
+            *FString::Printf(
+                TEXT(
+                    "Node %s has view model instance %s is not available for view model %s."),
+                *GetName(),
+                *SelectedViewModelInstace,
+                *SelectedViewModel),
+            this);
+        return true;
+    }
+
     return false;
 }
 

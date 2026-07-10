@@ -258,6 +258,28 @@ struct RIVERENDERER_API FRiveCommandBuilder
             Listener);
     }
 
+    rive::ViewModelInstanceHandle RefViewModel(
+        rive::ViewModelInstanceHandle RootViewModel,
+        const FString& Path,
+        rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
+        uint64_t* outRequestId = nullptr)
+    {
+        FTCHARToUTF8 ConvertPath(*Path);
+        if (outRequestId)
+        {
+            *outRequestId = ++CurrentRequestId;
+            return CommandQueue->referenceNestedViewModelInstance(
+                RootViewModel,
+                ConvertPath.Get(),
+                Listener,
+                *outRequestId);
+        }
+
+        return CommandQueue->referenceNestedViewModelInstance(RootViewModel,
+                                                              ConvertPath.Get(),
+                                                              Listener);
+    }
+
     // Create a render image from a given UTexture. If the image already exists,
     // the callback is called instantly and -1 is passed as the request id.
     // Otherwise a value > 0 is returned and the callback happens later on the

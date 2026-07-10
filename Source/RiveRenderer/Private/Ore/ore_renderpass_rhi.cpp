@@ -11,7 +11,8 @@
 #include "RHIStaticStates.h"
 #include "GlobalShader.h"
 #include "ShaderParameterUtils.h"
-#include "CommonRenderResources.h"        // GEmptyVertexDeclaration
+#include "CommonRenderResources.h"              // GEmptyVertexDeclaration
+#include "Containers/DynamicRHIResourceArray.h" // TResourceArray
 #include "DataDrivenShaderPlatformInfo.h" // IsVulkanPlatform / GMaxRHIShaderPlatform
 #include "Logs/RiveRendererLog.h"
 #include "Ore/OreMSAAResolveShader.h"
@@ -483,11 +484,50 @@ static uint32 PrimCount(uint32 vertexCount, uint8 primType)
     }
 }
 
+static FRHIBuffer* GetIdentityIndexBuffer(FRHICommandList& RHICmdList,
+                                          uint32 NumIndices)
+{
+    check(IsInRenderingThread());
+    static FBufferRHIRef GIdentityIndexBuffer;
+    static uint32 GIdentityIndexCount = 0;
+    if (NumIndices > GIdentityIndexCount)
+    {
+        GIdentityIndexCount =
+            FMath::Max(FMath::RoundUpToPowerOfTwo(NumIndices), 2048u);
+        auto* Indices = new TResourceArray<uint32>();
+        Indices->AddUninitialized(GIdentityIndexCount);
+        for (uint32 i = 0; i < GIdentityIndexCount; ++i)
+        {
+            (*Indices)[i] = i;
+        }
+        FRHIBufferCreateDesc Desc = FRHIBufferCreateDesc::CreateIndex<uint32>(
+            TEXT("OreIdentityIndexBuffer"),
+            GIdentityIndexCount);
+        Desc.Usage |= EBufferUsageFlags::Static;
+        Desc.SetInitActionResourceArray(Indices);
+        Desc.DetermineInitialState();
+        GIdentityIndexBuffer = RHICmdList.CreateBuffer(Desc);
+    }
+    return GIdentityIndexBuffer;
+}
+
 void OreRenderPassRHI::draw(uint32_t vertexCount,
                             uint32_t instanceCount,
                             uint32_t firstVertex,
                             uint32_t firstInstance)
 {
+    if (firstInstance != 0)
+    {
+        RHICmdList.DrawIndexedPrimitive(
+            GetIdentityIndexBuffer(RHICmdList, vertexCount),
+            firstVertex, // baseVertex: identity indices start at 0
+            firstInstance,
+            vertexCount,
+            0, // firstIndex
+            GetPrimitiveCount(vertexCount),
+            instanceCount);
+        return;
+    }
     RHICmdList.DrawPrimitive(firstVertex,
                              GetPrimitiveCount(vertexCount),
                              instanceCount);
@@ -502,11 +542,18 @@ void OreRenderPassRHI::drawIndexed(uint32_t indexCount,
     check(m_indexBuffer);
     auto* rhi = lite_rtti_cast<OreBufferRHI*>(m_indexBuffer.get());
     check(rhi && rhi->m_buffer);
-    RHICmdList.DrawIndexedPrimitive(rhi->m_buffer,
+
+    const uint32 IndexSize = m_indexFormat == IndexFormat::uint32 ? 4u : 2u;
+    FRHIBuffer* IndexBufferRHI =
+        rhi->indexBufferWithStride(RHICmdList, IndexSize);
+    check(IndexBufferRHI);
+
+    check(m_indexOffset % IndexSize == 0);
+    RHICmdList.DrawIndexedPrimitive(IndexBufferRHI,
                                     baseVertex,
                                     firstInstance,
                                     indexCount,
-                                    firstIndex,
+                                    firstIndex + m_indexOffset / IndexSize,
                                     GetPrimitiveCount(indexCount),
                                     instanceCount);
 }

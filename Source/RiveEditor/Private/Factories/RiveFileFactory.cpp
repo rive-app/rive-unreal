@@ -396,6 +396,14 @@ static UBlueprint* GenerateBlueprintForViewModel(
                     FString::Format(TEXT("(Path=\"{0}\")"),
                                     {PropertyDefinition.Name});
             }
+            else if (PropertyDefinition.Type == ERiveDataType::Artboard)
+            {
+                VariableDescription.SetMetaData(
+                    FBlueprintMetadata::MD_Tooltip,
+                    TEXT(
+                        "This value can not be auto populated with defaults like the other values are."
+                        "If you need to manipulate a nested artboard create one manually and set it on this variable instead."));
+            }
             if (PropertyDefinition.Type != ERiveDataType::List)
             {
                 // Lists don't need to be field notifies.

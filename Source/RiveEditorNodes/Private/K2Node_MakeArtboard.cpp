@@ -288,6 +288,29 @@ bool UK2Node_MakeArtboard::CheckForErrors(
         return true;
     }
 
+    const auto& SelectedArtboard = GetArtboardSourcePin()->GetDefaultAsString();
+    if (SelectedArtboard.IsEmpty())
+    {
+        CompilerContext.MessageLog.Error(
+            *FString::Printf(TEXT("Node %s invalid selected artboard."),
+                             *GetName()),
+            this);
+        return true;
+    }
+
+    if (RiveFile->ArtboardEnum->GetValueByNameString(SelectedArtboard) ==
+        INDEX_NONE)
+    {
+        CompilerContext.MessageLog.Error(
+            *FString::Printf(
+                TEXT("Node %s selected artboard %s is not in file %s."),
+                *GetName(),
+                *SelectedArtboard,
+                *SelectedRiveFile->GetName()),
+            this);
+        return true;
+    }
+
     return false;
 }
 

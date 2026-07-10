@@ -198,6 +198,59 @@ void URiveViewModel::Initialize(
                                     new FRiveViewModelListener(this));
     }
 
+    SetupGeneratedProperties(Builder, OwningFile, InstanceName);
+}
+
+void URiveViewModel::InitializeReferenced(
+    FRiveCommandBuilder& Builder,
+    URiveFile* OwningFile,
+    const FViewModelDefinition& InViewModelDefinition,
+    rive::ViewModelInstanceHandle RootViewModel,
+    const FString& Path,
+    const FString& InstanceName)
+{
+    if (!IsValid(OwningFile))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveViewModel::InitializeReferenced Invalid Rive File"));
+        return;
+    }
+
+    if (InViewModelDefinition.Name.IsEmpty())
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveViewModel::InitializeReferenced Invalid "
+                    "ViewModelDefinition"));
+        return;
+    }
+
+    if (RootViewModel == RIVE_NULL_HANDLE)
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveViewModel::InitializeReferenced Invalid root view "
+                    "model"));
+        return;
+    }
+
+    ViewModelDefinition = InViewModelDefinition;
+    bIsReferenced = true;
+
+    NativeViewModelInstance =
+        Builder.RefViewModel(RootViewModel,
+                             Path,
+                             new FRiveViewModelListener(this));
+
+    SetupGeneratedProperties(Builder, OwningFile, InstanceName);
+}
+
+void URiveViewModel::SetupGeneratedProperties(FRiveCommandBuilder& Builder,
+                                              URiveFile* OwningFile,
+                                              const FString& InstanceName)
+{
+    const bool bIsBlankInstance = InstanceName == GViewModelInstanceBlankName;
     const FString ResolvedInstanceName =
         (InstanceName == GViewModelInstanceDefaultName || bIsBlankInstance)
             ? ViewModelDefinition.DefaultInstanceName
@@ -354,30 +407,23 @@ void URiveViewModel::Initialize(
                                     GViewModelInstanceBlankName.ToString();
 
                             TObjectPtr<URiveViewModel> NestedViewModel =
-                                URiveFile::CreateViewModelByName(
+                                URiveFile::CreateReferencedViewModelByName(
                                     OwningFile,
                                     ViewModelType,
-                                    ViewModelInstanceName);
-                            NestedViewModel->SetOwningViewModel(this);
-                            Prop->SetPropertyValue_InContainer(this,
-                                                               NestedViewModel);
-                            Builder.SetViewModelViewModel(
-                                NativeViewModelInstance,
-                                PropertyDefinition.Name,
-                                NestedViewModel->NativeViewModelInstance);
+                                    ViewModelInstanceName,
+                                    NativeViewModelInstance,
+                                    PropertyDefinition.Name);
+                            if (NestedViewModel)
+                            {
+                                NestedViewModel->SetOwningViewModel(this);
+                                Prop->SetPropertyValue_InContainer(
+                                    this,
+                                    NestedViewModel);
+                            }
                         }
                     }
                     break;
                     case ERiveDataType::Artboard:
-                    {
-                        auto NestedArtboard =
-                            OwningFile->CreateArtboardNamed(Builder,
-                                                            DefaultValue,
-                                                            false);
-                        SetArtboardValue(PropertyDefinition.Name,
-                                         NestedArtboard);
-                    }
-                    break;
                     case ERiveDataType::AssetImage:
                     case ERiveDataType::List:
                     case ERiveDataType::None:
@@ -390,7 +436,8 @@ void URiveViewModel::Initialize(
             // These properties do not have subscriptions.
             if (PropertyDefinition.Type == ERiveDataType::ViewModel ||
                 PropertyDefinition.Type == ERiveDataType::SymbolListIndex ||
-                PropertyDefinition.Type == ERiveDataType::AssetImage)
+                PropertyDefinition.Type == ERiveDataType::AssetImage ||
+                PropertyDefinition.Type == ERiveDataType::Artboard)
             {
                 continue;
             }
