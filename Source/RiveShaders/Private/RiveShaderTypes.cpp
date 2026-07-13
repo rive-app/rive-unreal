@@ -340,10 +340,8 @@ IMPLEMENT_STATIC_UNIFORM_BUFFER_SLOT(FlushUniformSlot);
 IMPLEMENT_STATIC_UNIFORM_BUFFER_STRUCT(FFlushUniforms,
                                        "uniforms",
                                        FlushUniformSlot);
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FImageDrawUniforms, "imageDrawUniforms");
 #else
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FFlushUniforms, GLSL_FlushUniforms);
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FImageDrawUniforms, GLSL_ImageDrawUniforms);
 #endif
 
 void BindStaticFlushUniforms(FRHICommandList& RHICmdList,

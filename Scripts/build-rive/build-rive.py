@@ -501,7 +501,6 @@ def remove_readonly(func, path, exc_info):
 def copy_includes(rive_runtime_path):
     print_green('Copying rive includes...')
     rive_constant_include_src = os.path.join(rive_runtime_path, "renderer", "src", "shaders", "constants.glsl")
-    rive_image_draw_uniforms_include_src = os.path.join(rive_runtime_path, "renderer", "src", "shaders", "image_draw_uniforms.glsl")
     rive_flush_uniforms_include_src = os.path.join(rive_runtime_path, "renderer", "src", "shaders", "flush_uniforms.glsl")
     rive_includes_path = os.path.join(rive_runtime_path, 'include')
     tests_includes_path = os.path.join(rive_runtime_path, 'tests')
@@ -518,7 +517,6 @@ def copy_includes(rive_runtime_path):
     common_target_path = os.path.join(target_path, 'common')
     shaders_target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes', "rive")
     rive_shader_source_target_path = os.path.join(script_directory, '..', '..', 'Shaders', 'Private', 'Rive')
-    rive_image_draw_uniforms_include_target_path = os.path.join(shaders_target_path, "shaders", "image_draw_uniforms.glsl")
     rive_flush_uniforms_include_target_path = os.path.join(shaders_target_path, "shaders", "flush_uniforms.glsl")
     rive_constants_include_target_path = os.path.join(shaders_target_path, "shaders", "constants.glsl")
     generated_shader_path = os.path.join(script_directory, '..', '..', 'Shaders', 'Private', 'Rive', 'Generated')
@@ -537,7 +535,6 @@ def copy_includes(rive_runtime_path):
     os.makedirs(os.path.dirname(goldens_target_path), exist_ok=True)
     os.makedirs(os.path.dirname(common_target_path), exist_ok=True)
     shutil.copyfile(rive_flush_uniforms_include_src, rive_flush_uniforms_include_target_path)
-    shutil.copyfile(rive_image_draw_uniforms_include_src, rive_image_draw_uniforms_include_target_path)
     shutil.copyfile(rive_constant_include_src, rive_constants_include_target_path)
 
     shutil.copytree(rive_includes_path, target_path, dirs_exist_ok=True)

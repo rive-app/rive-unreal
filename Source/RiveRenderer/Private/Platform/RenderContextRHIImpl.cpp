@@ -974,11 +974,59 @@ RenderContextRHIImpl::RenderContextRHIImpl(
         EVertexDeclarations::InteriorTriangles)] =
         PipelineStateCache::GetOrCreateVertexDeclaration(trianglesElementList);
 
+    // Appends gpu::ImageDrawInstance as a per-instance vertex stream: three
+    // float4 (locations 2,3,4) then four uint (locations 5,6,7,8), 64-byte
+    // stride. The trailing uint4 is split into four separate uint attributes
+    // because UE's RHI shader compiler mishandles a uint4 vertex attribute
+    // (see SPLIT_UINT4_ATTRIBUTES in the shaders).
+    auto addImageDrawInstanceAttribs = [](FVertexDeclarationElementList& list,
+                                          uint8 streamIndex) {
+        const uint16 stride = sizeof(ImageDrawInstance);
+        list.Add(FVertexElement(streamIndex, 0, VET_Float4, 2, stride, true));
+        list.Add(FVertexElement(streamIndex,
+                                4 * sizeof(uint32_t),
+                                VET_Float4,
+                                3,
+                                stride,
+                                true));
+        list.Add(FVertexElement(streamIndex,
+                                8 * sizeof(uint32_t),
+                                VET_Float4,
+                                4,
+                                stride,
+                                true));
+        list.Add(FVertexElement(streamIndex,
+                                12 * sizeof(uint32_t),
+                                VET_UInt,
+                                IMAGE_SPLIT_OPACITY_ATTRIB_IDX,
+                                stride,
+                                true));
+        list.Add(FVertexElement(streamIndex,
+                                13 * sizeof(uint32_t),
+                                VET_UInt,
+                                IMAGE_SPLIT_CLIP_ID_ATTRIB_IDX,
+                                stride,
+                                true));
+        list.Add(FVertexElement(streamIndex,
+                                14 * sizeof(uint32_t),
+                                VET_UInt,
+                                IMAGE_SPLIT_BLEND_MODE_ATTRIB_IDX,
+                                stride,
+                                true));
+        list.Add(FVertexElement(streamIndex,
+                                15 * sizeof(uint32_t),
+                                VET_UInt,
+                                IMAGE_SPLIT_ZINDEX_ATTRIB_IDX,
+                                stride,
+                                true));
+    };
+
     FVertexDeclarationElementList ImageMeshElementList;
     ImageMeshElementList.Add(
         FVertexElement(0, 0, VET_Float2, 0, sizeof(Vec2D), false));
     ImageMeshElementList.Add(
         FVertexElement(1, 0, VET_Float2, 1, sizeof(Vec2D), false));
+    addImageDrawInstanceAttribs(ImageMeshElementList, 2);
     VertexDeclarations[static_cast<int32>(EVertexDeclarations::ImageMesh)] =
         PipelineStateCache::GetOrCreateVertexDeclaration(ImageMeshElementList);
 
@@ -1025,6 +1073,7 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     FVertexDeclarationElementList ImageRectVertexElementList;
     ImageRectVertexElementList.Add(
         FVertexElement(0, 0, VET_Float4, 0, sizeof(ImageRectVertex), false));
+    addImageDrawInstanceAttribs(ImageRectVertexElementList, 1);
     auto ImageRectDecleration =
         PipelineStateCache::GetOrCreateVertexDeclaration(
             ImageRectVertexElementList);
@@ -1358,17 +1407,6 @@ void RenderContextRHIImpl::resizeFlushUniformBuffer(size_t sizeInBytes)
     }
 }
 
-void RenderContextRHIImpl::resizeImageDrawUniformBuffer(size_t sizeInBytes)
-{
-    m_imageDrawUniformBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_imageDrawUniformBuffer = std::make_unique<
-            UniformBufferRHIImpl<ImageDrawUniforms, FImageDrawUniforms>>(
-            sizeInBytes);
-    }
-}
-
 void RenderContextRHIImpl::resizePathBuffer(size_t sizeInBytes,
                                             StorageBufferStructure structure)
 {
@@ -1422,6 +1460,18 @@ void RenderContextRHIImpl::resizeTessVertexSpanBuffer(size_t sizeInBytes)
     }
 }
 
+void RenderContextRHIImpl::resizeImageDrawInstanceBuffer(size_t sizeInBytes)
+{
+    m_imageDrawInstanceBuffer.reset();
+    if (sizeInBytes != 0)
+    {
+        m_imageDrawInstanceBuffer =
+            std::make_unique<BufferRingRHIImpl>(EBufferUsageFlags::VertexBuffer,
+                                                sizeInBytes,
+                                                sizeof(ImageDrawInstance));
+    }
+}
+
 void RenderContextRHIImpl::resizeTriangleVertexBuffer(size_t sizeInBytes)
 {
     m_triangleBuffer.reset();
@@ -1437,11 +1487,6 @@ void RenderContextRHIImpl::resizeTriangleVertexBuffer(size_t sizeInBytes)
 void* RenderContextRHIImpl::mapFlushUniformBuffer(size_t mapSizeInBytes)
 {
     return m_flushUniformBuffer->mapBuffer(mapSizeInBytes);
-}
-
-void* RenderContextRHIImpl::mapImageDrawUniformBuffer(size_t mapSizeInBytes)
-{
-    return m_imageDrawUniformBuffer->mapBuffer(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapPathBuffer(size_t mapSizeInBytes)
@@ -1479,9 +1524,12 @@ void* RenderContextRHIImpl::mapTriangleVertexBuffer(size_t mapSizeInBytes)
     return m_triangleBuffer->mapBuffer(mapSizeInBytes);
 }
 
-void RenderContextRHIImpl::unmapFlushUniformBuffer(size_t mapSizeInBytes) {}
+void* RenderContextRHIImpl::mapImageDrawInstanceBuffer(size_t mapSizeInBytes)
+{
+    return m_imageDrawInstanceBuffer->mapBuffer(mapSizeInBytes);
+}
 
-void RenderContextRHIImpl::unmapImageDrawUniformBuffer(size_t mapSizeInBytes) {}
+void RenderContextRHIImpl::unmapFlushUniformBuffer(size_t mapSizeInBytes) {}
 
 void RenderContextRHIImpl::unmapPathBuffer(size_t mapSizeInBytes) {}
 
@@ -1504,6 +1552,11 @@ void RenderContextRHIImpl::unmapTessVertexSpanBuffer(size_t mapSizeInBytes)
 void RenderContextRHIImpl::unmapTriangleVertexBuffer(size_t mapSizeInBytes)
 {
     m_triangleBuffer->unmapAndSubmitBuffer();
+}
+
+void RenderContextRHIImpl::unmapImageDrawInstanceBuffer(size_t mapSizeInBytes)
+{
+    m_imageDrawInstanceBuffer->unmapAndSubmitBuffer();
 }
 
 rcp<RenderBuffer> RenderContextRHIImpl::makeRenderBuffer(
@@ -1784,16 +1837,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         auto flushUniforms =
             m_flushUniformBuffer->Sync(GraphBuilder,
                                        desc.flushUniformDataOffsetInBytes);
-
-#if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
-        // Apple platforms validate that a buffer is bound so always make one.
-        static FImageDrawUniforms StaticZeroBuffer = {};
-        auto imageDrawUniforms =
-            GraphBuilder.CreateUniformBuffer<FImageDrawUniforms>(
-                &StaticZeroBuffer);
-#else
-        TRDGUniformBufferRef<FImageDrawUniforms> imageDrawUniforms = nullptr;
-#endif
 
         auto placeholderTexture = GraphBuilder.RegisterExternalTexture(
             CreateRenderTarget(m_placeholderTexture, TEXT("RivePlaceholder")));
@@ -2189,8 +2232,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                          imageSamplers = m_imageSamplers,
                          NeedsForceUAVTypes,
                          NextRenderPass,
-                         imageDrawUniformBuffer =
-                             m_imageDrawUniformBuffer.get(),
+                         imageDrawInstanceBuffer =
+                             m_imageDrawInstanceBuffer.get(),
                          NeedsLinearColorOutput,
                          VertexDeclarations = VertexDeclarations,
                          patchVertexBuffer = m_patchVertexBuffer,
@@ -2378,16 +2421,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                         auto UVBufferRHI =
                                             UVBuffer->Sync(RHICmdList);
 
-                                        auto imageDrawUniforms =
-                                            PassParameters->VS
-                                                .ImageDrawUniforms =
-                                                imageDrawUniformBuffer->Sync(
-                                                    RHICmdList,
-                                                    batch->imageDrawDataOffset);
-
-                                        PassParameters->PS.ImageDrawUniforms =
-                                            imageDrawUniforms;
-
                                         CommonPassParameters
                                             .VertexDeclarationRHI =
                                             VertexDeclarations[static_cast<
@@ -2397,6 +2430,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                             VertexBufferRHI;
                                         CommonPassParameters.VertexBuffers[1] =
                                             UVBufferRHI;
+                                        CommonPassParameters.VertexBuffers[2] =
+                                            imageDrawInstanceBuffer->Sync(
+                                                RHICmdList);
                                         CommonPassParameters.IndexBuffer =
                                             IndexBufferRHI;
 
@@ -2699,7 +2735,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     {
                         check(paintSRV);
                         check(paintAuxSRV);
-                        check(m_imageDrawUniformBuffer);
+                        check(m_imageDrawInstanceBuffer);
 
                         LITE_RTTI_CAST_OR_BREAK(IndexBuffer,
                                                 const RenderBufferRHIImpl*,
@@ -2718,15 +2754,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         auto VertexBufferRHI = VertexBuffer->Sync(CommandList);
                         auto UVBufferRHI = UVBuffer->Sync(CommandList);
 
-                        imageDrawUniforms = m_imageDrawUniformBuffer->Sync(
-                            GraphBuilder,
-                            batch.imageDrawDataOffset);
-
-                        PassParameters->VS.ImageDrawUniforms =
-                            imageDrawUniforms;
-                        PassParameters->PS.ImageDrawUniforms =
-                            imageDrawUniforms;
-
                         PassParameters->PS.GLSL_imageTexture_raw =
                             imageTexture->asRDGTexture(GraphBuilder);
 
@@ -2736,6 +2763,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         CommonPassParameters->VertexBuffers[0] =
                             VertexBufferRHI;
                         CommonPassParameters->VertexBuffers[1] = UVBufferRHI;
+                        CommonPassParameters->VertexBuffers[2] =
+                            m_imageDrawInstanceBuffer->Sync(CommandList);
                         CommonPassParameters->IndexBuffer = IndexBufferRHI;
 
                         AddDrawRasterOrderImageMeshPass(
@@ -2744,7 +2773,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                             CommonPassParameters,
                             PassParameters);
                     }
-
+                    break;
                     case DrawType::imageRect:
                     case DrawType::renderPassInitialize:
                     case DrawType::renderPassResolve:
@@ -2950,20 +2979,11 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     {
                         check(paintSRV);
                         check(paintAuxSRV);
-                        check(m_imageDrawUniformBuffer);
+                        check(m_imageDrawInstanceBuffer);
                         check(desc.interlockMode == InterlockMode::atomics);
 
                         auto imageTexture = static_cast<const TextureRHIImpl*>(
                             batch.imageTexture);
-
-                        imageDrawUniforms = m_imageDrawUniformBuffer->Sync(
-                            GraphBuilder,
-                            batch.imageDrawDataOffset);
-
-                        PassParameters->VS.ImageDrawUniforms =
-                            imageDrawUniforms;
-                        PassParameters->PS.ImageDrawUniforms =
-                            imageDrawUniforms;
 
                         PassParameters->PS.GLSL_imageTexture_raw =
                             imageTexture->asRDGTexture(GraphBuilder);
@@ -2973,6 +2993,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                 EVertexDeclarations::ImageRect)];
                         CommonPassParameters->VertexBuffers[0] =
                             m_imageRectVertexBuffer;
+                        CommonPassParameters->VertexBuffers[1] =
+                            m_imageDrawInstanceBuffer->Sync(CommandList);
                         CommonPassParameters->IndexBuffer =
                             m_imageRectIndexBuffer;
 
@@ -2985,7 +3007,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     {
                         check(paintSRV);
                         check(paintAuxSRV);
-                        check(m_imageDrawUniformBuffer);
+                        check(m_imageDrawInstanceBuffer);
 
                         LITE_RTTI_CAST_OR_BREAK(IndexBuffer,
                                                 const RenderBufferRHIImpl*,
@@ -3004,15 +3026,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         auto VertexBufferRHI = VertexBuffer->Sync(CommandList);
                         auto UVBufferRHI = UVBuffer->Sync(CommandList);
 
-                        imageDrawUniforms = m_imageDrawUniformBuffer->Sync(
-                            GraphBuilder,
-                            batch.imageDrawDataOffset);
-
-                        PassParameters->VS.ImageDrawUniforms =
-                            imageDrawUniforms;
-                        PassParameters->PS.ImageDrawUniforms =
-                            imageDrawUniforms;
-
                         PassParameters->PS.GLSL_imageTexture_raw =
                             imageTexture->asRDGTexture(GraphBuilder);
 
@@ -3022,6 +3035,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         CommonPassParameters->VertexBuffers[0] =
                             VertexBufferRHI;
                         CommonPassParameters->VertexBuffers[1] = UVBufferRHI;
+                        CommonPassParameters->VertexBuffers[2] =
+                            m_imageDrawInstanceBuffer->Sync(CommandList);
                         CommonPassParameters->IndexBuffer = IndexBufferRHI;
 
                         AddDrawImageMeshPass(GraphBuilder,

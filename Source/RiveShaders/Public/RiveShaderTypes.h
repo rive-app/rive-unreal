@@ -127,10 +127,8 @@ typedef TShaderPermutationDomain<FEnableClip,
 #define UNIFORM_BLOCK_END(NAME) END_UNIFORM_BUFFER_STRUCT();
 
 #define FLUSH_UNIFORMS_NAME FFlushUniforms
-#define DRAW_IMAGE_UNIFORMS_NAME FImageDrawUniforms
 
 #include "rive/shaders/flush_uniforms.glsl"
-#include "rive/shaders/image_draw_uniforms.glsl"
 
 RIVESHADERS_API void BindStaticFlushUniforms(FRHICommandList&,
                                              FUniformBufferRHIRef);
@@ -141,7 +139,6 @@ BEGIN_SHADER_PARAMETER_STRUCT(FRivePixelDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
-SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
 
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_atlasTexture_raw)
@@ -170,7 +167,6 @@ BEGIN_SHADER_PARAMETER_STRUCT(FRivePixelDrawUniformsAtomicBuffers,
 #if !UE_VERSION_OLDER_THAN(5, 5, 0)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
-SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
 
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_atlasTexture_raw)
@@ -201,7 +197,6 @@ BEGIN_SHADER_PARAMETER_STRUCT(FRiveVertexDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0) && !RIVE_FORCE_USE_GENERATED_UNIFORMS
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
-SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FImageDrawUniforms, ImageDrawUniforms)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
@@ -217,7 +212,6 @@ BEGIN_SHADER_PARAMETER_STRUCT(FRiveMSAAPixelDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0) && !RIVE_FORCE_USE_GENERATED_UNIFORMS
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
-SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
 
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_atlasTexture_raw)
@@ -239,7 +233,6 @@ BEGIN_SHADER_PARAMETER_STRUCT(FRiveMSAAVertexDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
-SHADER_PARAMETER_STRUCT_REF(FImageDrawUniforms, ImageDrawUniforms)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)

@@ -166,31 +166,6 @@ public:
         m_data.SetNumUninitialized(InSizeInBytes / m_cpuStride);
     }
 
-    FORCENOINLINE TUniformBufferRef<GPUUniformBufferType> Sync(
-        FRHICommandList& RHICmdList,
-        size_t offset)
-    {
-        // there should be no remander
-        check(offset % m_cpuStride == 0);
-        FImageDrawUniforms Uniforms;
-        memcpy(&Uniforms, &m_data[offset / m_cpuStride], m_gpuStride);
-        if (!m_uniformBufferRHIRef)
-        {
-            // Lazy create this because we only ever want to use it for msaa.
-            m_uniformBufferRHIRef = TUniformBufferRef<GPUUniformBufferType>::
-                CreateUniformBufferImmediate(
-                    Uniforms,
-                    EUniformBufferUsage::UniformBuffer_SingleDraw);
-        }
-        else
-        {
-            m_uniformBufferRHIRef.UpdateUniformBufferImmediate(RHICmdList,
-                                                               Uniforms);
-        }
-
-        return m_uniformBufferRHIRef;
-    }
-
     FORCENOINLINE TRDGUniformBufferRef<GPUUniformBufferType> Sync(
         FRDGBuilder& Builder,
         size_t offset)
@@ -214,9 +189,6 @@ public:
 
 private:
     size_t m_sizeInBytes;
-    // Used for msaa mode where we bypass rdg per draw, so this is used for
-    // image uniforms
-    TUniformBufferRef<GPUUniformBufferType> m_uniformBufferRHIRef;
     TResourceArray<CPUUniformBufferType> m_data;
     static constexpr size_t m_cpuStride = sizeof(CPUUniformBufferType);
     static constexpr size_t m_gpuStride = sizeof(GPUUniformBufferType);
@@ -429,7 +401,6 @@ public:
         bool generateRemainingMips = false) override;
 
     virtual void resizeFlushUniformBuffer(size_t sizeInBytes) override;
-    virtual void resizeImageDrawUniformBuffer(size_t sizeInBytes) override;
     virtual void resizePathBuffer(size_t sizeInBytes,
                                   rive::gpu::StorageBufferStructure) override;
     virtual void resizePaintBuffer(size_t sizeInBytes,
@@ -443,9 +414,9 @@ public:
     virtual void resizeGradSpanBuffer(size_t sizeInBytes) override;
     virtual void resizeTessVertexSpanBuffer(size_t sizeInBytes) override;
     virtual void resizeTriangleVertexBuffer(size_t sizeInBytes) override;
+    virtual void resizeImageDrawInstanceBuffer(size_t sizeInBytes) override;
 
     virtual void* mapFlushUniformBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapImageDrawUniformBuffer(size_t mapSizeInBytes) override;
     virtual void* mapPathBuffer(size_t mapSizeInBytes) override;
     virtual void* mapPaintBuffer(size_t mapSizeInBytes) override;
     virtual void* mapPaintAuxBuffer(size_t mapSizeInBytes) override;
@@ -453,9 +424,9 @@ public:
     virtual void* mapGradSpanBuffer(size_t mapSizeInBytes) override;
     virtual void* mapTessVertexSpanBuffer(size_t mapSizeInBytes) override;
     virtual void* mapTriangleVertexBuffer(size_t mapSizeInBytes) override;
+    virtual void* mapImageDrawInstanceBuffer(size_t mapSizeInBytes) override;
 
     virtual void unmapFlushUniformBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapImageDrawUniformBuffer(size_t unmapSizeInBytes) override;
     virtual void unmapPathBuffer(size_t unmapSizeInBytes) override;
     virtual void unmapPaintBuffer(size_t unmapSizeInBytes) override;
     virtual void unmapPaintAuxBuffer(size_t unmapSizeInBytes) override;
@@ -463,6 +434,7 @@ public:
     virtual void unmapGradSpanBuffer(size_t unmapSizeInBytes) override;
     virtual void unmapTessVertexSpanBuffer(size_t unmapSizeInBytes) override;
     virtual void unmapTriangleVertexBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapImageDrawInstanceBuffer(size_t unmapSizeInBytes) override;
 
     virtual rive::rcp<rive::RenderBuffer> makeRenderBuffer(
         rive::RenderBufferType,
@@ -508,9 +480,6 @@ private:
     std::unique_ptr<
         UniformBufferRHIImpl<rive::gpu::FlushUniforms, FFlushUniforms>>
         m_flushUniformBuffer;
-    std::unique_ptr<
-        UniformBufferRHIImpl<rive::gpu::ImageDrawUniforms, FImageDrawUniforms>>
-        m_imageDrawUniformBuffer;
     StructuredBufferRHIImpl<rive::gpu::PathData> m_pathBuffer;
     StructuredBufferRHIImpl<rive::gpu::PaintData> m_paintBuffer;
     StructuredBufferRHIImpl<rive::gpu::PaintAuxData> m_paintAuxBuffer;
@@ -518,6 +487,7 @@ private:
     std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_tessSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_triangleBuffer;
+    std::unique_ptr<BufferRingRHIImpl> m_imageDrawInstanceBuffer;
 
     std::chrono::steady_clock::time_point m_localEpoch =
         std::chrono::steady_clock::now();
