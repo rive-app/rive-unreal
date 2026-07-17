@@ -92,8 +92,8 @@ static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
             return TEXT("interiorTriangulation");
         case rive::gpu::DrawType::clipReset:
             return TEXT("clipReset");
-        case rive::gpu::DrawType::atlasBlit:
-            return TEXT("atlasBlit");
+        case rive::gpu::DrawType::featherAtlasBlit:
+            return TEXT("featherAtlasBlit");
         case rive::gpu::DrawType::imageRect:
             return TEXT("imageRect");
         case rive::gpu::DrawType::imageMesh:
@@ -1126,22 +1126,22 @@ RenderContextRHIImpl::RenderContextRHIImpl(
                                           EBufferUsageFlags::IndexBuffer,
                                           GImageRectIndices);
 
-    m_atlasSampler = TStaticSamplerState<SF_Bilinear,
-                                         AM_Clamp,
-                                         AM_Clamp,
-                                         AM_Clamp,
-                                         0,
-                                         1,
-                                         0,
-                                         SCF_Never>::GetRHI();
-    m_featherSampler = TStaticSamplerState<SF_Bilinear,
-                                           AM_Clamp,
-                                           AM_Clamp,
-                                           AM_Clamp,
-                                           0,
-                                           1,
-                                           0,
-                                           SCF_Never>::GetRHI();
+    m_featherAtlasSampler = TStaticSamplerState<SF_Bilinear,
+                                                AM_Clamp,
+                                                AM_Clamp,
+                                                AM_Clamp,
+                                                0,
+                                                1,
+                                                0,
+                                                SCF_Never>::GetRHI();
+    m_gaussianIntegralSampler = TStaticSamplerState<SF_Bilinear,
+                                                    AM_Clamp,
+                                                    AM_Clamp,
+                                                    AM_Clamp,
+                                                    0,
+                                                    1,
+                                                    0,
+                                                    SCF_Never>::GetRHI();
     m_linearSampler = TStaticSamplerState<SF_Bilinear,
                                           AM_Clamp,
                                           AM_Clamp,
@@ -1173,17 +1173,19 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     m_placeholderTexture =
         CREATE_TEXTURE(CommandListImmediate, PlaceholderDesc);
 
-    auto featherTextureDesc =
-        FRHITextureCreateDesc::Create2DArray(TEXT("rive.FeatherTexture"),
-                                             {gpu::GAUSSIAN_TABLE_SIZE, 1},
-                                             FEATHER_TEXTURE_1D_ARRAY_LENGTH,
-                                             PF_R16F)
+    auto gaussianIntegralTextureDesc =
+        FRHITextureCreateDesc::Create2DArray(
+            TEXT("rive.GaussianIntegralTexture"),
+            {gpu::GAUSSIAN_TABLE_SIZE, 1},
+            GAUSSIAN_INTEGRAL_TEXTURE_1D_ARRAY_LENGTH,
+            PF_R16F)
             .AddFlags(ETextureCreateFlags::ShaderResource);
-    m_featherTexture = CREATE_TEXTURE(CommandListImmediate, featherTextureDesc);
+    m_gaussianIntegralTexture =
+        CREATE_TEXTURE(CommandListImmediate, gaussianIntegralTextureDesc);
     // update the texture to contain feather data
     uint32 stride;
     void* data = CommandListImmediate.LockTexture2DArray(
-        m_featherTexture,
+        m_gaussianIntegralTexture,
         FEATHER_FUNCTION_ARRAY_INDEX,
         0,
         EResourceLockMode::RLM_WriteOnly,
@@ -1192,13 +1194,13 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     memcpy(data,
            gpu::g_gaussianIntegralTableF16,
            sizeof(gpu::g_gaussianIntegralTableF16));
-    CommandListImmediate.UnlockTexture2DArray(m_featherTexture,
+    CommandListImmediate.UnlockTexture2DArray(m_gaussianIntegralTexture,
                                               FEATHER_FUNCTION_ARRAY_INDEX,
                                               0,
                                               false);
 
     data = CommandListImmediate.LockTexture2DArray(
-        m_featherTexture,
+        m_gaussianIntegralTexture,
         FEATHER_INVERSE_FUNCTION_ARRAY_INDEX,
         0,
         EResourceLockMode::RLM_WriteOnly,
@@ -1208,7 +1210,7 @@ RenderContextRHIImpl::RenderContextRHIImpl(
            gpu::g_inverseGaussianIntegralTableF16,
            sizeof(gpu::g_inverseGaussianIntegralTableF16));
     CommandListImmediate.UnlockTexture2DArray(
-        m_featherTexture,
+        m_gaussianIntegralTexture,
         FEATHER_INVERSE_FUNCTION_ARRAY_INDEX,
         0,
         false);
@@ -1608,7 +1610,8 @@ void RenderContextRHIImpl::resizeTessellationTexture(uint32_t width,
     m_tesselationTexture.UpdateTexture(RDGDesc, TEXT("rive.TessTexture"), true);
 }
 
-void RenderContextRHIImpl::resizeAtlasTexture(uint32_t width, uint32_t height)
+void RenderContextRHIImpl::resizeFeatherAtlasTexture(uint32_t width,
+                                                     uint32_t height)
 {
     check(IsInRenderingThread());
 
@@ -1867,10 +1870,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             scratchUAV = GraphBuilder.CreateUAV(scratchColorTexture);
         }
 
-        FRDGTextureRef atlasTexture = placeholderTexture;
+        FRDGTextureRef featherAtlasTexture = placeholderTexture;
 
-        FRDGTextureRef featherTexture = GraphBuilder.RegisterExternalTexture(
-            CreateRenderTarget(m_featherTexture, TEXT("Rive.FeatherTexture")));
+        FRDGTextureRef gaussianIntegralTexture =
+            GraphBuilder.RegisterExternalTexture(
+                CreateRenderTarget(m_gaussianIntegralTexture,
+                                   TEXT("Rive.GaussianIntegralTexture")));
 
         FRDGBufferSRVRef pathSRV = nullptr;
         FRDGBufferSRVRef paintSRV = nullptr;
@@ -1954,8 +1959,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                      ERenderTargetLoadAction::ENoAction);
             TessPassParams->VS.GLSL_pathBuffer_raw = pathSRV;
             TessPassParams->VS.GLSL_contourBuffer_raw = contourSRV;
-            TessPassParams->VS.GLSL_featherTexture_raw = featherTexture;
-            TessPassParams->VS.featherSampler = m_featherSampler;
+            TessPassParams->VS.GLSL_gaussianIntegralTexture_raw =
+                gaussianIntegralTexture;
+            TessPassParams->VS.gaussianIntegralSampler =
+                m_gaussianIntegralSampler;
 
             AddTessellationPass(
                 GraphBuilder,
@@ -1969,25 +1976,26 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         }
 
         // render the atlas texture if needed
-        if ((desc.atlasFillBatchCount | desc.atlasStrokeBatchCount) != 0)
+        if ((desc.featherAtlasFillBatchCount |
+             desc.featherAtlasStrokeBatchCount) != 0)
         {
             check(m_patchIndexBuffer);
             check(m_patchVertexBuffer);
 
-            m_featherAtlasTexture.Sync(GraphBuilder, &atlasTexture);
+            m_featherAtlasTexture.Sync(GraphBuilder, &featherAtlasTexture);
 
-            AddClearRenderTargetPass(GraphBuilder, atlasTexture);
+            AddClearRenderTargetPass(GraphBuilder, featherAtlasTexture);
 
             FUintRect viewport(0,
                                0,
-                               desc.atlasContentWidth,
-                               desc.atlasContentHeight);
+                               desc.featherAtlasContentWidth,
+                               desc.featherAtlasContentHeight);
 
-            for (size_t i = 0; i < desc.atlasFillBatchCount; ++i)
+            for (size_t i = 0; i < desc.featherAtlasFillBatchCount; ++i)
             {
                 FRiveAtlasParameters* AtlasParams =
                     GraphBuilder.AllocObject<FRiveAtlasParameters>(
-                        desc.atlasFillBatches[i],
+                        desc.featherAtlasFillBatches[i],
                         ShaderMap);
                 AtlasParams->Viewport = viewport;
                 AtlasParams->VertexDeclarationRHI =
@@ -2000,14 +2008,16 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     GraphBuilder.AllocParameters<FRDGAtlasPassParameters>();
                 PassParams->FlushUniforms = flushUniforms;
                 PassParams->RenderTargets[0] =
-                    FRenderTargetBinding(atlasTexture,
+                    FRenderTargetBinding(featherAtlasTexture,
                                          ERenderTargetLoadAction::ELoad);
 
-                PassParams->PS.GLSL_featherTexture_raw = featherTexture;
-                PassParams->PS.featherSampler = m_featherSampler;
+                PassParams->PS.GLSL_gaussianIntegralTexture_raw =
+                    gaussianIntegralTexture;
+                PassParams->PS.gaussianIntegralSampler =
+                    m_gaussianIntegralSampler;
 
                 PassParams->VS.baseInstance =
-                    desc.atlasFillBatches[i].basePatch;
+                    desc.featherAtlasFillBatches[i].basePatch;
                 PassParams->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
                 PassParams->VS.GLSL_pathBuffer_raw = pathSRV;
                 PassParams->VS.GLSL_contourBuffer_raw = contourSRV;
@@ -2017,11 +2027,11 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                             PassParams);
             }
 
-            for (size_t i = 0; i < desc.atlasStrokeBatchCount; ++i)
+            for (size_t i = 0; i < desc.featherAtlasStrokeBatchCount; ++i)
             {
                 FRiveAtlasParameters* AtlasParams =
                     GraphBuilder.AllocObject<FRiveAtlasParameters>(
-                        desc.atlasStrokeBatches[i],
+                        desc.featherAtlasStrokeBatches[i],
                         ShaderMap);
                 AtlasParams->Viewport = viewport;
                 AtlasParams->VertexDeclarationRHI =
@@ -2034,14 +2044,16 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     GraphBuilder.AllocParameters<FRDGAtlasPassParameters>();
                 PassParams->FlushUniforms = flushUniforms;
                 PassParams->RenderTargets[0] =
-                    FRenderTargetBinding(atlasTexture,
+                    FRenderTargetBinding(featherAtlasTexture,
                                          ERenderTargetLoadAction::ELoad);
 
-                PassParams->PS.GLSL_featherTexture_raw = featherTexture;
-                PassParams->PS.featherSampler = m_featherSampler;
+                PassParams->PS.GLSL_gaussianIntegralTexture_raw =
+                    gaussianIntegralTexture;
+                PassParams->PS.gaussianIntegralSampler =
+                    m_gaussianIntegralSampler;
 
                 PassParams->VS.baseInstance =
-                    desc.atlasStrokeBatches[i].basePatch;
+                    desc.featherAtlasStrokeBatches[i].basePatch;
                 PassParams->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
                 PassParams->VS.GLSL_pathBuffer_raw = pathSRV;
                 PassParams->VS.GLSL_contourBuffer_raw = contourSRV;
@@ -2178,11 +2190,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             PassParameters->FlushUniforms = flushUniforms;
             PassParameters->PS.gradSampler = m_linearSampler;
 
-            PassParameters->PS.atlasSampler = m_atlasSampler;
-            PassParameters->PS.featherSampler = m_featherSampler;
+            PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
+            PassParameters->PS.gaussianIntegralSampler =
+                m_gaussianIntegralSampler;
             PassParameters->PS.GLSL_dstColorTexture_raw = MSAADstColorTexture;
-            PassParameters->PS.GLSL_atlasTexture_raw = atlasTexture;
-            PassParameters->PS.GLSL_featherTexture_raw = featherTexture;
+            PassParameters->PS.GLSL_featherAtlasTexture_raw =
+                featherAtlasTexture;
+            PassParameters->PS.GLSL_gaussianIntegralTexture_raw =
+                gaussianIntegralTexture;
             PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
             PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
             PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
@@ -2193,8 +2208,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
             PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
             PassParameters->VS.GLSL_paintBuffer_raw = paintSRV;
-            PassParameters->VS.GLSL_featherTexture_raw = featherTexture;
-            PassParameters->VS.featherSampler = m_featherSampler;
+            PassParameters->VS.GLSL_gaussianIntegralTexture_raw =
+                gaussianIntegralTexture;
+            PassParameters->VS.gaussianIntegralSampler =
+                m_gaussianIntegralSampler;
             PassParameters->VS.baseInstance = 0;
 
             FUintRect Viewport =
@@ -2379,7 +2396,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                             PassParameters);
                                     }
                                     break;
-                                    case DrawType::atlasBlit:
+                                    case DrawType::featherAtlasBlit:
                                     {
                                         CommonPassParameters
                                             .VertexDeclarationRHI =
@@ -2624,11 +2641,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                       ImageSampler::MAX_SAMPLER_PERMUTATIONS);
                 PassParameters->PS.imageSampler =
                     m_imageSamplers[batch.imageSampler.asKey()];
-                PassParameters->PS.atlasSampler = m_atlasSampler;
-                PassParameters->PS.featherSampler = m_featherSampler;
+                PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
+                PassParameters->PS.gaussianIntegralSampler =
+                    m_gaussianIntegralSampler;
                 PassParameters->PS.GLSL_dstColorTexture_raw = MSAAColorTexture;
-                PassParameters->PS.GLSL_atlasTexture_raw = atlasTexture;
-                PassParameters->PS.GLSL_featherTexture_raw = featherTexture;
+                PassParameters->PS.GLSL_featherAtlasTexture_raw =
+                    featherAtlasTexture;
+                PassParameters->PS.GLSL_gaussianIntegralTexture_raw =
+                    gaussianIntegralTexture;
                 PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
                 PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
                 PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
@@ -2648,8 +2668,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
                 PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
                 PassParameters->VS.GLSL_paintBuffer_raw = paintSRV;
-                PassParameters->VS.GLSL_featherTexture_raw = featherTexture;
-                PassParameters->VS.featherSampler = m_featherSampler;
+                PassParameters->VS.GLSL_gaussianIntegralTexture_raw =
+                    gaussianIntegralTexture;
+                PassParameters->VS.gaussianIntegralSampler =
+                    m_gaussianIntegralSampler;
                 PassParameters->VS.baseInstance = 0;
 
                 if (desc.fixedFunctionColorOutput)
@@ -2714,7 +2736,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                             PassParameters);
                     }
                     break;
-                    case DrawType::atlasBlit:
+                    case DrawType::featherAtlasBlit:
                     {
                         check(triangleBuffer.IsValid());
                         check(pathSRV);
@@ -2867,11 +2889,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                       ImageSampler::MAX_SAMPLER_PERMUTATIONS);
                 PassParameters->PS.imageSampler =
                     m_imageSamplers[batch.imageSampler.asKey()];
-                PassParameters->PS.atlasSampler = m_atlasSampler;
-                PassParameters->PS.featherSampler = m_featherSampler;
+                PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
+                PassParameters->PS.gaussianIntegralSampler =
+                    m_gaussianIntegralSampler;
                 PassParameters->PS.GLSL_dstColorTexture_raw = MSAAColorTexture;
-                PassParameters->PS.GLSL_atlasTexture_raw = atlasTexture;
-                PassParameters->PS.GLSL_featherTexture_raw = featherTexture;
+                PassParameters->PS.GLSL_featherAtlasTexture_raw =
+                    featherAtlasTexture;
+                PassParameters->PS.GLSL_gaussianIntegralTexture_raw =
+                    gaussianIntegralTexture;
                 PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
                 PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
                 PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
@@ -2888,8 +2913,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
                 PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
                 PassParameters->VS.GLSL_paintBuffer_raw = paintSRV;
-                PassParameters->VS.GLSL_featherTexture_raw = featherTexture;
-                PassParameters->VS.featherSampler = m_featherSampler;
+                PassParameters->VS.GLSL_gaussianIntegralTexture_raw =
+                    gaussianIntegralTexture;
+                PassParameters->VS.gaussianIntegralSampler =
+                    m_gaussianIntegralSampler;
                 PassParameters->VS.baseInstance = 0;
 
                 if (desc.fixedFunctionColorOutput)
@@ -2958,7 +2985,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                                      PassParameters);
                     }
                     break;
-                    case DrawType::atlasBlit:
+                    case DrawType::featherAtlasBlit:
                     {
                         check(triangleBuffer.IsValid());
                         check(pathSRV);

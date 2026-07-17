@@ -444,7 +444,8 @@ public:
                                        uint32_t height) override;
     virtual void resizeTessellationTexture(uint32_t width,
                                            uint32_t height) override;
-    virtual void resizeAtlasTexture(uint32_t width, uint32_t height) override;
+    virtual void resizeFeatherAtlasTexture(uint32_t width,
+                                           uint32_t height) override;
 
     virtual void flush(const rive::gpu::FlushDescriptor&) override;
 
@@ -458,9 +459,9 @@ private:
     // This is used for unused bindings in Render Graph because it doesn't allow
     // read inputs that aren't written to beforehand.
     FTextureRHIRef m_placeholderTexture;
-    // feather texture gets created and uploaded once on construction, so we
-    // make it an external texture
-    FTextureRHIRef m_featherTexture;
+    // gaussian integral texture gets created and uploaded once on construction,
+    // so we make it an external texture
+    FTextureRHIRef m_gaussianIntegralTexture;
 
     FBufferRHIRef m_patchVertexBuffer;
     FBufferRHIRef m_patchIndexBuffer;
@@ -471,8 +472,8 @@ private:
     FSamplerStateRHIRef
         m_imageSamplers[rive::ImageSampler::MAX_SAMPLER_PERMUTATIONS];
     FSamplerStateRHIRef m_linearSampler;
-    FSamplerStateRHIRef m_atlasSampler;
-    FSamplerStateRHIRef m_featherSampler;
+    FSamplerStateRHIRef m_featherAtlasSampler;
+    FSamplerStateRHIRef m_gaussianIntegralSampler;
 
     FVertexDeclarationRHIRef VertexDeclarations[static_cast<int32>(
         EVertexDeclarations::NumVertexDeclarations)];

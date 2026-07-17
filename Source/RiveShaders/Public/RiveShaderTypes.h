@@ -140,8 +140,9 @@ BEGIN_SHADER_PARAMETER_STRUCT(FRivePixelDrawUniforms, RIVESHADERS_API)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
 
-SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
-SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_atlasTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>,
+                             GLSL_gaussianIntegralTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_featherAtlasTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_imageTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DMS, GLSL_dstColorTexture_raw)
@@ -154,8 +155,8 @@ SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, scratchColorBuffer)
 SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
-SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
-SHADER_PARAMETER_SAMPLER(SamplerState, atlasSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, featherAtlasSampler)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
                                 GLSL_paintAuxBuffer_raw)
@@ -168,8 +169,9 @@ BEGIN_SHADER_PARAMETER_STRUCT(FRivePixelDrawUniformsAtomicBuffers,
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
 
-SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
-SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_atlasTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>,
+                             GLSL_gaussianIntegralTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_featherAtlasTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_imageTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DMS, GLSL_dstColorTexture_raw)
@@ -182,8 +184,8 @@ SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, colorBuffer)
 SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, scratchColorBuffer)
 SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
-SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
-SHADER_PARAMETER_SAMPLER(SamplerState, atlasSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, featherAtlasSampler)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
                                 GLSL_paintAuxBuffer_raw)
@@ -197,14 +199,15 @@ BEGIN_SHADER_PARAMETER_STRUCT(FRiveVertexDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0) && !RIVE_FORCE_USE_GENERATED_UNIFORMS
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
-SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>,
+                             GLSL_gaussianIntegralTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
                                 GLSL_paintAuxBuffer_raw)
-SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 SHADER_PARAMETER(unsigned int, baseInstance)
 END_SHADER_PARAMETER_STRUCT()
 
@@ -213,16 +216,17 @@ BEGIN_SHADER_PARAMETER_STRUCT(FRiveMSAAPixelDrawUniforms, RIVESHADERS_API)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
 
-SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
-SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_atlasTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>,
+                             GLSL_gaussianIntegralTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_featherAtlasTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
 SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_imageTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2DMS, GLSL_dstColorTexture_raw)
 
 SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
-SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
-SHADER_PARAMETER_SAMPLER(SamplerState, atlasSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, featherAtlasSampler)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
                                 GLSL_paintAuxBuffer_raw)
@@ -233,14 +237,15 @@ BEGIN_SHADER_PARAMETER_STRUCT(FRiveMSAAVertexDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
-SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>,
+                             GLSL_gaussianIntegralTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint2>, GLSL_paintBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
                                 GLSL_paintAuxBuffer_raw)
-SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
+SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 SHADER_PARAMETER(unsigned int, baseInstance)
 END_SHADER_PARAMETER_STRUCT()
 
@@ -399,8 +404,9 @@ public:
                                     GLSL_pathBuffer_raw)
     SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>,
                                     GLSL_contourBuffer_raw)
-    SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>, GLSL_featherTexture_raw)
-    SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>,
+                                 GLSL_gaussianIntegralTexture_raw)
+    SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 
     END_SHADER_PARAMETER_STRUCT()
 };
@@ -954,8 +960,8 @@ BEGIN_SHADER_PARAMETER_STRUCT(FAtlasDrawUniforms, RIVESHADERS_API)
 #if !UE_VERSION_OLDER_THAN(5, 5, 0)
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, GLSL_FlushUniforms_raw)
 #endif
-SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_featherTexture_raw)
-SHADER_PARAMETER_SAMPLER(SamplerState, featherSampler)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gaussianIntegralTexture_raw)
+SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 END_SHADER_PARAMETER_STRUCT()
 
 class FRiveRDGDrawAtlasFillPixelShader : public FRiveBasePixelShader
