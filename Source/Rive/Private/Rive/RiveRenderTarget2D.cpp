@@ -10,37 +10,6 @@
 #include "Logs/RiveLog.h"
 #include "RiveRenderer/Private/Platform/RiveRenderTargetRHI.h"
 
-TArray<FString> URiveRenderTarget2D::GetArtboardNamesForDropdown() const
-{
-    TArray<FString> Output;
-
-    if (RiveDescriptor.RiveFile)
-    {
-        for (auto Artboard : RiveDescriptor.RiveFile->ArtboardDefinitions)
-        {
-            Output.Add(Artboard.Name);
-        }
-    }
-
-    return Output;
-}
-
-TArray<FString> URiveRenderTarget2D::GetStateMachineNamesForDropdown() const
-{
-    if (RiveDescriptor.RiveFile)
-    {
-        for (auto Artboard : RiveDescriptor.RiveFile->ArtboardDefinitions)
-        {
-            if (Artboard.Name.Equals(RiveDescriptor.ArtboardName))
-            {
-                return Artboard.StateMachineNames;
-            }
-        }
-    }
-
-    return {};
-}
-
 URiveRenderTarget2D::URiveRenderTarget2D()
 {
     Filter = TF_Bilinear;

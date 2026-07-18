@@ -200,37 +200,6 @@ void URiveWidget::SetArtboard(URiveArtboard* InArtboard)
 
 URiveArtboard* URiveWidget::GetArtboard() const { return RiveArtboard; }
 
-TArray<FString> URiveWidget::GetArtboardNamesForDropdown() const
-{
-    TArray<FString> Output;
-
-    if (RiveDescriptor.RiveFile)
-    {
-        for (auto Artboard : RiveDescriptor.RiveFile->ArtboardDefinitions)
-        {
-            Output.Add(Artboard.Name);
-        }
-    }
-
-    return Output;
-}
-
-TArray<FString> URiveWidget::GetStateMachineNamesForDropdown() const
-{
-    if (RiveDescriptor.RiveFile)
-    {
-        for (auto Artboard : RiveDescriptor.RiveFile->ArtboardDefinitions)
-        {
-            if (Artboard.Name.Equals(RiveDescriptor.ArtboardName))
-            {
-                return Artboard.StateMachineNames;
-            }
-        }
-    }
-
-    return {};
-}
-
 #if WITH_EDITOR
 void URiveWidget::PostEditChangeChainProperty(
     FPropertyChangedChainEvent& PropertyChangedEvent)
@@ -249,7 +218,16 @@ void URiveWidget::PostEditChangeChainProperty(
         PropertyName ==
             GET_MEMBER_NAME_CHECKED(FRiveDescriptor, bAutoBindDefaultViewModel))
     {
-        TArray<FString> ArtboardNames = GetArtboardNamesForDropdown();
+        TArray<FString> ArtboardNames;
+        if (RiveDescriptor.RiveFile)
+        {
+            for (const auto& Artboard :
+                 RiveDescriptor.RiveFile->ArtboardDefinitions)
+            {
+                ArtboardNames.Add(Artboard.Name);
+            }
+        }
+
         if ((RiveDescriptor.ArtboardName.IsEmpty() ||
              !ArtboardNames.Contains(RiveDescriptor.ArtboardName) &&
                  !ArtboardNames.IsEmpty()))
@@ -257,7 +235,20 @@ void URiveWidget::PostEditChangeChainProperty(
             RiveDescriptor.ArtboardName = ArtboardNames[0];
         }
 
-        TArray<FString> StateMachineNames = GetStateMachineNamesForDropdown();
+        TArray<FString> StateMachineNames;
+        if (RiveDescriptor.RiveFile)
+        {
+            for (const auto& Artboard :
+                 RiveDescriptor.RiveFile->ArtboardDefinitions)
+            {
+                if (Artboard.Name.Equals(RiveDescriptor.ArtboardName))
+                {
+                    StateMachineNames = Artboard.StateMachineNames;
+                    break;
+                }
+            }
+        }
+
         if (StateMachineNames.Num() == 1)
         {
             RiveDescriptor.StateMachineName = StateMachineNames[0];

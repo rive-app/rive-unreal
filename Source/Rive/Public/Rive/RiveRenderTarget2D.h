@@ -35,12 +35,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Rive|Testing")
     void DrawTestClear();
 
-    UFUNCTION()
-    TArray<FString> GetArtboardNamesForDropdown() const;
-
-    UFUNCTION()
-    TArray<FString> GetStateMachineNamesForDropdown() const;
-
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Rive")
     URiveArtboard* GetArtboard() const { return RiveArtboard; }
 

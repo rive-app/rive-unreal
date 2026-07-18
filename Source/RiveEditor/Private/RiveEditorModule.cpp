@@ -7,11 +7,13 @@
 #include "ISettingsEditorModule.h"
 #include "ISettingsModule.h"
 #include "PropertyEditorModule.h"
+#include "RiveDescriptorCustomization.h"
 #include "RiveFileDetailCustomization.h"
 #include "RiveFileAssetTypeActions.h"
 #include "RiveFileThumbnailRenderer.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Logs/RiveEditorLog.h"
+#include "Rive/RiveDescriptor.h"
 #include "Rive/RiveFile.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -35,6 +37,10 @@ void FRiveEditorModule::StartupModule()
         URiveFile::StaticClass()->GetFName(),
         FOnGetDetailCustomizationInstance::CreateStatic(
             &FRiveFileDetailCustomization::MakeInstance));
+    PropertyModule.RegisterCustomPropertyTypeLayout(
+        FRiveDescriptor::StaticStruct()->GetFName(),
+        FOnGetPropertyTypeCustomizationInstance::CreateStatic(
+            &FRiveDescriptorCustomization::MakeInstance));
 
     IAssetTools& AssetTools =
         FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools")
@@ -69,6 +75,8 @@ void FRiveEditorModule::ShutdownModule()
                 "PropertyEditor");
         PropertyModule.UnregisterCustomClassLayout(
             URiveFile::StaticClass()->GetFName());
+        PropertyModule.UnregisterCustomPropertyTypeLayout(
+            FRiveDescriptor::StaticStruct()->GetFName());
     }
 
     // Unregister all the asset types that we registered

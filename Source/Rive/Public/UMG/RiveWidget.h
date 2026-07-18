@@ -96,12 +96,6 @@ public:
 private:
     void Setup();
 
-    UFUNCTION()
-    TArray<FString> GetArtboardNamesForDropdown() const;
-
-    UFUNCTION()
-    TArray<FString> GetStateMachineNamesForDropdown() const;
-
     UPROPERTY(Transient)
     TObjectPtr<URiveArtboard> RiveArtboard;
 
