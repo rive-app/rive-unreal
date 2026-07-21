@@ -521,20 +521,48 @@ void URiveFile::Initialize(FRiveCommandBuilder& CommandBuilder)
                                                new FRiveFileListener(this));
 }
 
+URiveArtboard* URiveFile::MakeArtboardFromDescriptor(
+    const FRiveDescriptor& Descriptor)
+{
+    if (!IsValid(Descriptor.RiveFile))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::MakeArtboardFromDescriptor RiveFile is "
+                    "invalid"));
+        return nullptr;
+    }
+
+    // "None" is written by the descriptor UI when no state machine is
+    // selected; both it and empty mean "use the default state machine".
+    const FString StateMachineName =
+        Descriptor.StateMachineName.Equals(TEXT("None"))
+            ? FString()
+            : Descriptor.StateMachineName;
+
+    return Descriptor.RiveFile->CreateArtboardNamed(
+        Descriptor.ArtboardName,
+        Descriptor.bAutoBindDefaultViewModel,
+        StateMachineName);
+}
+
 URiveArtboard* URiveFile::CreateArtboardNamed(const FString& Name,
-                                              bool inAutoBindViewModel)
+                                              bool inAutoBindViewModel,
+                                              const FString& StateMachineName)
 {
     auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     check(RiveRenderer);
 
     return CreateArtboardNamed(RiveRenderer->GetCommandBuilder(),
                                Name,
-                               inAutoBindViewModel);
+                               inAutoBindViewModel,
+                               StateMachineName);
 }
 
 URiveArtboard* URiveFile::CreateArtboardNamed(FRiveCommandBuilder& builder,
                                               const FString& Name,
-                                              bool inAutoBindViewModel)
+                                              bool inAutoBindViewModel,
+                                              const FString& StateMachineName)
 {
     // UE does not guarantee our PostLoad runs before a referencing asset (e.g.
     // a UMG widget's FRiveDescriptor) starts using us. ConditionalPostLoad
@@ -561,6 +589,7 @@ URiveArtboard* URiveFile::CreateArtboardNamed(FRiveCommandBuilder& builder,
     auto Artboard = NewObject<URiveArtboard>(this, ArtboardName);
     Artboard->Initialize(this,
                          *ArtboardDefinition,
+                         StateMachineName,
                          inAutoBindViewModel,
                          builder);
     return Artboard;

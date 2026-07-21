@@ -97,8 +97,7 @@ void URiveRenderTarget2D::InitRiveRenderTarget2D()
             if (!ArtboardDefinition->StateMachineNames.IsEmpty())
             {
                 RiveDescriptor.StateMachineName =
-                    RiveDescriptor.RiveFile->ArtboardDefinitions[0]
-                        .StateMachineNames[0];
+                    ArtboardDefinition->StateMachineNames[0];
             }
         }
     }
@@ -109,7 +108,8 @@ void URiveRenderTarget2D::InitRiveRenderTarget2D()
         RiveArtboard = RiveDescriptor.RiveFile->CreateArtboardNamed(
             Builder,
             RiveDescriptor.ArtboardName,
-            RiveDescriptor.bAutoBindDefaultViewModel);
+            RiveDescriptor.bAutoBindDefaultViewModel,
+            RiveDescriptor.StateMachineName);
         UpdateArtboardSize();
         Draw();
     }
@@ -163,6 +163,8 @@ void URiveRenderTarget2D::PostEditChangeProperty(
                  GET_MEMBER_NAME_CHECKED(FRiveDescriptor, RiveFile) ||
              PropertyName ==
                  GET_MEMBER_NAME_CHECKED(FRiveDescriptor, ArtboardName) ||
+             PropertyName ==
+                 GET_MEMBER_NAME_CHECKED(FRiveDescriptor, StateMachineName) ||
              PropertyName == GET_MEMBER_NAME_CHECKED(FRiveDescriptor,
                                                      bAutoBindDefaultViewModel))
     {
@@ -177,7 +179,8 @@ void URiveRenderTarget2D::PostEditChangeProperty(
         RiveArtboard = RiveDescriptor.RiveFile->CreateArtboardNamed(
             Builder,
             RiveDescriptor.ArtboardName,
-            RiveDescriptor.bAutoBindDefaultViewModel);
+            RiveDescriptor.bAutoBindDefaultViewModel,
+            RiveDescriptor.StateMachineName);
     }
     // This property was changed on the base class and thus we should recreate
     // the render target

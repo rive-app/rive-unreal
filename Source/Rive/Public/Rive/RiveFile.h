@@ -21,6 +21,7 @@ THIRD_PARTY_INCLUDES_END
 #endif // WITH_RIVE
 
 #include "RiveInternalTypes.h"
+#include "Rive/RiveDescriptor.h"
 #include "RiveFile.generated.h"
 
 class URiveAsset;
@@ -82,13 +83,24 @@ public:
         return InRiveFile->CreateArtboardNamed(Name, inAutoBindViewModel);
     }
 
+    // Creates an artboard as described by Descriptor, honoring its
+    // StateMachineName. Empty (or the "None" sentinel written by the
+    // descriptor UI) instantiates the artboard's default state machine.
     UFUNCTION(BlueprintCallable, Category = Rive)
-    URiveArtboard* CreateArtboardNamed(const FString& Name,
-                                       bool inAutoBindViewModel);
+    static URiveArtboard* MakeArtboardFromDescriptor(
+        const FRiveDescriptor& Descriptor);
 
-    URiveArtboard* CreateArtboardNamed(FRiveCommandBuilder&,
-                                       const FString& Name,
-                                       bool inAutoBindViewModel);
+    UFUNCTION(BlueprintCallable, Category = Rive)
+    URiveArtboard* CreateArtboardNamed(
+        const FString& Name,
+        bool inAutoBindViewModel,
+        const FString& StateMachineName = TEXT(""));
+
+    URiveArtboard* CreateArtboardNamed(
+        FRiveCommandBuilder&,
+        const FString& Name,
+        bool inAutoBindViewModel,
+        const FString& StateMachineName = TEXT(""));
 
     const FViewModelDefinition* GetViewModelDefinition(
         const FString& ViewModelName)

@@ -216,6 +216,8 @@ void URiveWidget::PostEditChangeChainProperty(
         PropertyName ==
             GET_MEMBER_NAME_CHECKED(FRiveDescriptor, ArtboardName) ||
         PropertyName ==
+            GET_MEMBER_NAME_CHECKED(FRiveDescriptor, StateMachineName) ||
+        PropertyName ==
             GET_MEMBER_NAME_CHECKED(FRiveDescriptor, bAutoBindDefaultViewModel))
     {
         TArray<FString> ArtboardNames;
@@ -249,19 +251,15 @@ void URiveWidget::PostEditChangeChainProperty(
             }
         }
 
-        if (StateMachineNames.Num() == 1)
-        {
-            RiveDescriptor.StateMachineName = StateMachineNames[0];
-        }
-        else if (RiveDescriptor.StateMachineName.IsEmpty() ||
-                 !StateMachineNames.Contains(RiveDescriptor.StateMachineName) &&
-                     !StateMachineNames.IsEmpty())
-        {
-            RiveDescriptor.StateMachineName = StateMachineNames[0];
-        }
-        else
+        if (StateMachineNames.IsEmpty())
         {
             RiveDescriptor.StateMachineName = "None";
+        }
+        else if (RiveDescriptor.StateMachineName.IsEmpty() ||
+                 (RiveDescriptor.StateMachineName != TEXT("None") &&
+                  !StateMachineNames.Contains(RiveDescriptor.StateMachineName)))
+        {
+            RiveDescriptor.StateMachineName = StateMachineNames[0];
         }
 
         if (IsValid(RiveDescriptor.RiveFile))
@@ -275,9 +273,8 @@ void URiveWidget::PostEditChangeChainProperty(
                 return;
             }
 
-            RiveArtboard = RiveDescriptor.RiveFile->CreateArtboardNamed(
-                RiveDescriptor.ArtboardName,
-                RiveDescriptor.bAutoBindDefaultViewModel);
+            RiveArtboard =
+                URiveFile::MakeArtboardFromDescriptor(RiveDescriptor);
 
             if (IsValid(RiveAudioEngine))
             {
@@ -321,9 +318,7 @@ void URiveWidget::Setup()
             return;
         }
 
-        RiveArtboard = RiveDescriptor.RiveFile->CreateArtboardNamed(
-            RiveDescriptor.ArtboardName,
-            RiveDescriptor.bAutoBindDefaultViewModel);
+        RiveArtboard = URiveFile::MakeArtboardFromDescriptor(RiveDescriptor);
     }
 
     if (IsValid(RiveArtboard))
