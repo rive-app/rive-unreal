@@ -93,6 +93,14 @@ public:
     // loads (e.g. the UMG widget preview). Editor/dev-only.
     RIVERENDERER_API bool compileFileShadersForEditor(const uint8* RivData,
                                                       int32 RivSize);
+#ifdef WITH_RIVE_TOOLS
+    RIVERENDERER_API bool compileGMShadersForCook(
+        const ITargetPlatform* TargetPlatform,
+        TMap<FName, TMap<uint32_t, FRiveOreShaderModuleData>>&
+            OutModulesByFormat);
+
+    RIVERENDERER_API bool compileGMShadersForEditor();
+#endif
 #endif
 
     static FString ShaderPath;
@@ -113,6 +121,10 @@ private:
     TSet<FString> LongLivedStrings;
 
     TMap<uint32_t, FRiveOreShaderModuleData> ShaderMap;
+
+#if WITH_EDITOR
+    bool bHasCookedGMForEditor = false;
+#endif
 };
 
 extern RIVERENDERER_API rive::rcp<FRiveOreShaderHandler> GRiveOreShaderHandler;

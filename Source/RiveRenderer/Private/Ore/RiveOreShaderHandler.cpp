@@ -43,6 +43,10 @@
 #include "Ore/RiveOreShaderType.h"
 #include "rive/file.hpp"
 #include "utils/no_op_factory.hpp"
+
+#ifdef WITH_RIVE_TOOLS
+#include "gm/ore_gm_helper.hpp"
+#endif
 #endif // WITH_EDITOR
 
 const FString ShaderHeader = TEXT("#include \"/Engine/Public/Platform.ush\"\n");
@@ -265,7 +269,11 @@ FRiveOreShaderType* MakeShaderTypeFromView(const rive::ore::RstbEntryView& view,
 
     auto EntryConverter = StringCast<TCHAR>(view.physical.data());
 
-    auto TypeLayout = FRiveOreShader::StaticGetTypeLayout();
+    // Must be a reference: FShaderType stores a pointer to this desc for the
+    // lifetime of the type (the cooker hashes it via
+    // FGlobalShaderMapId::AppendKeyString). A by-value copy here dangles once
+    // this function returns and crashes Freeze::HashLayout during cook.
+    auto& TypeLayout = FRiveOreShader::StaticGetTypeLayout();
 
     return new FRiveOreShaderType(FileName,
                                   VirtualPath / FileName,
@@ -732,6 +740,149 @@ public:
     }
 };
 } // namespace
+#ifdef WITH_RIVE_TOOLS
+bool FRiveOreShaderHandler::compileGMShadersForCook(
+    const ITargetPlatform* TargetPlatform,
+    TMap<FName, TMap<uint32_t, FRiveOreShaderModuleData>>& OutModulesByFormat)
+{
+    TArray<FName> Formats;
+    TargetPlatform->GetAllTargetedShaderFormats(Formats);
+    if (Formats.Num() == 0)
+    {
+        return false;
+    }
+
+    auto Capture = rive::make_rcp<FOreCookShaderCapture>();
+    for (uint32_t i = 0; i < ore_gm_shaders::kShaderCount; ++i)
+    {
+        auto& shader = ore_gm::getRstbAssetForShader(i);
+        Capture->Shaders.push_back(
+            {ore_gm::kOreGMShaderAssetIdBase + i, rive::ref_rcp(&shader)});
+    }
+
+    struct FParsedAsset
+    {
+        uint32_t AssetId;
+        TArray<FParsedOreShader> Shaders;
+    };
+    TArray<FParsedAsset> ParsedAssets;
+    for (const FOreCookShaderCapture::Captured& Captured : Capture->Shaders)
+    {
+        auto NameConverter = StringCast<TCHAR>(
+            ore_gm_shaders::kShaderNames[Captured.AssetId -
+                                         ore_gm::kOreGMShaderAssetIdBase]);
+        const FString Name = NameConverter.Get();
+
+        TArray<FParsedOreShader> ShaderTypes;
+        if (!ParseShaderAsset(Captured.Asset.get(), Name, ShaderTypes))
+        {
+            continue;
+        }
+        ParsedAssets.Add({Captured.AssetId, MoveTemp(ShaderTypes)});
+    }
+
+    for (const FName Format : Formats)
+    {
+        const EShaderPlatform Platform =
+            ShaderFormatToLegacyShaderPlatform(Format);
+
+        TMap<uint32_t, FRiveOreShaderModuleData> Modules;
+        for (const FParsedAsset& Asset : ParsedAssets)
+        {
+            FRiveOreShaderModuleData Data;
+            for (const FParsedOreShader& Parsed : Asset.Shaders)
+            {
+                FRiveOreShaderBlob Blob;
+                if (CompileOreShaderToBlob(Parsed.Type,
+                                           Platform,
+                                           Parsed.HlslSource,
+                                           Blob))
+                {
+                    Data.Shaders.Add({Parsed.Entry, Parsed.Frequency},
+                                     MoveTemp(Blob));
+                }
+            }
+            if (Data.Shaders.Num() > 0)
+            {
+                Modules.Add(Asset.AssetId, MoveTemp(Data));
+            }
+        }
+
+        if (Modules.Num() > 0)
+        {
+            OutModulesByFormat.Add(Format, MoveTemp(Modules));
+        }
+    }
+    return OutModulesByFormat.Num() > 0;
+}
+
+bool FRiveOreShaderHandler::compileGMShadersForEditor()
+{
+    check(IsInGameThread());
+
+    if (bHasCookedGMForEditor)
+    {
+        return true;
+    }
+
+    bHasCookedGMForEditor = true;
+
+    auto Capture = rive::make_rcp<FOreCookShaderCapture>();
+    for (uint32_t i = 0; i < ore_gm_shaders::kShaderCount; ++i)
+    {
+        auto& shader = ore_gm::getRstbAssetForShader(i);
+        Capture->Shaders.push_back(
+            {ore_gm::kOreGMShaderAssetIdBase + i, rive::ref_rcp(&shader)});
+    }
+
+    const EShaderPlatform Platform =
+        GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel];
+
+    bool bAny = false;
+    for (const FOreCookShaderCapture::Captured& Captured : Capture->Shaders)
+    {
+        auto NameConverter = StringCast<TCHAR>(
+            ore_gm_shaders::kShaderNames[Captured.AssetId -
+                                         ore_gm::kOreGMShaderAssetIdBase]);
+        const FString Name = NameConverter.Get();
+
+        TArray<FParsedOreShader> ShaderTypes;
+        if (!ParseShaderAsset(Captured.Asset.get(), Name, ShaderTypes))
+        {
+            continue;
+        }
+
+        FRiveOreShaderModuleData Data;
+        for (const FParsedOreShader& Parsed : ShaderTypes)
+        {
+            FRiveOreShaderBlob Blob;
+            if (CompileOreShaderToBlob(Parsed.Type,
+                                       Platform,
+                                       Parsed.HlslSource,
+                                       Blob))
+            {
+                Data.Shaders.Add({Parsed.Entry, Parsed.Frequency},
+                                 MoveTemp(Blob));
+            }
+        }
+
+        if (Data.Shaders.Num() > 0)
+        {
+            // Defer the ShaderMap write to the render thread so it is ordered
+            // with makeShaderModule's reads (matches registerCookedShaders).
+            // The caller enqueues this before LoadFile, so it lands first.
+            const uint32_t Id = Captured.AssetId;
+            ENQUEUE_RENDER_COMMAND(FRiveRegisterEditorOreShaders)
+            ([this, Id, Data = MoveTemp(Data)](FRHICommandList&) {
+                ShaderMap.Add(Id, Data);
+            });
+            bAny = true;
+        }
+    }
+
+    return bAny;
+}
+#endif
 
 bool FRiveOreShaderHandler::compileFileShadersForCook(
     const uint8* RivData,

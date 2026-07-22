@@ -33,7 +33,7 @@ void FRiveTextureResource::InitRHI(FRHICommandListBase& RHICmdList)
 
 void FRiveTextureResource::ReleaseRHI()
 {
-    check(IsRunningRHIInTaskThread());
+    check(IsRunningRHIInTaskThread() || IsInRenderingThread());
     if (RiveTexture)
     {
 #if UE_VERSION_OLDER_THAN(5, 7, 0)

@@ -2,6 +2,17 @@
 #include "Ore/RiveOreShader.h"
 
 #if WITH_EDITOR
+// These types exist only to drive the manual CompileOreShaderToBlob path;
+// they are registered in the global shader type list as a side effect of
+// construction. Returning false here keeps them out of FGlobalShaderMapId and
+// CompileGlobalShaderMap, so the cooker neither hashes them into the global
+// shader map key nor compiles them into the target's global shader map (whose
+// runtime would reject shader types that don't exist in a packaged game).
+static bool NeverCompilePermutation(const FShaderPermutationParameters&)
+{
+    return false;
+}
+
 FShader* ConstructCompiledInstance(
     const typename FShader::CompiledShaderInitializerType& Initializer)
 {
@@ -29,7 +40,7 @@ FRiveOreShaderType::FRiveOreShaderType(
 #endif
                       FRiveOreShader::ConstructSerializedInstance,
                       ConstructCompiledInstance,
-                      FRiveOreShader::ShouldCompilePermutationImpl,
+                      NeverCompilePermutation,
                       FRiveOreShader::ShouldPrecachePermutationImpl,
 #if RIVE_ORE_NEW_SHADER_COMPILE_API
                       FRiveOreShader::GetUnspecializedIdImpl,

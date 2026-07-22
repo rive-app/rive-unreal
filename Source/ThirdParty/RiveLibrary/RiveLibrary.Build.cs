@@ -173,9 +173,9 @@ public class RiveLibrary : ModuleRules
 		PublicDefinitions.Add("RIVE_UNREAL");
 		PublicDefinitions.Add("WITH_RIVE=1");
 		PublicDefinitions.Add("RIVE_CANVAS=1");
+		PublicDefinitions.Add("ORE_BACKEND_RHI=1");
 		PublicDefinitions.Add("TRACK_RIVE_SHADER_ID");
         PublicDefinitions.Add("RIVE_WITH_UNREAL=1");
-        PublicDefinitions.Add("ORE_BACKEND_RHI=1");
         PublicDefinitions.Add("RIVE_ORE=1");
         PublicDefinitions.Add("WITH_RIVE_AUDIO=1");
         PublicDefinitions.Add("EXTERNAL_RIVE_AUDIO_ENGINE=1");

@@ -231,6 +231,17 @@ rive::rcp<rive::ore::Texture> OreContextRHI::makeTexture(
     {
         Desc.SetClearValue(FClearValueBinding(FLinearColor::Transparent));
         Desc.AddFlags(ETextureCreateFlags::RenderTargetable);
+        // D3D11 pre-creates its render target views at texture creation and
+        // only builds one per mip unless told otherwise; rendering to an
+        // individual face/slice (RenderPassInfo.ArraySlice > 0, e.g. per-face
+        // cube passes) then asserts in FD3D11Texture::GetRenderTargetView.
+        // This flag makes it create one RTV per slice. Other RHIs create
+        // views on demand and ignore it.
+        if (desc.type == rive::ore::TextureType::cube ||
+            desc.type == rive::ore::TextureType::array2D)
+        {
+            Desc.AddFlags(ETextureCreateFlags::TargetArraySlicesIndependently);
+        }
     }
     else if (!GForceOreSingleSample && desc.sampleCount != 1)
     {
@@ -281,7 +292,21 @@ rive::rcp<rive::ore::TextureView> OreContextRHI::makeTextureView(
         // RHIs reject a view whose target doesn't match what the shader binds.
         // See ETextureDimensionFromOreViewDesc.
         init.SetDimension(ETextureDimensionFromOreViewDesc(desc));
-        init.SetArrayRange(desc.baseLayer, desc.layerCount);
+        // Ore's baseLayer/layerCount follow WebGPU semantics: always counted in
+        // array layers (cube faces). UE's FRHIViewDesc counts a cube view's
+        // array range in whole cubes (GetViewInfo multiplies by 6), so a
+        // face-based range like (0, 6) reads as 6 cubes and trips the
+        // out-of-bounds array-range check. Convert faces -> cubes for cube
+        // view dimensions.
+        uint32 ArrayFirst = desc.baseLayer;
+        uint32 ArrayNum = desc.layerCount;
+        if (desc.dimension == rive::ore::TextureViewDimension::cube ||
+            desc.dimension == rive::ore::TextureViewDimension::cubeArray)
+        {
+            ArrayFirst /= 6;
+            ArrayNum = FMath::Max(1u, ArrayNum / 6);
+        }
+        init.SetArrayRange(ArrayFirst, ArrayNum);
         init.SetMipRange(desc.baseMipLevel, desc.mipCount);
         const auto Format = tex->format();
         init.SetFormat(PixelFormatFromOreFormat(Format));
