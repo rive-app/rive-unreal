@@ -88,14 +88,14 @@ FDepthStencilStateRHIRef StencilStateForPipeline(
         PipelineState.depthTestEnabled ? CF_Less : CF_Always,
         PipelineState.stencilTestEnabled,
         CompareOpForStencilCompareOps(FrontOps.compareOp),
-        StencilOpForStencilFaceOps(FrontOps.failOp),
+        StencilOpForStencilFaceOps(FrontOps.stencilFailOp),
         StencilOpForStencilFaceOps(FrontOps.depthFailOp),
-        StencilOpForStencilFaceOps(FrontOps.passOp),
+        StencilOpForStencilFaceOps(FrontOps.depthStencilPassOp),
         PipelineState.stencilTestEnabled,
         CompareOpForStencilCompareOps(BackOps.compareOp),
-        StencilOpForStencilFaceOps(BackOps.failOp),
+        StencilOpForStencilFaceOps(BackOps.stencilFailOp),
         StencilOpForStencilFaceOps(BackOps.depthFailOp),
-        StencilOpForStencilFaceOps(BackOps.passOp),
+        StencilOpForStencilFaceOps(BackOps.depthStencilPassOp),
         PipelineState.stencilCompareMask,
         PipelineState.stencilWriteMask);
 

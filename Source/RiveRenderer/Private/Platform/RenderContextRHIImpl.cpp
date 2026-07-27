@@ -80,6 +80,8 @@ static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
             return TEXT("msaaStrokes");
         case rive::gpu::DrawType::msaaMidpointFanBorrowedCoverage:
             return TEXT("msaaMidpointFanBorrowedCoverage");
+        case rive::gpu::DrawType::msaaDynamicMidpointFans:
+            return TEXT("msaaDynamicMidpointFans");
         case rive::gpu::DrawType::msaaMidpointFans:
             return TEXT("msaaMidpointFans");
         case rive::gpu::DrawType::msaaMidpointFanStencilReset:
@@ -2352,6 +2354,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                     case DrawType::msaaStrokes:
                                     case DrawType::
                                         msaaMidpointFanBorrowedCoverage:
+                                    case DrawType::msaaDynamicMidpointFans:
                                     case DrawType::msaaMidpointFans:
                                     case DrawType::msaaMidpointFanStencilReset:
                                     case DrawType::msaaMidpointFanPathsStencil:
@@ -2801,6 +2804,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::renderPassResolve:
                     case DrawType::msaaStrokes:
                     case DrawType::msaaMidpointFanBorrowedCoverage:
+                    case DrawType::msaaDynamicMidpointFans:
                     case DrawType::msaaMidpointFans:
                     case DrawType::msaaMidpointFanStencilReset:
                     case DrawType::msaaMidpointFanPathsStencil:
@@ -3090,6 +3094,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::renderPassInitialize:
                     case DrawType::msaaStrokes:
                     case DrawType::msaaMidpointFanBorrowedCoverage:
+                    case DrawType::msaaDynamicMidpointFans:
                     case DrawType::msaaMidpointFans:
                     case DrawType::msaaMidpointFanStencilReset:
                     case DrawType::msaaMidpointFanPathsStencil:
