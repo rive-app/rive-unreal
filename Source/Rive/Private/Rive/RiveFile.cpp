@@ -38,7 +38,7 @@ THIRD_PARTY_INCLUDES_START
 #undef PI
 #include "rive/animation/state_machine_input.hpp"
 #include "rive/renderer/render_context.hpp"
-#include "Rive/command_server.hpp"
+#include "rive/command_server.hpp"
 #include "rive/file.hpp"
 #include "rive/assets/file_asset.hpp"
 #include "rive/assets/shader_asset.hpp"

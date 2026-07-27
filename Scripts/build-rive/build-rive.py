@@ -44,6 +44,7 @@ class PlatformBuildTypes(Enum):
     Android = 'Android'
     Mac = 'Mac'
     iOS = 'iOS'
+    Linux = 'Linux'
 
     def __str__(self):
         return self.value
@@ -202,7 +203,7 @@ class CompilePass(object):
 
 def execute_command(cmd) -> bool:
     """attempt to run cmd in another process, piping output to this process stdout. returns a CompileResult"""
-    if sys.platform.startswith('darwin'):
+    if sys.platform.startswith('darwin') or sys.platform.startswith('linux'):
         cmd = " ".join(cmd)
     print_green(f'Executing {cmd}')
     process = subprocess.Popen(cmd,
@@ -278,6 +279,17 @@ def main(rive_runtime_path):
                 return
         
         os.chdir(rive_runtime_path)
+    elif sys.platform.startswith('linux'):
+        if args.platforms is None or len(args.platforms) < 1:
+            args.platforms = [PlatformBuildTypes.Linux, PlatformBuildTypes.Android]
+
+        if PlatformBuildTypes.Linux in args.platforms:
+            if not do_linux(rive_runtime_path, True) or not do_linux(rive_runtime_path, False):
+                return
+            
+        if PlatformBuildTypes.Android in args.platforms:
+            if not do_android(rive_runtime_path, True) or not do_android(rive_runtime_path, False):
+                return
 
         
     else:
@@ -285,6 +297,99 @@ def main(rive_runtime_path):
         return
 
     copy_includes(rive_runtime_path)
+
+def get_unreal_linux_toolchain_bin():
+    """
+    Locate the bundled clang toolchain 'bin' dir of the associated Unreal Engine.
+    """
+    import json, glob
+    engine_dir = os.environ.get("RIVE_UNREAL_ENGINE")
+    if not engine_dir:
+        uproject = os.path.abspath(os.path.join(
+            script_directory, "..", "..", "..", "..", "rive_unreal.uproject"))
+        if os.path.exists(uproject):
+            try:
+                with open(uproject) as f:
+                    assoc = json.load(f).get("EngineAssociation", "").strip()
+            except (ValueError, OSError):
+                assoc = ""
+            if assoc.startswith("/") or assoc.startswith("~"):
+                engine_dir = os.path.expanduser(assoc)
+            elif assoc.startswith("{"):
+                # Match the GUID in Install.ini's [Installations] section. The GUID may be
+                # stored with or without braces (UE rewrites it either way), so compare
+                # brace-stripped and case-insensitively.
+                guid_key = assoc.strip("{}").lower()
+                install_ini = os.path.expanduser(
+                    "~/.config/Epic/UnrealEngine/Install.ini")
+                if os.path.exists(install_ini):
+                    in_installations = False
+                    with open(install_ini) as f:
+                        for line in f:
+                            line = line.strip()
+                            if line.startswith("["):
+                                in_installations = (line.lower() == "[installations]")
+                            elif in_installations and "=" in line:
+                                key, path = line.split("=", 1)
+                                if key.strip().strip("{}").lower() == guid_key:
+                                    engine_dir = path.strip()
+                                    break
+    if not engine_dir or not os.path.isdir(engine_dir):
+        return None
+    pattern = os.path.join(engine_dir, "Engine", "Extras", "ThirdPartyNotUE", "SDKs",
+                           "HostLinux", "Linux_x64", "*",
+                           "x86_64-unknown-linux-gnu", "bin")
+    matches = sorted(glob.glob(pattern))
+    return matches[-1] if matches else None
+
+def do_linux(rive_runtime_path, release):
+    if args.release_only and not release:
+        return True
+
+    should_build_tests = args.build_rive_tests and release
+
+    # Build with the engine's clang toolchain so the libs use libc++ (matching Unreal's
+    # module ABI). Prepending its bin dir makes premake's `clang`/`clang++` resolve to it.
+    toolchain_bin = get_unreal_linux_toolchain_bin()
+    if not toolchain_bin:
+        print_red("ERROR: could not locate the Unreal engine clang toolchain. The Linux libs "
+                  "must be built with it so they use libc++ and the engine sysroot. Set "
+                  "$RIVE_UNREAL_ENGINE to the engine root and retry.")
+        return False
+    print_green(f"Using Unreal engine clang toolchain: {toolchain_bin}")
+    os.environ["PATH"] = toolchain_bin + os.pathsep + os.environ["PATH"]
+    sysroot = os.path.dirname(toolchain_bin)
+    os.environ["CFLAGS"] = (os.environ.get("CFLAGS", "")
+                            + f" --sysroot={sysroot}").strip()
+    os.environ["CXXFLAGS"] = (os.environ.get("CXXFLAGS", "")
+                              + f" --sysroot={sysroot} -stdlib=libc++").strip()
+
+    out_dir = os.path.join('..', 'out', 'linux', 'release' if release else 'debug')
+    root_dir = os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' )
+
+    # Disable LTO on the Linux release build. The release libs are compiled with
+    # -flto (bitcode), and LTO strips rive::gpu::g_gaussianIntegralTableF16 /
+    # g_inverseGaussianIntegralTableF16 because nothing inside the Rive libraries
+    #
+    # --with-pic, the static libs are linked into Unreal's shared-object (.so)
+    # modules, which require position-independent code.
+    linux_pass = CompilePass(rive_runtime_path, root_dir, out_dir, release, "linux --no-lto --with-pic", targets + test_targets if should_build_tests else targets, os="linux")
+    if not linux_pass.try_build():
+        print_red("Exiting due to errors...")
+        return False
+    
+    os.chdir(out_dir)
+    print_green(f'Built in {os.getcwd()}')
+        
+    rive_libraries_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Libraries')
+
+    if not args.no_build:
+        print_green('Copying Linux libs')
+        copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Linux'), ".a", release)
+        if should_build_tests:
+            gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Linux")
+            copy_files(os.getcwd(), gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+    return True
 
 def do_android(rive_runtime_path, release):
     if args.release_only and not release:
@@ -498,6 +603,16 @@ def remove_readonly(func, path, exc_info):
     os.chmod(path, stat.S_IWRITE)
     func(path)
 
+def get_shader_include_arch():
+    if sys.platform.startswith('win32'):
+        return 'windows'
+    elif sys.platform.startswith('darwin'):
+        return 'mac/x64'
+    elif sys.platform.startswith('linux'):
+        return 'linux'
+    else:
+        raise Exception(f"Unsupported platform: {sys.platform}")
+
 def copy_includes(rive_runtime_path):
     print_green('Copying rive includes...')
     rive_constant_include_src = os.path.join(rive_runtime_path, "renderer", "src", "shaders", "constants.glsl")
@@ -508,7 +623,7 @@ def copy_includes(rive_runtime_path):
     goldens_includes_path = os.path.join(tests_includes_path, 'goldens')
     common_includes_path = os.path.join(tests_includes_path, 'common')
     rive_pls_includes_path = os.path.join(rive_runtime_path, 'renderer', 'include')
-    rive_shaders_includes_path = os.path.join(rive_runtime_path, 'out', 'windows' if sys.platform.startswith('win32') else 'mac/x64', 'release', "include")
+    rive_shaders_includes_path = os.path.join(rive_runtime_path, 'out', get_shader_include_arch(), 'release', "include")
     rive_shader_source_path = os.path.join(rive_runtime_path, 'renderer', 'src', 'shaders', "unreal")
     rive_decoders_includes_path = os.path.join(rive_runtime_path, 'decoders', 'include')
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')

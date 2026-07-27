@@ -119,18 +119,21 @@ public class RiveLibrary : ModuleRules
             AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "RiveLibrary_APL.xml"));
 			
         }
-        else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
+        else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Linux))
         {
-            //libDirectory = Path.Combine(rootDir, "Libraries", "Unix");
-            //extension = ".a";
-            // NOTE : Link Unix Libraries
-
+            // The Linux (gmake) build prefixes every archive with "lib", and
+            // build-rive.py then prepends "rive_", so the core libs are named
+            // "rive_librive*.a" and the vendored libs "rive_liblib*.a". The "rive_lib"
+            // prefix maps the base names used in the loop below to those filenames.
+            details.Add(new NativeLibraryDetails(".a", libSuffix, "rive_lib", Path.Combine(rootDir, "Libraries", "Linux")));
         }
 
 		foreach (var detail in details)
 		{
-	        if (Target.IsInPlatformGroup(UnrealPlatformGroup.Apple) || Target.IsInPlatformGroup(UnrealPlatformGroup.Android))
+	        if (Target.IsInPlatformGroup(UnrealPlatformGroup.Apple) || Target.IsInPlatformGroup(UnrealPlatformGroup.Android) || Target.IsInPlatformGroup(UnrealPlatformGroup.Linux))
 	        {
+	            // Apple/Android/Linux keep the vendored libs' "lib" name (e.g. libwebp);
+	            // the per-platform prefix in the detail turns it into the real filename.
 	            PublicAdditionalLibraries.AddRange(new string[]
 	           {
 	                    detail.GetLibPath("libwebp"),
@@ -163,7 +166,11 @@ public class RiveLibrary : ModuleRules
             // You don't have to build with scripting enabled.
             // This checks for the library to be in the folder
             // before attempting to add it.
-            var luauPath = detail.GetLibPath("luau_vm");
+            // On Linux build-rive.py does not add the "rive_" prefix to luau, so it is
+            // "libluau_vm.a" rather than matching the "rive_lib" naming used above.
+            var luauPath = Target.IsInPlatformGroup(UnrealPlatformGroup.Linux)
+                ? Path.Combine(detail.LibDirectory, "libluau_vm" + libSuffix + ".a")
+                : detail.GetLibPath("luau_vm");
             if (File.Exists(luauPath))
             {
                 PublicAdditionalLibraries.Add(luauPath);

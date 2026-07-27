@@ -19,41 +19,41 @@
 			"Name": "Rive",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
-			"PlatformAllowList": [ "Win64", "Mac" ],
+			"PlatformAllowList": [ "Win64", "Mac", "Linux"  ],
 			"BlacklistTargets": [ "Server" ]
 		},
 		{
 			"Name": "RiveShaders",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"PlatformAllowList": [ "Win64", "Mac" ],
+			"PlatformAllowList": [ "Win64", "Mac", "Linux" ],
 			"BlacklistTargets": [ "Server" ]
 		},
 		{
 			"Name": "RiveStats",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"PlatformAllowList": [ "Win64", "Mac" ],
+			"PlatformAllowList": [ "Win64", "Mac", "Linux"  ],
 			"BlacklistTargets": [ "Server" ]
 		},
 		{
 			"Name": "RiveRenderer",
 			"Type": "RuntimeNoCommandlet",
 			"LoadingPhase": "PreDefault",
-			"PlatformAllowList": [ "Win64", "Mac" ],
+			"PlatformAllowList": [ "Win64", "Mac", "Linux"  ],
 			"BlacklistTargets": [ "Server" ]
 		},
 		{
 			"Name": "RiveEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default",
-			"PlatformAllowList": [ "Win64", "Mac" ]
+			"PlatformAllowList": [ "Win64", "Mac", "Linux"  ]
 		},
 		{
 			"Name": "RiveEditorNodes",
 			"Type": "UncookedOnly",
 			"LoadingPhase": "Default",
-			"PlatformAllowList": [ "Win64", "Mac" ]
+			"PlatformAllowList": [ "Win64", "Mac", "Linux"  ]
 		}
 	]
 }

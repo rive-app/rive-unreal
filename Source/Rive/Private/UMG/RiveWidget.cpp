@@ -230,9 +230,9 @@ void URiveWidget::PostEditChangeChainProperty(
             }
         }
 
-        if ((RiveDescriptor.ArtboardName.IsEmpty() ||
-             !ArtboardNames.Contains(RiveDescriptor.ArtboardName) &&
-                 !ArtboardNames.IsEmpty()))
+        if (RiveDescriptor.ArtboardName.IsEmpty() ||
+            (!ArtboardNames.Contains(RiveDescriptor.ArtboardName) &&
+             !ArtboardNames.IsEmpty()))
         {
             RiveDescriptor.ArtboardName = ArtboardNames[0];
         }
