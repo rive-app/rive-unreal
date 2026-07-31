@@ -7,7 +7,6 @@
 
 #if WITH_RIVE
 class URiveAsset;
-class URiveTextureObject;
 
 THIRD_PARTY_INCLUDES_START
 #undef PI

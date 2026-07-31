@@ -15,9 +15,7 @@ THIRD_PARTY_INCLUDES_END
 #include "RiveWidget.generated.h"
 
 struct FRiveStateMachine;
-class URiveTextureObject;
 class URiveArtboard;
-class URiveTexture;
 class SRiveLeafWidget;
 class URiveAudioEngine;
 class URiveFile;

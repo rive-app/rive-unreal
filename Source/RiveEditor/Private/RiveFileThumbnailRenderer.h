@@ -8,7 +8,6 @@
 
 class FRiveRenderTarget;
 class URiveArtboard;
-class URiveTexture;
 
 /**
  *

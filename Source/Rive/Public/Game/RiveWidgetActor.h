@@ -9,7 +9,6 @@
 class UUserWidget;
 class URiveWidget;
 struct FRiveDescriptor;
-class URiveTextureObject;
 
 UCLASS()
 class RIVE_API ARiveWidgetActor : public AActor

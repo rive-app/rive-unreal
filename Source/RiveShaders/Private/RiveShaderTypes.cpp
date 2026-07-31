@@ -27,14 +27,16 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
 #endif
 
     Environment.SetDefine(TEXT("FORCE_ATOMIC_BUFFER"), Params.Platform == 39);
-    if (Params.Platform != 39 && Params.Platform != 43)
-    {
-        Environment.SetDefine(TEXT("ENABLE_TYPED_UAV_LOAD_STORE"), 1);
-    }
-    else
+
+    if (Params.Platform == 39 || Params.Platform == 43)
     {
         Environment.SetDefine(TEXT("NEEDS_PATH_ID_CLAMP_WORKAROUND"), 1);
     }
+
+    // Making this a permutation causes us to exceed the permutation limit in
+    // unreal. For now, since no platforms we target need to be packed. We can
+    // just leave it on. If we need to revisit this later we can.
+    Environment.SetDefine(TEXT("ENABLE_TYPED_UAV_LOAD_STORE"), TEXT("1"));
 
     if (Params.Platform != 33)
     {
@@ -322,6 +324,11 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGDrawAtlasVertexShader,
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGBltU32AsF4PixelShader,
                         "/Plugin/Rive/Private/Rive/blt_u32_as_f4.usf",
+                        "FragmentMain",
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGBltR16FAsF4PixelShader,
+                        "/Plugin/Rive/Private/Rive/blt_f16_as_f4.usf",
                         "FragmentMain",
                         SF_Pixel);
 

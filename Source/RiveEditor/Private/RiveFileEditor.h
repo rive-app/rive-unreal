@@ -4,7 +4,6 @@
 
 #include "Toolkits/AssetEditorToolkit.h"
 
-class URiveTextureObject;
 class URiveFile;
 class IDetailsView;
 class SRiveLeafWidget;

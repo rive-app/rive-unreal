@@ -275,7 +275,8 @@ static TAutoConsoleVariable<int32> CVarShouldVisualizeRive(
         TEXT("  3: visualize tessellation texture\n")
         TEXT("  4: visualize paint data buffer\n")
         TEXT("  5: visualize msaa color buffer\n")
-        TEXT("  6: visualize msaa stencil buffer\n"),
+        TEXT("  6: visualize msaa stencil buffer\n")
+        TEXT("  7: visualize feather atlas texture\n"),
     ECVF_Scalability | ECVF_RenderThreadSafe);
 static TAutoConsoleVariable<bool> CVarRiveWireframe(
     TEXT("r.rive.wireframe"),
@@ -299,7 +300,6 @@ void GetPermutationForFeatures(
     const ShaderFeatures features,
     const ShaderMiscFlags miscFlags,
     const RHICapabilities& Capabilities,
-    bool force4ComponenWrite,
     bool needsLinearGamma,
     bool needsCoalesce,
     AtomicPixelPermutationDomain& PixelPermutationDomain,
@@ -395,6 +395,35 @@ void AddBltU324ToF4Pass(FRDGBuilder& GraphBuilder,
                                          Viewport);
 }
 
+void AddBltF16ToF4Pass(FRDGBuilder& GraphBuilder,
+                       FRDGTextureRef SourceTexture,
+                       FRDGTextureRef DestTexture,
+                       FIntRect Viewport)
+{
+    auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+
+    TShaderMapRef<FRiveRDGBltR16FAsF4PixelShader> PixelShader(ShaderMap);
+
+    FRiveRDGBltR16FAsF4PixelShader::FParameters* BltU324ToF4Parameters =
+        GraphBuilder
+            .AllocParameters<FRiveRDGBltR16FAsF4PixelShader::FParameters>();
+
+    BltU324ToF4Parameters->SourceSampler =
+        TStaticSamplerState<SF_Bilinear>::GetRHI();
+    BltU324ToF4Parameters->SourceTexture = SourceTexture;
+    BltU324ToF4Parameters->ViewSize =
+        FUintVector2(Viewport.Width(), Viewport.Height());
+    BltU324ToF4Parameters->RenderTargets[0] =
+        FRenderTargetBinding(DestTexture, ERenderTargetLoadAction::EClear);
+
+    FPixelShaderUtils::AddFullscreenPass(GraphBuilder,
+                                         ShaderMap,
+                                         RDG_EVENT_NAME("riv.F16ToF4"),
+                                         PixelShader,
+                                         BltU324ToF4Parameters,
+                                         Viewport);
+}
+
 /*
  * Convenience function for adding a PF_R32G32_UINT Buffer visualization pass,
  * used for debuging
@@ -447,11 +476,8 @@ RHICapabilities::RHICapabilities()
     bSupportsRasterOrderViews = GRHISupportsRasterOrderViews;
 #endif
 #endif
-    // it seems vulkan requires typed uav support.
-    bSupportsTypedUAVLoads =
-        (RHISupports4ComponentUAVReadWrite(GMaxRHIShaderPlatform) ||
-         GDynamicRHI->GetInterfaceType() != ERHIInterfaceType::Vulkan) &&
-        ENABLE_TYPED_UAV_LOAD_STORE;
+    // Typed is the default everywhere modern unreal supports.
+    bSupportsTypedUAVLoads = true;
 }
 
 template <typename DataType>
@@ -719,18 +745,21 @@ FRDGTextureRef RenderTargetRHI::backBufferTexture(
     }
 
     ETextureCreateFlags CreateFlags = ETextureCreateFlags::None;
+    EPixelFormat UAVFormat = PF_Unknown;
     if (Desc.interlockMode == InterlockMode::msaa)
         CreateFlags |= ETextureCreateFlags::ResolveTargetable;
     else if (Desc.fixedFunctionColorOutput)
         CreateFlags |= ETextureCreateFlags::RenderTargetable;
     else
-        CreateFlags |= ETextureCreateFlags::UAV;
+        CreateFlags |=
+            ETextureCreateFlags::UAV | ETextureCreateFlags::ShaderResource;
 
-    const FRDGTextureDesc CreateDesc =
+    FRDGTextureDesc CreateDesc =
         FRDGTextureDesc::Create2D(Extent,
                                   Format,
                                   FClearValueBinding(ClearColor),
                                   CreateFlags);
+    CreateDesc.UAVFormat = UAVFormat;
 
     return Builder.CreateTexture(CreateDesc, TEXT("rive.BackBuffer"));
 }
@@ -917,7 +946,6 @@ RenderContextRHIImpl::RenderContextRHIImpl(
 
     m_platformFeatures.clipSpaceBottomUp = true;
     m_platformFeatures.framebufferBottomUp = false;
-    m_capabilities.bSupportsTypedUAVLoads = true;
 #elif RIVE_FORCE_MSAA
     m_platformFeatures.supportsAtomicMode = false;
     m_platformFeatures.supportsClipPlanes = true;
@@ -925,7 +953,6 @@ RenderContextRHIImpl::RenderContextRHIImpl(
 
     m_platformFeatures.clipSpaceBottomUp = true;
     m_platformFeatures.framebufferBottomUp = false;
-    m_capabilities.bSupportsTypedUAVLoads = true;
 
 #else
     m_platformFeatures.supportsAtomicMode =
@@ -940,7 +967,6 @@ RenderContextRHIImpl::RenderContextRHIImpl(
 
     m_platformFeatures.clipSpaceBottomUp = true;
     m_platformFeatures.framebufferBottomUp = false;
-    m_capabilities.bSupportsTypedUAVLoads &= Overrides.bSupportsTypedUAVLoads;
 #if PLATFORM_ANDROID
     m_platformFeatures.pathIDGranularity = 2;
     m_platformFeatures.framebufferBottomUp = true;
@@ -1707,12 +1733,15 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             (!renderTarget->TargetTextureSupportsRenderTarget() &&
              desc.fixedFunctionColorOutput) ||
             (!renderTarget->TargetTextureSupportsResolveTarget() &&
-             desc.interlockMode == InterlockMode::msaa);
+             desc.interlockMode == InterlockMode::msaa) ||
+            (!desc.fixedFunctionColorOutput &&
+             desc.interlockMode != InterlockMode::msaa &&
+             targetTexture->Desc.Format != PF_R8G8B8A8);
 
         const bool NeedsCoalesceResolve =
-            NeedsBackBuffer && desc.interlockMode == InterlockMode::atomics;
-        const bool NeedsFinalCopy =
-            NeedsBackBuffer && desc.interlockMode != InterlockMode::atomics;
+            NeedsBackBuffer && desc.interlockMode == InterlockMode::atomics &&
+            !desc.fixedFunctionColorOutput;
+        const bool NeedsFinalCopy = NeedsBackBuffer && !NeedsCoalesceResolve;
 
         if (NeedsBackBuffer)
         {
@@ -1735,9 +1764,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             }
         }
 
-        const bool NeedsForceUAVTypes =
-            targetTexture->Desc.Format != PF_R8G8B8A8;
-
         const bool TargetIsSRGB = static_cast<bool>(targetTexture->Desc.Flags &
                                                     ETextureCreateFlags::SRGB);
         const bool NeedsLinearColorOutput =
@@ -1748,7 +1774,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         if (!desc.fixedFunctionColorOutput &&
             desc.interlockMode != InterlockMode::msaa)
         {
-            if (m_capabilities.bSupportsTypedUAVLoads || NeedsForceUAVTypes)
+            if (m_capabilities.bSupportsTypedUAVLoads)
             {
                 targetUAV = GraphBuilder.CreateUAV(
                     NeedsBackBuffer ? backBuffer : targetTexture);
@@ -2077,7 +2103,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 float clearColor4f[4];
                 UnpackColorToRGBA32FPremul(desc.colorClearValue, clearColor4f);
                 AddClearRenderTargetPass(GraphBuilder,
-                                         targetTexture,
+                                         NeedsBackBuffer ? backBuffer
+                                                         : targetTexture,
                                          FLinearColor(clearColor4f[0],
                                                       clearColor4f[1],
                                                       clearColor4f[2],
@@ -2085,7 +2112,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             }
             else if (desc.interlockMode != InterlockMode::msaa)
             {
-                if (m_capabilities.bSupportsTypedUAVLoads || NeedsForceUAVTypes)
+                if (m_capabilities.bSupportsTypedUAVLoads)
                 {
                     float clearColor4f[4];
                     UnpackColorToRGBA32FPremul(desc.colorClearValue,
@@ -2249,7 +2276,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                          capabilities = m_capabilities,
                          platformFeatures = m_platformFeatures,
                          imageSamplers = m_imageSamplers,
-                         NeedsForceUAVTypes,
                          NextRenderPass,
                          imageDrawInstanceBuffer =
                              m_imageDrawInstanceBuffer.get(),
@@ -2295,7 +2321,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                     ShaderFeatures,
                                     shaderMiscFlags,
                                     capabilities,
-                                    NeedsForceUAVTypes,
                                     NeedsLinearColorOutput,
                                     false,
                                     PixelPermutationDomain,
@@ -2590,7 +2615,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 GetPermutationForFeatures(ShaderFeatures,
                                           ShaderMiscFlags,
                                           m_capabilities,
-                                          NeedsForceUAVTypes,
                                           NeedsLinearColorOutput,
                                           NeedsCoalesceResolve &&
                                               batch.drawType ==
@@ -2840,7 +2864,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 GetPermutationForFeatures(ShaderFeatures,
                                           ShaderMiscFlags,
                                           m_capabilities,
-                                          NeedsForceUAVTypes,
                                           NeedsLinearColorOutput,
                                           NeedsCoalesceResolve &&
                                               batch.drawType ==
@@ -3108,25 +3131,34 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         if (NeedsFinalCopy)
         {
-            auto Params =
-                GraphBuilder.AllocParameters<FRiveDrawTextureBltParameters>();
-            Params->RenderTargets[0] =
-                FRenderTargetBinding(targetTexture,
-                                     ERenderTargetLoadAction::ELoad);
-            Params->PS.GLSL_sourceTexture_raw = backBuffer;
-            // If we have a back buffer we need to blend it back into the render
-            // target so use our draw shader because CopyTexture and DrawTexture
-            // don't support blending.
-            AddDrawTextureBlt(GraphBuilder,
-                              VertexDeclarations[static_cast<int>(
-                                  EVertexDeclarations::Resolve)],
-                              FUint32Rect(desc.renderTargetUpdateBounds.left,
-                                          desc.renderTargetUpdateBounds.top,
-                                          desc.renderTargetUpdateBounds.right,
-                                          desc.renderTargetUpdateBounds.bottom),
-                              ShaderMap,
-                              Params,
-                              false);
+            if (!renderTarget->TargetTextureSupportsRenderTarget())
+            {
+                AddCopyTexturePass(GraphBuilder, backBuffer, targetTexture);
+            }
+            else
+            {
+                auto Params =
+                    GraphBuilder
+                        .AllocParameters<FRiveDrawTextureBltParameters>();
+                Params->RenderTargets[0] =
+                    FRenderTargetBinding(targetTexture,
+                                         ERenderTargetLoadAction::ELoad);
+                Params->PS.GLSL_sourceTexture_raw = backBuffer;
+                // If we have a back buffer we need to blend it back into the
+                // render target so use our draw shader because CopyTexture and
+                // DrawTexture don't support blending.
+                AddDrawTextureBlt(
+                    GraphBuilder,
+                    VertexDeclarations[static_cast<int>(
+                        EVertexDeclarations::Resolve)],
+                    FUint32Rect(desc.renderTargetUpdateBounds.left,
+                                desc.renderTargetUpdateBounds.top,
+                                desc.renderTargetUpdateBounds.right,
+                                desc.renderTargetUpdateBounds.bottom),
+                    ShaderMap,
+                    Params,
+                    false);
+            }
         }
 
         static const auto CVarVisualize =
@@ -3209,6 +3241,19 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                        {.Size = UpdateSize,
                                         .SourcePosition = UpdatePosition,
                                         .DestPosition = UpdatePosition});
+                }
+                break;
+            case 7:
+                if (featherAtlasTexture != placeholderTexture)
+                {
+                    FIntPoint UpdatePosition{desc.renderTargetUpdateBounds.left,
+                                             desc.renderTargetUpdateBounds.top};
+                    AddBltF16ToF4Pass(GraphBuilder,
+                                      featherAtlasTexture,
+                                      targetTexture,
+                                      {{0, 0},
+                                       FIntPoint(renderTarget->width(),
+                                                 renderTarget->height())});
                 }
                 break;
             default:

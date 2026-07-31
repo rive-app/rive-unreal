@@ -333,7 +333,6 @@ public:
     struct RHICapabilitiesOverrides
     {
         bool bSupportsPixelShaderUAVs = true;
-        bool bSupportsTypedUAVLoads = true;
 #if PLATFORM_APPLE
         bool bSupportsRasterOrderViews = true;
 #else

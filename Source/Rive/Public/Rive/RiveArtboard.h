@@ -19,7 +19,6 @@ struct FArtboardDefinition;
 struct FRiveCommandBuilder;
 class FRiveRenderTarget;
 class URiveFile;
-class URiveTextureObject;
 
 THIRD_PARTY_INCLUDES_START
 #undef PI

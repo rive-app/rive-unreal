@@ -11,7 +11,6 @@ class SImage;
 class URiveArtboard;
 struct FRiveStateMachine;
 class UUserWidget;
-class URiveTexture;
 
 class RIVE_API SRiveLeafWidget : public SLeafWidget
 {

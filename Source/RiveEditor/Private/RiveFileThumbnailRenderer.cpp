@@ -8,7 +8,6 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Rive/RiveArtboard.h"
 #include "Rive/RiveFile.h"
-#include "Rive/RiveTexture.h"
 #include "RiveRenderer.h"
 #include "RiveRenderTarget.h"
 #include "Logs/RiveEditorLog.h"

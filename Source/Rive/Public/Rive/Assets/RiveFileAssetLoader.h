@@ -8,7 +8,6 @@
 #if WITH_RIVE
 
 class URiveAsset;
-class URiveTextureObject;
 
 namespace rive
 {

@@ -18,10 +18,6 @@
 #define RIVE_FORCE_USE_GENERATED_UNIFORMS 1
 #endif
 
-#ifndef ENABLE_TYPED_UAV_LOAD_STORE
-#define ENABLE_TYPED_UAV_LOAD_STORE 1
-#endif
-
 #ifndef FORCE_ATOMIC_BUFFER
 #define FORCE_ATOMIC_BUFFER 0
 #endif
@@ -1055,6 +1051,26 @@ public:
 
     BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
     SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SourceTexture)
+    RENDER_TARGET_BINDING_SLOTS()
+    END_SHADER_PARAMETER_STRUCT()
+};
+
+/*
+ * The shader will convert a PF_R32G32B32A32_UINT texture to PF_R8G8B8A8 in
+ * order to visualize it. It does so by writing SourceTexture to the current
+ * rendertarget color float4( float(val.r), float(val.g), float(val.b), 1.0 );
+ */
+class FRiveRDGBltR16FAsF4PixelShader : public FGlobalShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGBltR16FAsF4PixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGBltR16FAsF4PixelShader, FGlobalShader);
+
+    BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+    SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SourceTexture)
+    SHADER_PARAMETER_SAMPLER(SamplerState, SourceSampler)
+    SHADER_PARAMETER(UE::HLSL::uint2, ViewSize)
     RENDER_TARGET_BINDING_SLOTS()
     END_SHADER_PARAMETER_STRUCT()
 };
