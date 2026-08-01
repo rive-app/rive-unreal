@@ -347,7 +347,8 @@ public:
     // This must use the same GraphBuilder as Flush. Currently only used for GM
     // testing.
     static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
-        FRDGTextureRef& InTargetTexture);
+        FRDGBuilder& Builder,
+        FRDGTextureRef InTargetTexture);
 
     static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
         const FTextureRHIRef& InTargetTexture);

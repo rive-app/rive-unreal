@@ -1856,7 +1856,8 @@ FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
                               FUint32Rect Viewport,
                               FGlobalShaderMap* ShaderMap,
                               FRiveDrawTextureBltParameters* PassParameters,
-                              bool isMSAAResolve)
+                              bool isMSAAResolve,
+                              bool bOpaque)
 {
     FRiveBltTextureAsDrawPixelShader::FPermutationDomain Domain;
     Domain.Set<FEnableMSAASourceTexture>(isMSAAResolve);
@@ -1874,7 +1875,8 @@ FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
          VertexDeclarationRHI,
          PassParameters,
          VertexShader,
-         PixelShader](FRHICommandList& RHICmdList) {
+         PixelShader,
+         bOpaque](FRHICommandList& RHICmdList) {
             RHI_BREADCRUMB_EVENT(RHICmdList, "rive.TextureBlt");
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
             GraphicsPSOInit.DepthStencilState =
@@ -1888,13 +1890,14 @@ FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
             GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
 
             GraphicsPSOInit.BlendState =
-                TStaticBlendState<CW_RGBA,
-                                  BO_Add,
-                                  BF_One,
-                                  BF_InverseSourceAlpha,
-                                  BO_Add,
-                                  BF_One,
-                                  BF_InverseSourceAlpha>::GetRHI();
+                bOpaque ? TStaticBlendState<>::GetRHI()
+                        : TStaticBlendState<CW_RGBA,
+                                            BO_Add,
+                                            BF_One,
+                                            BF_InverseSourceAlpha,
+                                            BO_Add,
+                                            BF_One,
+                                            BF_InverseSourceAlpha>::GetRHI();
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 

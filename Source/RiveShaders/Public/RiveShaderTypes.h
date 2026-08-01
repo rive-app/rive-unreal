@@ -217,7 +217,7 @@ SHADER_PARAMETER_RDG_TEXTURE(Texture2DArray<float>,
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_featherAtlasTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
 SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_imageTexture_raw)
-SHADER_PARAMETER_RDG_TEXTURE(Texture2DMS, GLSL_dstColorTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_dstColorTexture_raw)
 
 SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)

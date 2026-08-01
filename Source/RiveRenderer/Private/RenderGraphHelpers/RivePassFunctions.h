@@ -240,7 +240,8 @@ FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
                               FUint32Rect Viewport,
                               FGlobalShaderMap* ShaderMap,
                               FRiveDrawTextureBltParameters* PassParameters,
-                              bool isMSAAResolve);
+                              bool isMSAAResolve,
+                              bool bOpaque = false);
 
 void AddDrawTextureBlt(FRHICommandList& RHICmdList,
                        FVertexDeclarationRHIRef VertexDeclarationRHI,

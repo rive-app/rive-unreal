@@ -59,6 +59,14 @@ TextureRHIImpl::TextureRHIImpl(const FRDGTextureRef& InTexture) :
     m_RDGTexture(InTexture)
 {}
 
+TextureRHIImpl::TextureRHIImpl(const FRDGTextureRef& InRDGTexture,
+                               const FTextureRHIRef& InTexture) :
+    rive::gpu::Texture(InRDGTexture->Desc.GetSize().X,
+                       InRDGTexture->Desc.GetSize().Y),
+    m_RDGTexture(InRDGTexture),
+    m_texture(InTexture)
+{}
+
 TextureRHIImpl::TextureRHIImpl(UTextureRenderTarget2D* InTexture) :
     rive::gpu::Texture(InTexture->SizeX, InTexture->SizeY),
     m_UTexture(InTexture)

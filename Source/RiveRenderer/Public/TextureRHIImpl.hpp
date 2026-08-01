@@ -47,6 +47,11 @@ public:
     TextureRHIImpl(const FTextureRHIRef& InTexture);
     TextureRHIImpl(const FRDGTextureRef& InTexture);
 
+    // For an rdg texture that has been made external, so contents() works for
+    // paths that bind a raw rhi texture.
+    TextureRHIImpl(const FRDGTextureRef& InRDGTexture,
+                   const FTextureRHIRef& InTexture);
+
     // Variants for data binding render targets.
     TextureRHIImpl(UTextureRenderTarget2D* InTexture);
 
