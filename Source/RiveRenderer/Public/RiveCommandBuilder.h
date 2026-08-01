@@ -287,6 +287,23 @@ struct RIVERENDERER_API FRiveCommandBuilder
     rive::RenderImageHandle CreateRenderImage(UTexture*,
                                               uint64_t* outRequestId = nullptr);
 
+    rive::BlobAssetHandle CreateBlobAsset(const TArray<uint8>& Bytes,
+                                          uint64_t* outRequestId = nullptr)
+    {
+        std::vector<uint8_t> BlobBytes(Bytes.GetData(),
+                                       Bytes.GetData() + Bytes.Num());
+        if (outRequestId)
+        {
+            *outRequestId = ++CurrentRequestId;
+            return CommandQueue->decodeBlob(MoveTemp(BlobBytes),
+                                            nullptr,
+                                            *outRequestId);
+        }
+        return CommandQueue->decodeBlob(MoveTemp(BlobBytes),
+                                        nullptr,
+                                        ++CurrentRequestId);
+    }
+
     uint64_t GetPropertyValue(rive::ViewModelInstanceHandle ViewModel,
                               const FString& Name,
                               rive::DataType Type)
@@ -328,6 +345,7 @@ struct RIVERENDERER_API FRiveCommandBuilder
             case rive::DataType::integer:
             case rive::DataType::symbolListIndex:
             case rive::DataType::assetImage:
+            case rive::DataType::assetBlob:
             case rive::DataType::artboard:
                 return -1;
         }
@@ -460,6 +478,18 @@ struct RIVERENDERER_API FRiveCommandBuilder
                                const FString& Name,
                                UTexture* Value);
 
+    uint64_t SetViewModelBlob(rive::ViewModelInstanceHandle ViewModel,
+                              const FString& Name,
+                              rive::BlobAssetHandle Value)
+    {
+        FTCHARToUTF8 ConvertName(*Name);
+        CommandQueue->setViewModelInstanceBlob(ViewModel,
+                                               ConvertName.Get(),
+                                               Value,
+                                               ++CurrentRequestId);
+        return CurrentRequestId;
+    }
+
     uint64_t SetViewModelViewModel(rive::ViewModelInstanceHandle ViewModel,
                                    const FString& Name,
                                    rive::ViewModelInstanceHandle Value)
@@ -556,6 +586,12 @@ struct RIVERENDERER_API FRiveCommandBuilder
     uint64_t DestroyViewModel(rive::ViewModelInstanceHandle ViewModel)
     {
         CommandQueue->deleteViewModelInstance(ViewModel, ++CurrentRequestId);
+        return CurrentRequestId;
+    }
+
+    uint64_t DestroyBlob(rive::BlobAssetHandle Blob)
+    {
+        CommandQueue->deleteBlob(Blob, ++CurrentRequestId);
         return CurrentRequestId;
     }
 

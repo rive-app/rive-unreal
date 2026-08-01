@@ -16,6 +16,7 @@
 #include "Subsystems/ImportSubsystem.h"
 #include "Misc/FileHelper.h"
 #include "Rive/RiveArtboard.h"
+#include "Rive/RiveBlobAsset.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveUtils.h"
 #include "Rive/RiveViewModel.h"
@@ -55,6 +56,8 @@ static FName RiveDataTypeToPinCatagory(ERiveDataType DataType)
         case ERiveDataType::ViewModel:
             return UEdGraphSchema_K2::PC_Object;
         case ERiveDataType::AssetImage:
+            return UEdGraphSchema_K2::PC_Object;
+        case ERiveDataType::AssetBlob:
             return UEdGraphSchema_K2::PC_Object;
         case ERiveDataType::Artboard:
             return UEdGraphSchema_K2::PC_Object;
@@ -282,6 +285,10 @@ static UBlueprint* GenerateBlueprintForViewModel(
             else if (PropertyDefinition.Type == ERiveDataType::AssetImage)
             {
                 PinType.PinSubCategoryObject = UTexture::StaticClass();
+            }
+            else if (PropertyDefinition.Type == ERiveDataType::AssetBlob)
+            {
+                PinType.PinSubCategoryObject = URiveBlobAsset::StaticClass();
             }
             else if (PropertyDefinition.Type == ERiveDataType::Trigger)
             {

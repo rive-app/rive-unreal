@@ -96,6 +96,8 @@ static FString GetIconForPropertyType(ERiveDataType Type)
             return FString(TEXT("\xf247"));
         case ERiveDataType::AssetImage:
             return FString(TEXT("\xf03e"));
+        case ERiveDataType::AssetBlob:
+            return FString(TEXT("\xf15b")); // FontAwesome icon for file
         case ERiveDataType::Boolean:
             return FString(TEXT("\xf046")); // FontAwesome icon for check-square
         case ERiveDataType::Color:
@@ -142,6 +144,8 @@ static FString GetTextForPropertyType(ERiveDataType Type)
             return FString(TEXT("ViewModel"));
         case ERiveDataType::AssetImage:
             return FString(TEXT("Texture"));
+        case ERiveDataType::AssetBlob:
+            return FString(TEXT("Blob"));
         case ERiveDataType::Artboard:
             return FString(TEXT("Artboard"));
         case ERiveDataType::SymbolListIndex:

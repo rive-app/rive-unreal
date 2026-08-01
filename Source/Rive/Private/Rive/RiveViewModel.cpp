@@ -8,6 +8,7 @@
 #include "rive/command_queue.hpp"
 #include "rive/command_server.hpp"
 #include "Rive/RiveArtboard.h"
+#include "Rive/RiveBlobAsset.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveUtils.h"
 #include "Engine/BlueprintGeneratedClass.h"
@@ -45,6 +46,8 @@ static rive::DataType RiveDataTypeToDataType(ERiveDataType Type)
             return rive::DataType::viewModel;
         case ERiveDataType::AssetImage:
             return rive::DataType::assetImage;
+        case ERiveDataType::AssetBlob:
+            return rive::DataType::assetBlob;
         case ERiveDataType::Artboard:
             return rive::DataType::artboard;
         case ERiveDataType::SymbolListIndex:
@@ -138,6 +141,7 @@ constexpr bool GetIsPropertyTypeWithDefault(ERiveDataType Type)
         case ERiveDataType::Artboard:
             return true;
         case ERiveDataType::AssetImage:
+        case ERiveDataType::AssetBlob:
         case ERiveDataType::List:
         case ERiveDataType::Trigger:
         case ERiveDataType::SymbolListIndex:
@@ -425,6 +429,7 @@ void URiveViewModel::SetupGeneratedProperties(FRiveCommandBuilder& Builder,
                     break;
                     case ERiveDataType::Artboard:
                     case ERiveDataType::AssetImage:
+                    case ERiveDataType::AssetBlob:
                     case ERiveDataType::List:
                     case ERiveDataType::None:
                     case ERiveDataType::Trigger:
@@ -437,6 +442,7 @@ void URiveViewModel::SetupGeneratedProperties(FRiveCommandBuilder& Builder,
             if (PropertyDefinition.Type == ERiveDataType::ViewModel ||
                 PropertyDefinition.Type == ERiveDataType::SymbolListIndex ||
                 PropertyDefinition.Type == ERiveDataType::AssetImage ||
+                PropertyDefinition.Type == ERiveDataType::AssetBlob ||
                 PropertyDefinition.Type == ERiveDataType::Artboard)
             {
                 continue;
@@ -782,6 +788,32 @@ bool URiveViewModel::SetImageValue(const FString& PropertyName,
         }
         ObjectProperty->SetPropertyValue_InContainer(this, InImage);
         UnsettleStateMachine(TEXT("SetImageValue"));
+        UE::FieldNotification::FFieldId Field =
+            GetFieldNotificationDescriptor().GetField(GetClass(),
+                                                      *PropertyName);
+        BroadcastFieldValueChanged(Field);
+        return true;
+    }
+    return false;
+}
+
+bool URiveViewModel::SetBlobValue(const FString& PropertyName,
+                                  URiveBlobAsset* InBlob)
+{
+    check(bIsGenerated);
+    if (auto ObjectProperty =
+            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
+    {
+        if (ObjectProperty->PropertyClass != URiveBlobAsset::StaticClass())
+        {
+            UE_LOG(LogRive,
+                   Error,
+                   TEXT("Invalid Property %s For Blob Value Set"),
+                   *PropertyName);
+            return false;
+        }
+        ObjectProperty->SetPropertyValue_InContainer(this, InBlob);
+        UnsettleStateMachine(TEXT("SetBlobValue"));
         UE::FieldNotification::FFieldId Field =
             GetFieldNotificationDescriptor().GetField(GetClass(),
                                                       *PropertyName);
@@ -1266,6 +1298,7 @@ void URiveViewModel::OnViewModelDataReceived(
         case rive::DataType::viewModel:
         case rive::DataType::artboard:
         case rive::DataType::assetImage:
+        case rive::DataType::assetBlob:
             break;
         // Invalid values
         case rive::DataType::none:
@@ -1529,6 +1562,16 @@ void URiveViewModel::OnUpdatedField(UE::FieldNotification::FFieldId InFieldId)
                                           PropName,
                                           TextureObject);
             }
+        }
+        else if (ObjectClass == URiveBlobAsset::StaticClass())
+        {
+            // A null blob clears the property.
+            URiveBlobAsset* BlobObject = Cast<URiveBlobAsset>(Object);
+            Builder.SetViewModelBlob(NativeViewModelInstance,
+                                     PropName,
+                                     BlobObject != nullptr
+                                         ? BlobObject->GetNativeBlobHandle()
+                                         : RIVE_NULL_HANDLE);
         }
         else if (ObjectClass == URiveArtboard::StaticClass())
         {

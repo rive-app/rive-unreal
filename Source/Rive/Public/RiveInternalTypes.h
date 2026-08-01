@@ -20,6 +20,7 @@ enum class ERiveDataType : uint8
     AssetImage = 11,
     Artboard = 12,
     SymbolListIndex = 13,
+    AssetBlob = 14,
 };
 
 USTRUCT(BlueprintType)
