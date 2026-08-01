@@ -5,6 +5,8 @@
 #include "Ore/OreShaderHash.h"
 #include "Ore/OreSlotRemap.h"
 
+#include <string>
+
 class URiveFile;
 THIRD_PARTY_INCLUDES_START
 #undef PI
