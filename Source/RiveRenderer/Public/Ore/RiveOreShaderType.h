@@ -10,7 +10,11 @@
 // for us to check which API to use.
 #define RIVE_ORE_NEW_SHADER_COMPILE_API                                        \
     (ENGINE_MAJOR_VERSION > 5 ||                                               \
-     (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 9))
+     (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8))
+
+#define RIVE_ORE_NEW_BINDLESS_COMPILE_API                                      \
+    (ENGINE_MAJOR_VERSION > 5 ||                                               \
+     (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7))
 
 class FRiveOreShaderType : public FGlobalShaderType
 {

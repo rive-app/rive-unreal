@@ -51,8 +51,14 @@ void FRiveRendererModule::StartupRiveRenderer()
     // slot. ERHIBindlessConfiguration::All matches the cook-time condition
     // (ShouldCompileWithBindlessEnabled) for our non-ray-tracing global
     // shaders. See OrePlatformRHI.h and RiveOreShaderHandler's register-strip.
+#if ENGINE_MAJOR_VERSION > 5 ||                                                \
+    (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7)
     if (RHIGetRuntimeBindlessConfiguration(GMaxRHIShaderPlatform) ==
         ERHIBindlessConfiguration::All)
+#else
+    if (RHIGetRuntimeBindlessResourcesConfiguration(GMaxRHIShaderPlatform) ==
+        ERHIBindlessConfiguration::AllShaders)
+#endif
     {
         GRHIOreNeedsReflectionSlotRemap = true;
         GRHIOreNeedsBindlessParameters = true;

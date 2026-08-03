@@ -530,8 +530,16 @@ static bool CompileOreShaderToBlob(FRiveOreShaderType* ShaderType,
     // (not just on bindless) so a multi-format cook that already wrote the
     // stripped variant for one format restores the original for the next; the
     // file/cache pair is left in a state matching this compile.
+#if RIVE_ORE_NEW_BINDLESS_COMPILE_API
+    const bool bBindlessEnabled = Job.Input.bBindlessEnabled;
+#else
+    const bool bBindlessEnabled =
+        Job.Input.Environment.CompilerFlags.Contains(CFLAG_BindlessResources) ||
+        Job.Input.Environment.CompilerFlags.Contains(CFLAG_BindlessSamplers);
+#endif
+
     FString DiskSource = HlslSource;
-    if (Job.Input.bBindlessEnabled)
+    if (bBindlessEnabled)
     {
         const auto Utf8 = StringCast<ANSICHAR>(*HlslSource);
         const std::string Stripped = rive::ore::stripHLSLRegisterAnnotations(
@@ -549,8 +557,8 @@ static bool CompileOreShaderToBlob(FRiveOreShaderType* ShaderType,
             "Rive Ore shader '%s' (%s): bindless=%d (register decorations %s)"),
         ShaderType->GetName(),
         *Job.Input.ShaderFormat.ToString(),
-        Job.Input.bBindlessEnabled ? 1 : 0,
-        Job.Input.bBindlessEnabled ? TEXT("stripped") : TEXT("kept"));
+        bBindlessEnabled ? 1 : 0,
+        bBindlessEnabled ? TEXT("stripped") : TEXT("kept"));
 
     // GlobalBeginCompileShader sets a compression format (Oodle in the editor),
     // which makes CompileShader compress Output.ShaderCode. The engine's normal
