@@ -165,7 +165,6 @@ void FRiveCommandBuilder::DrawArtboard(const FDrawArtboardCommand& DrawCommand,
 
     Renderer->save();
     Renderer->align(Fit, Alignment, Frame, Content);
-    ArtboardInstance->drawCanvases();
     ArtboardInstance->draw(Renderer);
     Renderer->restore();
     if (Fit == rive::Fit::layout)
