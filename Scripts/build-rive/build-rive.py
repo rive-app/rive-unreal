@@ -91,6 +91,7 @@ if not args.disable_scripting:
 test_targets = [
     'gms',
     "goldens",
+    'player',
     'tools_common'
 ]
 
@@ -388,7 +389,7 @@ def do_linux(rive_runtime_path, release):
         copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Linux'), ".a", release)
         if should_build_tests:
             gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Linux")
-            copy_files(os.getcwd(), gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+            copy_files(os.getcwd(), gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libplayer', 'libtools_common'])
     return True
 
 def do_android(rive_runtime_path, release):
@@ -416,7 +417,7 @@ def do_android(rive_runtime_path, release):
         copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Android'), ".a", release)
         if should_build_tests:
             gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Android")
-            copy_files(os.getcwd(), gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+            copy_files(os.getcwd(), gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libplayer', 'libtools_common'])
     return True
 
 
@@ -445,7 +446,7 @@ def do_windows(rive_runtime_path, release):
         copy_files(os.getcwd(), os.path.join(rive_libraries_path, 'Win64'), ".lib", release)
         if should_build_tests:
             gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "x64", "Release")
-            copy_files(os.getcwd(), gm_libraries_path, ".lib", True, False, ['gms', 'goldens', 'tools_common'])
+            copy_files(os.getcwd(), gm_libraries_path, ".lib", True, False, ['gms', 'goldens', 'player', 'tools_common'])
     
     return True
 
@@ -502,8 +503,8 @@ def do_ios(rive_runtime_path, release):
         copy_files(build_dirs['ios_sim'], os.path.join(rive_libraries_path, 'IOS'), ".sim.a", release)
         if should_build_tests:
             gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "iOS")
-            copy_files(build_dirs['ios'], gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
-            copy_files(build_dirs['ios_sim'], gm_libraries_path, ".sim.a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+            copy_files(build_dirs['ios'], gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libplayer', 'libtools_common'])
+            copy_files(build_dirs['ios_sim'], gm_libraries_path, ".sim.a", True, False, ['libgms', 'libgoldens', 'libplayer', 'libtools_common'])
     
     return True
 
@@ -557,8 +558,8 @@ def do_mac(rive_runtime_path, release):
         copy_files(build_dirs['mac_arm64'], os.path.join(rive_libraries_path, 'Mac', 'Mac'), ".a", release)
         if should_build_tests:
             gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Mac")
-            copy_files(build_dirs['mac_arm64'], os.path.join(gm_libraries_path, "arm"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
-            copy_files(build_dirs['mac_x64'], os.path.join(gm_libraries_path, "x64"), ".a", True, False, ['libgms', 'libgoldens', 'libtools_common'])
+            copy_files(build_dirs['mac_arm64'], os.path.join(gm_libraries_path, "arm"), ".a", True, False, ['libgms', 'libgoldens', 'libplayer', 'libtools_common'])
+            copy_files(build_dirs['mac_x64'], os.path.join(gm_libraries_path, "x64"), ".a", True, False, ['libgms', 'libgoldens', 'libplayer', 'libtools_common'])
     
     return True
 
@@ -621,6 +622,7 @@ def copy_includes(rive_runtime_path):
     tests_includes_path = os.path.join(rive_runtime_path, 'tests')
     gm_includes_path = os.path.join(tests_includes_path, 'gm' )
     goldens_includes_path = os.path.join(tests_includes_path, 'goldens')
+    player_includes_path = os.path.join(tests_includes_path, 'player')
     common_includes_path = os.path.join(tests_includes_path, 'common')
     rive_pls_includes_path = os.path.join(rive_runtime_path, 'renderer', 'include')
     rive_shaders_includes_path = os.path.join(rive_runtime_path, 'out', get_shader_include_arch(), 'release', "include")
@@ -629,6 +631,7 @@ def copy_includes(rive_runtime_path):
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')
     gm_target_path = os.path.join(target_path, 'gm' )
     goldens_target_path = os.path.join(target_path, 'goldens')
+    player_target_path = os.path.join(target_path, 'player')
     common_target_path = os.path.join(target_path, 'common')
     shaders_target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes', "rive")
     rive_shader_source_target_path = os.path.join(script_directory, '..', '..', 'Shaders', 'Private', 'Rive')
@@ -648,6 +651,7 @@ def copy_includes(rive_runtime_path):
     os.makedirs(os.path.dirname(rive_constants_include_target_path), exist_ok=True)
     os.makedirs(os.path.dirname(gm_target_path), exist_ok=True)
     os.makedirs(os.path.dirname(goldens_target_path), exist_ok=True)
+    os.makedirs(os.path.dirname(player_target_path), exist_ok=True)
     os.makedirs(os.path.dirname(common_target_path), exist_ok=True)
     shutil.copyfile(rive_flush_uniforms_include_src, rive_flush_uniforms_include_target_path)
     shutil.copyfile(rive_constant_include_src, rive_constants_include_target_path)
@@ -655,6 +659,7 @@ def copy_includes(rive_runtime_path):
     shutil.copytree(rive_includes_path, target_path, dirs_exist_ok=True)
     shutil.copytree(gm_includes_path, gm_target_path, dirs_exist_ok=True)
     shutil.copytree(goldens_includes_path, goldens_target_path, dirs_exist_ok=True)
+    shutil.copytree(player_includes_path, player_target_path, dirs_exist_ok=True)
     shutil.copytree(common_includes_path, common_target_path, dirs_exist_ok=True)
     shutil.copytree(rive_pls_includes_path, target_path, dirs_exist_ok=True)
     shutil.copytree(rive_decoders_includes_path, target_path, dirs_exist_ok=True)
