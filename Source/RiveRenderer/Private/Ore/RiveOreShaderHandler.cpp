@@ -655,6 +655,10 @@ public:
     void shader(rive::rcp<rive::RenderShader>) override {}
     void invalidateStroke() override {}
     void feather(float) override {}
+    void image(const RenderImage*) override {}
+    void imageSampler(ImageSampler) override {}
+    void modulatedImage(const RenderImage*, ImageSampler, const Mat2D&) override
+    {}
 };
 class FOreNoOpRenderPath : public rive::RenderPath
 {

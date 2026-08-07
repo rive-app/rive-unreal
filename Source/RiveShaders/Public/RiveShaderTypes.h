@@ -86,6 +86,8 @@ class FEnableGammaCorrection
 class FCoalescedPlsResolveAndTransfer
     : SHADER_PERMUTATION_BOOL("COALESCED_PLS_RESOLVE_AND_TRANSFER");
 
+// TODO: May need ENABLE_MODULATED_IMAGE permutation
+
 typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableClipRect,
                                  FEnableNestedClip,
