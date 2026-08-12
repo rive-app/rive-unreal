@@ -795,7 +795,9 @@ FRDGPassRef AddDrawPatchesPass(
                 TStaticDepthStencilState<false,
                                          ECompareFunction::CF_Always>::GetRHI();
             GraphicsPSOInit.RasterizerState =
-                GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
+                RasterStateForCullModeAndDrawMode<false>(
+                    CullFace::counterclockwise,
+                    CommonPassParameters->bWireframe);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
             GraphicsPSOInit.BlendState =
@@ -884,7 +886,9 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
                 TStaticDepthStencilState<false,
                                          ECompareFunction::CF_Always>::GetRHI();
             GraphicsPSOInit.RasterizerState =
-                GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
+                RasterStateForCullModeAndDrawMode<false>(
+                    CullFace::counterclockwise,
+                    CommonPassParameters->bWireframe);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
             GraphicsPSOInit.BlendState =
@@ -972,7 +976,9 @@ FRDGPassRef AddDrawAtlasBlitPass(
                 TStaticDepthStencilState<false,
                                          ECompareFunction::CF_Always>::GetRHI();
             GraphicsPSOInit.RasterizerState =
-                GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
+                RasterStateForCullModeAndDrawMode<false>(
+                    CullFace::counterclockwise,
+                    CommonPassParameters->bWireframe);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
             GraphicsPSOInit.BlendState =
@@ -1060,10 +1066,15 @@ FRDGPassRef AddDrawImageRectPass(
                 TStaticDepthStencilState<false,
                                          ECompareFunction::CF_Always>::GetRHI();
             GraphicsPSOInit.RasterizerState =
-                RASTER_STATE(FM_Solid,
-                             CM_None,
-                             ERasterizerDepthClipMode::DepthClamp,
-                             false);
+                CommonPassParameters->bWireframe
+                    ? RASTER_STATE(FM_Wireframe,
+                                   CM_None,
+                                   ERasterizerDepthClipMode::DepthClamp,
+                                   false)
+                    : RASTER_STATE(FM_Solid,
+                                   CM_None,
+                                   ERasterizerDepthClipMode::DepthClamp,
+                                   false);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
             GraphicsPSOInit.BlendState =
@@ -1167,10 +1178,15 @@ FRDGPassRef AddDrawImageMeshPass(
                 TStaticDepthStencilState<false,
                                          ECompareFunction::CF_Always>::GetRHI();
             GraphicsPSOInit.RasterizerState =
-                RASTER_STATE(FM_Solid,
-                             CM_None,
-                             ERasterizerDepthClipMode::DepthClamp,
-                             false);
+                CommonPassParameters->bWireframe
+                    ? RASTER_STATE(FM_Wireframe,
+                                   CM_None,
+                                   ERasterizerDepthClipMode::DepthClamp,
+                                   false)
+                    : RASTER_STATE(FM_Solid,
+                                   CM_None,
+                                   ERasterizerDepthClipMode::DepthClamp,
+                                   false);
             GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
             GraphicsPSOInit.BlendState =
@@ -1353,7 +1369,9 @@ FRDGPassRef AddDrawRasterOrderPatchesPass(
                 TStaticDepthStencilState<false,
                                          ECompareFunction::CF_Always>::GetRHI();
             GraphicsPSOInit.RasterizerState =
-                GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
+                RasterStateForCullModeAndDrawMode<false>(
+                    CullFace::counterclockwise,
+                    CommonPassParameters->bWireframe);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
             GraphicsPSOInit.BlendState =
@@ -1439,7 +1457,9 @@ FRDGPassRef AddDrawRasterOrderInteriorTrianglesPass(
                 TStaticDepthStencilState<false,
                                          ECompareFunction::CF_Always>::GetRHI();
             GraphicsPSOInit.RasterizerState =
-                GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
+                RasterStateForCullModeAndDrawMode<false>(
+                    CullFace::counterclockwise,
+                    CommonPassParameters->bWireframe);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
             GraphicsPSOInit.BlendState =
@@ -1521,7 +1541,9 @@ FRDGPassRef AddDrawRasterOrderAtlasBlitPass(
                 TStaticDepthStencilState<false,
                                          ECompareFunction::CF_Always>::GetRHI();
             GraphicsPSOInit.RasterizerState =
-                GetStaticRasterizerState<false>(FM_Solid, CM_CCW);
+                RasterStateForCullModeAndDrawMode<false>(
+                    CullFace::counterclockwise,
+                    CommonPassParameters->bWireframe);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
 
             GraphicsPSOInit.BlendState =
@@ -1606,10 +1628,15 @@ FRDGPassRef AddDrawRasterOrderImageMeshPass(
                 TStaticDepthStencilState<false,
                                          ECompareFunction::CF_Always>::GetRHI();
             GraphicsPSOInit.RasterizerState =
-                RASTER_STATE(FM_Solid,
-                             CM_None,
-                             ERasterizerDepthClipMode::DepthClamp,
-                             false);
+                CommonPassParameters->bWireframe
+                    ? RASTER_STATE(FM_Wireframe,
+                                   CM_None,
+                                   ERasterizerDepthClipMode::DepthClamp,
+                                   false)
+                    : RASTER_STATE(FM_Solid,
+                                   CM_None,
+                                   ERasterizerDepthClipMode::DepthClamp,
+                                   false);
             GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
             GraphicsPSOInit.BlendState =
