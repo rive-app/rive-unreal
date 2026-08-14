@@ -76,6 +76,16 @@ static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
             return TEXT("outerCurvePatches");
         case rive::gpu::DrawType::msaaOuterCubics:
             return TEXT("msaaOuterCubics");
+        case rive::gpu::DrawType::msaaOuterCubicBorrowedCoverage:
+            return TEXT("msaaOuterCubicBorrowedCoverage");
+        case rive::gpu::DrawType::msaaDynamicOuterCubics:
+            return TEXT("msaaDynamicOuterCubics");
+        case rive::gpu::DrawType::msaaOuterCubicStencilReset:
+            return TEXT("msaaOuterCubicStencilReset");
+        case rive::gpu::DrawType::msaaOuterCubicPathsStencil:
+            return TEXT("msaaOuterCubicPathsStencil");
+        case rive::gpu::DrawType::msaaOuterCubicPathsCover:
+            return TEXT("msaaOuterCubicPathsCover");
         case rive::gpu::DrawType::msaaStrokes:
             return TEXT("msaaStrokes");
         case rive::gpu::DrawType::msaaMidpointFanBorrowedCoverage:
@@ -2488,6 +2498,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                 {
 
                                     case DrawType::msaaOuterCubics:
+                                    case DrawType::
+                                        msaaOuterCubicBorrowedCoverage:
+                                    case DrawType::msaaDynamicOuterCubics:
+                                    case DrawType::msaaOuterCubicStencilReset:
+                                    case DrawType::msaaOuterCubicPathsStencil:
+                                    case DrawType::msaaOuterCubicPathsCover:
                                     case DrawType::msaaStrokes:
                                     case DrawType::
                                         msaaMidpointFanBorrowedCoverage:
@@ -2933,6 +2949,11 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::msaaMidpointFanPathsStencil:
                     case DrawType::msaaMidpointFanPathsCover:
                     case DrawType::msaaOuterCubics:
+                    case DrawType::msaaOuterCubicBorrowedCoverage:
+                    case DrawType::msaaDynamicOuterCubics:
+                    case DrawType::msaaOuterCubicStencilReset:
+                    case DrawType::msaaOuterCubicPathsStencil:
+                    case DrawType::msaaOuterCubicPathsCover:
                     case DrawType::clipReset:
                         RIVE_UNREACHABLE();
                 }
@@ -3222,6 +3243,11 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::msaaMidpointFanPathsStencil:
                     case DrawType::msaaMidpointFanPathsCover:
                     case DrawType::msaaOuterCubics:
+                    case DrawType::msaaOuterCubicBorrowedCoverage:
+                    case DrawType::msaaDynamicOuterCubics:
+                    case DrawType::msaaOuterCubicStencilReset:
+                    case DrawType::msaaOuterCubicPathsStencil:
+                    case DrawType::msaaOuterCubicPathsCover:
                     case DrawType::clipReset:
                         RIVE_UNREACHABLE();
                 }
