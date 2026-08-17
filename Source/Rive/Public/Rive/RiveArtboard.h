@@ -10,6 +10,7 @@ THIRD_PARTY_INCLUDES_START
 #undef PI
 #include "rive/command_queue.hpp"
 THIRD_PARTY_INCLUDES_END
+#include "Framework/Application/SlateApplication.h"
 #include "Input/Events.h"
 #include "Layout/Geometry.h"
 #include "Tickable.h"
@@ -204,6 +205,46 @@ public:
                                          InDescriptor,
                                          MouseEvent,
                                          DPI);
+    }
+
+    // For a host with no widget to receive keys — a world-space artboard on a
+    // render target. Modifiers come off Slate rather than from seven pins.
+    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+    bool KeyInput(FKey Key, bool bPressed, bool bRepeat)
+    {
+        if (!StateMachine.IsValid())
+            return false;
+        return StateMachine->KeyInput(
+            Key,
+            FSlateApplication::IsInitialized()
+                ? FSlateApplication::Get().GetModifierKeys()
+                : FModifierKeysState(),
+            bPressed,
+            bRepeat);
+    }
+
+    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+    bool TextInput(const FString& Text)
+    {
+        if (!StateMachine.IsValid())
+            return false;
+        return StateMachine->TextInput(Text);
+    }
+
+    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+    void ClearFocus()
+    {
+        if (StateMachine.IsValid())
+        {
+            StateMachine->ClearFocus();
+        }
+    }
+
+    bool KeyInput(const FKeyEvent& KeyEvent, bool bPressed)
+    {
+        if (!StateMachine.IsValid())
+            return false;
+        return StateMachine->KeyInput(KeyEvent, bPressed);
     }
 
     // This is the size of the artboard in the Rive file. It is not the size of

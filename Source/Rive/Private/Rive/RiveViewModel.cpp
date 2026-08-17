@@ -93,7 +93,7 @@ public:
         else
         {
             UE_LOG(LogRive,
-                   Display,
+                   VeryVerbose,
                    TEXT("Rive View Model Handle %p deleted"),
                    Handle);
         }
@@ -294,16 +294,6 @@ void URiveViewModel::SetupGeneratedProperties(FRiveCommandBuilder& Builder,
             const auto& PropertyDefinition =
                 ViewModelDefinition.PropertyDefinitions[Index];
 
-            if (bIsBlankInstance &&
-                PropertyDefinition.Type != ERiveDataType::ViewModel)
-            {
-                // still subscribe even though there is no default
-                Builder.SubscribeToProperty(
-                    NativeViewModelInstance,
-                    PropertyDefinition.Name,
-                    RiveDataTypeToDataType(PropertyDefinition.Type));
-                continue;
-            }
             if (ViewModelDefault &&
                 GetIsPropertyTypeWithDefault(PropertyDefinition.Type))
             {
@@ -1688,7 +1678,7 @@ void URiveViewModel::UnsettleStateMachine(const TCHAR* Context) const
     else
     {
         UE_LOG(LogRive,
-               Display,
+               VeryVerbose,
                TEXT("Failed to unsettle view models artboard state machine %s"),
                Context);
     }

@@ -77,7 +77,7 @@ public:
         else
         {
             UE_LOG(LogRive,
-                   Display,
+                   VeryVerbose,
                    TEXT("Rive Artboard Handle %p deleted"),
                    Handle);
         }

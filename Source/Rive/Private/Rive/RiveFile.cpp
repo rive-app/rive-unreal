@@ -192,7 +192,7 @@ public:
         else
         {
             UE_LOG(LogRive,
-                   Display,
+                   VeryVerbose,
                    TEXT("Rive File Handle %p deleted"),
                    Handle);
         }
@@ -872,6 +872,11 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                 return;
             }
             TArray<FPropertyDefaultData> DefaultValues;
+            // There is now a "hidden" view model that we do not have any way to
+            // distinguish except by name. So everywhere that a
+            // "TextInputViewModel" string is "ensured" is basically saying, if
+            // there is no default value, make sure it's of this hidden view
+            // model type.
             for (const auto& Property : CopyPropertyDefinitions)
             {
                 FTCHARToUTF8 UTFPropName(Property.Name);
@@ -883,10 +888,16 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                     {
                         auto Prop = NativeViewModelInstance->propertyString(
                             TerminatedPropName);
-                        if (ensure(Prop))
+                        if (Prop)
                         {
                             DefaultValues.Add({Property.Name,
                                                FString(Prop->value().c_str())});
+                        }
+                        else
+                        {
+                            ensure(CopyViewModelName ==
+                                   TEXT("TextInputViewModel"));
+                            DefaultValues.Add({Property.Name, TEXT("")});
                         }
                     }
                     break;
@@ -894,11 +905,17 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                     {
                         auto Prop = NativeViewModelInstance->propertyNumber(
                             TerminatedPropName);
-                        if (ensure(Prop))
+                        if (Prop)
                         {
                             DefaultValues.Add(
                                 {Property.Name,
                                  FString::SanitizeFloat(Prop->value())});
+                        }
+                        else
+                        {
+                            ensure(CopyViewModelName ==
+                                   TEXT("TextInputViewModel"));
+                            DefaultValues.Add({Property.Name, TEXT("")});
                         }
                     }
                     break;
@@ -906,11 +923,17 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                     {
                         auto Prop = NativeViewModelInstance->propertyBoolean(
                             TerminatedPropName);
-                        if (ensure(Prop))
+                        if (Prop)
                         {
                             DefaultValues.Add(
                                 {Property.Name,
                                  Prop->value() ? TEXT("True") : TEXT("False")});
+                        }
+                        else
+                        {
+                            ensure(CopyViewModelName ==
+                                   TEXT("TextInputViewModel"));
+                            DefaultValues.Add({Property.Name, TEXT("")});
                         }
                     }
                     break;
@@ -918,11 +941,17 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                     {
                         auto Prop = NativeViewModelInstance->propertyColor(
                             TerminatedPropName);
-                        if (ensure(Prop))
+                        if (Prop)
                         {
                             DefaultValues.Add(
                                 {Property.Name,
                                  FString::FromInt(Prop->value())});
+                        }
+                        else
+                        {
+                            ensure(CopyViewModelName ==
+                                   TEXT("TextInputViewModel"));
+                            DefaultValues.Add({Property.Name, TEXT("")});
                         }
                     }
                     break;
@@ -930,10 +959,16 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                     {
                         auto Prop = NativeViewModelInstance->propertyEnum(
                             TerminatedPropName);
-                        if (ensure(Prop))
+                        if (Prop)
                         {
                             DefaultValues.Add({Property.Name,
                                                FString(Prop->value().c_str())});
+                        }
+                        else
+                        {
+                            ensure(CopyViewModelName ==
+                                   TEXT("TextInputViewModel"));
+                            DefaultValues.Add({Property.Name, TEXT("")});
                         }
                     }
                     break;
@@ -941,7 +976,7 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                     {
                         auto Prop = NativeViewModelInstance->propertyViewModel(
                             TerminatedPropName);
-                        if (ensure(Prop))
+                        if (Prop)
                         {
                             // Value is view_model_type/instance_name
                             FString Value =
@@ -953,17 +988,29 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
                                 FString(Prop->instance()->name().c_str());
                             DefaultValues.Add({Property.Name, Value});
                         }
+                        else
+                        {
+                            ensure(CopyViewModelName ==
+                                   TEXT("TextInputViewModel"));
+                            DefaultValues.Add({Property.Name, TEXT("")});
+                        }
                     }
                     break;
                     case ERiveDataType::Artboard:
                     {
                         auto Prop = NativeViewModelInstance->propertyArtboard(
                             TerminatedPropName);
-                        if (ensure(Prop))
+                        if (Prop)
                         {
                             DefaultValues.Add(
                                 {Property.Name,
                                  FString(Prop->artboardName().c_str())});
+                        }
+                        else
+                        {
+                            ensure(CopyViewModelName ==
+                                   TEXT("TextInputViewModel"));
+                            DefaultValues.Add({Property.Name, TEXT("")});
                         }
                     }
                     break;

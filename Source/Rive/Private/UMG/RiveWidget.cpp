@@ -46,6 +46,9 @@ TSharedRef<SWidget> URiveWidget::RebuildWidget()
 {
     RiveWidget = SNew(SRiveLeafWidget).OwningWidget(this);
 
+    // Without this the widget can never hold keyboard focus.
+    SetIsFocusable(true);
+
     Setup();
 
     Initialize();
@@ -67,13 +70,18 @@ FReply URiveWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry,
         return FReply::Unhandled();
     }
 
-    return RiveArtboard->PointerDown(
-               InGeometry,
-               RiveDescriptor,
-               InMouseEvent,
-               UWidgetLayoutLibrary::GetViewportScale(this))
-               ? FReply::Handled()
-               : FReply::Unhandled();
+    if (!RiveArtboard->PointerDown(
+            InGeometry,
+            RiveDescriptor,
+            InMouseEvent,
+            UWidgetLayoutLibrary::GetViewportScale(this)))
+    {
+        return FReply::Unhandled();
+    }
+
+    // Only on a press that hit something, so clicking through a transparent
+    // artboard leaves focus where the player put it.
+    return FReply::Handled().SetUserFocus(TakeWidget(), EFocusCause::Mouse);
 }
 
 FReply URiveWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry,
@@ -173,6 +181,80 @@ FReply URiveWidget::NativeOnTouchEnded(const FGeometry& InGeometry,
     }
 
     return FReply::Handled();
+}
+
+FReply URiveWidget::NativeOnKeyDown(const FGeometry& InGeometry,
+                                    const FKeyEvent& InKeyEvent)
+{
+    if (!IsValid(RiveArtboard))
+    {
+        return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+    }
+
+    // Handled only when the runtime wanted it, so Escape still closes the
+    // screen when nothing in the artboard is focused.
+    if (RiveArtboard->KeyInput(InKeyEvent, true))
+    {
+        return FReply::Handled();
+    }
+
+    return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply URiveWidget::NativeOnKeyUp(const FGeometry& InGeometry,
+                                  const FKeyEvent& InKeyEvent)
+{
+    if (!IsValid(RiveArtboard))
+    {
+        return Super::NativeOnKeyUp(InGeometry, InKeyEvent);
+    }
+
+    if (RiveArtboard->KeyInput(InKeyEvent, false))
+    {
+        return FReply::Handled();
+    }
+
+    return Super::NativeOnKeyUp(InGeometry, InKeyEvent);
+}
+
+FReply URiveWidget::NativeOnKeyChar(const FGeometry& InGeometry,
+                                    const FCharacterEvent& InCharEvent)
+{
+    if (!IsValid(RiveArtboard))
+    {
+        return Super::NativeOnKeyChar(InGeometry, InCharEvent);
+    }
+
+    // Control characters are refused because several keys produce one as well
+    // as a key event — backspace types \b — and inserting that alongside the
+    // edit it already performed is what a text input reads as a stray glyph.
+    const TCHAR Character = InCharEvent.GetCharacter();
+    if (Character <= 0x1F || Character == 0x7F)
+    {
+        return Super::NativeOnKeyChar(InGeometry, InCharEvent);
+    }
+
+    // Its own OS message, so a printable key reaches both this and
+    // NativeOnKeyDown.
+    const FString Text = FString::Chr(Character);
+    if (RiveArtboard->TextInput(Text))
+    {
+        return FReply::Handled();
+    }
+
+    return Super::NativeOnKeyChar(InGeometry, InCharEvent);
+}
+
+void URiveWidget::NativeOnFocusLost(const FFocusEvent& InFocusEvent)
+{
+    Super::NativeOnFocusLost(InFocusEvent);
+
+    if (IsValid(RiveArtboard))
+    {
+        // Otherwise a text input keeps its caret blinking after the player has
+        // clicked away.
+        RiveArtboard->ClearFocus();
+    }
 }
 
 void URiveWidget::SetAudioEngine(URiveAudioEngine* InRiveAudioEngine)

@@ -61,6 +61,16 @@ protected:
     virtual FReply NativeOnTouchEnded(
         const FGeometry& InGeometry,
         const FPointerEvent& InGestureEvent) override;
+
+    // Reached only while this widget holds focus, which it takes when a press
+    // lands on something in the artboard — see NativeOnMouseButtonDown.
+    virtual FReply NativeOnKeyDown(const FGeometry& InGeometry,
+                                   const FKeyEvent& InKeyEvent) override;
+    virtual FReply NativeOnKeyUp(const FGeometry& InGeometry,
+                                 const FKeyEvent& InKeyEvent) override;
+    virtual FReply NativeOnKeyChar(const FGeometry& InGeometry,
+                                   const FCharacterEvent& InCharEvent) override;
+    virtual void NativeOnFocusLost(const FFocusEvent& InFocusEvent) override;
     //~ END : UWidget Interface
 
     /**

@@ -73,6 +73,23 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
                      const FPointerEvent& MouseEvent,
                      float DPI);
 
+    // CommandQueue has no key or text command, so these reach the state machine
+    // instance through a server-side callback. Both return whether the runtime
+    // handled the event, which is what lets a host build an honest FReply.
+    bool KeyInput(const FKeyEvent& InKeyEvent, bool bPressed);
+
+    bool KeyInput(FKey InKey,
+                  FModifierKeysState InModifiers,
+                  bool bPressed,
+                  bool bRepeat);
+
+    // Committed text — a typed character, an IME commit, a paste. Separate from
+    // KeyInput because the OS has already resolved shift, layout and dead keys.
+    bool TextInput(const FString& InText);
+
+    // Fire and forget: nothing is decided on the strength of it.
+    void ClearFocus();
+
     void BindViewModel(TObjectPtr<URiveViewModel> ViewModel);
 
     void SetStateMachineSettled(bool inStateMachineSettled);
