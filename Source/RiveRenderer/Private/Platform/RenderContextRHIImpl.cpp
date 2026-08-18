@@ -2,6 +2,9 @@
 
 #include "RenderContextRHIImpl.hpp"
 
+#include "ProfilingDebugging/CsvProfiler.h"
+CSV_DECLARE_CATEGORY_EXTERN(RiveMSAA);
+
 #include "CommonRenderResources.h"
 #include "DataDrivenShaderPlatformInfo.h"
 #include "IImageWrapperModule.h"
@@ -301,6 +304,14 @@ TStaticResourceData<PatchVertex, kPatchVertexBufferCount> GPatchVertices;
 TStaticResourceData<uint16_t, kPatchIndexBufferCount> GPatchIndices;
 // clang format does weird things to this so turn it off
 // clang-format off
+static TAutoConsoleVariable<int32> CVarUseSubpassLoad(
+    TEXT("r.rive.SubpassLoad"),
+    1,
+    TEXT("Read the msaa destination color through a subpass input attachment "
+         "instead of a resolved copy. Requires an engine with the "
+         "FrameBufferFetch subpass patch, and vulkan."),
+    ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarShouldVisualizeRive(
     TEXT("r.rive.vis"),
     0,
@@ -350,6 +361,8 @@ void GetPermutationForFeatures(
         enums::is_flag_set(features, ShaderFeatures::ENABLE_ADVANCED_BLEND));
     VertexPermutationDomain.Set<FEnableFeather>(
         enums::is_flag_set(features, ShaderFeatures::ENABLE_FEATHER));
+    VertexPermutationDomain.Set<FEnableModulatedImage>(
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_MODULATED_IMAGE));
 
     PixelPermutationDomain.Set<FEnableClip>(
         enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIPPING));
@@ -371,6 +384,8 @@ void GetPermutationForFeatures(
         enums::is_flag_set(miscFlags, ShaderMiscFlags::clockwiseFill));
     PixelPermutationDomain.Set<FEnableGammaCorrection>(needsLinearGamma);
     PixelPermutationDomain.Set<FCoalescedPlsResolveAndTransfer>(needsCoalesce);
+    PixelPermutationDomain.Set<FEnableModulatedImage>(
+        enums::is_flag_set(features, ShaderFeatures::ENABLE_MODULATED_IMAGE));
 }
 
 /*
@@ -1001,6 +1016,7 @@ void* RenderContextRHIImpl::makeCommandBuffer()
 }
 
 FRDGBuilder* RenderContextRHIImpl::TestBuilder = nullptr;
+uint64 RenderContextRHIImpl::FlushSerial = 0;
 
 RenderContextRHIImpl::RenderContextRHIImpl(
     FRHICommandListImmediate& CommandListImmediate,
@@ -1016,21 +1032,18 @@ RenderContextRHIImpl::RenderContextRHIImpl(
            TEXT("Running RHI with %s Capabilities"),
            *CapabilityString);
     m_platformFeatures.alwaysFeatherToAtlas = RHI_ATLAS_ONLY_FEATHER;
+#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
+    m_platformFeatures.supportsPipelineDynamicState = true;
+#endif
 #if RIVE_FORCE_RASTER_ORDER
     m_platformFeatures.supportsAtomicMode = false;
     m_platformFeatures.supportsClipPlanes = true;
     m_platformFeatures.supportsRasterOrderingMode = true;
 
-    m_platformFeatures.clipSpaceBottomUp = true;
-    m_platformFeatures.framebufferBottomUp = false;
 #elif RIVE_FORCE_MSAA
     m_platformFeatures.supportsAtomicMode = false;
     m_platformFeatures.supportsClipPlanes = true;
     m_platformFeatures.supportsRasterOrderingMode = false;
-
-    m_platformFeatures.clipSpaceBottomUp = true;
-    m_platformFeatures.framebufferBottomUp = false;
-
 #else
     m_platformFeatures.supportsAtomicMode =
         m_capabilities.bSupportsPixelShaderUAVs &&
@@ -1046,8 +1059,7 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     m_platformFeatures.framebufferBottomUp = false;
 #if PLATFORM_ANDROID
     m_platformFeatures.pathIDGranularity = 2;
-    m_platformFeatures.framebufferBottomUp = true;
-    m_platformFeatures.clipSpaceBottomUp = false;
+    m_platformFeatures.supportsAtomicMode = false;
 #endif
 #endif
 
@@ -1773,6 +1785,11 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 {
     check(IsInRenderingThread());
 
+    // Invalidates the per flush RDG texture cache in TextureRHIImpl. An
+    // FRDGTextureRef only stays valid inside the builder that made it, so the
+    // cache must not survive a flush.
+    ++FlushSerial;
+
     {
         static const bool callOnce = [interlockMode = desc.interlockMode]() {
             UE_LOG(LogRiveRenderer,
@@ -1796,8 +1813,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
     {
-        SCOPED_GPU_STAT(GraphBuilder.RHICmdList, STAT_RiveFlush);
-        RDG_GPU_STAT_SCOPE(GraphBuilder, STAT_RiveFlush);
+        RHI_BREADCRUMB_EVENT_STAT(GraphBuilder.RHICmdList,
+                                  STAT_RiveFlush,
+                                  "RiveFlush");
+        RDG_EVENT_SCOPE_STAT(GraphBuilder, STAT_RiveFlush, "RiveFlush");
 
         auto targetTexture = renderTarget->targetTexture(GraphBuilder);
         check(targetTexture);
@@ -1902,8 +1921,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     GraphBuilder.CreateUAV(coverageTexture,
                                            ERDGUnorderedAccessViewFlags::None,
                                            PF_R32_UINT);
-                RDG_GPU_STAT_SCOPE(GraphBuilder,
-                                   STAT_RiveFlush_RiveClearCoverageClip);
+                RDG_EVENT_SCOPE_STAT(GraphBuilder,
+                                     STAT_RiveFlush_RiveClearCoverageClip,
+                                     "RiveClearCoverageClip");
                 AddClearUAVPass(GraphBuilder,
                                 coverageTextureUAV,
                                 FUintVector4(desc.coverageClearValue,
@@ -1924,8 +1944,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 GraphBuilder.CreateUAV(coverageTexture,
                                        ERDGUnorderedAccessViewFlags::None,
                                        PF_R32_UINT);
-            RDG_GPU_STAT_SCOPE(GraphBuilder,
-                               STAT_RiveFlush_RiveClearCoverageClip);
+            RDG_EVENT_SCOPE_STAT(GraphBuilder,
+                                 STAT_RiveFlush_RiveClearCoverageClip,
+                                 "RiveClearCoverageClip");
             AddClearUAVPass(GraphBuilder,
                             coverageUAV,
                             FUintVector4(desc.coverageClearValue,
@@ -2016,8 +2037,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         if (desc.gradSpanCount > 0)
         {
-            RDG_GPU_STAT_SCOPE(GraphBuilder,
-                               STAT_RiveFlush_RiveComplexGradient);
+            RDG_EVENT_SCOPE_STAT(GraphBuilder,
+                                 STAT_RiveFlush_RiveComplexGradient,
+                                 "RiveComplexGradient");
             m_gradientTexture.Sync(GraphBuilder, &gradiantTexture);
 
             check(gradiantTexture);
@@ -2041,7 +2063,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
         if (desc.tessVertexSpanCount > 0)
         {
-            RDG_GPU_STAT_SCOPE(GraphBuilder, STAT_RiveFlush_RiveTess);
+            RDG_EVENT_SCOPE_STAT(GraphBuilder,
+                                 STAT_RiveFlush_RiveTess,
+                                 "RiveTess");
             m_tesselationTexture.Sync(GraphBuilder,
                                       &tesselationTexture,
                                       &tessSRV);
@@ -2257,7 +2281,21 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                   /*bOpaque =*/true);
             }
 
-            if (enums::is_flag_set(desc.combinedShaderFeatures,
+            // Advanced blend reads the msaa color attachment as an input
+            // attachment within the same subpass. Matches the
+            // SUPPORTS_SUBPASS_LOAD define set in RiveShaderTypes.cpp.
+            const bool bUseSubpassLoad =
+#if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
+                GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan &&
+                CVarUseSubpassLoad.GetValueOnRenderThread() != 0;
+#else
+                false;
+#endif
+
+            // Subpass load reads the attachment in place, so the scratch
+            // readback texture is only needed without it.
+            if (!bUseSubpassLoad &&
+                enums::is_flag_set(desc.combinedShaderFeatures,
                                    gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND))
             {
                 // Used for reading back the framebuffer since we have no easy
@@ -2325,6 +2363,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     ERenderTargetLoadAction::ELoad,
                     FExclusiveDepthStencil::DepthWrite_StencilWrite};
 
+#if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
+                if (bUseSubpassLoad)
+                {
+                    PassParameters->RenderTargets.SubpassHint =
+                        ESubpassHint::FrameBufferFetchSubpass;
+                }
+#endif
+
                 PassParameters->RenderTargets.ResolveRect = {
                     desc.renderTargetUpdateBounds.left,
                     desc.renderTargetUpdateBounds.top,
@@ -2375,13 +2421,19 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             {
                 // copy the list on the graph.
                 auto CopyList = GraphBuilder.AllocObject<CopyDrawList>(desc);
+                // Without subpass load each dstBlend barrier ends the render
+                // pass for a dst copy; with it the split list stays null and
+                // the whole flush is one render pass with in-pass barriers.
+                const DrawBatch* const FirstRenderPassSplit =
+                    bUseSubpassLoad ? nullptr
+                                    : CopyList->head()->nextDstBlendBarrier;
                 for (const DrawBatch *
                          RenderPassStart = CopyList->head(),
-                        *NextRenderPass = CopyList->head()->nextDstBlendBarrier;
+                        *NextRenderPass = FirstRenderPassSplit;
                      RenderPassStart != nullptr;
                      RenderPassStart = NextRenderPass,
                         NextRenderPass =
-                            RenderPassStart
+                            (RenderPassStart != nullptr && !bUseSubpassLoad)
                                 ? RenderPassStart->nextDstBlendBarrier
                                 : nullptr)
                 {
@@ -2399,6 +2451,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                          platformFeatures = m_platformFeatures,
                          imageSamplers = m_imageSamplers,
                          NextRenderPass,
+                         bUseSubpassLoad,
                          imageDrawInstanceBuffer =
                              m_imageDrawInstanceBuffer.get(),
                          NeedsLinearColorOutput,
@@ -2412,18 +2465,43 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                          FixedFunctionColorOutput =
                              desc.fixedFunctionColorOutput](
                             FRHICommandListImmediate& RHICmdList) {
-                            SCOPED_GPU_STAT(RHICmdList,
-                                            STAT_RiveFlush_RiveFlushRenderPass);
+                            RHI_BREADCRUMB_EVENT_STAT(
+                                RHICmdList,
+                                STAT_RiveFlush_RiveFlushRenderPass,
+                                "RiveFlushRenderPass");
+                            CSV_SCOPED_TIMING_STAT(RiveMSAA, RenderPass);
+
+                            // Nothing is bound yet as far as this pass is
+                            // concerned, and whatever ran before it had its own
+                            // render targets.
+                            RiveInvalidateBoundPipelineState();
 
                             for (const DrawBatch* batch =
                                      const_cast<DrawBatch*>(&RenderPassStart);
                                  batch && batch != NextRenderPass;
                                  batch = batch->next)
                             {
+                                // Order prior color writes against this
+                                // batch's dst color reads, even when the
+                                // barrier batch itself is empty.
+                                if (bUseSubpassLoad &&
+                                    enums::any_flag_set(batch->barriers,
+                                                        BarrierFlags::dstBlend))
+                                {
+#if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
+                                    RHICmdList.FrameBufferFetchBarrier();
+#endif
+                                }
+
                                 if (batch->elementCount == 0)
                                 {
                                     continue;
                                 }
+
+                                CSV_CUSTOM_STAT(RiveMSAA,
+                                                Batches,
+                                                1,
+                                                ECsvCustomStatOp::Accumulate);
 
                                 AtomicPixelPermutationDomain
                                     PixelPermutationDomain;
@@ -2494,20 +2572,88 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                     CVarRiveWireframe
                                         .GetValueOnRenderThread() ||
                                     desc.wireframe;
+                                CommonPassParameters.bUseSubpassLoad =
+                                    bUseSubpassLoad;
                                 switch (batch->drawType)
                                 {
+                                    case DrawType::msaaDynamicMidpointFans:
+                                    case DrawType::msaaDynamicOuterCubics:
+#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
+                                        // Only emitted when the context reports
+                                        // supportsPipelineDynamicState, which
+                                        // requires the engine patch.
+                                        {
+                                            const FString& PassName =
+                                                NameForDrawType(
+                                                    batch->drawType);
+
+                                            CommonPassParameters
+                                                .VertexDeclarationRHI =
+                                                VertexDeclarations[static_cast<
+                                                    int32>(EVertexDeclarations::
+                                                               Paths)];
+                                            CommonPassParameters
+                                                .VertexBuffers[0] =
+                                                patchVertexBuffer;
+                                            CommonPassParameters.IndexBuffer =
+                                                patchIndexBuffer;
+
+                                            PassParameters->VS.baseInstance =
+                                                batch->baseElement;
+
+                                            // One state per collapsed subpass.
+                                            // Same order as the native
+                                            // backend's Passes[].
+                                            static constexpr DrawType Passes[] = {
+                                                DrawType::
+                                                    msaaMidpointFanBorrowedCoverage,
+                                                DrawType::msaaMidpointFans,
+                                                DrawType::
+                                                    msaaMidpointFanStencilReset,
+                                            };
+                                            // Qualified: a local named
+                                            // PipelineState shadows the type
+                                            // here.
+                                            rive::gpu::PipelineState
+                                                PassStates[UE_ARRAY_COUNT(
+                                                    Passes)];
+                                            for (int32 PassIndex = 0;
+                                                 PassIndex <
+                                                 UE_ARRAY_COUNT(Passes);
+                                                 ++PassIndex)
+                                            {
+                                                PassStates[PassIndex] =
+                                                    get_pipeline_state(
+                                                        Passes[PassIndex],
+                                                        desc.interlockMode,
+                                                        shaderMiscFlags,
+                                                        batch->drawContents,
+                                                        desc.fixedFunctionColorOutput,
+                                                        batch->firstBlendMode,
+                                                        platformFeatures);
+                                            }
+
+                                            AddDrawMSAADynamicMidpointFansPass(
+                                                RHICmdList,
+                                                PassName,
+                                                &CommonPassParameters,
+                                                PassParameters,
+                                                PassStates);
+                                        }
+#else
+                                        RIVE_UNREACHABLE();
+#endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
+                                        break;
 
                                     case DrawType::msaaOuterCubics:
                                     case DrawType::
                                         msaaOuterCubicBorrowedCoverage:
-                                    case DrawType::msaaDynamicOuterCubics:
                                     case DrawType::msaaOuterCubicStencilReset:
                                     case DrawType::msaaOuterCubicPathsStencil:
                                     case DrawType::msaaOuterCubicPathsCover:
                                     case DrawType::msaaStrokes:
                                     case DrawType::
                                         msaaMidpointFanBorrowedCoverage:
-                                    case DrawType::msaaDynamicMidpointFans:
                                     case DrawType::msaaMidpointFans:
                                     case DrawType::msaaMidpointFanStencilReset:
                                     case DrawType::msaaMidpointFanPathsStencil:
@@ -2707,8 +2853,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         }
         else if (desc.interlockMode == InterlockMode::rasterOrdering)
         {
-            RDG_GPU_STAT_SCOPE(GraphBuilder,
-                               STAT_RiveFlush_RiveFlushRenderPass);
+            RDG_EVENT_SCOPE_STAT(GraphBuilder,
+                                 STAT_RiveFlush_RiveFlushRenderPass,
+                                 "RiveFlushRenderPass");
 
             for (const DrawBatch& batch : *desc.drawList)
             {
@@ -2961,8 +3108,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         }
         else // Atomic mode
         {
-            RDG_GPU_STAT_SCOPE(GraphBuilder,
-                               STAT_RiveFlush_RiveFlushRenderPass);
+            RDG_EVENT_SCOPE_STAT(GraphBuilder,
+                                 STAT_RiveFlush_RiveFlushRenderPass,
+                                 "RiveFlushRenderPass");
 
             for (const DrawBatch& batch : *desc.drawList)
             {

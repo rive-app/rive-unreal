@@ -39,6 +39,19 @@ struct FRiveCommonPassParameters
     // modes in the future
     rive::gpu::PipelineState PipelineState;
     const rive::gpu::PlatformFeatures& PlatformFeatures;
+    // Picks the subpass read msaa pixel shaders over the sampled dst color
+    // ones. Both variants are compiled, so this is a runtime choice.
+    bool bUseSubpassLoad = false;
+
+    // The subpass variants only exist for permutations that actually read the
+    // dst color, which is what their ShouldCompilePermutation allows. Asking
+    // for one outside that set would look up a shader that was never compiled.
+    bool UseSubpassPixelShader() const
+    {
+        return bUseSubpassLoad &&
+               PixelPermutationDomain.Get<FEnableAdvanceBlend>() &&
+               !PixelPermutationDomain.Get<FEnableFixedFunctionColorOutput>();
+    }
     FRiveCommonPassParameters(
         const rive::gpu::DrawBatch& DrawBatch,
         const rive::gpu::PipelineState& PipelineState,
@@ -51,7 +64,15 @@ struct FRiveCommonPassParameters
     {}
     uint32_t GetUniqueKey(rive::gpu::InterlockMode Interlock) const
     {
-        return pipeline_unique_key(DrawBatch.drawType,
+        return GetUniqueKeyForDrawType(DrawBatch.drawType, Interlock);
+    }
+
+    // msaaDynamicMidpointFans draws one batch once per collapsed subpass, so
+    // the state it caches has to be keyed off the pass rather than the batch.
+    uint32_t GetUniqueKeyForDrawType(rive::gpu::DrawType DrawType,
+                                     rive::gpu::InterlockMode Interlock) const
+    {
+        return pipeline_unique_key(DrawType,
                                    DrawBatch.shaderFeatures,
                                    Interlock,
                                    DrawBatch.shaderMiscFlags,
@@ -159,11 +180,26 @@ FRDGPassRef AddDrawPatchesPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveFlushPassParameters* PassParameters);
 
+// Resets the bound-pipeline record the AddDrawMSAA* passes use to skip
+// redundant binds. Call when a render pass begins, and before any pipeline
+// bind that does not go through those functions.
+void RiveInvalidateBoundPipelineState();
+
 void AddDrawMSAAPatchesPass(
     FRHICommandList& RHICmdList,
     const FString& PassName,
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters);
+
+#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
+// The msaa fast path fill, drawn as one batch instead of three.
+void AddDrawMSAADynamicMidpointFansPass(
+    FRHICommandList& RHICmdList,
+    const FString& PassName,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters,
+    TConstArrayView<rive::gpu::PipelineState> PassPipelineStates);
+#endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
 
 void AddDrawMSAAStencilClipResetPass(
     FRHICommandList& RHICmdList,

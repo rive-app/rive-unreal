@@ -17,9 +17,19 @@ THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY(LogRiveShaderCompiler);
 
+bool RivePlatformSupportsSubpassLoad(const FShaderPermutationParameters& Params)
+{
+    bool bSupported = IsTargetMetal(Params);
+#if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
+    bSupported = bSupported || IsTargetVulkan(Params);
+#endif
+    return bSupported;
+}
+
 void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
                              FShaderCompilerEnvironment& Environment,
-                             const bool IsVertexShader)
+                             const bool IsVertexShader,
+                             const bool bWantsSubpassLoad)
 {
 #if UE_VERSION_OLDER_THAN(5, 5, 0) || RIVE_FORCE_USE_GENERATED_UNIFORMS
     Environment.SetDefine(TEXT("UNIFORM_DEFINITIONS_AUTO_GENERATED"),
@@ -51,11 +61,8 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
     {
         Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
         Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
-        // Vulkan is commented out because currently we have no control of
-        // subpass dependencies and inputs. The goal is to make a PR for unreal
-        // (to epic) with engine changes that add this ability, and once that
-        // lands, we can uncomment this code.
-        if (/*IsTargetVulkan(Params) ||*/ IsTargetMetal(Params))
+        // Only set when engine patch is present.
+        if (bWantsSubpassLoad && RivePlatformSupportsSubpassLoad(Params))
         {
             Environment.SetDefine(TEXT("SUPPORTS_SUBPASS_LOAD"), TEXT("1"));
         }
@@ -71,14 +78,14 @@ void FRiveBasePixelShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    ModifyShaderEnvironment(Params, Environment, false);
+    ModifyShaderEnvironment(Params, Environment, false, false);
 }
 
 void FRiveBaseVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    ModifyShaderEnvironment(Params, Environment, true);
+    ModifyShaderEnvironment(Params, Environment, true, false);
 }
 
 void FRiveRDGTessPixelShader::ModifyCompilationEnvironment(
@@ -112,7 +119,36 @@ void FRiveBltTextureAsDrawVertexShader::ModifyCompilationEnvironment(
     const FShaderPermutationParameters& Params,
     FShaderCompilerEnvironment& Environment)
 {
-    ModifyShaderEnvironment(Params, Environment, true);
+    ModifyShaderEnvironment(Params, Environment, true, false);
+}
+
+void ModifyMSAASubpassShaderEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    ModifyShaderEnvironment(Params, Environment, false, true);
+}
+
+void ModifyMSAAPathVertexShaderEnvironment(
+    const FShaderPermutationParameters& Params,
+    FShaderCompilerEnvironment& Environment)
+{
+    ModifyShaderEnvironment(Params, Environment, true, false);
+
+    // Vulkan's SV_InstanceID already includes the draw's first instance, so
+    // the baseInstance uniform is compiled out.
+    if (IsTargetVulkan(Params))
+    {
+        Environment.SetDefine(TEXT("SV_INSTANCE_ID_INCLUDES_BASE"), TEXT("1"));
+    }
+
+#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
+    if (IsTargetVulkan(Params))
+    {
+        Environment.SetDefine(TEXT("EMULATE_DYNAMIC_COLOR_WRITE_DISABLE"),
+                              TEXT("1"));
+    }
+#endif
 }
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGGradientPixelShader,
@@ -289,6 +325,22 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAAVertexShader,
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGStencilMSAAPixelShader,
                         "/Plugin/Rive/Private/Rive/draw_msaa_stencil.usf",
                         GLSL_blitFragmentMain,
+                        SF_Pixel);
+
+// Same entry points as the shaders above, compiled with SUPPORTS_SUBPASS_LOAD.
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAASubpassPixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_path.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitMSAASubpassPixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_atlas_blit.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGImageMeshMSAASubpassPixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_msaa_image_mesh.usf",
+                        GLSL_drawFragmentMain,
                         SF_Pixel);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGStencilMSAAVertexShader,

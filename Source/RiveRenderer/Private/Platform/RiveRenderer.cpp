@@ -72,8 +72,9 @@ DECLARE_GPU_STAT_NAMED(BeingFrameRenderThread,
                        TEXT("FRiveRenderer::BeingFrameRenderThread"));
 void FRiveRenderer::BeginFrameRenderThread()
 {
-    SCOPED_GPU_STAT(GRHICommandList.GetImmediateCommandList(),
-                    BeingFrameRenderThread);
+    RHI_BREADCRUMB_EVENT_STAT(GRHICommandList.GetImmediateCommandList(),
+                              BeingFrameRenderThread,
+                              "BeingFrameRenderThread");
 
     check(IsInRenderingThread());
     check(CommandServer);
@@ -193,7 +194,9 @@ void FRiveRenderer::CreateRenderContext(FRHICommandListImmediate& RHICmdList)
     check(IsInRenderingThread());
     check(GDynamicRHI);
 
-    SCOPED_GPU_STAT(RHICmdList, CreateRenderContext);
+    RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                              CreateRenderContext,
+                              "CreateRenderContext");
 
     if (GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Null)
     {

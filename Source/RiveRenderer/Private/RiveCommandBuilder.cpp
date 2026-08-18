@@ -206,7 +206,9 @@ void FRiveCommandBuilder::Execute()
             [RenderTarget, CommandSet](rive::DrawKey Key,
                                        rive::CommandServer* CommandServer) {
                 auto& RHICmdList = GRHICommandList.GetImmediateCommandList();
-                SCOPED_GPU_STAT(RHICmdList, RiveRenderTargetExecute);
+                RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                                          RiveRenderTargetExecute,
+                                          "RiveRenderTargetExecute");
 
                 auto& RenderModulde = FRiveRendererModule::Get();
                 check(RenderModulde.GetRenderer());

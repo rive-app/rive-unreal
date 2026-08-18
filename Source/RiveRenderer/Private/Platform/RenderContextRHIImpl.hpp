@@ -500,5 +500,12 @@ private:
 
     static FRDGBuilder* TestBuilder;
 
+public:
+    // Bumped once per flush. Used to cache per flush rdg registrations without
+    // keying on the FRDGBuilder pointer, which the gm harness reallocates at
+    // the same address every frame.
+    static uint64 FlushSerial;
+
+private:
     friend class UnrealTestingWindow;
 };

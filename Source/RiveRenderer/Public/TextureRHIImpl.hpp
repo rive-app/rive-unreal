@@ -70,6 +70,11 @@ public:
 
 private:
     FRDGTextureRef m_RDGTexture = nullptr;
+    // asRDGTexture is called once per draw, so images drawn many times in one
+    // flush would otherwise allocate a pooled wrapper and register with rdg
+    // every single time. Valid only for the flush it was made in.
+    mutable FRDGTextureRef m_cachedRDGTexture = nullptr;
+    mutable uint64 m_cachedRDGFlushSerial = 0;
     FTextureRHIRef m_texture = nullptr;
     TStrongObjectPtr<UTexture> m_UTexture;
 };

@@ -93,7 +93,9 @@ void FRiveRenderTargetRHI::CacheTextureTarget_RenderThread(
                     "InTexture was not PF_R8G8B8A8!"));
     }
 
-    SCOPED_GPU_STAT(RHICmdList, CacheTextureTargetRHI);
+    RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                              CacheTextureTargetRHI,
+                              "CacheTextureTargetRHI");
 
     RenderContextRHIImpl* const PLSRenderContextImpl =
         PLSRenderContext->static_impl_cast<RenderContextRHIImpl>();

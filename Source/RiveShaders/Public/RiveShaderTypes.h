@@ -71,6 +71,7 @@ class FEnableClip : SHADER_PERMUTATION_BOOL("ENABLE_CLIPPING");
 class FEnableClipRect : SHADER_PERMUTATION_BOOL("ENABLE_CLIP_RECT");
 class FEnableAdvanceBlend : SHADER_PERMUTATION_BOOL("ENABLE_ADVANCED_BLEND");
 class FEnableFeather : SHADER_PERMUTATION_BOOL("ENABLE_FEATHER");
+class FEnableModulatedImage : SHADER_PERMUTATION_BOOL("ENABLE_MODULATED_IMAGE");
 
 // FragmentOnly
 class FEnableFixedFunctionColorOutput
@@ -86,8 +87,6 @@ class FEnableGammaCorrection
 class FCoalescedPlsResolveAndTransfer
     : SHADER_PERMUTATION_BOOL("COALESCED_PLS_RESOLVE_AND_TRANSFER");
 
-// TODO: May need ENABLE_MODULATED_IMAGE permutation
-
 typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableClipRect,
                                  FEnableNestedClip,
@@ -98,13 +97,15 @@ typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableHSLBlendMode,
                                  FEnableFeather,
                                  FEnableClockwiseFill,
-                                 FEnableGammaCorrection>
+                                 FEnableGammaCorrection,
+                                 FEnableModulatedImage>
 
     AtomicPixelPermutationDomain;
 typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableClipRect,
                                  FEnableAdvanceBlend,
-                                 FEnableFeather>
+                                 FEnableFeather,
+                                 FEnableModulatedImage>
     AtomicVertexPermutationDomain;
 
 #define USE_ATOMIC_PIXEL_PERMUTATIONS                                          \
@@ -270,10 +271,15 @@ template <typename ShaderClass>
 static bool RiveShouldCompilePixelPermutation(
     const FShaderPermutationParameters& Parameters,
     bool isResolve = false,
-    bool isAtomicBuffer = false)
+    bool isAtomicBuffer = false,
+    bool allowModulatedImage = false)
 {
     typename ShaderClass::FPermutationDomain PermutationVector(
         Parameters.PermutationId);
+
+    if (PermutationVector.template Get<FEnableModulatedImage>() &&
+        !allowModulatedImage)
+        return false;
 
     if (isAtomicBuffer && !IsTargetMetal(Parameters) &&
         Parameters.Platform != 39)
@@ -322,7 +328,11 @@ template <typename ShaderClass>
 bool ShouldCompilePixelMSAAPermutation(
     const FShaderPermutationParameters& Parameters)
 {
-    return RiveShouldCompilePixelPermutation<ShaderClass>(Parameters);
+    return RiveShouldCompilePixelPermutation<ShaderClass>(
+        Parameters,
+        /*isResolve=*/false,
+        /*isAtomicBuffer=*/false,
+        /*allowModulatedImage=*/true);
 }
 
 class FRiveBasePixelShader : public FGlobalShader
@@ -340,6 +350,10 @@ public:
         const FShaderPermutationParameters&,
         FShaderCompilerEnvironment&);
 };
+
+RIVESHADERS_API void ModifyMSAAPathVertexShaderEnvironment(
+    const FShaderPermutationParameters& Parameters,
+    FShaderCompilerEnvironment& Environment);
 
 class FRiveRDGGradientPixelShader : public FRiveBasePixelShader
 {
@@ -900,6 +914,13 @@ public:
     using FParameters = FRiveMSAAVertexDrawUniforms;
 
     USE_ATOMIC_VERTEX_PERMUTATIONS
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters& Parameters,
+        FShaderCompilerEnvironment& Environment)
+    {
+        ModifyMSAAPathVertexShaderEnvironment(Parameters, Environment);
+    }
 };
 
 class FRiveRDGPathMSAAPixelShader : public FRiveBasePixelShader
@@ -940,6 +961,57 @@ public:
                                 FRiveBasePixelShader);
     using FParameters = FRiveMSAAPixelDrawUniforms;
 };
+
+// Subpass read variants of the msaa pixel shaders. These are separate shader
+// types rather than a permutation, because a permutation bit here pushes the
+// msaa shaders past unreal's permutation limit.
+RIVESHADERS_API bool RivePlatformSupportsSubpassLoad(
+    const FShaderPermutationParameters& Parameters);
+
+RIVESHADERS_API void ModifyMSAASubpassShaderEnvironment(
+    const FShaderPermutationParameters& Parameters,
+    FShaderCompilerEnvironment& Environment);
+
+#define RIVE_MSAA_SUBPASS_PIXEL_SHADER(NAME, BASE)                             \
+    class NAME : public FRiveBasePixelShader                                   \
+    {                                                                          \
+    public:                                                                    \
+        DECLARE_EXPORTED_GLOBAL_SHADER(NAME, RIVESHADERS_API);                 \
+        SHADER_USE_PARAMETER_STRUCT(NAME, FRiveBasePixelShader);               \
+        using FParameters = FRiveMSAAPixelDrawUniforms;                        \
+                                                                               \
+        USE_ATOMIC_PIXEL_PERMUTATIONS                                          \
+                                                                               \
+        static bool ShouldCompilePermutation(                                  \
+            const FShaderPermutationParameters& Parameters)                    \
+        {                                                                      \
+            /* The dst color read only exists under advanced blend with a non  \
+               fixed function color output, so every other permutation would   \
+               compile to exactly the base shader.*/                           \
+            FPermutationDomain Permutation(Parameters.PermutationId);          \
+            if (!Permutation.template Get<FEnableAdvanceBlend>() ||            \
+                Permutation.template Get<FEnableFixedFunctionColorOutput>())   \
+            {                                                                  \
+                return false;                                                  \
+            }                                                                  \
+            return RivePlatformSupportsSubpassLoad(Parameters) &&              \
+                   ShouldCompilePixelMSAAPermutation<BASE>(Parameters);        \
+        }                                                                      \
+                                                                               \
+        static void ModifyCompilationEnvironment(                              \
+            const FShaderPermutationParameters& Parameters,                    \
+            FShaderCompilerEnvironment& Environment)                           \
+        {                                                                      \
+            ModifyMSAASubpassShaderEnvironment(Parameters, Environment);       \
+        }                                                                      \
+    };
+
+RIVE_MSAA_SUBPASS_PIXEL_SHADER(FRiveRDGPathMSAASubpassPixelShader,
+                               FRiveRDGPathMSAAPixelShader)
+RIVE_MSAA_SUBPASS_PIXEL_SHADER(FRiveRDGAtlasBlitMSAASubpassPixelShader,
+                               FRiveRDGAtlasBlitMSAAPixelShader)
+RIVE_MSAA_SUBPASS_PIXEL_SHADER(FRiveRDGImageMeshMSAASubpassPixelShader,
+                               FRiveRDGImageMeshMSAAPixelShader)
 
 // Atlas Render
 

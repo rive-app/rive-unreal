@@ -19,28 +19,28 @@
 			"Name": "Rive",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
-			"PlatformAllowList": [ "Win64", "Mac", "Linux"  ],
+			"PlatformAllowList": [ "Win64", "Mac", "Linux", "Android"  ],
 			"BlacklistTargets": [ "Server" ]
 		},
 		{
 			"Name": "RiveShaders",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"PlatformAllowList": [ "Win64", "Mac", "Linux" ],
+			"PlatformAllowList": [ "Win64", "Mac", "Linux", "Android" ],
 			"BlacklistTargets": [ "Server" ]
 		},
 		{
 			"Name": "RiveStats",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"PlatformAllowList": [ "Win64", "Mac", "Linux"  ],
+			"PlatformAllowList": [ "Win64", "Mac", "Linux", "Android"  ],
 			"BlacklistTargets": [ "Server" ]
 		},
 		{
 			"Name": "RiveRenderer",
 			"Type": "RuntimeNoCommandlet",
 			"LoadingPhase": "PreDefault",
-			"PlatformAllowList": [ "Win64", "Mac", "Linux"  ],
+			"PlatformAllowList": [ "Win64", "Mac", "Linux", "Android"  ],
 			"BlacklistTargets": [ "Server" ]
 		},
 		{

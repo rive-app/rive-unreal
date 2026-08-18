@@ -3,6 +3,7 @@
  */
 #include "TextureRHIImpl.hpp"
 #include "TextureResource.h"
+#include "Platform/RenderContextRHIImpl.hpp"
 #if UE_VERSION_OLDER_THAN(5, 5, 0)
 
 TextureRHIImpl::TextureRHIImpl(const FTextureRHIRef& Texture) :
@@ -104,10 +105,22 @@ TextureRHIImpl::TextureRHIImpl(uint32_t width,
 
 FRDGTextureRef TextureRHIImpl::asRDGTexture(FRDGBuilder& Builder) const
 {
-    return m_RDGTexture ? m_RDGTexture
-                        : Builder.RegisterExternalTexture(CreateRenderTarget(
-                              contents(),
-                              TEXT("rive.PLSTextureRHIImpl_")));
+    if (m_RDGTexture)
+    {
+        return m_RDGTexture;
+    }
+
+    // One registration per image per flush.
+    const uint64 FlushSerial = RenderContextRHIImpl::FlushSerial;
+    if (m_cachedRDGTexture != nullptr && m_cachedRDGFlushSerial == FlushSerial)
+    {
+        return m_cachedRDGTexture;
+    }
+
+    m_cachedRDGTexture = Builder.RegisterExternalTexture(
+        CreateRenderTarget(contents(), TEXT("rive.PLSTextureRHIImpl_")));
+    m_cachedRDGFlushSerial = FlushSerial;
+    return m_cachedRDGTexture;
 }
 
 TextureRHIImpl::~TextureRHIImpl() {}
