@@ -1454,11 +1454,15 @@ rcp<Texture> RenderContextRHIImpl::platformDecodeImageTexture(
                             bitmap->bytes());
 }
 
-rive::rcp<rive::gpu::RenderCanvas> RenderContextRHIImpl::makeRenderCanvas(
-    uint32_t width,
-    uint32_t height)
+void RenderContextRHIImpl::ensureCanvasBacking(rive::gpu::RenderCanvas* canvas)
 {
+    if (canvas->isBacked())
+    {
+        return;
+    }
+
     check(IsInRenderingThread());
+    uint32_t width = canvas->width(), height = canvas->height();
     auto& RHICmdList = GRHICommandList.GetImmediateCommandList();
     // On some RHIs the native MSAA color resolve writes into this canvas only
     // if it was created ResolveTargetable. D3D12, by contrast, makes
@@ -1487,10 +1491,8 @@ rive::rcp<rive::gpu::RenderCanvas> RenderContextRHIImpl::makeRenderCanvas(
             // sizing.
             .AddFlags(ETextureCreateFlags::ShaderResource)
             .SetNumSamples(1));
-    auto Image =
-        make_rcp<RiveRenderImage>(make_rcp<TextureRHIImpl>(RHITexture));
-    auto RenderTarget = makeRenderTarget(RHICmdList, RHITexture);
-    return make_rcp<RenderCanvas>(MoveTemp(Image), MoveTemp(RenderTarget));
+    canvas->setBacking(make_rcp<TextureRHIImpl>(RHITexture),
+                       makeRenderTarget(RHICmdList, RHITexture));
 }
 
 std::unique_ptr<rive::ore::Context> RenderContextRHIImpl::makeOreContext()
