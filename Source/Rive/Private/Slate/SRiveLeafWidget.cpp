@@ -193,21 +193,18 @@ public:
         }
 
         auto Context = RiveRenderer->GetRenderContext();
-        Context->beginFrame({
-            .renderTargetWidth =
-                static_cast<uint32_t>(Inputs.OutputTexture->Desc.GetSize().X),
-            .renderTargetHeight =
-                static_cast<uint32_t>(Inputs.OutputTexture->Desc.GetSize().Y),
-            .loadAction = rive::gpu::LoadAction::preserveRenderTarget,
-            .wireframe = Inputs.bWireFrame,
-        });
 
+        // The clip is recorded alongside the artboard's draws, so its path
+        // has to come from the session too; replay rebuilds both against the
+        // real context.
         rive::RawPath ClipPath;
         ClipPath.addRect(AABBForSlateRect(ClipRect));
         auto ClipRenderPath =
-            Context->makeRenderPath(ClipPath, rive::FillRule::nonZero);
+            RiveRenderer->GetDeferredSession()->makeRenderPath(
+                ClipPath,
+                rive::FillRule::nonZero);
 
-        auto Renderer = MakeUnique<rive::RiveRenderer>(Context);
+        auto* Renderer = RiveRenderer->BeginDeferredFrame();
         Renderer->save();
         Renderer->clipPath(ClipRenderPath.get());
         Renderer->align(Fit,
@@ -244,7 +241,7 @@ public:
         }
 
         // Normal drawing. Must be done in this order !
-        ArtboardInstance->draw(Renderer.Get());
+        ArtboardInstance->draw(Renderer);
         Renderer->restore();
 
         // This is left as a comment because it could be useful later,
@@ -275,8 +272,28 @@ public:
         // }
         //  else
         {
-            Context->flush({.renderTarget = renderTarget.get(),
-                            .externalCommandBuffer = &GraphBuilder});
+            const FIntVector OutputSize = Inputs.OutputTexture->Desc.GetSize();
+            const bool bWireFrame = Inputs.bWireFrame;
+            RiveRenderer->ReplayDeferredFrame(
+                GraphBuilder,
+                [Context,
+                 OutputSize,
+                 bWireFrame]() -> TUniquePtr<rive::Renderer> {
+                    Context->beginFrame({
+                        .renderTargetWidth =
+                            static_cast<uint32_t>(OutputSize.X),
+                        .renderTargetHeight =
+                            static_cast<uint32_t>(OutputSize.Y),
+                        .loadAction =
+                            rive::gpu::LoadAction::preserveRenderTarget,
+                        .wireframe = bWireFrame,
+                    });
+                    return MakeUnique<rive::RiveRenderer>(Context);
+                },
+                [Context, &renderTarget, &GraphBuilder] {
+                    Context->flush({.renderTarget = renderTarget.get(),
+                                    .externalCommandBuffer = &GraphBuilder});
+                });
         }
     }
 

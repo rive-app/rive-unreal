@@ -211,13 +211,13 @@ void FRiveCommandBuilder::Execute()
                                           "RiveRenderTargetExecute");
 
                 auto& RenderModulde = FRiveRendererModule::Get();
-                check(RenderModulde.GetRenderer());
-                auto RiveRenderContext =
-                    RenderModulde.GetRenderer()->GetRenderContext();
-                check(RiveRenderContext);
+                auto* RiveRenderer = RenderModulde.GetRenderer();
+                check(RiveRenderer);
 
-                auto Renderer =
-                    RenderTarget->BeginRenderFrame(RiveRenderContext);
+                // Draws record into the session's stream and reach the target
+                // when the frame replays below.
+                auto* Renderer = RiveRenderer->BeginDeferredFrame();
+                check(Renderer);
                 auto Factory = CommandServer->factory();
                 check(Factory);
 
@@ -232,19 +232,19 @@ void FRiveCommandBuilder::Execute()
                                   RIVE_NULL_HANDLE);
                             DrawArtboard(DrawCommand.ArtboardCommand,
                                          CommandServer,
-                                         Renderer.Get());
+                                         Renderer);
                             break;
                         case EDrawType::Direct:
                             check(DrawCommand.DrawCallback);
                             DrawCommand.DrawCallback(Key,
                                                      CommandServer,
-                                                     Renderer.Get(),
+                                                     Renderer,
                                                      Factory);
                             break;
                     }
                 }
 
-                RenderTarget->EndRenderFrame(RiveRenderContext);
+                RiveRenderer->ReplayDeferredFrame(RenderTarget);
             });
     }
 }

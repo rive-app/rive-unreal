@@ -117,17 +117,8 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object,
             ArtboardInstance->advance(1.0);
 
             auto Context = RiveRenderer->GetRenderContext();
-            Context->beginFrame({
-                .renderTargetWidth =
-                    static_cast<uint32_t>(AlignmentBox.GetSize().X),
-                .renderTargetHeight =
-                    static_cast<uint32_t>(AlignmentBox.GetSize().Y),
-                .loadAction = rive::gpu::LoadAction::clear,
-                .clearColor = rive::colorRed(255),
-                .wireframe = false,
-            });
 
-            auto Renderer = MakeUnique<rive::RiveRenderer>(Context);
+            auto* Renderer = RiveRenderer->BeginDeferredFrame();
             Renderer->save();
             Renderer->align(rive::Fit::contain,
                             rive::Alignment::center,
@@ -136,11 +127,28 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object,
                              AlignmentBox.Max.X,
                              AlignmentBox.Max.Y},
                             ArtboardInstance->bounds());
-            ArtboardInstance->draw(Renderer.Get());
+            ArtboardInstance->draw(Renderer);
             Renderer->restore();
+
             FRDGBuilder GraphBuilder(RHICmdList);
-            Context->flush({.renderTarget = RenderTarget.get(),
-                            .externalCommandBuffer = &GraphBuilder});
+            RiveRenderer->ReplayDeferredFrame(
+                GraphBuilder,
+                [Context, AlignmentBox]() -> TUniquePtr<rive::Renderer> {
+                    Context->beginFrame({
+                        .renderTargetWidth =
+                            static_cast<uint32_t>(AlignmentBox.GetSize().X),
+                        .renderTargetHeight =
+                            static_cast<uint32_t>(AlignmentBox.GetSize().Y),
+                        .loadAction = rive::gpu::LoadAction::clear,
+                        .clearColor = rive::colorRed(255),
+                        .wireframe = false,
+                    });
+                    return MakeUnique<rive::RiveRenderer>(Context);
+                },
+                [Context, &RenderTarget, &GraphBuilder] {
+                    Context->flush({.renderTarget = RenderTarget.get(),
+                                    .externalCommandBuffer = &GraphBuilder});
+                });
             GraphBuilder.Execute();
         });
     }

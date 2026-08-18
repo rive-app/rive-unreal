@@ -451,6 +451,27 @@ public:
 
     virtual void* makeCommandBuffer() override;
 
+    // Builder the backend hands out as an external command buffer, which is
+    // what a canvas pass flushes into. Scoped because it is only live while
+    // the frame that owns the builder renders.
+    class FScopedExternalBuilder
+    {
+    public:
+        explicit FScopedExternalBuilder(FRDGBuilder& Builder) :
+            Previous(TestBuilder)
+        {
+            TestBuilder = &Builder;
+        }
+        ~FScopedExternalBuilder() { TestBuilder = Previous; }
+
+        FScopedExternalBuilder(const FScopedExternalBuilder&) = delete;
+        FScopedExternalBuilder& operator=(const FScopedExternalBuilder&) =
+            delete;
+
+    private:
+        FRDGBuilder* const Previous;
+    };
+
 private:
     DelayLoadedTexture m_gradientTexture;
     DelayLoadedTexture m_tesselationTexture;
