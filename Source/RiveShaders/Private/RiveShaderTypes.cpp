@@ -292,6 +292,16 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGRasterOrderImageMeshVertexShader,
                         GLSL_drawVertexMain,
                         SF_Vertex);
 
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGRasterOrderAtlasBlitPixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_atlas_blit.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGRasterOrderAtlasBlitVertexShader,
+                        "/Plugin/Rive/Private/Rive/draw_atlas_blit.usf",
+                        GLSL_drawVertexMain,
+                        SF_Vertex);
+
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitMSAAPixelShader,
                         "/Plugin/Rive/Private/Rive/draw_msaa_atlas_blit.usf",
                         GLSL_drawFragmentMain,

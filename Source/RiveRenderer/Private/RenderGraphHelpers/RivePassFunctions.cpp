@@ -1974,11 +1974,11 @@ FRDGPassRef AddDrawRasterOrderAtlasBlitPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveRasterOrderFlushPassParameters* PassParameters)
 {
-    TShaderMapRef<FRiveRDGAtlasBlitVertexShader> VertexShader(
+    TShaderMapRef<FRiveRDGRasterOrderAtlasBlitVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,
         CommonPassParameters->VertexPermutationDomain);
 
-    TShaderMapRef<FRiveRDGAtlasBlitPixelShader> PixelShader(
+    TShaderMapRef<FRiveRDGRasterOrderAtlasBlitPixelShader> PixelShader(
         CommonPassParameters->ShaderMap,
         CommonPassParameters->PixelPermutationDomain);
 

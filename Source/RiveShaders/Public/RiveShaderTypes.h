@@ -752,8 +752,11 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePixelPermutation<FRiveRDGPathPixelShader>(
-            Parameters);
+        return RiveShouldCompilePixelPermutation<
+            FRiveRDGRasterOrderPathPixelShader>(Parameters,
+                                                /*isResolve=*/false,
+                                                /*isAtomicBuffer=*/false,
+                                                /*allowModulatedImage=*/true);
     }
 };
 
@@ -786,7 +789,11 @@ public:
         const FShaderPermutationParameters& Parameters)
     {
         return RiveShouldCompilePixelPermutation<
-            FRiveRDGInteriorTrianglesPixelShader>(Parameters);
+            FRiveRDGRasterOrderInteriorTrianglesPixelShader>(
+            Parameters,
+            /*isResolve=*/false,
+            /*isAtomicBuffer=*/false,
+            /*allowModulatedImage=*/true);
     }
 };
 
@@ -820,8 +827,12 @@ public:
     static bool ShouldCompilePermutation(
         const FShaderPermutationParameters& Parameters)
     {
-        return RiveShouldCompilePixelPermutation<FRiveRDGImageMeshPixelShader>(
-            Parameters);
+        return RiveShouldCompilePixelPermutation<
+            FRiveRDGRasterOrderImageMeshPixelShader>(
+            Parameters,
+            /*isResolve=*/false,
+            /*isAtomicBuffer=*/false,
+            /*allowModulatedImage=*/true);
     }
 };
 
@@ -831,6 +842,42 @@ public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGRasterOrderImageMeshVertexShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGRasterOrderImageMeshVertexShader,
+                                FRiveBaseVertexShader);
+
+    using FParameters = FRiveVertexDrawUniforms;
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
+};
+
+class FRiveRDGRasterOrderAtlasBlitPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGRasterOrderAtlasBlitPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGRasterOrderAtlasBlitPixelShader,
+                                FRiveBasePixelShader);
+    using FParameters = FRivePixelDrawUniforms;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return RiveShouldCompilePixelPermutation<
+            FRiveRDGRasterOrderAtlasBlitPixelShader>(
+            Parameters,
+            /*isResolve=*/false,
+            /*isAtomicBuffer=*/false,
+            /*allowModulatedImage=*/true);
+    }
+};
+
+class FRiveRDGRasterOrderAtlasBlitVertexShader : public FRiveBaseVertexShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGRasterOrderAtlasBlitVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGRasterOrderAtlasBlitVertexShader,
                                 FRiveBaseVertexShader);
 
     using FParameters = FRiveVertexDrawUniforms;

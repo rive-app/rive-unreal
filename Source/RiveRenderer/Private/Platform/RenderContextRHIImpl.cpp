@@ -373,7 +373,8 @@ void GetPermutationForFeatures(
     PixelPermutationDomain.Set<FEnableAdvanceBlend>(
         enums::is_flag_set(features, ShaderFeatures::ENABLE_ADVANCED_BLEND));
     PixelPermutationDomain.Set<FEnableFixedFunctionColorOutput>(
-        !enums::is_flag_set(features, ShaderFeatures::ENABLE_ADVANCED_BLEND));
+        enums::is_flag_set(miscFlags,
+                           ShaderMiscFlags::fixedFunctionColorOutput));
     PixelPermutationDomain.Set<FEnableEvenOdd>(
         enums::is_flag_set(features, ShaderFeatures::ENABLE_EVEN_ODD));
     PixelPermutationDomain.Set<FEnableHSLBlendMode>(
@@ -525,7 +526,8 @@ RHICapabilities::RHICapabilities()
 #if PLATFORM_APPLE
     bSupportsRasterOrderViews = false;
 #else
-    bSupportsRasterOrderViews = GRHISupportsRasterOrderViews;
+    bSupportsRasterOrderViews =
+        FDataDrivenShaderPlatformInfo::GetSupportsROV(GMaxRHIShaderPlatform);
 #endif
 #endif
     // Typed is the default everywhere modern unreal supports.
@@ -2874,7 +2876,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
                 if (enums::is_flag_set(batch.drawContents,
                                        DrawContents::clockwiseFill))
-                    ShaderMiscFlags &= ShaderMiscFlags::clockwiseFill;
+                    ShaderMiscFlags |= ShaderMiscFlags::clockwiseFill;
 
                 GetPermutationForFeatures(ShaderFeatures,
                                           ShaderMiscFlags,
@@ -2951,7 +2953,11 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 PassParameters->PS.clipBuffer = clipUAV;
                 PassParameters->PS.colorBuffer = targetUAV;
                 PassParameters->PS.scratchColorBuffer = scratchUAV;
-                PassParameters->PS.GLSL_imageTexture_raw = placeholderTexture;
+                PassParameters->PS.GLSL_imageTexture_raw =
+                    batch.imageTexture != nullptr
+                        ? static_cast<const TextureRHIImpl*>(batch.imageTexture)
+                              ->asRDGTexture(GraphBuilder)
+                        : placeholderTexture;
 
                 PassParameters->VS.GLSL_tessVertexTexture_raw =
                     tesselationTexture;
