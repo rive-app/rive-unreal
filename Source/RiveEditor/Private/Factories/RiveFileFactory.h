@@ -5,7 +5,6 @@
 #include "EditorReimportHandler.h"
 #include "Factories/Factory.h"
 #include "RiveFileFactory.generated.h"
-
 /**
  *
  */
@@ -45,5 +44,5 @@ public:
     virtual int32 GetPriority() const override;
     //~ END : FReimportHandler Interface
 private:
-    FDelegateHandle OnDataReadyHandle;
+    TMap<TObjectKey<UObject>, FDelegateHandle> OnDataReadyHandleMap;
 };

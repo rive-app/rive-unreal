@@ -632,10 +632,16 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass,
 
     TWeakObjectPtr<URiveFileFactory> WeakThis(this);
     auto Lambda = [WeakThis](URiveFile* RiveFile) {
+        if (auto StrongThis = WeakThis.Pin(); StrongThis.IsValid())
+        {
+            auto Handle = StrongThis->OnDataReadyHandleMap.Find({RiveFile});
+            if (Handle && Handle->IsValid())
+            {
+                RiveFile->OnDataReady.Remove(*Handle);
+                StrongThis->OnDataReadyHandleMap.Remove({RiveFile});
+            }
+        }
         GenerateBlueprintsForFile(RiveFile);
-        if (auto StrongThis = WeakThis.Pin();
-            StrongThis.IsValid() && StrongThis->OnDataReadyHandle.IsValid())
-            RiveFile->OnDataReady.Remove(StrongThis->OnDataReadyHandle);
     };
 
     if (RiveFile->GetHasData())
@@ -644,8 +650,19 @@ UObject* URiveFileFactory::FactoryCreateFile(UClass* InClass,
     }
     else
     {
-        if (!OnDataReadyHandle.IsValid())
-            OnDataReadyHandle = RiveFile->OnDataReady.AddLambda(Lambda);
+        auto Handle = OnDataReadyHandleMap.Find({RiveFile});
+        if (!Handle || !Handle->IsValid())
+        {
+            auto NewHandle = RiveFile->OnDataReady.AddLambda(Lambda);
+            if (Handle)
+            {
+                *Handle = NewHandle;
+            }
+            else
+            {
+                OnDataReadyHandleMap.Add({RiveFile}, NewHandle);
+            }
+        }
     }
 
     GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(
@@ -685,7 +702,7 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
 {
     URiveFile* RiveFile = Cast<URiveFile>(Obj);
 
-    if (!IsValid(RiveFile) && !ensure(GEditor))
+    if (!IsValid(RiveFile) || !ensure(GEditor))
     {
         UE_LOG(LogRiveEditor,
                Error,
@@ -753,10 +770,15 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
     }
 
     TWeakObjectPtr<URiveFileFactory> WeakThis(this);
-    auto Lambda = [Handle = OnDataReadyHandle](URiveFile* RiveFile) {
-        if (Handle.IsValid())
+    auto Lambda = [WeakThis](URiveFile* RiveFile) {
+        if (auto StrongThis = WeakThis.Pin(); StrongThis.IsValid())
         {
-            RiveFile->OnDataReady.Remove(Handle);
+            auto Handle = StrongThis->OnDataReadyHandleMap.Find({RiveFile});
+            if (Handle && Handle->IsValid())
+            {
+                RiveFile->OnDataReady.Remove(*Handle);
+                StrongThis->OnDataReadyHandleMap.Remove({RiveFile});
+            }
         }
         GenerateBlueprintsForFile(RiveFile);
     };
@@ -767,8 +789,19 @@ EReimportResult::Type URiveFileFactory::Reimport(UObject* Obj)
     }
     else
     {
-        if (!OnDataReadyHandle.IsValid())
-            OnDataReadyHandle = RiveFile->OnDataReady.AddLambda(Lambda);
+        auto Handle = OnDataReadyHandleMap.Find({RiveFile});
+        if (!Handle || !Handle->IsValid())
+        {
+            auto NewHandle = RiveFile->OnDataReady.AddLambda(Lambda);
+            if (Handle)
+            {
+                *Handle = NewHandle;
+            }
+            else
+            {
+                OnDataReadyHandleMap.Add({RiveFile}, NewHandle);
+            }
+        }
     }
 
     GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetReimport(
