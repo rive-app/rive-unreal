@@ -67,7 +67,7 @@ struct FRiveCommonPassParameters
         return GetUniqueKeyForDrawType(DrawBatch.drawType, Interlock);
     }
 
-    // msaaDynamicMidpointFans draws one batch once per collapsed subpass, so
+    // stencilDynamicMidpointFans draws one batch once per collapsed subpass, so
     // the state it caches has to be keyed off the pass rather than the batch.
     uint32_t GetUniqueKeyForDrawType(rive::gpu::DrawType DrawType,
                                      rive::gpu::InterlockMode Interlock) const

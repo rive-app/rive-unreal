@@ -77,32 +77,32 @@ static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
             return TEXT("midpointFanCenterAAPatches");
         case rive::gpu::DrawType::outerCurvePatches:
             return TEXT("outerCurvePatches");
-        case rive::gpu::DrawType::msaaOuterCubics:
-            return TEXT("msaaOuterCubics");
-        case rive::gpu::DrawType::msaaOuterCubicBorrowedCoverage:
-            return TEXT("msaaOuterCubicBorrowedCoverage");
-        case rive::gpu::DrawType::msaaDynamicOuterCubics:
-            return TEXT("msaaDynamicOuterCubics");
-        case rive::gpu::DrawType::msaaOuterCubicStencilReset:
-            return TEXT("msaaOuterCubicStencilReset");
-        case rive::gpu::DrawType::msaaOuterCubicPathsStencil:
-            return TEXT("msaaOuterCubicPathsStencil");
-        case rive::gpu::DrawType::msaaOuterCubicPathsCover:
-            return TEXT("msaaOuterCubicPathsCover");
-        case rive::gpu::DrawType::msaaStrokes:
-            return TEXT("msaaStrokes");
-        case rive::gpu::DrawType::msaaMidpointFanBorrowedCoverage:
-            return TEXT("msaaMidpointFanBorrowedCoverage");
-        case rive::gpu::DrawType::msaaDynamicMidpointFans:
-            return TEXT("msaaDynamicMidpointFans");
-        case rive::gpu::DrawType::msaaMidpointFans:
-            return TEXT("msaaMidpointFans");
-        case rive::gpu::DrawType::msaaMidpointFanStencilReset:
-            return TEXT("msaaMidpointFanStencilReset");
-        case rive::gpu::DrawType::msaaMidpointFanPathsStencil:
-            return TEXT("msaaMidpointFanPathsStencil");
-        case rive::gpu::DrawType::msaaMidpointFanPathsCover:
-            return TEXT("msaaMidpointFanPathsCover");
+        case rive::gpu::DrawType::stencilOuterCubics:
+            return TEXT("stencilOuterCubics");
+        case rive::gpu::DrawType::stencilOuterCubicBorrowedCoverage:
+            return TEXT("stencilOuterCubicBorrowedCoverage");
+        case rive::gpu::DrawType::stencilDynamicOuterCubics:
+            return TEXT("stencilDynamicOuterCubics");
+        case rive::gpu::DrawType::stencilOuterCubicReset:
+            return TEXT("stencilOuterCubicReset");
+        case rive::gpu::DrawType::stencilOuterCubicWinding:
+            return TEXT("stencilOuterCubicWinding");
+        case rive::gpu::DrawType::stencilOuterCubicCover:
+            return TEXT("stencilOuterCubicCover");
+        case rive::gpu::DrawType::depthStrokes:
+            return TEXT("depthStrokes");
+        case rive::gpu::DrawType::stencilMidpointFanBorrowedCoverage:
+            return TEXT("stencilMidpointFanBorrowedCoverage");
+        case rive::gpu::DrawType::stencilDynamicMidpointFans:
+            return TEXT("stencilDynamicMidpointFans");
+        case rive::gpu::DrawType::stencilMidpointFans:
+            return TEXT("stencilMidpointFans");
+        case rive::gpu::DrawType::stencilMidpointFanReset:
+            return TEXT("stencilMidpointFanReset");
+        case rive::gpu::DrawType::stencilMidpointFanWinding:
+            return TEXT("stencilMidpointFanWinding");
+        case rive::gpu::DrawType::stencilMidpointFanCover:
+            return TEXT("stencilMidpointFanCover");
         case rive::gpu::DrawType::interiorTriangulation:
             return TEXT("interiorTriangulation");
         case rive::gpu::DrawType::clipReset:
@@ -807,7 +807,7 @@ FRDGTextureRef RenderTargetRHI::backBufferTexture(
 
     ETextureCreateFlags CreateFlags = ETextureCreateFlags::None;
     EPixelFormat UAVFormat = PF_Unknown;
-    if (Desc.interlockMode == InterlockMode::msaa)
+    if (Desc.interlockMode == InterlockMode::depthStencil)
     {
         // ShaderResource because the final copy samples this back buffer.
         // RenderTargetable is deliberately absent, it asserts alongside
@@ -1778,8 +1778,8 @@ constexpr const TCHAR* StrForInterlock(InterlockMode Mode)
             return TEXT("clockwiseAtomic");
         case InterlockMode::clockwise:
             return TEXT("clockwise");
-        case InterlockMode::msaa:
-            return TEXT("msaa");
+        case InterlockMode::depthStencil:
+            return TEXT("depthStencil");
     }
 
     return TEXT("none");
@@ -1833,9 +1833,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             (!renderTarget->TargetTextureSupportsRenderTarget() &&
              desc.fixedFunctionColorOutput) ||
             (!renderTarget->TargetTextureSupportsResolveTarget() &&
-             desc.interlockMode == InterlockMode::msaa) ||
+             desc.interlockMode == InterlockMode::depthStencil) ||
             (!desc.fixedFunctionColorOutput &&
-             desc.interlockMode != InterlockMode::msaa &&
+             desc.interlockMode != InterlockMode::depthStencil &&
              targetTexture->Desc.Format != PF_R8G8B8A8);
 
         const bool NeedsCoalesceResolve =
@@ -1872,7 +1872,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         FRDGTextureUAVRef targetUAV = nullptr;
 
         if (!desc.fixedFunctionColorOutput &&
-            desc.interlockMode != InterlockMode::msaa)
+            desc.interlockMode != InterlockMode::depthStencil)
         {
             if (m_capabilities.bSupportsTypedUAVLoads)
             {
@@ -1900,7 +1900,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         FRDGTextureRef coverageTexture = nullptr;
         FRDGTextureUAVRef clipUAV = nullptr;
 
-        if (desc.interlockMode != InterlockMode::msaa)
+        if (desc.interlockMode != InterlockMode::depthStencil)
         {
 #if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
             coverageBuffer = renderTarget->coverageBuffer(GraphBuilder);
@@ -2215,7 +2215,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                                       clearColor4f[2],
                                                       clearColor4f[3]));
             }
-            else if (desc.interlockMode != InterlockMode::msaa)
+            else if (desc.interlockMode != InterlockMode::depthStencil)
             {
                 if (m_capabilities.bSupportsTypedUAVLoads)
                 {
@@ -2239,7 +2239,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 }
             }
         }
-        if (desc.interlockMode == InterlockMode::msaa)
+        if (desc.interlockMode == InterlockMode::depthStencil)
         {
             check(targetTexture);
 
@@ -2580,8 +2580,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                     bUseSubpassLoad;
                                 switch (batch->drawType)
                                 {
-                                    case DrawType::msaaDynamicMidpointFans:
-                                    case DrawType::msaaDynamicOuterCubics:
+                                    case DrawType::stencilDynamicMidpointFans:
+                                    case DrawType::stencilDynamicOuterCubics:
 #if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
                                         // Only emitted when the context reports
                                         // supportsPipelineDynamicState, which
@@ -2610,10 +2610,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                             // backend's Passes[].
                                             static constexpr DrawType Passes[] = {
                                                 DrawType::
-                                                    msaaMidpointFanBorrowedCoverage,
-                                                DrawType::msaaMidpointFans,
+                                                    stencilMidpointFanBorrowedCoverage,
+                                                DrawType::stencilMidpointFans,
                                                 DrawType::
-                                                    msaaMidpointFanStencilReset,
+                                                    stencilMidpointFanReset,
                                             };
                                             // Qualified: a local named
                                             // PipelineState shadows the type
@@ -2649,19 +2649,19 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 #endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
                                         break;
 
-                                    case DrawType::msaaOuterCubics:
+                                    case DrawType::stencilOuterCubics:
                                     case DrawType::
-                                        msaaOuterCubicBorrowedCoverage:
-                                    case DrawType::msaaOuterCubicStencilReset:
-                                    case DrawType::msaaOuterCubicPathsStencil:
-                                    case DrawType::msaaOuterCubicPathsCover:
-                                    case DrawType::msaaStrokes:
+                                        stencilOuterCubicBorrowedCoverage:
+                                    case DrawType::stencilOuterCubicReset:
+                                    case DrawType::stencilOuterCubicWinding:
+                                    case DrawType::stencilOuterCubicCover:
+                                    case DrawType::depthStrokes:
                                     case DrawType::
-                                        msaaMidpointFanBorrowedCoverage:
-                                    case DrawType::msaaMidpointFans:
-                                    case DrawType::msaaMidpointFanStencilReset:
-                                    case DrawType::msaaMidpointFanPathsStencil:
-                                    case DrawType::msaaMidpointFanPathsCover:
+                                        stencilMidpointFanBorrowedCoverage:
+                                    case DrawType::stencilMidpointFans:
+                                    case DrawType::stencilMidpointFanReset:
+                                    case DrawType::stencilMidpointFanWinding:
+                                    case DrawType::stencilMidpointFanCover:
                                     {
                                         const FString& PassName =
                                             NameForDrawType(batch->drawType);
@@ -3096,19 +3096,19 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::imageRect:
                     case DrawType::renderPassInitialize:
                     case DrawType::renderPassResolve:
-                    case DrawType::msaaStrokes:
-                    case DrawType::msaaMidpointFanBorrowedCoverage:
-                    case DrawType::msaaDynamicMidpointFans:
-                    case DrawType::msaaMidpointFans:
-                    case DrawType::msaaMidpointFanStencilReset:
-                    case DrawType::msaaMidpointFanPathsStencil:
-                    case DrawType::msaaMidpointFanPathsCover:
-                    case DrawType::msaaOuterCubics:
-                    case DrawType::msaaOuterCubicBorrowedCoverage:
-                    case DrawType::msaaDynamicOuterCubics:
-                    case DrawType::msaaOuterCubicStencilReset:
-                    case DrawType::msaaOuterCubicPathsStencil:
-                    case DrawType::msaaOuterCubicPathsCover:
+                    case DrawType::depthStrokes:
+                    case DrawType::stencilMidpointFanBorrowedCoverage:
+                    case DrawType::stencilDynamicMidpointFans:
+                    case DrawType::stencilMidpointFans:
+                    case DrawType::stencilMidpointFanReset:
+                    case DrawType::stencilMidpointFanWinding:
+                    case DrawType::stencilMidpointFanCover:
+                    case DrawType::stencilOuterCubics:
+                    case DrawType::stencilOuterCubicBorrowedCoverage:
+                    case DrawType::stencilDynamicOuterCubics:
+                    case DrawType::stencilOuterCubicReset:
+                    case DrawType::stencilOuterCubicWinding:
+                    case DrawType::stencilOuterCubicCover:
                     case DrawType::clipReset:
                         RIVE_UNREACHABLE();
                 }
@@ -3391,19 +3391,19 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     }
                     break;
                     case DrawType::renderPassInitialize:
-                    case DrawType::msaaStrokes:
-                    case DrawType::msaaMidpointFanBorrowedCoverage:
-                    case DrawType::msaaDynamicMidpointFans:
-                    case DrawType::msaaMidpointFans:
-                    case DrawType::msaaMidpointFanStencilReset:
-                    case DrawType::msaaMidpointFanPathsStencil:
-                    case DrawType::msaaMidpointFanPathsCover:
-                    case DrawType::msaaOuterCubics:
-                    case DrawType::msaaOuterCubicBorrowedCoverage:
-                    case DrawType::msaaDynamicOuterCubics:
-                    case DrawType::msaaOuterCubicStencilReset:
-                    case DrawType::msaaOuterCubicPathsStencil:
-                    case DrawType::msaaOuterCubicPathsCover:
+                    case DrawType::depthStrokes:
+                    case DrawType::stencilMidpointFanBorrowedCoverage:
+                    case DrawType::stencilDynamicMidpointFans:
+                    case DrawType::stencilMidpointFans:
+                    case DrawType::stencilMidpointFanReset:
+                    case DrawType::stencilMidpointFanWinding:
+                    case DrawType::stencilMidpointFanCover:
+                    case DrawType::stencilOuterCubics:
+                    case DrawType::stencilOuterCubicBorrowedCoverage:
+                    case DrawType::stencilDynamicOuterCubics:
+                    case DrawType::stencilOuterCubicReset:
+                    case DrawType::stencilOuterCubicWinding:
+                    case DrawType::stencilOuterCubicCover:
                     case DrawType::clipReset:
                         RIVE_UNREACHABLE();
                 }

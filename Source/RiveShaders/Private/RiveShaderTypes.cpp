@@ -302,61 +302,69 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGRasterOrderAtlasBlitVertexShader,
                         GLSL_drawVertexMain,
                         SF_Vertex);
 
-IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitMSAAPixelShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_atlas_blit.usf",
-                        GLSL_drawFragmentMain,
-                        SF_Pixel);
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGAtlasBlitMSAAPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_atlas_blit.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
 
-IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitMSAAVertexShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_atlas_blit.usf",
-                        GLSL_drawVertexMain,
-                        SF_Vertex);
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGAtlasBlitMSAAVertexShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_atlas_blit.usf",
+    GLSL_drawVertexMain,
+    SF_Vertex);
 
-IMPLEMENT_GLOBAL_SHADER(FRiveRDGImageMeshMSAAPixelShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_image_mesh.usf",
-                        GLSL_drawFragmentMain,
-                        SF_Pixel);
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGImageMeshMSAAPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_image_mesh.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
 
-IMPLEMENT_GLOBAL_SHADER(FRiveRDGImageMeshMSAAVertexShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_image_mesh.usf",
-                        GLSL_drawVertexMain,
-                        SF_Vertex);
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGImageMeshMSAAVertexShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_image_mesh.usf",
+    GLSL_drawVertexMain,
+    SF_Vertex);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAAPixelShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_path.usf",
+                        "/Plugin/Rive/Private/Rive/draw_depthstencil_path.usf",
                         GLSL_drawFragmentMain,
                         SF_Pixel);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAAVertexShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_path.usf",
+                        "/Plugin/Rive/Private/Rive/draw_depthstencil_path.usf",
                         GLSL_drawVertexMain,
                         SF_Vertex);
 
-IMPLEMENT_GLOBAL_SHADER(FRiveRDGStencilMSAAPixelShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_stencil.usf",
-                        GLSL_blitFragmentMain,
-                        SF_Pixel);
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGStencilMSAAPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_triangles_nocolor.usf",
+    GLSL_blitFragmentMain,
+    SF_Pixel);
 
 // Same entry points as the shaders above, compiled with SUPPORTS_SUBPASS_LOAD.
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAASubpassPixelShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_path.usf",
+                        "/Plugin/Rive/Private/Rive/draw_depthstencil_path.usf",
                         GLSL_drawFragmentMain,
                         SF_Pixel);
 
-IMPLEMENT_GLOBAL_SHADER(FRiveRDGAtlasBlitMSAASubpassPixelShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_atlas_blit.usf",
-                        GLSL_drawFragmentMain,
-                        SF_Pixel);
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGAtlasBlitMSAASubpassPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_atlas_blit.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
 
-IMPLEMENT_GLOBAL_SHADER(FRiveRDGImageMeshMSAASubpassPixelShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_image_mesh.usf",
-                        GLSL_drawFragmentMain,
-                        SF_Pixel);
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGImageMeshMSAASubpassPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_image_mesh.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
 
-IMPLEMENT_GLOBAL_SHADER(FRiveRDGStencilMSAAVertexShader,
-                        "/Plugin/Rive/Private/Rive/draw_msaa_stencil.usf",
-                        GLSL_stencilVertexMain,
-                        SF_Vertex);
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGStencilMSAAVertexShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_triangles_nocolor.usf",
+    GLSL_stencilVertexMain,
+    SF_Vertex);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGDrawAtlasFillPixelShader,
                         "/Plugin/Rive/Private/Rive/draw_atlas_fill.usf",

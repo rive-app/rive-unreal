@@ -552,7 +552,7 @@ static void AddDrawMSAAPatchesPassImpl(
 
     auto DepthStencil = StencilStateForPipeline(
         CommonPassParameters->PipelineState,
-        CommonPassParameters->GetUniqueKey(InterlockMode::msaa));
+        CommonPassParameters->GetUniqueKey(InterlockMode::depthStencil));
 
     CSV_SCOPED_TIMING_STAT(RiveMSAA, PSOBuild);
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -627,11 +627,11 @@ static void AddDrawMSAAPatchesPassImpl(
 
 #if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
 // The three collapsed subpasses, in the order the stencil algorithm needs them.
-// Must match the native vulkan backend's for msaaDynamicMidpointFans.
+// Must match the native vulkan backend's for stencilDynamicMidpointFans.
 static constexpr DrawType kDynamicMidpointFanPasses[] = {
-    DrawType::msaaMidpointFanBorrowedCoverage,
-    DrawType::msaaMidpointFans,
-    DrawType::msaaMidpointFanStencilReset,
+    DrawType::stencilMidpointFanBorrowedCoverage,
+    DrawType::stencilMidpointFans,
+    DrawType::stencilMidpointFanReset,
 };
 
 template <typename TPixelShader>
@@ -699,7 +699,7 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
                 PassPipelineStates[0],
                 CommonPassParameters->GetUniqueKeyForDrawType(
                     kDynamicMidpointFanPasses[0],
-                    InterlockMode::msaa));
+                    InterlockMode::depthStencil));
             GraphicsPSOInit.RasterizerState =
                 RasterStateForCullModeAndDrawMode<true>(
                     PassPipelineStates[0].cullFace,
@@ -754,7 +754,7 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
                 PassPipelineState,
                 CommonPassParameters->GetUniqueKeyForDrawType(
                     kDynamicMidpointFanPasses[PassIndex],
-                    InterlockMode::msaa));
+                    InterlockMode::depthStencil));
 
             RHICmdList.SetDynamicPipelineStateOverride(
                 DepthStencil.GetReference(),
@@ -791,7 +791,7 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
             PassPipelineState,
             CommonPassParameters->GetUniqueKeyForDrawType(
                 kDynamicMidpointFanPasses[PassIndex],
-                InterlockMode::msaa));
+                InterlockMode::depthStencil));
 
         FGraphicsPipelineStateInitializer GraphicsPSOInit;
         {
@@ -937,7 +937,7 @@ void AddDrawMSAAStencilClipResetPass(
 
     auto DepthStencil = StencilStateForPipeline(
         CommonPassParameters->PipelineState,
-        CommonPassParameters->GetUniqueKey(InterlockMode::msaa));
+        CommonPassParameters->GetUniqueKey(InterlockMode::depthStencil));
 
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
     GraphicsPSOInit.DepthStencilState = DepthStencil;
@@ -1015,7 +1015,7 @@ static void AddDrawMSAAAtlasBlitPassImpl(
 
     auto DepthStencil = StencilStateForPipeline(
         CommonPassParameters->PipelineState,
-        CommonPassParameters->GetUniqueKey(InterlockMode::msaa));
+        CommonPassParameters->GetUniqueKey(InterlockMode::depthStencil));
 
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
     GraphicsPSOInit.DepthStencilState = DepthStencil;
@@ -1118,7 +1118,7 @@ static void AddDrawMSAAImageMeshPassImpl(
 
     auto DepthStencil = StencilStateForPipeline(
         CommonPassParameters->PipelineState,
-        CommonPassParameters->GetUniqueKey(InterlockMode::msaa));
+        CommonPassParameters->GetUniqueKey(InterlockMode::depthStencil));
 
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
     GraphicsPSOInit.DepthStencilState = DepthStencil;
