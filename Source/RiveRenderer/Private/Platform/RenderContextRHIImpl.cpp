@@ -3204,10 +3204,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 auto ShaderFeatures = desc.combinedShaderFeatures;
                 auto ShaderMiscFlags = batch.shaderMiscFlags;
 
-                if (enums::is_flag_set(batch.drawContents,
-                                       DrawContents::clockwiseFill))
-                    ShaderMiscFlags &= ShaderMiscFlags::clockwiseFill;
-
                 GetPermutationForFeatures(ShaderFeatures,
                                           ShaderMiscFlags,
                                           m_capabilities,
