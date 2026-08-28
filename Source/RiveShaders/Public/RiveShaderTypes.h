@@ -1016,6 +1016,10 @@ public:
 // True where the msaa shaders were cooked to texel-fetch the live target.
 RIVESHADERS_API bool RiveCookedReadAttachmentInPlace();
 
+// r.rive.ReadAttachmentInPlace. Owned here so it is registered before the
+// global shader map compiles.
+RIVESHADERS_API int32 RiveGetReadAttachmentInPlace();
+
 RIVESHADERS_API bool RivePlatformSupportsSubpassLoad(
     const FShaderPermutationParameters& Parameters);
 

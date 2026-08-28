@@ -19,6 +19,22 @@ THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY(LogRiveShaderCompiler);
 
+// Declared here rather than in RiveRenderer: the global shader map compiles
+// during engine PreInit, while RiveShaders is loaded, and reads this through
+// FShaderPlatformCachedIniValue, which requires a registered cvar.
+static TAutoConsoleVariable<int32> CVarReadAttachmentInPlace(
+    TEXT("r.rive.ReadAttachmentInPlace"),
+    0,
+    TEXT("Read the msaa color attachment while it is still bound, in one "
+         "render pass with in-pass barriers. Set by platforms whose RHI "
+         "allows reading a bound render target."),
+    ECVF_RenderThreadSafe);
+
+int32 RiveGetReadAttachmentInPlace()
+{
+    return CVarReadAttachmentInPlace.GetValueOnAnyThread();
+}
+
 // The ini value the msaa shaders were compiled against. Read from config
 // rather than the cvar: for the running platform the cached ini value returns
 // the live cvar, which a -dpcvars override has already changed.

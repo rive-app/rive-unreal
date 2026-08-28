@@ -312,14 +312,6 @@ static TAutoConsoleVariable<int32> CVarUseSubpassLoad(
          "otherwise by texel fetch."),
     ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarReadAttachmentInPlace(
-    TEXT("r.rive.ReadAttachmentInPlace"),
-    0,
-    TEXT("Read the msaa color attachment while it is still bound, in one "
-         "render pass with in-pass barriers. Set by platforms whose RHI "
-         "allows reading a bound render target."),
-    ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarShouldVisualizeRive(
     TEXT("r.rive.vis"),
     0,
@@ -2277,9 +2269,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
             // Platforms whose RHI allows reading a bound attachment take the
             // single-pass path with the live target as the dst texture.
-            bool bReadAttachmentInPlace =
-                bUseFrameBufferFetch && !bUseSubpassLoad &&
-                CVarReadAttachmentInPlace.GetValueOnRenderThread() != 0;
+            bool bReadAttachmentInPlace = bUseFrameBufferFetch &&
+                                          !bUseSubpassLoad &&
+                                          RiveGetReadAttachmentInPlace() != 0;
 
 #if !WITH_EDITOR
             // The shader variant is fixed at cook time. Where it declares the
