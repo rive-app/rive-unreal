@@ -1012,6 +1012,10 @@ public:
 // Subpass read variants of the msaa pixel shaders. These are separate shader
 // types rather than a permutation, because a permutation bit here pushes the
 // msaa shaders past unreal's permutation limit.
+
+// True where the msaa shaders were cooked to texel-fetch the live target.
+RIVESHADERS_API bool RiveCookedReadAttachmentInPlace();
+
 RIVESHADERS_API bool RivePlatformSupportsSubpassLoad(
     const FShaderPermutationParameters& Parameters);
 

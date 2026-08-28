@@ -8,6 +8,8 @@
 #include "GlobalShader.h"
 
 #include "DataDrivenShaderPlatformInfo.h"
+#include "Misc/ConfigCacheIni.h"
+#include "ShaderPlatformCachedIniValue.h"
 #include "ShaderCompilerCore.h"
 #include "Interfaces/IPluginManager.h"
 
@@ -16,6 +18,32 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY(LogRiveShaderCompiler);
+
+// The ini value the msaa shaders were compiled against. Read from config
+// rather than the cvar: for the running platform the cached ini value returns
+// the live cvar, which a -dpcvars override has already changed.
+bool RiveCookedReadAttachmentInPlace()
+{
+    static const bool bCooked = [] {
+        bool bValue = false;
+        GConfig->GetBool(TEXT("SystemSettings"),
+                         TEXT("r.rive.ReadAttachmentInPlace"),
+                         bValue,
+                         GEngineIni);
+        return bValue;
+    }();
+    return bCooked;
+}
+
+// Reads r.rive.ReadAttachmentInPlace as configured for the platform being
+// cooked for. Those platforms fetch the live 4x target per sample.
+static bool RivePlatformReadsAttachmentInPlace(
+    const FShaderPermutationParameters& Params)
+{
+    static FShaderPlatformCachedIniValue<bool> ReadInPlaceIniValue(
+        TEXT("r.rive.ReadAttachmentInPlace"));
+    return ReadInPlaceIniValue.Get(Params.Platform);
+}
 
 bool RivePlatformSupportsSubpassLoad(const FShaderPermutationParameters& Params)
 {
@@ -65,6 +93,11 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
         if (bWantsSubpassLoad && RivePlatformSupportsSubpassLoad(Params))
         {
             Environment.SetDefine(TEXT("SUPPORTS_SUBPASS_LOAD"), TEXT("1"));
+        }
+        else if (RivePlatformReadsAttachmentInPlace(Params))
+        {
+            Environment.SetDefine(TEXT("SUPPORTS_MSAA_DST_TEXEL_FETCH"),
+                                  TEXT("1"));
         }
     }
 // 5.4 and up

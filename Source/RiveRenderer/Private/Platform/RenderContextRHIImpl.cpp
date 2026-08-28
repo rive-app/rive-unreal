@@ -307,9 +307,17 @@ TStaticResourceData<uint16_t, kPatchIndexBufferCount> GPatchIndices;
 static TAutoConsoleVariable<int32> CVarUseSubpassLoad(
     TEXT("r.rive.SubpassLoad"),
     1,
-    TEXT("Read the msaa destination color through a subpass input attachment "
-         "instead of a resolved copy. Requires an engine with the "
-         "FrameBufferFetch subpass patch, and vulkan."),
+    TEXT("Read the msaa destination color from the attachment in place: "
+         "through a subpass input attachment where the RHI supports one, "
+         "otherwise by texel fetch."),
+    ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarReadAttachmentInPlace(
+    TEXT("r.rive.ReadAttachmentInPlace"),
+    0,
+    TEXT("Read the msaa color attachment while it is still bound, in one "
+         "render pass with in-pass barriers. Set by platforms whose RHI "
+         "allows reading a bound render target."),
     ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarShouldVisualizeRive(
@@ -1766,6 +1774,13 @@ DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveTess, TEXT("Rive Tess Draw"));
 DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveFlushRenderPass,
                        TEXT("Rive Flush Render Pass"));
 
+// Cost of feeding advanced blend its destination colour on the scratch path.
+DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_DstSeedCopy, TEXT("Rive Dst Seed Copy"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_DstBoundaryCopy,
+                       TEXT("Rive Dst Boundary Copy"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_DstBoundaryResolve,
+                       TEXT("Rive Dst Boundary Resolve"));
+
 constexpr const TCHAR* StrForInterlock(InterlockMode Mode)
 {
     switch (Mode)
@@ -2243,6 +2258,68 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         {
             check(targetTexture);
 
+            // Advanced blend reads the msaa color attachment while it is
+            // still bound. The render pass is shared; only the shader variant
+            // differs per RHI.
+            const bool bUseFrameBufferFetch =
+#if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
+                CVarUseSubpassLoad.GetValueOnRenderThread() != 0;
+#else
+                false;
+#endif
+
+            // Vulkan and Metal read it as a subpass input attachment; anything
+            // else texel-fetches it. Matches SUPPORTS_SUBPASS_LOAD.
+            const ERHIInterfaceType RHIType = GDynamicRHI->GetInterfaceType();
+            const bool bUseSubpassLoad =
+                bUseFrameBufferFetch && (RHIType == ERHIInterfaceType::Vulkan ||
+                                         RHIType == ERHIInterfaceType::Metal);
+
+            // Platforms whose RHI allows reading a bound attachment take the
+            // single-pass path with the live target as the dst texture.
+            bool bReadAttachmentInPlace =
+                bUseFrameBufferFetch && !bUseSubpassLoad &&
+                CVarReadAttachmentInPlace.GetValueOnRenderThread() != 0;
+
+#if !WITH_EDITOR
+            // The shader variant is fixed at cook time. Where it declares the
+            // dst as Texture2DMS, the scratch fallback would bind a one-sample
+            // texture to it, so the cooked choice wins over the cvars.
+            if (!bReadAttachmentInPlace && !bUseSubpassLoad &&
+                RiveCookedReadAttachmentInPlace())
+            {
+                static bool bWarnedAttachmentOverride = false;
+                if (!bWarnedAttachmentOverride)
+                {
+                    bWarnedAttachmentOverride = true;
+                    UE_LOG(LogRiveRenderer,
+                           Warning,
+                           TEXT("r.rive.SubpassLoad / "
+                                "r.rive.ReadAttachmentInPlace are ignored: the "
+                                "msaa shaders were cooked to texel-fetch the "
+                                "live target."));
+                }
+                bReadAttachmentInPlace = true;
+            }
+#endif
+            // The modes that keep one render pass for the whole flush.
+            const bool bUseSinglePassBarrier =
+                bUseSubpassLoad || bReadAttachmentInPlace;
+
+            static const bool bNeedsSeperateResolve =
+                GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan;
+            // A separate resolve leaves the render pass with no resolve
+            // target, so the samples have to be averaged by the blit shader.
+            static const bool bNeedsCustomDrawResolve =
+                MSAA_NEEDS_CUSTOM_RESOLVE || bNeedsSeperateResolve;
+
+            // EClear is only safe while the flush stays in one render pass,
+            // since a restart re-clears the earlier passes. A separate resolve
+            // leaves the pass no resolve target, so it clears standalone.
+            const bool bClearInPass = bUseSinglePassBarrier &&
+                                      !bNeedsSeperateResolve &&
+                                      desc.colorLoadAction == LoadAction::clear;
+
             float values[4];
             rive::UnpackColorToRGBA32FPremul(desc.colorClearValue, values);
             FLinearColor ClearColor(values[0], values[1], values[2], values[3]);
@@ -2260,7 +2337,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                          NeedsBackBuffer ? backBuffer
                                                          : targetTexture,
                                          ClearColor);
-                AddClearRenderTargetPass(GraphBuilder, MSAAColorTexture);
+                if (!bClearInPass)
+                {
+                    AddClearRenderTargetPass(GraphBuilder, MSAAColorTexture);
+                }
             }
             else if (desc.colorLoadAction == LoadAction::preserveRenderTarget)
             {
@@ -2285,20 +2365,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                   /*bOpaque =*/true);
             }
 
-            // Advanced blend reads the msaa color attachment as an input
-            // attachment within the same subpass. Matches the
-            // SUPPORTS_SUBPASS_LOAD define set in RiveShaderTypes.cpp.
-            const bool bUseSubpassLoad =
-#if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
-                GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan &&
-                CVarUseSubpassLoad.GetValueOnRenderThread() != 0;
-#else
-                false;
-#endif
-
-            // Subpass load reads the attachment in place, so the scratch
-            // readback texture is only needed without it.
-            if (!bUseSubpassLoad &&
+            // The scratch readback texture serves the fallback path.
+            if (!bUseSinglePassBarrier &&
                 enums::is_flag_set(desc.combinedShaderFeatures,
                                    gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND))
             {
@@ -2327,18 +2395,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     FIntVector(static_cast<int32>(renderTarget->width()),
                                static_cast<int32>(renderTarget->height()),
                                1);
+                RDG_EVENT_SCOPE_STAT(GraphBuilder,
+                                     STAT_RiveFlush_DstSeedCopy,
+                                     "RiveDstSeedCopy");
                 AddCopyTexturePass(GraphBuilder,
                                    NeedsBackBuffer ? backBuffer : targetTexture,
                                    MSAADstColorTexture,
                                    SeedCopyInfo);
             }
-
-            static const bool bNeedsSeperateResolve =
-                GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan;
-            // A separate resolve leaves the render pass with no resolve
-            // target, so the samples have to be averaged by the blit shader.
-            static const bool bNeedsCustomDrawResolve =
-                MSAA_NEEDS_CUSTOM_RESOLVE || bNeedsSeperateResolve;
 
             auto AllocPassParameters = [&]() {
                 auto PassParameters =
@@ -2356,7 +2420,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     PassParameters->RenderTargets[0] = {
                         MSAAColorTexture,
                         NeedsBackBuffer ? backBuffer : targetTexture,
-                        ERenderTargetLoadAction::ELoad,
+                        bClearInPass ? ERenderTargetLoadAction::EClear
+                                     : ERenderTargetLoadAction::ELoad,
                     };
                 }
 
@@ -2368,7 +2433,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     FExclusiveDepthStencil::DepthWrite_StencilWrite};
 
 #if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
-                if (bUseSubpassLoad)
+                if (bUseSinglePassBarrier)
                 {
                     PassParameters->RenderTargets.SubpassHint =
                         ESubpassHint::FrameBufferFetchSubpass;
@@ -2387,8 +2452,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
                 PassParameters->PS.gaussianIntegralSampler =
                     m_gaussianIntegralSampler;
+                // The bound attachment, or the resolved scratch copy.
                 PassParameters->PS.GLSL_dstColorTexture_raw =
-                    MSAADstColorTexture;
+                    MSAADstColorTexture != nullptr ? MSAADstColorTexture
+                                                   : MSAAColorTexture;
                 PassParameters->PS.GLSL_featherAtlasTexture_raw =
                     featherAtlasTexture;
                 PassParameters->PS.GLSL_gaussianIntegralTexture_raw =
@@ -2425,19 +2492,19 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             {
                 // copy the list on the graph.
                 auto CopyList = GraphBuilder.AllocObject<CopyDrawList>(desc);
-                // Without subpass load each dstBlend barrier ends the render
-                // pass for a dst copy; with it the split list stays null and
-                // the whole flush is one render pass with in-pass barriers.
+                // A null split list keeps the whole flush in one render pass
+                // with in-pass barriers.
+                const bool bSinglePass = bUseSinglePassBarrier;
                 const DrawBatch* const FirstRenderPassSplit =
-                    bUseSubpassLoad ? nullptr
-                                    : CopyList->head()->nextDstBlendBarrier;
+                    bSinglePass ? nullptr
+                                : CopyList->head()->nextDstBlendBarrier;
                 for (const DrawBatch *
                          RenderPassStart = CopyList->head(),
                         *NextRenderPass = FirstRenderPassSplit;
                      RenderPassStart != nullptr;
                      RenderPassStart = NextRenderPass,
                         NextRenderPass =
-                            (RenderPassStart != nullptr && !bUseSubpassLoad)
+                            (RenderPassStart != nullptr && !bSinglePass)
                                 ? RenderPassStart->nextDstBlendBarrier
                                 : nullptr)
                 {
@@ -2455,6 +2522,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                          platformFeatures = m_platformFeatures,
                          imageSamplers = m_imageSamplers,
                          NextRenderPass,
+                         bUseSinglePassBarrier,
                          bUseSubpassLoad,
                          imageDrawInstanceBuffer =
                              m_imageDrawInstanceBuffer.get(),
@@ -2488,7 +2556,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                 // Order prior color writes against this
                                 // batch's dst color reads, even when the
                                 // barrier batch itself is empty.
-                                if (bUseSubpassLoad &&
+                                if (bUseSinglePassBarrier &&
                                     enums::any_flag_set(batch->barriers,
                                                         BarrierFlags::dstBlend))
                                 {
@@ -2781,8 +2849,16 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
                     if (NextRenderPass && MSAADstColorTexture)
                     {
+                        CSV_CUSTOM_STAT(RiveMSAA,
+                                        DstBoundaries,
+                                        1,
+                                        ECsvCustomStatOp::Accumulate);
                         if (bNeedsSeperateResolve)
                         {
+                            RDG_EVENT_SCOPE_STAT(
+                                GraphBuilder,
+                                STAT_RiveFlush_DstBoundaryResolve,
+                                "RiveDstBoundaryResolve");
                             auto Params = GraphBuilder.AllocParameters<
                                 FRiveDrawTextureBltParameters>();
                             Params->RenderTargets[0] = FRenderTargetBinding(
@@ -2806,6 +2882,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         }
                         else
                         {
+                            RDG_EVENT_SCOPE_STAT(GraphBuilder,
+                                                 STAT_RiveFlush_DstBoundaryCopy,
+                                                 "RiveDstBoundaryCopy");
                             FRHICopyTextureInfo DstCopyInfo;
                             DstCopyInfo.Size = FIntVector(
                                 static_cast<int32>(renderTarget->width()),
@@ -3425,9 +3504,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     FRenderTargetBinding(targetTexture,
                                          ERenderTargetLoadAction::ELoad);
                 Params->PS.GLSL_sourceTexture_raw = backBuffer;
-                // If we have a back buffer we need to blend it back into the
-                // render target so use our draw shader because CopyTexture and
-                // DrawTexture don't support blending.
+                // The back buffer already holds the composited result, so it
+                // replaces the target rather than blending: nothing initializes
+                // the target, and blending would let its contents show through.
                 AddDrawTextureBlt(
                     GraphBuilder,
                     VertexDeclarations[static_cast<int>(
@@ -3438,7 +3517,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                 desc.renderTargetUpdateBounds.bottom),
                     ShaderMap,
                     Params,
-                    false);
+                    false,
+                    /*bOpaque =*/true);
             }
         }
 
