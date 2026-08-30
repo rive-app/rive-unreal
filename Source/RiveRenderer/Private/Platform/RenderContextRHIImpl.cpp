@@ -248,11 +248,12 @@ static FUintRect RiveBatchScissor(const FUintRect& PassScissor,
     const uint32 Right = FMath::Min<uint32>(PassScissor.Max.X, Rect.right);
     const uint32 Bottom = FMath::Min<uint32>(PassScissor.Max.Y, Rect.bottom);
 
-    // An empty intersection stays empty rather than inverting.
-    return FUintRect(Left,
-                     Top,
-                     FMath::Max(Left, Right),
-                     FMath::Max(Top, Bottom));
+    if (Right <= Left || Bottom <= Top)
+    {
+        return FUintRect(0, 0, 0, 0);
+    }
+
+    return FUintRect(Left, Top, Right, Bottom);
 }
 
 class CopyDrawList : public BlockAllocatedLinkedList<DrawBatch>
@@ -1106,11 +1107,7 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     m_platformFeatures.maxTextureSize = GMaxTextureDimensions;
     m_platformFeatures.supportsClipScissor =
         CVarUseClipScissor.GetValueOnAnyThread() != 0;
-    m_platformFeatures.supportsTextureCompressionBC =
-        UE::PixelFormat::HasCapabilities(PF_DXT1,
-                                         EPixelFormatCapabilities::Texture2D) &&
-        UE::PixelFormat::HasCapabilities(PF_BC7,
-                                         EPixelFormatCapabilities::Texture2D);
+    m_platformFeatures.supportsTextureCompressionBC = false;
     m_platformFeatures.supportsTextureCompressionASTC = false;
     m_platformFeatures.supportsTextureCompressionETC2 =
         UE::PixelFormat::HasCapabilities(PF_ETC2_RGB,
