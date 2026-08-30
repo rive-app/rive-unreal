@@ -254,9 +254,14 @@ void URiveViewModel::SetupGeneratedProperties(FRiveCommandBuilder& Builder,
                                               URiveFile* OwningFile,
                                               const FString& InstanceName)
 {
+    // This handle should not exist in the map.
+    check(!ViewModelInstances.Contains(NativeViewModelInstance));
+    ViewModelInstances.Add(NativeViewModelInstance, this);
+
     const bool bIsBlankInstance = InstanceName == GViewModelInstanceBlankName;
     const FString ResolvedInstanceName =
-        (InstanceName == GViewModelInstanceDefaultName || bIsBlankInstance)
+        (InstanceName == GViewModelInstanceDefaultName || bIsBlankInstance ||
+         InstanceName.IsEmpty())
             ? ViewModelDefinition.DefaultInstanceName
             : InstanceName;
     // There is no reason to auto-subscribe if we aren't a generated view model.
@@ -474,9 +479,6 @@ void URiveViewModel::SetupGeneratedProperties(FRiveCommandBuilder& Builder,
             }
         }
     }
-    // This handle should not exist in the map.
-    check(!ViewModelInstances.Contains(NativeViewModelInstance));
-    ViewModelInstances.Add(NativeViewModelInstance, this);
 }
 
 bool URiveViewModel::GetBoolValue(const FString& PropertyName,
