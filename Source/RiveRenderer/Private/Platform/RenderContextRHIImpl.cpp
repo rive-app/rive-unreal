@@ -226,8 +226,34 @@ public:
     virtual void SetAllowCPUAccess(bool bInNeedsCPUAccess) override {}
 };
 
+#include <optional>
+
 using namespace rive;
 using namespace rive::gpu;
+
+// Narrow the render pass scissor to a batch's clip bounds. Rive tightens draw
+// bounds when supportsClipScissor is set, so the batch rect has to be applied
+// or clipped content rasterizes outside its clip.
+static FUintRect RiveBatchScissor(const FUintRect& PassScissor,
+                                  const std::optional<AABBu16>& BatchScissor)
+{
+    if (!BatchScissor.has_value())
+    {
+        return PassScissor;
+    }
+
+    const AABBu16& Rect = BatchScissor.value();
+    const uint32 Left = FMath::Max<uint32>(PassScissor.Min.X, Rect.left);
+    const uint32 Top = FMath::Max<uint32>(PassScissor.Min.Y, Rect.top);
+    const uint32 Right = FMath::Min<uint32>(PassScissor.Max.X, Rect.right);
+    const uint32 Bottom = FMath::Min<uint32>(PassScissor.Max.Y, Rect.bottom);
+
+    // An empty intersection stays empty rather than inverting.
+    return FUintRect(Left,
+                     Top,
+                     FMath::Max(Left, Right),
+                     FMath::Max(Top, Bottom));
+}
 
 class CopyDrawList : public BlockAllocatedLinkedList<DrawBatch>
 {
@@ -310,6 +336,15 @@ static TAutoConsoleVariable<int32> CVarUseSubpassLoad(
     TEXT("Read the msaa destination color from the attachment in place: "
          "through a subpass input attachment where the RHI supports one, "
          "otherwise by texel fetch."),
+    ECVF_RenderThreadSafe);
+
+// Clip bounds ride along as per-batch scissor rects. This splits batches on
+// scissor changes, trading extra binds for fragments the raster never has to
+// shade, so platforms enable it where the fragment saving wins.
+static TAutoConsoleVariable<int32> CVarUseClipScissor(
+    TEXT("r.rive.UseClipScissor"),
+    0,
+    TEXT("1 to scissor each batch to its clip bounds."),
     ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarShouldVisualizeRive(
@@ -591,12 +626,18 @@ BufferRingRHIImpl::BufferRingRHIImpl(EBufferUsageFlags flags,
 FBufferRHIRef BufferRingRHIImpl::Sync(FRHICommandList& commandList,
                                       size_t offsetInBytes) const
 {
+    if (!m_bContentsDirty && m_syncedBuffer.IsValid() &&
+        m_syncedOffset == offsetInBytes)
+    {
+        return m_syncedBuffer;
+    }
+
     const size_t size = capacityInBytes() - offsetInBytes;
     FRHIBufferCreateDesc CreateDesc =
         FRHIBufferCreateDesc::Create(TEXT("rive.BufferRingRHIImpl_"),
                                      size,
                                      m_stride,
-                                     m_flags | EBufferUsageFlags::Volatile)
+                                     m_flags)
             .SetGPUMask(FRHIGPUMask::All())
             .SetInitialState(ERHIAccess::WriteOnlyMask)
             .SetClassName(NAME_None)
@@ -608,6 +649,10 @@ FBufferRHIRef BufferRingRHIImpl::Sync(FRHICommandList& commandList,
     auto map = commandList.LockBuffer(buffer, 0, size, RLM_WriteOnly);
     memcpy(map, shadowBuffer() + offsetInBytes, size);
     commandList.UnlockBuffer(buffer);
+
+    m_syncedBuffer = buffer;
+    m_syncedOffset = offsetInBytes;
+    m_bContentsDirty = false;
 
     return buffer;
 }
@@ -638,7 +683,9 @@ void* BufferRingRHIImpl::onMapBuffer(int bufferIdx, size_t mapSizeInBytes)
 
 void BufferRingRHIImpl::onUnmapAndSubmitBuffer(int bufferIdx,
                                                size_t mapSizeInBytes)
-{}
+{
+    m_bContentsDirty = true;
+}
 
 RenderBufferRHIImpl::RenderBufferRHIImpl(RenderBufferType inType,
                                          RenderBufferFlags inFlags,
@@ -904,8 +951,7 @@ FRDGTextureRef RenderTargetRHI::msaaColorTexture(FRDGBuilder& Builder,
 
     ETextureCreateFlags CreateFlags = ETextureCreateFlags::RenderTargetable |
                                       ETextureCreateFlags::InputAttachmentRead |
-                                      ETextureCreateFlags::ShaderResource |
-                                      ETextureCreateFlags::NoFastClear;
+                                      ETextureCreateFlags::ShaderResource;
     if (bTargetIsSRGB)
     {
         CreateFlags |= ETextureCreateFlags::SRGB;
@@ -927,15 +973,13 @@ FRDGTextureRef RenderTargetRHI::msaaStencilTexture(FRDGBuilder& Builder,
 {
     FIntPoint Extent{static_cast<int32>(width()), static_cast<int32>(height())};
 
-    const FRDGTextureDesc desc = FRDGTextureDesc::Create2D(
-        Extent,
-        PF_DepthStencil,
-        FClearValueBinding(DepthClear, StencilClear),
-        ETextureCreateFlags::DepthStencilTargetable |
-            ETextureCreateFlags::DepthStencilResolveTarget |
-            ETextureCreateFlags::ShaderResource,
-        1,
-        4);
+    const FRDGTextureDesc desc =
+        FRDGTextureDesc::Create2D(Extent,
+                                  PF_DepthStencil,
+                                  FClearValueBinding(DepthClear, StencilClear),
+                                  ETextureCreateFlags::DepthStencilTargetable,
+                                  1,
+                                  4);
 
     return Builder.CreateTexture(desc, TEXT("rive.MSAADepthStencil"));
 }
@@ -1059,6 +1103,20 @@ RenderContextRHIImpl::RenderContextRHIImpl(
 
     m_platformFeatures.clipSpaceBottomUp = true;
     m_platformFeatures.framebufferBottomUp = false;
+    m_platformFeatures.maxTextureSize = GMaxTextureDimensions;
+    m_platformFeatures.supportsClipScissor =
+        CVarUseClipScissor.GetValueOnAnyThread() != 0;
+    m_platformFeatures.supportsTextureCompressionBC =
+        UE::PixelFormat::HasCapabilities(PF_DXT1,
+                                         EPixelFormatCapabilities::Texture2D) &&
+        UE::PixelFormat::HasCapabilities(PF_BC7,
+                                         EPixelFormatCapabilities::Texture2D);
+    m_platformFeatures.supportsTextureCompressionASTC = false;
+    m_platformFeatures.supportsTextureCompressionETC2 =
+        UE::PixelFormat::HasCapabilities(PF_ETC2_RGB,
+                                         EPixelFormatCapabilities::Texture2D) &&
+        UE::PixelFormat::HasCapabilities(PF_ETC2_RGBA,
+                                         EPixelFormatCapabilities::Texture2D);
 #if PLATFORM_ANDROID
     m_platformFeatures.pathIDGranularity = 2;
     m_platformFeatures.supportsAtomicMode = false;
@@ -2628,7 +2686,9 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                 CommonPassParameters.PixelPermutationDomain =
                                     PixelPermutationDomain;
                                 CommonPassParameters.Viewport = Viewport;
-                                CommonPassParameters.Scissor = Scissor;
+                                CommonPassParameters.Scissor =
+                                    RiveBatchScissor(Scissor,
+                                                     batch->scissorRect);
                                 CommonPassParameters.BlendType =
                                     FixedFunctionColorOutput ? EBlendType::Blend
                                                              : EBlendType::None;
@@ -2980,11 +3040,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                               0,
                               renderTarget->width(),
                               renderTarget->height());
-                CommonPassParameters->Scissor =
+                CommonPassParameters->Scissor = RiveBatchScissor(
                     FUintRect(desc.renderTargetUpdateBounds.left,
                               desc.renderTargetUpdateBounds.top,
                               desc.renderTargetUpdateBounds.right,
-                              desc.renderTargetUpdateBounds.bottom);
+                              desc.renderTargetUpdateBounds.bottom),
+                    batch.scissorRect);
                 if (desc.fixedFunctionColorOutput)
                     CommonPassParameters->BlendType = EBlendType::Blend;
                 else if (NeedsCoalesceResolve)
@@ -3235,11 +3296,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                               0,
                               renderTarget->width(),
                               renderTarget->height());
-                CommonPassParameters->Scissor =
+                CommonPassParameters->Scissor = RiveBatchScissor(
                     FUintRect(desc.renderTargetUpdateBounds.left,
                               desc.renderTargetUpdateBounds.top,
                               desc.renderTargetUpdateBounds.right,
-                              desc.renderTargetUpdateBounds.bottom);
+                              desc.renderTargetUpdateBounds.bottom),
+                    batch.scissorRect);
                 if (desc.fixedFunctionColorOutput)
                     CommonPassParameters->BlendType = EBlendType::Blend;
                 else if (NeedsCoalesceResolve)

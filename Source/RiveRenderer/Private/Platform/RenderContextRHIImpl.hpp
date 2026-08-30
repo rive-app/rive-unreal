@@ -155,6 +155,10 @@ protected:
 private:
     EBufferUsageFlags m_flags;
     size_t m_stride;
+
+    mutable bool m_bContentsDirty = true;
+    mutable FBufferRHIRef m_syncedBuffer;
+    mutable size_t m_syncedOffset = ~static_cast<size_t>(0);
 };
 
 template <typename CPUUniformBufferType, typename GPUUniformBufferType>

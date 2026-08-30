@@ -5,6 +5,7 @@
 #include <filesystem>
 
 #include <CoreMinimal.h>
+#include "HAL/IConsoleManager.h"
 #include "GlobalShader.h"
 
 #include "DataDrivenShaderPlatformInfo.h"
@@ -51,6 +52,62 @@ bool RiveCookedReadAttachmentInPlace()
     return bCooked;
 }
 
+// Declared here because both the cook-time lookup below and the renderer's
+// draw path read it; platforms that carry the draw's first instance into
+// SV_InstanceID set it to 1 in their own config.
+static TAutoConsoleVariable<int32> CVarInstanceIdIncludesBase(
+    TEXT("r.rive.InstanceIdIncludesBase"),
+    0,
+    TEXT("1 when SV_InstanceID already includes the draw's first instance, so "
+         "the base instance travels as a draw argument instead of a uniform."),
+    ECVF_ReadOnly);
+
+// Apollo's driver mishandles the non-atomic buffer path, so that platform
+// compiles only the atomic buffer permutations.
+static TAutoConsoleVariable<int32> CVarForceAtomicBuffer(
+    TEXT("r.rive.ForceAtomicBuffer"),
+    0,
+    TEXT("1 to compile only the atomic buffer shader permutations."),
+    ECVF_ReadOnly);
+
+// Some drivers lose precision on the path id, which the shaders correct by
+// clamping it.
+static TAutoConsoleVariable<int32> CVarNeedsPathIdClampWorkaround(
+    TEXT("r.rive.NeedsPathIdClampWorkaround"),
+    0,
+    TEXT("1 to clamp the path id in the shaders."),
+    ECVF_ReadOnly);
+
+// Defaults on: platforms whose shader compiler already knows ushort turn it
+// off.
+static TAutoConsoleVariable<int32> CVarNeedsUshortDefine(
+    TEXT("r.rive.NeedsUshortDefine"),
+    1,
+    TEXT("1 when the shaders must define ushort themselves."),
+    ECVF_ReadOnly);
+
+bool RivePlatformForcesAtomicBuffer(const FShaderPermutationParameters& Params)
+{
+    static FShaderPlatformCachedIniValue<bool> Value(
+        TEXT("r.rive.ForceAtomicBuffer"));
+    return Value.Get(Params.Platform);
+}
+
+bool RivePlatformNeedsPathIdClampWorkaround(
+    const FShaderPermutationParameters& Params)
+{
+    static FShaderPlatformCachedIniValue<bool> Value(
+        TEXT("r.rive.NeedsPathIdClampWorkaround"));
+    return Value.Get(Params.Platform);
+}
+
+bool RivePlatformNeedsUshortDefine(const FShaderPermutationParameters& Params)
+{
+    static FShaderPlatformCachedIniValue<bool> Value(
+        TEXT("r.rive.NeedsUshortDefine"));
+    return Value.Get(Params.Platform);
+}
+
 // Reads r.rive.ReadAttachmentInPlace as configured for the platform being
 // cooked for. Those platforms fetch the live 4x target per sample.
 static bool RivePlatformReadsAttachmentInPlace(
@@ -80,9 +137,10 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
                           TEXT("1"));
 #endif
 
-    Environment.SetDefine(TEXT("FORCE_ATOMIC_BUFFER"), Params.Platform == 39);
+    Environment.SetDefine(TEXT("FORCE_ATOMIC_BUFFER"),
+                          RivePlatformForcesAtomicBuffer(Params));
 
-    if (Params.Platform == 39 || Params.Platform == 43)
+    if (RivePlatformNeedsPathIdClampWorkaround(Params))
     {
         Environment.SetDefine(TEXT("NEEDS_PATH_ID_CLAMP_WORKAROUND"), 1);
     }
@@ -92,7 +150,7 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
     // just leave it on. If we need to revisit this later we can.
     Environment.SetDefine(TEXT("ENABLE_TYPED_UAV_LOAD_STORE"), TEXT("1"));
 
-    if (Params.Platform != 33)
+    if (RivePlatformNeedsUshortDefine(Params))
     {
         Environment.SetDefine(TEXT("NEEDS_USHORT_DEFINE"), TEXT("1"));
     }
@@ -186,7 +244,12 @@ void ModifyMSAAPathVertexShaderEnvironment(
 
     // Vulkan's SV_InstanceID already includes the draw's first instance, so
     // the baseInstance uniform is compiled out.
-    if (IsTargetVulkan(Params))
+    static FShaderPlatformCachedIniValue<bool> InstanceIdIncludesBaseIniValue(
+        TEXT("r.rive.InstanceIdIncludesBase"));
+    const bool bIniSaysIncludesBase =
+        InstanceIdIncludesBaseIniValue.Get(Params.Platform);
+
+    if (IsTargetVulkan(Params) || bIniSaysIncludesBase)
     {
         Environment.SetDefine(TEXT("SV_INSTANCE_ID_INCLUDES_BASE"), TEXT("1"));
     }

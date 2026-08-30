@@ -22,6 +22,15 @@
 
 CSV_DEFINE_CATEGORY(RiveMSAA, true);
 
+// Per-draw-type gpu cost inside the msaa render pass.
+DECLARE_GPU_STAT_NAMED(STAT_RiveMSAA_Patches, TEXT("Rive MSAA Patches"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveMSAA_MidpointFans,
+                       TEXT("Rive MSAA Midpoint Fans"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveMSAA_StencilClipReset,
+                       TEXT("Rive MSAA Stencil Clip Reset"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveMSAA_AtlasBlit, TEXT("Rive MSAA Atlas Blit"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveMSAA_ImageMesh, TEXT("Rive MSAA Image Mesh"));
+
 #if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
 static TAutoConsoleVariable<int32> CVarRiveDynamicPipelineState(
     TEXT("r.rive.dynamicpipelinestate"),
@@ -112,12 +121,20 @@ static void RiveSetGraphicsPipelineState(
     GBoundStencilRef = StencilRef;
 }
 
-// Vulkan's InstanceIndex already includes the draw's first instance, so the
-// base instance rides along as FirstInstance and the shader reads it straight
-// off SV_InstanceID.
+// Where SV_InstanceID already includes the draw's first instance, the base
+// instance rides along as FirstInstance and the shader reads it straight off
+// SV_InstanceID. Elsewhere it travels as a uniform, which has to be rebound per
+// batch. Platforms declare which they are with r.rive.InstanceIdIncludesBase.
 static uint32 RiveFirstInstance(uint32 BaseInstance)
 {
-    return IsVulkanPlatform(GMaxRHIShaderPlatform) ? BaseInstance : 0;
+    static const auto* CVar =
+        IConsoleManager::Get().FindTConsoleVariableDataInt(
+            TEXT("r.rive.InstanceIdIncludesBase"));
+    const bool bIncludesBase =
+        IsVulkanPlatform(GMaxRHIShaderPlatform) ||
+        (CVar != nullptr && CVar->GetValueOnRenderThread() != 0);
+
+    return bIncludesBase ? BaseInstance : 0;
 }
 
 TEnumAsByte<EStencilOp> StencilOpForStencilFaceOps(const StencilOp Op)
@@ -537,7 +554,9 @@ static void AddDrawMSAAPatchesPassImpl(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters)
 {
-    RHI_BREADCRUMB_EVENT(RHICmdList, "rive.MSAAPatches");
+    RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                              STAT_RiveMSAA_Patches,
+                              "rive.MSAAPatches");
 
     TShaderMapRef<FRiveRDGPathMSAAVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,
@@ -642,7 +661,9 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
     FRiveMSAAFlushPassParameters* PassParameters,
     TConstArrayView<rive::gpu::PipelineState> PassPipelineStates)
 {
-    RHI_BREADCRUMB_EVENT(RHICmdList, "rive.MSAADynamicMidpointFans");
+    RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                              STAT_RiveMSAA_MidpointFans,
+                              "rive.MSAADynamicMidpointFans");
 
     check(PassPipelineStates.Num() ==
           UE_ARRAY_COUNT(kDynamicMidpointFanPasses));
@@ -926,7 +947,9 @@ void AddDrawMSAAStencilClipResetPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters)
 {
-    RHI_BREADCRUMB_EVENT(RHICmdList, "rive.MSAAStencilClipReset");
+    RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                              STAT_RiveMSAA_StencilClipReset,
+                              "rive.MSAAStencilClipReset");
 
     TShaderMapRef<FRiveRDGStencilMSAAVertexShader> VertexShader(
         CommonPassParameters->ShaderMap);
@@ -1002,7 +1025,9 @@ static void AddDrawMSAAAtlasBlitPassImpl(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters)
 {
-    RHI_BREADCRUMB_EVENT(RHICmdList, "rive.MSAAAtlasBlit");
+    RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                              STAT_RiveMSAA_AtlasBlit,
+                              "rive.MSAAAtlasBlit");
 
     TShaderMapRef<FRiveRDGAtlasBlitMSAAVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,
@@ -1105,7 +1130,9 @@ static void AddDrawMSAAImageMeshPassImpl(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters)
 {
-    RHI_BREADCRUMB_EVENT(RHICmdList, "rive.MSAAImageMesh");
+    RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                              STAT_RiveMSAA_ImageMesh,
+                              "rive.MSAAImageMesh");
 
     TShaderMapRef<FRiveRDGImageMeshMSAAVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,

@@ -248,24 +248,30 @@ SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 SHADER_PARAMETER(unsigned int, baseInstance)
 END_SHADER_PARAMETER_STRUCT()
 
-static constexpr bool IsTargetVulkan(
-    const FShaderPermutationParameters& Parameters)
+// Data driven so platforms added after this code was written are classified
+// without touching it. Both answer the shader language the platform compiles
+// to, which is what decides the variants below.
+static bool IsTargetVulkan(const FShaderPermutationParameters& Parameters)
 {
-    return Parameters.Platform == SP_VULKAN_PCES3_1 ||
-           Parameters.Platform == SP_VULKAN_ES3_1_ANDROID ||
-           Parameters.Platform == SP_VULKAN_SM5 ||
-           Parameters.Platform == SP_VULKAN_SM5_ANDROID ||
-           Parameters.Platform == SP_VULKAN_SM6;
+    return FDataDrivenShaderPlatformInfo::GetIsLanguageVulkan(
+        Parameters.Platform);
 }
 
-static constexpr bool IsTargetMetal(
-    const FShaderPermutationParameters& Parameters)
+static bool IsTargetMetal(const FShaderPermutationParameters& Parameters)
 {
-    return Parameters.Platform == SP_METAL_SM5 ||
-           Parameters.Platform == SP_METAL_SM5_IOS ||
-           Parameters.Platform == SP_METAL_SM5_TVOS ||
-           Parameters.Platform == SP_METAL_SM6;
+    return FDataDrivenShaderPlatformInfo::GetIsLanguageMetal(
+        Parameters.Platform);
 }
+
+// Driver workarounds and platform quirks, named for what they do rather than
+// for the platform that needs them. Each reads a cvar the target platform sets
+// in its own config, so adding a platform never means editing this file.
+RIVESHADERS_API bool RivePlatformForcesAtomicBuffer(
+    const FShaderPermutationParameters& Params);
+RIVESHADERS_API bool RivePlatformNeedsPathIdClampWorkaround(
+    const FShaderPermutationParameters& Params);
+RIVESHADERS_API bool RivePlatformNeedsUshortDefine(
+    const FShaderPermutationParameters& Params);
 
 template <typename ShaderClass>
 static bool RiveShouldCompilePixelPermutation(
@@ -281,12 +287,13 @@ static bool RiveShouldCompilePixelPermutation(
         !allowModulatedImage)
         return false;
 
-    if (isAtomicBuffer && !IsTargetMetal(Parameters) &&
-        Parameters.Platform != 39)
+    const bool bAtomicBufferOnly =
+        IsTargetMetal(Parameters) || RivePlatformForcesAtomicBuffer(Parameters);
+
+    if (isAtomicBuffer && !bAtomicBufferOnly)
         return false;
 
-    if (!isAtomicBuffer &&
-        (IsTargetMetal(Parameters) || Parameters.Platform == 39))
+    if (!isAtomicBuffer && bAtomicBufferOnly)
         return false;
 
     if (PermutationVector.template Get<FCoalescedPlsResolveAndTransfer>() &&
