@@ -1203,12 +1203,12 @@ static void AddDrawMSAAImageMeshPassImpl(
 
     RHICmdList.SetStreamSource(0, CommonPassParameters->VertexBuffers[0], 0);
     RHICmdList.SetStreamSource(1, CommonPassParameters->VertexBuffers[1], 0);
-    // Per-instance gpu::ImageDrawInstance data on stream 2, offset here instead
+    // Per-instance gpu::ImageMeshInstance data on stream 2, offset here instead
     // of using FirstInstance, which isn't portable (GRHISupportsFirstInstance).
     RHICmdList.SetStreamSource(2,
                                CommonPassParameters->VertexBuffers[2],
                                CommonPassParameters->DrawBatch.baseElement *
-                                   sizeof(rive::gpu::ImageDrawInstance));
+                                   sizeof(rive::gpu::ImageMeshInstance));
     RHICmdList.DrawIndexedPrimitive(
         CommonPassParameters->IndexBuffer,
         0,                                         // BaseVertexIndex
@@ -1604,14 +1604,14 @@ FRDGPassRef AddDrawImageRectPass(
             RHICmdList.SetStreamSource(0,
                                        CommonPassParameters->VertexBuffers[0],
                                        0);
-            // Per-instance gpu::ImageDrawInstance data on stream 1, offset here
+            // Per-instance gpu::ImageRectInstance data on stream 1, offset here
             // instead of using FirstInstance, which isn't portable
             // (GRHISupportsFirstInstance).
             RHICmdList.SetStreamSource(
                 1,
                 CommonPassParameters->VertexBuffers[1],
                 CommonPassParameters->DrawBatch.baseElement *
-                    sizeof(rive::gpu::ImageDrawInstance));
+                    sizeof(rive::gpu::ImageRectInstance));
             RHICmdList.DrawIndexedPrimitive(
                 CommonPassParameters->IndexBuffer,
                 0,                                // BaseVertexIndex
@@ -1719,14 +1719,14 @@ FRDGPassRef AddDrawImageMeshPass(
             RHICmdList.SetStreamSource(1,
                                        CommonPassParameters->VertexBuffers[1],
                                        0);
-            // Per-instance gpu::ImageDrawInstance data on stream 2, offset here
+            // Per-instance gpu::ImageMeshInstance data on stream 2, offset here
             // instead of using FirstInstance, which isn't portable
             // (GRHISupportsFirstInstance).
             RHICmdList.SetStreamSource(
                 2,
                 CommonPassParameters->VertexBuffers[2],
                 CommonPassParameters->DrawBatch.baseElement *
-                    sizeof(rive::gpu::ImageDrawInstance));
+                    sizeof(rive::gpu::ImageMeshInstance));
             RHICmdList.DrawIndexedPrimitive(
                 CommonPassParameters->IndexBuffer,
                 0,                                         // BaseVertexIndex
@@ -2169,14 +2169,14 @@ FRDGPassRef AddDrawRasterOrderImageMeshPass(
             RHICmdList.SetStreamSource(1,
                                        CommonPassParameters->VertexBuffers[1],
                                        0);
-            // Per-instance gpu::ImageDrawInstance data on stream 2, offset here
+            // Per-instance gpu::ImageMeshInstance data on stream 2, offset here
             // instead of using FirstInstance, which isn't portable
             // (GRHISupportsFirstInstance).
             RHICmdList.SetStreamSource(
                 2,
                 CommonPassParameters->VertexBuffers[2],
                 CommonPassParameters->DrawBatch.baseElement *
-                    sizeof(rive::gpu::ImageDrawInstance));
+                    sizeof(rive::gpu::ImageMeshInstance));
             RHICmdList.DrawIndexedPrimitive(
                 CommonPassParameters->IndexBuffer,
                 0,                                         // BaseVertexIndex

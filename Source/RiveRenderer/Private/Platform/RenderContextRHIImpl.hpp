@@ -415,7 +415,8 @@ public:
     virtual void resizeGradSpanBuffer(size_t sizeInBytes) override;
     virtual void resizeTessVertexSpanBuffer(size_t sizeInBytes) override;
     virtual void resizeTriangleVertexBuffer(size_t sizeInBytes) override;
-    virtual void resizeImageDrawInstanceBuffer(size_t sizeInBytes) override;
+    virtual void resizeImageRectInstanceBuffer(size_t sizeInBytes) override;
+    virtual void resizeImageMeshInstanceBuffer(size_t sizeInBytes) override;
 
     virtual void* mapFlushUniformBuffer(size_t mapSizeInBytes) override;
     virtual void* mapPathBuffer(size_t mapSizeInBytes) override;
@@ -425,7 +426,8 @@ public:
     virtual void* mapGradSpanBuffer(size_t mapSizeInBytes) override;
     virtual void* mapTessVertexSpanBuffer(size_t mapSizeInBytes) override;
     virtual void* mapTriangleVertexBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapImageDrawInstanceBuffer(size_t mapSizeInBytes) override;
+    virtual void* mapImageRectInstanceBuffer(size_t mapSizeInBytes) override;
+    virtual void* mapImageMeshInstanceBuffer(size_t mapSizeInBytes) override;
 
     virtual void unmapFlushUniformBuffer(size_t unmapSizeInBytes) override;
     virtual void unmapPathBuffer(size_t unmapSizeInBytes) override;
@@ -435,7 +437,8 @@ public:
     virtual void unmapGradSpanBuffer(size_t unmapSizeInBytes) override;
     virtual void unmapTessVertexSpanBuffer(size_t unmapSizeInBytes) override;
     virtual void unmapTriangleVertexBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapImageDrawInstanceBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapImageRectInstanceBuffer(size_t unmapSizeInBytes) override;
+    virtual void unmapImageMeshInstanceBuffer(size_t unmapSizeInBytes) override;
 
     virtual rive::rcp<rive::RenderBuffer> makeRenderBuffer(
         rive::RenderBufferType,
@@ -510,7 +513,8 @@ private:
     std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_tessSpanBuffer;
     std::unique_ptr<BufferRingRHIImpl> m_triangleBuffer;
-    std::unique_ptr<BufferRingRHIImpl> m_imageDrawInstanceBuffer;
+    std::unique_ptr<BufferRingRHIImpl> m_imageRectInstanceBuffer;
+    std::unique_ptr<BufferRingRHIImpl> m_imageMeshInstanceBuffer;
 
     std::chrono::steady_clock::time_point m_localEpoch =
         std::chrono::steady_clock::now();

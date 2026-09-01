@@ -23,7 +23,8 @@ struct FRiveCommonPassParameters
     AtomicVertexPermutationDomain VertexPermutationDomain;
     FVertexDeclarationRHIRef VertexDeclarationRHI = nullptr;
     // [0]/[1] geometry streams; imageMesh uses [2] for the per-instance
-    // gpu::ImageDrawInstance stream (imageRect uses [1]).
+    // gpu::ImageMeshInstance stream; imageRect uses [1] for
+    // gpu::ImageRectInstance.
     FBufferRHIRef VertexBuffers[3];
     FBufferRHIRef IndexBuffer = nullptr;
     FUint32Rect Viewport;

@@ -1065,6 +1065,64 @@ void* RenderContextRHIImpl::makeCommandBuffer()
 FRDGBuilder* RenderContextRHIImpl::TestBuilder = nullptr;
 uint64 RenderContextRHIImpl::FlushSerial = 0;
 
+inline auto getNativeVertexElementFormat(VertexElementFormat format)
+{
+    switch (format)
+    {
+        case VertexElementFormat::float1:
+            return VET_Float1;
+        case VertexElementFormat::float2:
+            return VET_Float2;
+        case VertexElementFormat::float3:
+            return VET_Float3;
+        case VertexElementFormat::float4:
+            return VET_Float4;
+        case VertexElementFormat::float16x2:
+            return VET_Half2;
+        case VertexElementFormat::float16x4:
+            return VET_Half4;
+        case VertexElementFormat::uint8x4:
+            return VET_UByte4;
+        case VertexElementFormat::unorm8x4:
+            return VET_UByte4N;
+        case VertexElementFormat::snorm8x4:
+            return VET_PackedNormal;
+        case VertexElementFormat::uint16x2:
+            return VET_UShort2;
+        case VertexElementFormat::uint16x4:
+            return VET_UShort4;
+        case VertexElementFormat::unorm16x2:
+            return VET_UShort2N;
+        case VertexElementFormat::sint8x4:
+            return VET_UByte4;
+        case VertexElementFormat::sint16x2:
+            return VET_Short2;
+        case VertexElementFormat::sint16x4:
+            return VET_Short4;
+        case VertexElementFormat::snorm16x2:
+            return VET_Short2N;
+        case VertexElementFormat::uint32:
+            return VET_UInt;
+    }
+
+    RIVE_UNREACHABLE();
+}
+
+template <typename ImageDrawInstance>
+void inline addImageDrawInstanceAttribs(FVertexDeclarationElementList& list,
+                                        uint8 streamIndex)
+{
+    for (auto& attr : ImageDrawInstance::getAttributes())
+    {
+        list.Add(FVertexElement(streamIndex,
+                                uint8(attr.byteOffset),
+                                getNativeVertexElementFormat(attr.format),
+                                uint8(attr.attributeIndex),
+                                sizeof(ImageDrawInstance),
+                                true));
+    }
+}
+
 RenderContextRHIImpl::RenderContextRHIImpl(
     FRHICommandListImmediate& CommandListImmediate,
     const RHICapabilitiesOverrides& Overrides) :
@@ -1148,59 +1206,12 @@ RenderContextRHIImpl::RenderContextRHIImpl(
         EVertexDeclarations::InteriorTriangles)] =
         PipelineStateCache::GetOrCreateVertexDeclaration(trianglesElementList);
 
-    // Appends gpu::ImageDrawInstance as a per-instance vertex stream: three
-    // float4 (locations 2,3,4) then four uint (locations 5,6,7,8), 64-byte
-    // stride. The trailing uint4 is split into four separate uint attributes
-    // because UE's RHI shader compiler mishandles a uint4 vertex attribute
-    // (see SPLIT_UINT4_ATTRIBUTES in the shaders).
-    auto addImageDrawInstanceAttribs = [](FVertexDeclarationElementList& list,
-                                          uint8 streamIndex) {
-        const uint16 stride = sizeof(ImageDrawInstance);
-        list.Add(FVertexElement(streamIndex, 0, VET_Float4, 2, stride, true));
-        list.Add(FVertexElement(streamIndex,
-                                4 * sizeof(uint32_t),
-                                VET_Float4,
-                                3,
-                                stride,
-                                true));
-        list.Add(FVertexElement(streamIndex,
-                                8 * sizeof(uint32_t),
-                                VET_Float4,
-                                4,
-                                stride,
-                                true));
-        list.Add(FVertexElement(streamIndex,
-                                12 * sizeof(uint32_t),
-                                VET_UInt,
-                                IMAGE_SPLIT_OPACITY_ATTRIB_IDX,
-                                stride,
-                                true));
-        list.Add(FVertexElement(streamIndex,
-                                13 * sizeof(uint32_t),
-                                VET_UInt,
-                                IMAGE_SPLIT_CLIP_ID_ATTRIB_IDX,
-                                stride,
-                                true));
-        list.Add(FVertexElement(streamIndex,
-                                14 * sizeof(uint32_t),
-                                VET_UInt,
-                                IMAGE_SPLIT_BLEND_MODE_ATTRIB_IDX,
-                                stride,
-                                true));
-        list.Add(FVertexElement(streamIndex,
-                                15 * sizeof(uint32_t),
-                                VET_UInt,
-                                IMAGE_SPLIT_ZINDEX_ATTRIB_IDX,
-                                stride,
-                                true));
-    };
-
     FVertexDeclarationElementList ImageMeshElementList;
     ImageMeshElementList.Add(
         FVertexElement(0, 0, VET_Float2, 0, sizeof(Vec2D), false));
     ImageMeshElementList.Add(
         FVertexElement(1, 0, VET_Float2, 1, sizeof(Vec2D), false));
-    addImageDrawInstanceAttribs(ImageMeshElementList, 2);
+    addImageDrawInstanceAttribs<ImageMeshInstance>(ImageMeshElementList, 2);
     VertexDeclarations[static_cast<int32>(EVertexDeclarations::ImageMesh)] =
         PipelineStateCache::GetOrCreateVertexDeclaration(ImageMeshElementList);
 
@@ -1247,7 +1258,9 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     FVertexDeclarationElementList ImageRectVertexElementList;
     ImageRectVertexElementList.Add(
         FVertexElement(0, 0, VET_Float4, 0, sizeof(ImageRectVertex), false));
-    addImageDrawInstanceAttribs(ImageRectVertexElementList, 1);
+    addImageDrawInstanceAttribs<ImageRectInstance>(ImageRectVertexElementList,
+                                                   1);
+
     auto ImageRectDecleration =
         PipelineStateCache::GetOrCreateVertexDeclaration(
             ImageRectVertexElementList);
@@ -1638,15 +1651,27 @@ void RenderContextRHIImpl::resizeTessVertexSpanBuffer(size_t sizeInBytes)
     }
 }
 
-void RenderContextRHIImpl::resizeImageDrawInstanceBuffer(size_t sizeInBytes)
+void RenderContextRHIImpl::resizeImageRectInstanceBuffer(size_t sizeInBytes)
 {
-    m_imageDrawInstanceBuffer.reset();
+    m_imageRectInstanceBuffer.reset();
     if (sizeInBytes != 0)
     {
-        m_imageDrawInstanceBuffer =
+        m_imageRectInstanceBuffer =
             std::make_unique<BufferRingRHIImpl>(EBufferUsageFlags::VertexBuffer,
                                                 sizeInBytes,
-                                                sizeof(ImageDrawInstance));
+                                                sizeof(ImageRectInstance));
+    }
+}
+
+void RenderContextRHIImpl::resizeImageMeshInstanceBuffer(size_t sizeInBytes)
+{
+    m_imageMeshInstanceBuffer.reset();
+    if (sizeInBytes != 0)
+    {
+        m_imageMeshInstanceBuffer =
+            std::make_unique<BufferRingRHIImpl>(EBufferUsageFlags::VertexBuffer,
+                                                sizeInBytes,
+                                                sizeof(ImageMeshInstance));
     }
 }
 
@@ -1702,9 +1727,14 @@ void* RenderContextRHIImpl::mapTriangleVertexBuffer(size_t mapSizeInBytes)
     return m_triangleBuffer->mapBuffer(mapSizeInBytes);
 }
 
-void* RenderContextRHIImpl::mapImageDrawInstanceBuffer(size_t mapSizeInBytes)
+void* RenderContextRHIImpl::mapImageRectInstanceBuffer(size_t mapSizeInBytes)
 {
-    return m_imageDrawInstanceBuffer->mapBuffer(mapSizeInBytes);
+    return m_imageRectInstanceBuffer->mapBuffer(mapSizeInBytes);
+}
+
+void* RenderContextRHIImpl::mapImageMeshInstanceBuffer(size_t mapSizeInBytes)
+{
+    return m_imageMeshInstanceBuffer->mapBuffer(mapSizeInBytes);
 }
 
 void RenderContextRHIImpl::unmapFlushUniformBuffer(size_t mapSizeInBytes) {}
@@ -1732,9 +1762,14 @@ void RenderContextRHIImpl::unmapTriangleVertexBuffer(size_t mapSizeInBytes)
     m_triangleBuffer->unmapAndSubmitBuffer();
 }
 
-void RenderContextRHIImpl::unmapImageDrawInstanceBuffer(size_t mapSizeInBytes)
+void RenderContextRHIImpl::unmapImageRectInstanceBuffer(size_t mapSizeInBytes)
 {
-    m_imageDrawInstanceBuffer->unmapAndSubmitBuffer();
+    m_imageRectInstanceBuffer->unmapAndSubmitBuffer();
+}
+
+void RenderContextRHIImpl::unmapImageMeshInstanceBuffer(size_t mapSizeInBytes)
+{
+    m_imageMeshInstanceBuffer->unmapAndSubmitBuffer();
 }
 
 rcp<RenderBuffer> RenderContextRHIImpl::makeRenderBuffer(
@@ -2571,8 +2606,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                          NextRenderPass,
                          bUseSinglePassBarrier,
                          bUseSubpassLoad,
-                         imageDrawInstanceBuffer =
-                             m_imageDrawInstanceBuffer.get(),
+                         imageRectInstanceBuffer =
+                             m_imageRectInstanceBuffer.get(),
+                         imageMeshInstanceBuffer =
+                             m_imageMeshInstanceBuffer.get(),
                          NeedsLinearColorOutput,
                          VertexDeclarations = VertexDeclarations,
                          patchVertexBuffer = m_patchVertexBuffer,
@@ -2871,7 +2908,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                         CommonPassParameters.VertexBuffers[1] =
                                             UVBufferRHI;
                                         CommonPassParameters.VertexBuffers[2] =
-                                            imageDrawInstanceBuffer->Sync(
+                                            imageMeshInstanceBuffer->Sync(
                                                 RHICmdList);
                                         CommonPassParameters.IndexBuffer =
                                             IndexBufferRHI;
@@ -3183,7 +3220,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     {
                         check(paintSRV);
                         check(paintAuxSRV);
-                        check(m_imageDrawInstanceBuffer);
+                        check(m_imageMeshInstanceBuffer);
 
                         LITE_RTTI_CAST_OR_BREAK(IndexBuffer,
                                                 const RenderBufferRHIImpl*,
@@ -3212,7 +3249,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                             VertexBufferRHI;
                         CommonPassParameters->VertexBuffers[1] = UVBufferRHI;
                         CommonPassParameters->VertexBuffers[2] =
-                            m_imageDrawInstanceBuffer->Sync(CommandList);
+                            m_imageMeshInstanceBuffer->Sync(CommandList);
                         CommonPassParameters->IndexBuffer = IndexBufferRHI;
 
                         AddDrawRasterOrderImageMeshPass(
@@ -3435,7 +3472,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     {
                         check(paintSRV);
                         check(paintAuxSRV);
-                        check(m_imageDrawInstanceBuffer);
+                        check(m_imageRectInstanceBuffer);
                         check(desc.interlockMode == InterlockMode::atomics);
 
                         auto imageTexture = static_cast<const TextureRHIImpl*>(
@@ -3450,7 +3487,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         CommonPassParameters->VertexBuffers[0] =
                             m_imageRectVertexBuffer;
                         CommonPassParameters->VertexBuffers[1] =
-                            m_imageDrawInstanceBuffer->Sync(CommandList);
+                            m_imageRectInstanceBuffer->Sync(CommandList);
                         CommonPassParameters->IndexBuffer =
                             m_imageRectIndexBuffer;
 
@@ -3463,7 +3500,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     {
                         check(paintSRV);
                         check(paintAuxSRV);
-                        check(m_imageDrawInstanceBuffer);
+                        check(m_imageMeshInstanceBuffer);
 
                         LITE_RTTI_CAST_OR_BREAK(IndexBuffer,
                                                 const RenderBufferRHIImpl*,
@@ -3492,7 +3529,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                             VertexBufferRHI;
                         CommonPassParameters->VertexBuffers[1] = UVBufferRHI;
                         CommonPassParameters->VertexBuffers[2] =
-                            m_imageDrawInstanceBuffer->Sync(CommandList);
+                            m_imageMeshInstanceBuffer->Sync(CommandList);
                         CommonPassParameters->IndexBuffer = IndexBufferRHI;
 
                         AddDrawImageMeshPass(GraphBuilder,
