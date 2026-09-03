@@ -968,7 +968,7 @@ bool URiveViewModel::RemoveFromListAtIndex(const FString& ListName, int32 Index)
                         Server->getHandleForInstance(ViewModel.get());
                     AsyncTask(
                         ENamedThreads::GameThread,
-                        [&ListPath, WeakThis, NestedHandle, Index]() {
+                        [ListPath, WeakThis, NestedHandle, Index]() {
                             // Make sure this view model still exsists
                             // when trying to modify the list.
                             if (auto StrongThis = WeakThis.Pin())

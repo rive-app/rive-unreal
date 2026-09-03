@@ -28,6 +28,8 @@ public:
 
     virtual ~FRiveRenderTargetRHI() override;
 
+    virtual void Initialize() override;
+
     virtual void CacheTextureTarget_RenderThread(
         FRHICommandListImmediate& RHICmdList,
         const FTextureRHIRef& InRHIResource) override;

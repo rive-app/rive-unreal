@@ -73,7 +73,8 @@ void URiveViewModelGetListIndexAsyncTask::Activate()
     }
 
     auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
-    CommandBuilder.RunOnce([this,
+    TWeakObjectPtr<URiveViewModelGetListIndexAsyncTask> WeakThis(this);
+    CommandBuilder.RunOnce([WeakThis,
                             NativeHandle,
                             Name = SymbolListIndexPropertyDef->Name](
                                rive::CommandServer* Server) {
@@ -85,9 +86,12 @@ void URiveViewModelGetListIndexAsyncTask::Activate()
                 Error,
                 TEXT(
                     "URiveViewModelGetListIndexAsyncTask view model native handle is invalid"));
-            AsyncTask(ENamedThreads::GameThread, [this]() {
-                OnFailure.Broadcast(0, ViewModel);
-                SetReadyToDestroy();
+            AsyncTask(ENamedThreads::GameThread, [WeakThis]() {
+                if (auto StrongThis = WeakThis.Pin(); StrongThis.IsValid())
+                {
+                    StrongThis->OnFailure.Broadcast(0, StrongThis->ViewModel);
+                    StrongThis->SetReadyToDestroy();
+                }
             });
             return;
         }
@@ -109,19 +113,25 @@ void URiveViewModelGetListIndexAsyncTask::Activate()
                 *Name);
         }
 
-        AsyncTask(ENamedThreads::GameThread, [this, Index]() {
+        AsyncTask(ENamedThreads::GameThread, [WeakThis, Index]() {
+            auto StrongThis = WeakThis.Pin();
+            if (!StrongThis.IsValid())
+            {
+                return;
+            }
+
             // Broadcast fires the execution pin and passes data to BP
             if (Index != -1)
             {
-                OnSuccess.Broadcast(Index, ViewModel);
+                StrongThis->OnSuccess.Broadcast(Index, StrongThis->ViewModel);
             }
             else
             {
-                OnFailure.Broadcast(0, ViewModel);
+                StrongThis->OnFailure.Broadcast(0, StrongThis->ViewModel);
             }
 
             // Clean up the object for garbage collection
-            SetReadyToDestroy();
+            StrongThis->SetReadyToDestroy();
         });
     });
 }

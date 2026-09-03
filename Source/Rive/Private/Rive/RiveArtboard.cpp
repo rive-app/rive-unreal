@@ -341,8 +341,10 @@ void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
     auto& CommandBuilder =
         IRiveRendererModule::Get().GetRenderer()->GetCommandBuilder();
 
+    TStrongObjectPtr<URiveAudioEngine> StrongAudioEngine(AudioEngine);
+
     CommandBuilder.RunOnce(
-        [AudioEngine, NativeArtboardHandle = NativeArtboardHandle](
+        [StrongAudioEngine, NativeArtboardHandle = NativeArtboardHandle](
             rive::CommandServer* server) {
             auto NativeArtboardPtr =
                 server->getArtboardInstance(NativeArtboardHandle);
@@ -356,7 +358,7 @@ void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
                 return;
             }
 
-            if (AudioEngine == nullptr)
+            if (!StrongAudioEngine.IsValid())
             {
                 rive::rcp<rive::AudioEngine> NativeEngine =
                     NativeArtboardPtr->audioEngine();
@@ -369,7 +371,8 @@ void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
                 return;
             }
 
-            NativeArtboardPtr->audioEngine(AudioEngine->GetNativeAudioEngine());
+            NativeArtboardPtr->audioEngine(
+                StrongAudioEngine->GetNativeAudioEngine());
         });
 }
 

@@ -27,19 +27,7 @@ FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRiveRenderer* Renderer,
                                            const FString& InRiveName,
                                            FRenderTarget* InRenderTarget) :
     FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
-{
-    ENQUEUE_RENDER_COMMAND(FRiveRenderTargetRHI_CacheRenderTarget)
-    ([this](FRHICommandListImmediate& RHICmdList) {
-        rive::gpu::RenderContext* PLSRenderContext =
-            RiveRenderer->GetRenderContext();
-        check(PLSRenderContext);
-        RenderContextRHIImpl* const PLSRenderContextImpl =
-            PLSRenderContext->static_impl_cast<RenderContextRHIImpl>();
-        CachedRenderTarget =
-            PLSRenderContextImpl->makeRenderTarget(RHICmdList,
-                                                   ThumbnailRenderTarget);
-    });
-}
+{}
 
 FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRDGBuilder& GraphBuilder,
                                            FRiveRenderer* Renderer,
@@ -58,6 +46,28 @@ FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRDGBuilder& GraphBuilder,
 }
 
 FRiveRenderTargetRHI::~FRiveRenderTargetRHI() {}
+
+void FRiveRenderTargetRHI::Initialize()
+{
+    FRiveRenderTarget::Initialize();
+
+    if (ThumbnailRenderTarget == nullptr)
+    {
+        return;
+    }
+
+    ENQUEUE_RENDER_COMMAND(FRiveRenderTargetRHI_CacheRenderTarget)
+    ([StrongThis = SharedThis(this)](FRHICommandListImmediate& RHICmdList) {
+        rive::gpu::RenderContext* PLSRenderContext =
+            StrongThis->RiveRenderer->GetRenderContext();
+        check(PLSRenderContext);
+        RenderContextRHIImpl* const PLSRenderContextImpl =
+            PLSRenderContext->static_impl_cast<RenderContextRHIImpl>();
+        StrongThis->CachedRenderTarget = PLSRenderContextImpl->makeRenderTarget(
+            RHICmdList,
+            StrongThis->ThumbnailRenderTarget);
+    });
+}
 
 DECLARE_GPU_STAT_NAMED(
     CacheTextureTargetRHI,
@@ -114,8 +124,9 @@ void FRiveRenderTargetRHI::UpdateTargetTexture(FRenderTarget* InRenderTarget)
     check(IsInGameThread());
     FRiveRenderTarget::UpdateTargetTexture(InRenderTarget);
     ENQUEUE_RENDER_COMMAND(FRiveRenderTargetRHI_CacheRenderTarget)
-    ([this, InRenderTarget](FRHICommandListImmediate& RHICmdList) {
-        CachedRenderTarget->updateTargetTexture(InRenderTarget);
+    ([StrongThis = SharedThis(this),
+      InRenderTarget](FRHICommandListImmediate& RHICmdList) {
+        StrongThis->CachedRenderTarget->updateTargetTexture(InRenderTarget);
     });
 }
 

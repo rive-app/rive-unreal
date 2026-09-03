@@ -102,15 +102,26 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
 
     FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
     FRiveCommandBuilder& CommandBuilder = RiveRenderer->GetCommandBuilder();
-    CommandBuilder.RunOnce([this, InTexture, RiveRenderer = RiveRenderer](
-                               rive::CommandServer*) {
+    TWeakObjectPtr<URiveImageAsset> WeakThis(this);
+    TStrongObjectPtr<UTexture2D> StrongTexture(InTexture);
+    CommandBuilder.RunOnce([WeakThis,
+                            StrongTexture,
+                            RiveRenderer = RiveRenderer](rive::CommandServer*) {
+        auto StrongThis = WeakThis.Pin();
+
+        if (!StrongThis.IsValid())
+        {
+            return;
+        }
+
         rive::gpu::RenderContext* RenderContext =
             RiveRenderer->GetRenderContext();
 
         if (ensure(RenderContext))
         {
             TArray<uint8> ImageData;
-            UE::Private::RiveImageAsset::GetTextureData(InTexture, ImageData);
+            UE::Private::RiveImageAsset::GetTextureData(StrongTexture.Get(),
+                                                        ImageData);
 
             if (ImageData.IsEmpty())
             {
@@ -123,8 +134,8 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
 
             TArray64<uint8> CompressedImage;
             FImageView ImageView = FImageView(ImageData.GetData(),
-                                              InTexture->GetSizeX(),
-                                              InTexture->GetSizeY(),
+                                              StrongTexture->GetSizeX(),
+                                              StrongTexture->GetSizeY(),
                                               ERawImageFormat::BGRA8);
             IImageWrapperModule& ImageWrapperModule =
                 FModuleManager::LoadModuleChecked<IImageWrapperModule>(
@@ -137,7 +148,8 @@ void URiveImageAsset::LoadTexture(UTexture2D* InTexture)
                 RenderContext->decodeImage(
                     rive::make_span(CompressedImage.GetData(),
                                     CompressedImage.Num()));
-            NativeAsset->as<rive::ImageAsset>()->renderImage(RenderImage);
+            StrongThis->NativeAsset->as<rive::ImageAsset>()->renderImage(
+                RenderImage);
         }
     });
 }
@@ -147,9 +159,17 @@ void URiveImageAsset::LoadImageBytes(const TArray<uint8>& InBytes)
     FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
 
     FRiveCommandBuilder& CommandBuilder = RiveRenderer->GetCommandBuilder();
-    CommandBuilder.RunOnce([this,
+    TWeakObjectPtr<URiveImageAsset> WeakThis(this);
+    CommandBuilder.RunOnce([WeakThis,
                             InBytes = InBytes,
                             RiveRenderer = RiveRenderer](rive::CommandServer*) {
+        auto StrongThis = WeakThis.Pin();
+
+        if (!StrongThis.IsValid())
+        {
+            return;
+        }
+
         rive::gpu::RenderContext* RenderContext =
             RiveRenderer->GetRenderContext();
 
@@ -167,7 +187,8 @@ void URiveImageAsset::LoadImageBytes(const TArray<uint8>& InBytes)
                 return;
             }
 
-            rive::ImageAsset* ImageAsset = NativeAsset->as<rive::ImageAsset>();
+            rive::ImageAsset* ImageAsset =
+                StrongThis->NativeAsset->as<rive::ImageAsset>();
             ImageAsset->renderImage(DecodedImage);
         }
     });

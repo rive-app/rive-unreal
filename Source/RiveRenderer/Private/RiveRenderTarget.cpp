@@ -66,16 +66,23 @@ FRiveRenderTarget::~FRiveRenderTarget() { RIVE_DEBUG_FUNCTION_INDENT; }
 void FRiveRenderTarget::Initialize()
 {
     check(IsInGameThread());
-    check(RenderTarget || RenderToTextureTarget);
-    FTextureResource* RenderTargetResource =
-        RenderTarget ? RenderTarget->GetResource()
-                     : RenderToTextureTarget->GetResource();
+    UTexture2DDynamic* DynamicTarget = RenderTarget.Get();
+    UTextureRenderTarget2D* TextureTarget = RenderToTextureTarget.Get();
+    if (DynamicTarget == nullptr && TextureTarget == nullptr)
+    {
+        return;
+    }
+    FTextureResource* RenderTargetResource = DynamicTarget
+                                                 ? DynamicTarget->GetResource()
+                                                 : TextureTarget->GetResource();
     check(RenderTargetResource);
     ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)
-    ([RenderTargetResource, this](FRHICommandListImmediate& RHICmdList) {
-        RHIResource = RenderTargetResource->TextureRHI;
-        CacheTextureTarget_RenderThread(RHICmdList,
-                                        RenderTargetResource->TextureRHI);
+    ([RenderTargetResource,
+      StrongThis = AsShared()](FRHICommandListImmediate& RHICmdList) {
+        StrongThis->RHIResource = RenderTargetResource->TextureRHI;
+        StrongThis->CacheTextureTarget_RenderThread(
+            RHICmdList,
+            RenderTargetResource->TextureRHI);
     });
 }
 
@@ -90,14 +97,14 @@ void FRiveRenderTarget::UpdateTargetTexture(UTexture2DDynamic* InRenderTarget)
 void FRiveRenderTarget::UpdateTargetTexture(FRDGTextureRef InRenderTarget)
 {
     check(IsInRenderingThread());
-    RenderTarget = nullptr;
+    RenderTarget.Reset();
     ThumbnailRenderTarget = nullptr;
     RenderTargetRDG = InRenderTarget;
 }
 
 void FRiveRenderTarget::UpdateTargetTexture(FRenderTarget* InRenderTarget)
 {
-    RenderTarget = nullptr;
+    RenderTarget.Reset();
     RenderTargetRDG = nullptr;
     ThumbnailRenderTarget = InRenderTarget;
 }
@@ -105,7 +112,7 @@ void FRiveRenderTarget::UpdateTargetTexture(FRenderTarget* InRenderTarget)
 void FRiveRenderTarget::UpdateRHIResorourceDirect(FTextureRHIRef InRenderTarget)
 {
     check(IsInRenderingThread());
-    RenderTarget = nullptr;
+    RenderTarget.Reset();
     RenderTargetRDG = nullptr;
     ThumbnailRenderTarget = nullptr;
     RHIResource = InRenderTarget;
@@ -195,6 +202,14 @@ void FRiveRenderTarget::EndRenderFrame(
     GraphBuilder.Execute();
 }
 
-uint32 FRiveRenderTarget::GetWidth() const { return RenderTarget->SizeX; }
+uint32 FRiveRenderTarget::GetWidth() const
+{
+    const UTexture2DDynamic* DynamicTarget = RenderTarget.Get();
+    return DynamicTarget ? DynamicTarget->SizeX : 0;
+}
 
-uint32 FRiveRenderTarget::GetHeight() const { return RenderTarget->SizeY; }
+uint32 FRiveRenderTarget::GetHeight() const
+{
+    const UTexture2DDynamic* DynamicTarget = RenderTarget.Get();
+    return DynamicTarget ? DynamicTarget->SizeY : 0;
+}

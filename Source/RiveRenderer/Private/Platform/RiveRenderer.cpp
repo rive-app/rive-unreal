@@ -123,7 +123,7 @@ FRiveRenderer::~FRiveRenderer()
     DeferredSession.Reset();
 
     FCoreDelegates::OnBeginFrame.Remove(OnBeingFrameGameThreadHandle);
-    FCoreDelegates::OnBeginFrame.Remove(OnEndFrameGameThreadHandle);
+    FCoreDelegates::OnEndFrame.Remove(OnEndFrameGameThreadHandle);
     FCoreDelegates::OnBeginFrameRT.Remove(OnBeingFrameRenderThreadHandle);
 }
 
@@ -300,7 +300,12 @@ TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
     const FString& InRiveName,
     FRenderTarget* RenderTarget)
 {
-    return MakeShared<FRiveRenderTargetRHI>(this, InRiveName, RenderTarget);
+    const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget =
+        MakeShared<FRiveRenderTargetRHI>(this, InRiveName, RenderTarget);
+
+    RiveRenderTarget->Initialize();
+
+    return RiveRenderTarget;
 }
 
 DECLARE_GPU_STAT_NAMED(CreateRenderContext,

@@ -36,6 +36,7 @@ class UTexture2DDynamic;
 class FRiveRenderer;
 
 class RIVERENDERER_API FRiveRenderTarget
+    : public TSharedFromThis<FRiveRenderTarget>
 {
 public:
     FRiveRenderTarget(FRiveRenderer* Renderer,
@@ -86,10 +87,10 @@ protected:
     FRiveRenderer* RiveRenderer = nullptr;
 
     // Generic Render target used for UTextures
-    TObjectPtr<UTexture2DDynamic> RenderTarget = nullptr;
+    TWeakObjectPtr<UTexture2DDynamic> RenderTarget;
 
     // Used for custom render to textures
-    TObjectPtr<UTextureRenderTarget2D> RenderToTextureTarget = nullptr;
+    TWeakObjectPtr<UTextureRenderTarget2D> RenderToTextureTarget;
 
     // Used for thumbnail renderer
     FRenderTarget* ThumbnailRenderTarget = nullptr;
