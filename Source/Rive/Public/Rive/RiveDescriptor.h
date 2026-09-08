@@ -44,7 +44,7 @@ public:
     // If true, use a combination of ScaleFactor * DPI when set to Layout Fit
     // Type.
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    bool bScaleLayoutByDPI;
+    bool bScaleLayoutByDPI = false;
 
     friend FArchive& operator<<(FArchive& Ar, FRiveDescriptor& Struct)
     {
@@ -55,6 +55,7 @@ public:
         Ar << Struct.FitType;
         Ar << Struct.Alignment;
         Ar << Struct.ScaleFactor;
+        Ar << Struct.bScaleLayoutByDPI;
 
         return Ar;
     }

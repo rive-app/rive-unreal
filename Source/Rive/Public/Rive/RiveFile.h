@@ -134,9 +134,12 @@ public:
 
     FDataReadyDelegate OnDataReady;
 #if WITH_EDITOR
+    // Mirrors CheckShouldBroadcastDataReady: true once every reflection
+    // request has been answered, which is when OnDataReady fires.
     bool GetHasData() const
     {
-        return bHasArtboardData && bHasEnumsData && bHasViewModelData;
+        return bHasArtboardData && bHasEnumsData && bHasViewModelData &&
+               bHasViewModelInstanceDefaultsData;
     }
 #else
     // We should always have data on packaged builds

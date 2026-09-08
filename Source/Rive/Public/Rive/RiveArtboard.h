@@ -95,7 +95,10 @@ public:
                     bool InAutoBindViewModel,
                     FRiveCommandBuilder& InCommandBuilder);
 
-    void ErrorReceived(uint64_t RequestId);
+    // Called for every error the command server reports against this
+    // artboard. Logs it, then reacts to the requests it knows about (state
+    // machine creation, default view model lookup).
+    void ErrorReceived(uint64_t RequestId, const FString& Error);
 
     UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
     void SetStateMachine(const FString& StateMachineName,

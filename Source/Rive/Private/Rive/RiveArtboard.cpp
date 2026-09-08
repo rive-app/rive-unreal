@@ -31,16 +31,20 @@ public:
                                  uint64_t RequestId,
                                  std::string Error) override
     {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Artboard RequestId: %llu Error: %s"),
-               RequestId,
-               *FString(Error.c_str()));
         check(IsInGameThread());
+        const FString Message(Error.c_str());
         if (auto StrongArtboard = ListeningArtboard.Pin();
             StrongArtboard.IsValid())
         {
-            StrongArtboard->ErrorReceived(RequestId);
+            StrongArtboard->ErrorReceived(RequestId, Message);
+        }
+        else
+        {
+            UE_LOG(LogRive,
+                   Error,
+                   TEXT("Artboard RequestId: %llu Error: %s"),
+                   RequestId,
+                   *Message);
         }
     }
 
@@ -155,6 +159,7 @@ void URiveArtboard::Initialize(URiveFile* InRiveFile,
 
     RiveFile = InRiveFile;
     ArtboardDefinition = InDefinition;
+    ArtboardDefaultSize = InDefinition.DefaultArtboardSize;
 
     if (ArtboardDefinition.Name.IsEmpty())
     {
@@ -253,6 +258,13 @@ void URiveArtboard::SetupStateMachine(FRiveCommandBuilder& InCommandBuilder,
             RiveFile.Get(),
             ArtboardDefinition.DefaultViewModel,
             ArtboardDefinition.DefaultViewModelInstance);
+        if (ViewModel == nullptr)
+        {
+            // CreateViewModelByName has logged why (typically no generated
+            // class for the view model). Leave the artboard unbound rather
+            // than dereferencing null.
+            return;
+        }
 
         StateMachine->BindViewModel(ViewModel);
         BoundViewModel = ViewModel;
@@ -260,8 +272,35 @@ void URiveArtboard::SetupStateMachine(FRiveCommandBuilder& InCommandBuilder,
     }
 }
 
-void URiveArtboard::ErrorReceived(uint64_t RequestId)
+void URiveArtboard::ErrorReceived(uint64_t RequestId, const FString& Error)
 {
+#if WITH_EDITORONLY_DATA
+    // An artboard with no default view model answers the default-view-model
+    // request with an error. That is an ordinary outcome during import, not
+    // something to report at Error level on every load of the file.
+    const bool bExpected = RequestId == GetDefaultViewModelRequestId;
+#else
+    const bool bExpected = false;
+#endif
+    if (bExpected)
+    {
+        UE_LOG(LogRive,
+               Verbose,
+               TEXT("Artboard %s RequestId: %llu: %s"),
+               *ArtboardDefinition.Name,
+               RequestId,
+               *Error);
+    }
+    else
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("Artboard %s RequestId: %llu Error: %s"),
+               *ArtboardDefinition.Name,
+               RequestId,
+               *Error);
+    }
+
     if (StateMachineCreateRequestId == RequestId && StateMachine.IsValid())
     {
         StateMachine->SetValid(false);

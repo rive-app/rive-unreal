@@ -127,18 +127,18 @@ bool FRiveFileAssetImporter::loadContents(rive::FileAsset& InAsset,
         return true;
     }
 
-    // Search for the oob asset on disk, relative to the Rive File path
-    FString AssetPath;
+    // Search for the oob asset on disk, relative to the Rive File path.
+    // FindDiskAsset records the match in RiveAsset->AssetPath.
     if (RiveAssetHelpers::FindDiskAsset(RiveFilePath, RiveAsset))
     {
         if (!FFileHelper::LoadFileToArray(RiveAsset->NativeAssetBytes,
-                                          *AssetPath))
+                                          *RiveAsset->AssetPath))
         {
             UE_LOG(LogRive,
                    Error,
                    TEXT("Could not load Asset: %s at path %s"),
                    *RiveAsset->Name,
-                   *AssetPath);
+                   *RiveAsset->AssetPath);
         }
     }
 

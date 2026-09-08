@@ -33,6 +33,16 @@ struct FRivePropertyData
     FString MetaData;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     ERiveDataType Type = ERiveDataType::None;
+
+    bool operator==(const FRivePropertyData& Other) const
+    {
+        return Name == Other.Name && MetaData == Other.MetaData &&
+               Type == Other.Type;
+    }
+    bool operator!=(const FRivePropertyData& Other) const
+    {
+        return !(*this == Other);
+    }
 };
 
 USTRUCT(BlueprintType)
@@ -57,8 +67,9 @@ struct FArtboardDefinition
     FString DefaultViewModel;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FString DefaultViewModelInstance;
+    // The artboard's size in the file, measured at import.
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
-    FVector2D DefaultArtboardSize;
+    FVector2D DefaultArtboardSize = FVector2D::ZeroVector;
 };
 
 USTRUCT(BlueprintType)
@@ -69,6 +80,15 @@ struct FPropertyDefaultData
     FString Name;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     FString Value;
+
+    bool operator==(const FPropertyDefaultData& Other) const
+    {
+        return Name == Other.Name && Value == Other.Value;
+    }
+    bool operator!=(const FPropertyDefaultData& Other) const
+    {
+        return !(*this == Other);
+    }
 };
 
 USTRUCT(BlueprintType)
@@ -79,6 +99,16 @@ struct FViewModelInstanceDefaultData
     FString InstanceName;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RiveFileData")
     TArray<FPropertyDefaultData> PropertyValues;
+
+    bool operator==(const FViewModelInstanceDefaultData& Other) const
+    {
+        return InstanceName == Other.InstanceName &&
+               PropertyValues == Other.PropertyValues;
+    }
+    bool operator!=(const FViewModelInstanceDefaultData& Other) const
+    {
+        return !(*this == Other);
+    }
 };
 
 USTRUCT(BlueprintType)
@@ -101,8 +131,15 @@ struct FViewModelDefinition
     UPROPERTY()
     FString DefaultInstanceName;
 
-    FORCEINLINE bool operator==(const FViewModelDefinition& Other) const
+    bool operator==(const FViewModelDefinition& Other) const
     {
-        return Other.Name == Name;
+        return Name == Other.Name && InstanceNames == Other.InstanceNames &&
+               PropertyDefinitions == Other.PropertyDefinitions &&
+               InstanceDefaults == Other.InstanceDefaults &&
+               DefaultInstanceName == Other.DefaultInstanceName;
+    }
+    bool operator!=(const FViewModelDefinition& Other) const
+    {
+        return !(*this == Other);
     }
 };

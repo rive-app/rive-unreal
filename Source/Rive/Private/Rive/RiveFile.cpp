@@ -629,6 +629,18 @@ void URiveFile::ArtboardsListed(std::vector<std::string> InArtboardNames)
 
     ArtboardDefinitions.Empty();
     ArtboardDefinitions.Reserve(InArtboardNames.size());
+    if (InArtboardNames.empty())
+    {
+        bHasArtboardData = true;
+        CheckShouldBroadcastDataReady();
+        GenerateArtboardEnum();
+        return;
+    }
+
+    // Each temp artboard reports in its own time (its size arrives through a
+    // game-thread task, the rest through command-queue messages), so count
+    // them in rather than assuming the last one created finishes last.
+    TSharedRef<int32> Remaining = MakeShared<int32>(InArtboardNames.size());
     for (const auto& ArtboardName : InArtboardNames)
     {
         FUTF8ToTCHAR Conversion(ArtboardName.c_str());
@@ -647,17 +659,16 @@ void URiveFile::ArtboardsListed(std::vector<std::string> InArtboardNames)
         tempArtboard->AddToRoot();
         tempArtboard->InitializeForDataImport(this, Name, CommandBuilder);
         tempArtboard->OnDataReady.AddLambda(
-            [this, Index, Max = InArtboardNames.size()](
-                URiveArtboard* artboard) {
+            [this, Index, Remaining](URiveArtboard* artboard) {
                 ArtboardDefinitions[Index].StateMachineNames =
                     artboard->GetStateMachineNames();
                 ArtboardDefinitions[Index].DefaultViewModel =
                     artboard->GetDefaultViewModel();
                 ArtboardDefinitions[Index].DefaultViewModelInstance =
                     artboard->GetDefaultViewModelInstance();
-                // If this is the last artboard we set getting the data to true
-                // and attempt broadcast.
-                if (Index == Max - 1)
+                ArtboardDefinitions[Index].DefaultArtboardSize =
+                    artboard->ArtboardDefaultSize;
+                if (--(*Remaining) == 0)
                 {
                     bHasArtboardData = true;
                     CheckShouldBroadcastDataReady();

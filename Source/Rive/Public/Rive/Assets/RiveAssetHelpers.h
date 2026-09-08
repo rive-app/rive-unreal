@@ -8,7 +8,7 @@ enum class ERiveAssetType : uint8;
 class URiveAsset;
 struct FURAsset;
 
-class RiveAssetHelpers
+class RIVE_API RiveAssetHelpers
 {
 public:
     static TArray<FString> AssetPaths(const FString& InBasePath,

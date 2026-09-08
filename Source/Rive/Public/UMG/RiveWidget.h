@@ -26,8 +26,6 @@ class URiveFile;
 UCLASS()
 class RIVE_API URiveWidget : public UUserWidget
 {
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRiveReadyDelegate);
-
     GENERATED_BODY()
 
     virtual ~URiveWidget() override;
