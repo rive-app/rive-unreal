@@ -1,4 +1,5 @@
 import os
+import glob
 import shutil
 import argparse
 import subprocess
@@ -28,6 +29,12 @@ Finally on all platforms:
     * Copy generated exports from build_path/include/generated/shaders from to Plugins/Rive/Source/ThirdParty/RiveLibrary/Includes
     * Copy generated shaders build_path/include/generated/shaders from to Plugins/Rive/Shaders/Private/Rive/Generated
     * Copy unreal static shaders from rive_runtime_path/renderer/src/unreal to Plugins/Rive/Shaders/Private/Rive
+
+The External target is the exception to all of the above. It builds a directory
+given on the command line rather than one of the platforms named here, and
+stages the libraries it produces into a plugin of that directory's choosing. It
+adds none of the default build arguments and copies no includes, so the caller
+describes the whole build through the --external_* options.
 """)
 
 parser.add_argument("-c", "--clean", action="store_true", default=False, help="Remove generated build output directories before building")
@@ -37,6 +44,13 @@ parser.add_argument("-t", "--build_rive_tests", action='store_true',  default=Fa
 parser.add_argument("-r", "--raw_shaders", action='store_true', default=False, help="If set, --raw_shaders will be passed to the premake file for building")
 parser.add_argument("-n", "--no_build", action='store_true', default=False, help="If set, does not build the runtime, only generate shaders")
 parser.add_argument("-R", "--release_only", action='store_true', default=False, help="If set, does not build the debug runtime, only the release")
+parser.add_argument("--external_path", type=str, default=None, help="External target only: the directory to build, which must contain a premake5.lua")
+parser.add_argument("--external_out", type=str, default="out", help="External target only: build output directory, relative to --external_path")
+parser.add_argument("--external_build_args", type=str, default="", help="External target only: arguments handed to build_rive verbatim. External adds none of the defaults the named platforms get, so this must list everything the build needs")
+parser.add_argument("--external_lib_ext", type=str, default=".a", help="External target only: file extension of the libraries the build produces")
+parser.add_argument("--external_rive_libs", type=str, default=None, help="External target only: directory to copy the runtime libraries into, relative to --external_path")
+parser.add_argument("--external_test_libs", type=str, default=None, help="External target only: directory to copy the gms/goldens/player libraries into, relative to --external_path. Omit to skip them")
+parser.add_argument("--external_extra_test_libs", type=str, default="", help="External target only: comma separated targets to stage with the test libraries rather than the runtime ones. Names a target, the same way the build does")
 parser.add_argument("-s", "--with_rive_test_signature", action='store_true', default=False, help="TESTING ONLY. Swaps the script verification public key for the one matching SampleSigningContext's sample keypair, so .riv files signed locally (RIVE_LOCAL_SIGNING=1 in the editor) will verify. NEVER use for a shipping build -- it accepts .riv files any attacker could produce.")
 
 class PlatformBuildTypes(Enum):
@@ -45,6 +59,7 @@ class PlatformBuildTypes(Enum):
     Mac = 'Mac'
     iOS = 'iOS'
     Linux = 'Linux'
+    External = 'External'
 
     def __str__(self):
         return self.value
@@ -109,9 +124,10 @@ class CompilePass(object):
     @out_dir the directory we want the output to go
     @is_release if this is a release build
     @build_type this is how the projects get compiled, like ios, android etc..
+    @use_default_args if the arguments every named platform shares should be added
     @kwargs and extra arguments to pass to build_rive.sh
     """
-    def __init__(self, rive_runtime_path:str, root_dir:str, out_dir:str, is_release:bool, build_type:str, targets:list, **kwargs):
+    def __init__(self, rive_runtime_path:str, root_dir:str, out_dir:str, is_release:bool, build_type:str, targets:list, use_default_args:bool=True, **kwargs):
         # for debugging, basically adds a var for each key passed in
         self.__dict__.update(kwargs)
         self.out_dir = out_dir
@@ -134,6 +150,10 @@ class CompilePass(object):
             
         DEFAULT_ARGS = ["\"--with_rive_audio=external\"", "\"--for_unreal\"", "\"--no_gl\"", "\"--cpp20\"", "\"--with_rive_canvas\"", "\"--track_rive_shader_id\""]
 
+        # The caller supplies the whole argument list instead.
+        if not use_default_args:
+            DEFAULT_ARGS = []
+
         # default command to use, build_rive.sh includes --with_rive_layout and --with_rive_text automatically
         if build_type != '' and build_type is not None:
             command_args = build_type.split() + DEFAULT_ARGS
@@ -150,7 +170,8 @@ class CompilePass(object):
             # (editor exports with RIVE_LOCAL_SIGNING=1). See premake5_v2.lua.
             command_args.append("\"--with_rive_test_signature\"")
 
-        tools_version = self.get_tools_version()
+        # Anything not in PlatformBuildTypes pins its own toolset.
+        tools_version = self.get_tools_version() if use_default_args else None
         if tools_version is not None:
             command_args.extend([f"--toolsversion={tools_version}"])
 
@@ -246,7 +267,14 @@ def main(rive_runtime_path):
     
     if args.clean:
         clean_build_artifacts()
-    
+
+    if args.platforms and PlatformBuildTypes.External in args.platforms:
+        # External stages into its own plugin and copies no includes.
+        # Any other platform named alongside it is ignored.
+        if not do_external(rive_runtime_path, True):
+            sys.exit(1)
+        return
+
     if sys.platform.startswith('darwin'):
         os.environ["MACOSX_DEPLOYMENT_TARGET"] = '11.0'
 
@@ -317,9 +345,8 @@ def get_unreal_linux_toolchain_bin():
             if assoc.startswith("/") or assoc.startswith("~"):
                 engine_dir = os.path.expanduser(assoc)
             elif assoc.startswith("{"):
-                # Match the GUID in Install.ini's [Installations] section. The GUID may be
-                # stored with or without braces (UE rewrites it either way), so compare
-                # brace-stripped and case-insensitively.
+                # UE writes the GUID with or without braces, so match on
+                # neither, case insensitively.
                 guid_key = assoc.strip("{}").lower()
                 install_ini = os.path.expanduser(
                     "~/.config/Epic/UnrealEngine/Install.ini")
@@ -368,12 +395,8 @@ def do_linux(rive_runtime_path, release):
     out_dir = os.path.join('..', 'out', 'linux', 'release' if release else 'debug')
     root_dir = os.path.join(rive_runtime_path, 'tests' if should_build_tests else 'renderer' )
 
-    # Disable LTO on the Linux release build. The release libs are compiled with
-    # -flto (bitcode), and LTO strips rive::gpu::g_gaussianIntegralTableF16 /
-    # g_inverseGaussianIntegralTableF16 because nothing inside the Rive libraries
-    #
-    # --with-pic, the static libs are linked into Unreal's shared-object (.so)
-    # modules, which require position-independent code.
+    # --no-lto: LTO strips the gaussian integral tables, which only Unreal reads.
+    # --with-pic: these link into Unreal's .so modules.
     linux_pass = CompilePass(rive_runtime_path, root_dir, out_dir, release, "linux --no-lto --with-pic", targets + test_targets if should_build_tests else targets, os="linux")
     if not linux_pass.try_build():
         print_red("Exiting due to errors...")
@@ -390,6 +413,127 @@ def do_linux(rive_runtime_path, release):
         if should_build_tests:
             gm_libraries_path = os.path.join(gms_directory, 'Source', 'ThirdParty', 'GMLibrary', 'Libraries', "Linux")
             copy_files(os.getcwd(), gm_libraries_path, ".a", True, False, ['libgms', 'libgoldens', 'libplayer', 'libtools_common'])
+    return True
+
+def find_plugin_root(destination, stop_at):
+    """The plugin a staging destination belongs to: the nearest parent with a .uplugin."""
+    current = os.path.abspath(destination)
+    stop_at = os.path.abspath(stop_at)
+    while current.startswith(stop_at) and current != stop_at:
+        if glob.glob(os.path.join(current, "*.uplugin")):
+            return current
+        current = os.path.dirname(current)
+    return None
+
+def link_plugin(plugin_root):
+    """Link a plugin into the project's Plugins folder, where UBT discovers it.
+
+    Replaces only a placeholder holding nothing but files named 'empty'.
+    """
+    name = os.path.basename(plugin_root)
+    link = os.path.abspath(os.path.join(script_directory, "..", "..", "..", name))
+
+    # The .uplugin only resolves through the link.
+    if os.path.isdir(link) and glob.glob(os.path.join(link, "*.uplugin")):
+        return True
+
+    if os.path.lexists(link):
+        # Removing a link removes the link, not what it points at.
+        is_link = os.path.islink(link) or getattr(os.path, "isjunction",
+                                                  lambda p: False)(link)
+        if is_link:
+            os.rmdir(link) if os.path.isdir(link) else os.unlink(link)
+        else:
+            real = [os.path.join(root, f)
+                    for root, _, files in os.walk(link)
+                    for f in files if f != "empty"]
+            if real:
+                print_red(f"ERROR: {link} holds real content ({real[0]}), "
+                          "refusing to replace it")
+                return False
+            shutil.rmtree(link, onerror=remove_readonly)
+
+    print_green(f"Linking {name} -> {plugin_root}")
+    if sys.platform.startswith('win32'):
+        # A junction needs no elevation.
+        subprocess.check_call(["cmd", "/c", "mklink", "/J", link, plugin_root],
+                              stdout=subprocess.DEVNULL)
+    else:
+        os.symlink(plugin_root, link)
+    return True
+
+def do_external(rive_runtime_path, release):
+    """Build the directory --external_path names and stage what it produces.
+
+    The --external_* options carry everything specific to that build.
+    """
+    if not args.external_path:
+        print_red("ERROR: the External target requires --external_path")
+        return False
+
+    external_path = os.path.abspath(args.external_path)
+    if not os.path.exists(os.path.join(external_path, "premake5.lua")):
+        print_red(f"ERROR: no premake5.lua in {external_path}, "
+                  "--external_path must name a directory that can be built")
+        return False
+
+    # The runtime plugin takes whatever the caller did not route to the tests.
+    test_names = test_targets + [name for name in
+                                 args.external_extra_test_libs.split(',') if name]
+    rive_names = [name for name in targets if name not in test_names]
+
+    copies = []
+    if args.external_rive_libs:
+        copies.append((os.path.join(external_path, args.external_rive_libs), rive_names))
+    if args.external_test_libs:
+        copies.append((os.path.join(external_path, args.external_test_libs), test_names))
+
+    # Each destination names the plugin it is inside of.
+    for destination, _ in copies:
+        plugin_root = find_plugin_root(destination, external_path)
+        if plugin_root is None:
+            print_red(f"ERROR: no plugin owns {destination} -- "
+                      "no .uplugin in any directory above it")
+            return False
+        if not link_plugin(plugin_root):
+            return False
+
+    # targets is None: build everything this premake defines.
+    external_pass = CompilePass(rive_runtime_path, external_path, args.external_out,
+                                release, args.external_build_args, None,
+                                use_default_args=False)
+    if not external_pass.try_build():
+        print_red("Exiting due to errors...")
+        return False
+
+    if args.no_build:
+        return True
+
+    # try_build leaves us in external_path, which external_out is relative to.
+    out_dir = os.path.abspath(args.external_out)
+    print_green(f'Built in {out_dir}')
+
+    # premake prefixes every library with 'lib'. A target this build was told to
+    # leave out has none, so skip it, but say which.
+    def built(names):
+        present, absent = [], []
+        for name in names:
+            (present if os.path.exists(os.path.join(
+                out_dir, 'lib' + name + args.external_lib_ext)) else absent
+             ).append('lib' + name)
+        return present, absent
+
+    for destination, names in copies:
+        present, absent = built(names)
+        print_green(f'Copying {len(present)} libraries to {destination}')
+        if absent:
+            print_green(f'  this build produced no {", ".join(absent)}')
+            for name in absent:
+                stale_path = os.path.join(destination, name + args.external_lib_ext)
+                if os.path.exists(stale_path):
+                    os.remove(stale_path)
+        copy_files(out_dir, destination, args.external_lib_ext, release, False, present)
+
     return True
 
 def do_android(rive_runtime_path, release):
