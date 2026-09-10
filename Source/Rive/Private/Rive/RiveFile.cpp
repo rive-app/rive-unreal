@@ -1146,7 +1146,7 @@ URiveViewModel* URiveFile::CreateViewModelByName(URiveFile* InputFile,
         return nullptr;
     }
 
-    if (!ensure(!InputFile->ViewModelDefinitions.IsEmpty()))
+    if (InputFile->ViewModelDefinitions.IsEmpty())
     {
         UE_LOG(LogRive,
                Error,
@@ -1160,7 +1160,7 @@ URiveViewModel* URiveFile::CreateViewModelByName(URiveFile* InputFile,
             return L.Name == ViewModelName;
         });
 
-    if (!ensure(ViewModelDefinition))
+    if (!ViewModelDefinition)
     {
         UE_LOG(LogRive,
                Error,
@@ -1233,7 +1233,7 @@ URiveViewModel* URiveFile::CreateReferencedViewModelByName(
             return L.Name == ViewModelName;
         });
 
-    if (!ensure(ViewModelDefinition))
+    if (!ViewModelDefinition)
     {
         UE_LOG(LogRive,
                Error,
@@ -1332,7 +1332,7 @@ URiveViewModel* URiveFile::CreateViewModelByArtboardName(
             return L.Name == ViewModelName;
         });
 
-    if (!ensure(ViewModelDefinition))
+    if (!ViewModelDefinition)
     {
         UE_LOG(LogRive,
                Error,
@@ -1369,38 +1369,35 @@ URiveViewModel* URiveFile::CreateViewModelByArtboardName(
     return ViewModel;
 }
 
-URiveViewModel* URiveFile::CreateDefaultViewModel(const URiveFile* InputFile,
+URiveViewModel* URiveFile::CreateDefaultViewModel(URiveFile* InputFile,
                                                   const FString& ViewModelName)
 {
-    UE_LOG(LogRive,
-           Error,
-           TEXT("URiveFile::GetViewModelByName "
-                "Command Qeueue not implemented view models."));
-    // not implemented in command queue yet
-    return nullptr;
+    return CreateViewModelByName(InputFile, ViewModelName, TEXT(""));
 }
 
 URiveViewModel* URiveFile::CreateDefaultViewModelForArtboard(
-    const URiveFile* InputFile,
+    URiveFile* InputFile,
     URiveArtboard* Artboard)
 {
-    UE_LOG(LogRive,
-           Error,
-           TEXT("URiveFile::GetDefaultArtboardViewModel "
-                "Command Qeueue not implemented view models."));
-    return nullptr;
+    return CreateArtboardViewModelByName(InputFile, Artboard, TEXT(""));
 }
 
 URiveViewModel* URiveFile::CreateArtboardViewModelByName(
-    const URiveFile* InputFile,
+    URiveFile* InputFile,
     URiveArtboard* Artboard,
     const FString& InstanceName)
 {
-    UE_LOG(LogRive,
-           Error,
-           TEXT("URiveFile::GetDefaultArtboardViewModel "
-                "Command Qeueue not implemented view models."));
-    return nullptr;
+    if (!IsValid(Artboard))
+    {
+        UE_LOG(LogRive,
+               Error,
+               TEXT("URiveFile::CreateArtboardViewModelByName Artboard was "
+                    "invalid"));
+        return nullptr;
+    }
+    return CreateViewModelByArtboardName(InputFile,
+                                         Artboard->GetArtboardName(),
+                                         InstanceName);
 }
 
 #if WITH_EDITORONLY_DATA

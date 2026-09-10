@@ -534,9 +534,9 @@ bool URiveViewModel::GetEnumValue(const FString& PropertyName,
     {
         const uint64 EnumIndex =
             EnumProperty->GetUnsignedIntPropertyValue_InContainer(this);
-        const FName NameValue =
-            EnumProperty->GetIntPropertyEnum()->GetNameByIndex(EnumIndex);
-        EnumValue = NameValue.ToString();
+        // The short name, as Rive names it and as SetEnumValue accepts it.
+        EnumValue =
+            EnumProperty->GetIntPropertyEnum()->GetNameStringByIndex(EnumIndex);
 
         return true;
     }
@@ -973,9 +973,11 @@ bool URiveViewModel::RemoveFromListAtIndex(const FString& ListName, int32 Index)
                             // when trying to modify the list.
                             if (auto StrongThis = WeakThis.Pin())
                             {
-                                auto ViewModelToRemove =
-                                    ViewModelInstances[NestedHandle];
-                                if (ensure(ViewModelToRemove))
+                                // Items the file created have no Unreal
+                                // object; only ones added from here do.
+                                URiveViewModel* ViewModelToRemove =
+                                    ViewModelInstances.FindRef(NestedHandle);
+                                if (ViewModelToRemove)
                                 {
                                     StrongThis->UpdateListWithViewModelData(
                                         ListPath,
@@ -983,16 +985,6 @@ bool URiveViewModel::RemoveFromListAtIndex(const FString& ListName, int32 Index)
                                         true);
                                     ViewModelToRemove->SetOwningViewModel(
                                         nullptr);
-                                }
-                                else
-                                {
-                                    UE_LOG(
-                                        LogRive,
-                                        Error,
-                                        TEXT(
-                                            "Could not find nested view model at index %i for to remove for list %s"),
-                                        Index,
-                                        *ListPath);
                                 }
                             }
                         });

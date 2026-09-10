@@ -237,22 +237,21 @@ public:
         const FString& ArtboardName,
         const FString& InstanceName);
 
-    // Creates a Default ViewModel Given the ViewModel Name
+    // Creates the default instance of the named view model.
     UFUNCTION(BlueprintCallable, Category = "Rive|File")
-    static URiveViewModel* CreateDefaultViewModel(const URiveFile* InputFile,
+    static URiveViewModel* CreateDefaultViewModel(URiveFile* InputFile,
                                                   const FString& ViewModelName);
 
-    // Creates the default ViewModel for a given Artboard
+    // Creates the default instance of the artboard's default view model.
     UFUNCTION(BlueprintCallable, Category = "Rive|File")
     static URiveViewModel* CreateDefaultViewModelForArtboard(
-        const URiveFile* InputFile,
+        URiveFile* InputFile,
         URiveArtboard* Artboard);
 
-    // Creates the default ViewModel for a given Artboard and uses the given
-    // InstanceName for the chosen instance
+    // Creates the named instance of the artboard's default view model.
     UFUNCTION(BlueprintCallable, Category = "Rive|File")
     static URiveViewModel* CreateArtboardViewModelByName(
-        const URiveFile* InputFile,
+        URiveFile* InputFile,
         URiveArtboard* Artboard,
         const FString& InstanceName);
 
