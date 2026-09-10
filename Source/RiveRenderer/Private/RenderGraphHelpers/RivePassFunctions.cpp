@@ -182,11 +182,11 @@ TEnumAsByte<ECompareFunction> CompareOpForStencilCompareOps(
 
 FDepthStencilStateRHIRef StencilStateForPipeline(
     const PipelineState& PipelineState,
-    uint32_t uniqueKey)
+    uint64_t uniqueKey)
 {
     // We shouldn't need locks here because this should only ever happen from
     // the render thread.
-    static TMap<uint32_t, FDepthStencilStateRHIRef> StencilStates;
+    static TMap<uint64_t, FDepthStencilStateRHIRef> StencilStates;
     if (FDepthStencilStateRHIRef* Value = StencilStates.Find(uniqueKey))
     {
         return *Value;

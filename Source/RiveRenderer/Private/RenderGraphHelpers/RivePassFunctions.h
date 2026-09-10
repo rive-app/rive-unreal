@@ -63,24 +63,24 @@ struct FRiveCommonPassParameters
         PipelineState(PipelineState),
         PlatformFeatures(PlatformFeatures)
     {}
-    uint32_t GetUniqueKey(rive::gpu::InterlockMode Interlock) const
+    uint64_t GetUniqueKey(rive::gpu::InterlockMode Interlock) const
     {
         return GetUniqueKeyForDrawType(DrawBatch.drawType, Interlock);
     }
 
     // stencilDynamicMidpointFans draws one batch once per collapsed subpass, so
     // the state it caches has to be keyed off the pass rather than the batch.
-    uint32_t GetUniqueKeyForDrawType(rive::gpu::DrawType DrawType,
+    uint64_t GetUniqueKeyForDrawType(rive::gpu::DrawType DrawType,
                                      rive::gpu::InterlockMode Interlock) const
     {
-        return pipeline_unique_key(DrawType,
-                                   DrawBatch.shaderFeatures,
-                                   Interlock,
-                                   DrawBatch.shaderMiscFlags,
-                                   DrawBatch.drawContents,
-                                   BlendType == EBlendType::Blend,
-                                   rive::BlendMode::srcOver,
-                                   PlatformFeatures);
+        return getPipelineUniqueKey(DrawType,
+                                    DrawBatch.shaderFeatures,
+                                    Interlock,
+                                    DrawBatch.shaderMiscFlags,
+                                    DrawBatch.drawContents,
+                                    BlendType == EBlendType::Blend,
+                                    rive::BlendMode::srcOver,
+                                    PlatformFeatures);
     }
 };
 
