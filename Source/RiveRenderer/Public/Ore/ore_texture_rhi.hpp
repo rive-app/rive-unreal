@@ -21,7 +21,7 @@ public:
     OreTextureRHI(const TextureDesc& desc);
     virtual ~OreTextureRHI() = default;
 
-    virtual void upload(const TextureDataDesc& data) override;
+    virtual void uploadImpl(const TextureDataDesc& data) override;
 
     FTextureRHIRef m_texture;
 };

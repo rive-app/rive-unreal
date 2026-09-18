@@ -24,7 +24,7 @@ public:
         const rive::ore::BufferDesc& desc) override;
     virtual rive::rcp<rive::ore::Texture> makeTexture(
         const rive::ore::TextureDesc& desc) override;
-    virtual rive::rcp<rive::ore::TextureView> makeTextureView(
+    virtual rive::rcp<rive::ore::TextureView> makeTextureViewImpl(
         const rive::ore::TextureViewDesc& desc) override;
     virtual rive::rcp<rive::ore::Sampler> makeSampler(
         const rive::ore::SamplerDesc& desc) override;

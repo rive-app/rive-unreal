@@ -258,7 +258,7 @@ rive::rcp<rive::ore::Texture> OreContextRHI::makeTexture(
     return texture;
 }
 
-rive::rcp<rive::ore::TextureView> OreContextRHI::makeTextureView(
+rive::rcp<rive::ore::TextureView> OreContextRHI::makeTextureViewImpl(
     const rive::ore::TextureViewDesc& desc)
 {
     auto textureView = rive::rcp<rive::ore::OreTextureViewRHI>(

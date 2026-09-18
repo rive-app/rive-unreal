@@ -10,7 +10,7 @@ namespace rive::ore
 OreTextureRHI::OreTextureRHI(const TextureDesc& desc) : lite_rtti_override(desc)
 {}
 
-void OreTextureRHI::upload(const TextureDataDesc& data)
+void OreTextureRHI::uploadImpl(const TextureDataDesc& data)
 {
     check(IsInRenderingThread());
     if (!ensure(m_texture.IsValid()) || !ensure(data.data != nullptr))
