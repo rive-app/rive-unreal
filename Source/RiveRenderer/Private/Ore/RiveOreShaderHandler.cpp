@@ -1,4 +1,3 @@
-#undef PI
 #include <rive/assets/file_asset.hpp>
 
 #include "Async/Async.h"
@@ -8,6 +7,9 @@
 #include "Logs/RiveRendererLog.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+
+#undef PI
+
 #include "rive/renderer/ore/ore_bind_group.hpp"
 #include "rive/renderer/ore/ore_buffer.hpp"
 #include "rive/renderer/ore/ore_texture.hpp"

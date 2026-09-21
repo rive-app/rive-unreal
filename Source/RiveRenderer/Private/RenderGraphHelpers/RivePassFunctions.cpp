@@ -254,7 +254,6 @@ FBlendStateRHIRef BlendStateForPipeline(const PipelineState& PipelineState)
         case BlendEquation::color:
         case BlendEquation::luminosity:
             RIVE_UNREACHABLE();
-            break;
     }
 
     return TStaticBlendState<CW_NONE>::GetRHI();

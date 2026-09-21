@@ -52,6 +52,7 @@ parser.add_argument("--external_rive_libs", type=str, default=None, help="Extern
 parser.add_argument("--external_test_libs", type=str, default=None, help="External target only: directory to copy the gms/goldens/player libraries into, relative to --external_path. Omit to skip them")
 parser.add_argument("--external_extra_test_libs", type=str, default="", help="External target only: comma separated targets to stage with the test libraries rather than the runtime ones. Names a target, the same way the build does")
 parser.add_argument("-s", "--with_rive_test_signature", action='store_true', default=False, help="TESTING ONLY. Swaps the script verification public key for the one matching SampleSigningContext's sample keypair, so .riv files signed locally (RIVE_LOCAL_SIGNING=1 in the editor) will verify. NEVER use for a shipping build -- it accepts .riv files any attacker could produce.")
+parser.add_argument("--disable_lto", action='store_true', default=False, help="If set, disable Link Time Optimization (LTO). Increases compatibility with different compiler versions, such as when compiling for FAB submission.")
 
 class PlatformBuildTypes(Enum):
     Windows = 'Windows'
@@ -148,7 +149,12 @@ class CompilePass(object):
         if args.no_build:
             build_script = f"{build_script} nobuild "
             
-        DEFAULT_ARGS = ["\"--with_rive_audio=external\"", "\"--for_unreal\"", "\"--no_gl\"", "\"--cpp20\"", "\"--with_rive_canvas\"", "\"--track_rive_shader_id\""]
+        DEFAULT_ARGS = ["\"--with_rive_audio=external\"",
+                        "\"--for_unreal\"",
+                        "\"--no_gl\"",
+                        "\"--cpp20\"",
+                        "\"--with_rive_canvas\"",
+                        "\"--track_rive_shader_id\""]
 
         # The caller supplies the whole argument list instead.
         if not use_default_args:
@@ -163,6 +169,8 @@ class CompilePass(object):
             command_args.append("release")
         if args.raw_shaders:
             command_args.append("\"--raw_shaders\"")
+        if args.disable_lto:
+            command_args.append("\"--no-lto\"")
         if not args.disable_scripting:
             command_args.append("\"--with_rive_scripting\"")
         if args.with_rive_test_signature:

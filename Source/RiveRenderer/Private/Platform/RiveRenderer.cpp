@@ -225,7 +225,14 @@ void FRiveRenderer::ReplayDeferredFrame(
     check(RenderContext);
     check(DeferredSession);
 
+#if ENGINE_MAJOR_VERSION > 5 ||                                                \
+    (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
+    RHI_BREADCRUMB_EVENT_STAT(GraphBuilder.RHICmdList,
+                              ReplayDeferredFrame,
+                              "ReplayDeferredFrame");
+#else
     SCOPED_GPU_STAT(GraphBuilder.RHICmdList, ReplayDeferredFrame);
+#endif
 
     FRiveHostFrameSink Sink(RenderContext.get(),
                             BeginScreen,

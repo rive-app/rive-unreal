@@ -2798,10 +2798,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                                 PassParameters,
                                                 PassStates);
                                         }
+                                        break;
 #else
                                         RIVE_UNREACHABLE();
 #endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
-                                        break;
 
                                     case DrawType::stencilOuterCubics:
                                     case DrawType::

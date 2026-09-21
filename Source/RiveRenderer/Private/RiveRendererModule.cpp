@@ -1,7 +1,7 @@
 // Copyright 2024-2026 Rive, Inc. All rights reserved.
 
 #include "RiveRendererModule.h"
-
+#include "Runtime/Launch/Resources/Version.h"
 #include "RiveRenderer.h"
 #include "Logs/RiveRendererLog.h"
 #include "RiveRenderer.h"
@@ -10,6 +10,10 @@
 #include "Interfaces/IPluginManager.h"
 #include "Ore/OrePlatformRHI.h"
 #include "rive/command_queue.hpp"
+#if ENGINE_MAJOR_VERSION > 5 ||                                                \
+    (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
+#include "ShaderPlatformConfig.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "RiveRendererModule"
 
@@ -52,6 +56,10 @@ void FRiveRendererModule::StartupRiveRenderer()
     // (ShouldCompileWithBindlessEnabled) for our non-ray-tracing global
     // shaders. See OrePlatformRHI.h and RiveOreShaderHandler's register-strip.
 #if ENGINE_MAJOR_VERSION > 5 ||                                                \
+    (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
+    if (FShaderPlatformConfig::GetBindlessConfiguration(
+            GMaxRHIShaderPlatform) == ERHIBindlessConfiguration::All)
+#elif ENGINE_MAJOR_VERSION > 5 ||                                              \
     (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7)
     if (RHIGetRuntimeBindlessConfiguration(GMaxRHIShaderPlatform) ==
         ERHIBindlessConfiguration::All)
