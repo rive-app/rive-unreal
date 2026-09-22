@@ -40,6 +40,9 @@ protected:
     virtual void SetFunctionOnIntermediateNode(
         UK2Node_CallFunction* Node) const override;
 
+    virtual FString GetViewModelSourceValueFromSelection(
+        const FString& Selection) const override;
+
 private:
     FNodeTextCache NodeTitleCache;
 };

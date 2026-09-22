@@ -74,6 +74,12 @@ protected:
         return "";
     }
 
+    virtual FString GetViewModelSourceValueFromSelection(
+        const FString& Selection) const
+    {
+        return GetSelectedViewModelSource();
+    }
+
 private:
     void GenerateViewModelSourcePin(TObjectPtr<class URiveFile> RiveFile);
     void GenerateViewModelInstanceEnumPin(

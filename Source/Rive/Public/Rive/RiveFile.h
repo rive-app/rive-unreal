@@ -267,7 +267,11 @@ public:
 
     UEnum* GetViewModelInstanceEnum(const FString& ViewModelName) const
     {
-        return *ViewModelInstanceEnums.Find(ViewModelName);
+        if (auto Value = ViewModelInstanceEnums.Find(ViewModelName))
+        {
+            return *Value;
+        }
+        return nullptr;
     }
 
 #if WITH_EDITORONLY_DATA

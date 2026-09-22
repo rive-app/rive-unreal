@@ -147,4 +147,27 @@ void UK2Node_MakeArtboardViewModel::SetFunctionOnIntermediateNode(
                                               URiveFile::StaticClass());
 }
 
+FString UK2Node_MakeArtboardViewModel::GetViewModelSourceValueFromSelection(
+    const FString& Selection) const
+{
+    auto RiveFile = GetSelectedRiveFile();
+    check(RiveFile);
+    const auto ArtboardDefinition =
+        RiveFile->ArtboardDefinitions.FindByPredicate(
+            [Selection](const FArtboardDefinition& A) {
+                return A.Name == Selection;
+            });
+
+    if (!ArtboardDefinition)
+    {
+        UE_LOG(LogRiveNode,
+               Error,
+               TEXT("Can not find artboard definition for %s "),
+               *Selection);
+        return "";
+    }
+
+    return ArtboardDefinition->DefaultViewModel;
+}
+
 #undef LOCTEXT_NAMESPACE

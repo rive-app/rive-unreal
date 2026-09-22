@@ -11,6 +11,7 @@
 #include "Rive/RiveFile.h"
 #include "Rive/RiveViewModel.h"
 #include "PinTools.h"
+#include "VisualizeTexture.h"
 
 FName UK2Node_MakeViewModelBase::PN_File = TEXT("FileInput");
 FName UK2Node_MakeViewModelBase::PN_ViewModelSource =
@@ -364,10 +365,9 @@ bool UK2Node_MakeViewModelBase::CheckForErrors(
         return true;
     }
 
-    const auto SelectedViewModel =
-        GetViewModelSourcePin()->GetDefaultAsString();
+    const auto SelectedValue = GetViewModelSourcePin()->GetDefaultAsString();
 
-    if (SelectedViewModel.IsEmpty())
+    if (SelectedValue.IsEmpty())
     {
         CompilerContext.MessageLog.Error(
             *FString::Printf(TEXT("Node %s requires a view model selection."),
@@ -389,13 +389,30 @@ bool UK2Node_MakeViewModelBase::CheckForErrors(
         return true;
     }
 
+    const auto ViewModel = GetViewModelSourceValueFromSelection(SelectedValue);
+    if (ViewModel.IsEmpty())
+    {
+        CompilerContext.MessageLog.Error(
+            *FString::Printf(TEXT("Node %s, file %s has no artboard named %s."),
+                             *GetName(),
+                             *SelectedRiveFile->GetName(),
+                             *SelectedValue),
+            this);
+        return true;
+    }
+
     const auto InstanceEnum =
-        RiveFile->GetViewModelInstanceEnum(SelectedViewModel);
+        SelectedRiveFile->GetViewModelInstanceEnum(ViewModel);
+
     if (!InstanceEnum)
     {
         CompilerContext.MessageLog.Error(
-            *FString::Printf(TEXT("Node %s has invalid view model selection."),
-                             *GetName()),
+            *FString::Printf(
+                TEXT(
+                    "Node %s, file %s has no instance enum for view model %s."),
+                *GetName(),
+                *SelectedRiveFile->GetName(),
+                *ViewModel),
             this);
         return true;
     }
@@ -411,7 +428,7 @@ bool UK2Node_MakeViewModelBase::CheckForErrors(
                     "Node %s has view model instance %s is not available for view model %s."),
                 *GetName(),
                 *SelectedViewModelInstace,
-                *SelectedViewModel),
+                *ViewModel),
             this);
         return true;
     }
