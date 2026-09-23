@@ -21,10 +21,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-python@v7
-      with:
-        python-version: '3.13' 
-
     - name: "Clean up old directories and files"
       id: cleanup
       shell: bash
@@ -52,7 +48,7 @@ runs:
         fetch-tags: true
 
     - name: Clean Old Runtime Files
-      shell: python {0}
+      shell: python3 {0}
       run: |
         import shutil
         libraries_path = "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries"
@@ -89,7 +85,7 @@ runs:
     - name: Build Rive Runtime
       shell: bash
       run: |
-        python "${{ github.workspace }}/RiveUnreal/Scripts/build-rive/build-rive.py" -r --disable_lto -p "${{ github.workspace }}/RiveRuntime" "${{ inputs.platform }}"
+        python3 "${{ github.workspace }}/RiveUnreal/Scripts/build-rive/build-rive.py" -r --disable_lto -p "${{ github.workspace }}/RiveRuntime" "${{ inputs.platform }}"
         [ -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries" ] || { echo "Error: Build Failed, Libraries Directory missing." >&2; exit 1; }
         [ -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Includes" ] || { echo "Error: Build Failed, Includes Directory missing." >&2; exit 1; }
         [ -d "RiveUnreal/Shaders/Private/Rive/" ] || { echo "Error: Build Failed, Shaders Directory missing." >&2; exit 1; }

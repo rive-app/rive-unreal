@@ -18,20 +18,15 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12' # Specify your Python version
-
     - name: Create Virtual Environment
       shell: bash
-      run: python -m venv .venv
+      run: python3 -m venv .venv
 
     - name: Install dependencies
       shell: bash
       run: |
         . .venv/bin/activate
-        python -m pip install --upgrade pip
+        python3 -m pip install --upgrade pip
         pip install jinja2
 
 
@@ -46,5 +41,5 @@ runs:
         . .venv/bin/activate
         cd "${WORKING_DIRECTORY}"
         echo "${CONTEXT}"
-        python "${GITHUB_ACTION_PATH}/generate-template.py" "${INPUT_SOURCE}" "${CONTEXT}" "${INPUT_TARGET}"
+        python3 "${GITHUB_ACTION_PATH}/generate-template.py" "${INPUT_SOURCE}" "${CONTEXT}" "${INPUT_TARGET}"
         jq '.' "${INPUT_TARGET}" > tmp.json && mv tmp.json "${INPUT_TARGET}"
