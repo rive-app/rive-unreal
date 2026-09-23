@@ -1,0 +1,105 @@
+name: 'Build Runtime'
+description: 'Builds the Rive Runtime on a specific Platform and Uploads the Artifacts for later Consumption'
+inputs:
+  platform:  # Platform to build
+    description: 'Platform to build for'
+    required: true
+    default: 'Windows'
+  plugin-ref:  # ref to checkout and build for
+    description: 'Plugin Ref build'
+    required: true
+    default: 'main'
+  runtime-ref:  # ref to checkout and build for
+    description: 'Runtime Ref build'
+    required: true
+    default: 'main'
+
+outputs:
+  rive-runtime-artifacts-id:
+    description: "ID for uploaded artifacts"
+    value: ${{ steps.artifact-upload-step.outputs.artifact-id }}
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v7
+      with:
+        python-version: '3.13' 
+
+    - name: "Clean up old directories and files"
+      id: cleanup
+      shell: bash
+      run: |
+        rm -rf RiveUnreal
+        rm -rf RiveRuntime
+  
+    - uses: actions/checkout@v7
+      name: Check out Rive Plugin Source
+      with:
+        clean: true
+        repository: "rive-app/rive-unreal"
+        path: "RiveUnreal"
+        ref: "${{inputs.plugin-ref}}"
+
+    - uses: actions/checkout@v7
+      name: Check out Rive Runtime Source
+      with:
+        clean: true
+        lfs: true
+        repository: "rive-app/rive-runtime"
+        path: "RiveRuntime"
+        ref: "${{ inputs.runtime-ref }}"
+        submodules: 'recursive'
+        fetch-tags: true
+
+    - name: Clean Old Runtime Files
+      shell: python {0}
+      run: |
+        import shutil
+        libraries_path = "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries"
+        try:
+            shutil.rmtree(libraries_path)
+            print(f"Successfully deleted: {libraries_path}")
+        except FileNotFoundError:
+            print(f"Error: The directory {libraries_path} does not exist.")
+        except PermissionError:
+            print(f"Error: You do not have permission to delete {libraries_path}.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        includes_path = "RiveUnreal/Source/ThirdParty/RiveLibrary/Includes"
+        try:
+            shutil.rmtree(includes_path)
+            print(f"Successfully deleted: {includes_path}")
+        except FileNotFoundError:
+            print(f"Error: The directory {includes_path} does not exist.")
+        except PermissionError:
+            print(f"Error: You do not have permission to delete {includes_path}.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        shaders_path = "RiveUnreal/Shaders/Private/Rive"
+        try:
+            shutil.rmtree(shaders_path)
+            print(f"Successfully deleted: {shaders_path}")
+        except FileNotFoundError:
+            print(f"Error: The directory {shaders_path} does not exist.")
+        except PermissionError:
+            print(f"Error: You do not have permission to delete {shaders_path}.")
+        except Exception as e:
+            print(f"An error occurred: {e}")            
+
+    - name: Build Rive Runtime
+      shell: bash
+      run: |
+        python "${{ github.workspace }}/RiveUnreal/Scripts/build-rive/build-rive.py" -r --disable_lto -p "${{ github.workspace }}/RiveRuntime" "${{ inputs.platform }}"
+        [ -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries" ] || { echo "Error: Build Failed, Libraries Directory missing." >&2; exit 1; }
+        [ -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Includes" ] || { echo "Error: Build Failed, Includes Directory missing." >&2; exit 1; }
+        [ -d "RiveUnreal/Shaders/Private/Rive/" ] || { echo "Error: Build Failed, Shaders Directory missing." >&2; exit 1; }
+
+    - name: Upload Runtime Artifacts
+      uses: actions/upload-artifact@v4
+      id: artifact-upload-step
+      with:
+        name: RiveRuntime-${{ inputs.platform }}-${{ inputs.runtime-ref }}
+        path: |
+          ${{github.workspace}}/RiveUnreal/Source/ThirdParty/RiveLibrary
+          ${{github.workspace}}/RiveUnreal/Shaders/Private/Rive
+        retention-days: 1

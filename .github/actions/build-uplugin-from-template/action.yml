@@ -1,0 +1,50 @@
+name: 'Generate Template'
+description: 'Runs Jinja2 templating on a file, with access to the GitHub context.'
+inputs:
+  working_directory:
+    description: 'The working directory to run the action in, any files under this directory can be included by templates.'
+    default: ${{ github.workspace }}
+    required: false
+  source:
+    description: 'Source file relative to the working directory, a Jinja2 template'
+    required: true
+  target:
+    description: 'Target file relative to the working directory, to either create or overwrite'
+    required: true
+  context:
+    description: 'JSON formatted string containing the variables to pass to the template'
+    default: '{}'
+    required: false
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12' # Specify your Python version
+
+    - name: Create Virtual Environment
+      shell: bash
+      run: python -m venv .venv
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        . .venv/bin/activate
+        python -m pip install --upgrade pip
+        pip install jinja2
+
+
+    - name: apply templating
+      shell: bash
+      env:
+        WORKING_DIRECTORY: ${{ inputs.working_directory }}
+        INPUT_SOURCE: ${{ inputs.source }}
+        INPUT_TARGET: ${{ inputs.target }}
+        CONTEXT: ${{ toJson(inputs.context) }}
+      run: |
+        . .venv/bin/activate
+        cd "${WORKING_DIRECTORY}"
+        echo "${CONTEXT}"
+        python "${GITHUB_ACTION_PATH}/generate-template.py" "${INPUT_SOURCE}" "${CONTEXT}" "${INPUT_TARGET}"
+        jq '.' "${INPUT_TARGET}" > tmp.json && mv tmp.json "${INPUT_TARGET}"

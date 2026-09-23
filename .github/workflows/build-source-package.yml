@@ -1,0 +1,349 @@
+name: Build Unreal Plugin Source Release (Pre-built runtime binaries for GH and FAB)
+
+on:
+  schedule:
+    - cron: "0 15 * * 6"
+  workflow_dispatch:
+    inputs:
+      pluginTag:
+        description: 'Rive Unreal version tag to build source packages from.'
+        required: true
+        type: string
+      riveTag:
+        description: 'Rive Runtime version tag to build source packages from.'
+        required: true
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event }} 
+
+env:
+  RUNTIME_REF: ${{ inputs.riveTag || 'main' }}
+  PLUGIN_REF:  ${{ inputs.pluginTag || 'main' }}
+  VERSION_NAME: ${{ inputs.pluginTag || 'rolling' }}
+  TAG_PREFIX: rolling-
+  RELEASE_TITLE: Latest Rolling Release
+
+jobs:
+  pre-run:
+    runs-on: [self-hosted, Linux]
+    outputs:
+      PLUGIN_SHA: ${{ steps.resolve_refs.outputs.plugin_sha }}
+      RUNTIME_SHA: ${{ steps.resolve_refs.outputs.runtime_sha }}
+    steps:
+      - name: "Clean up old directories and files"
+        id: cleanup
+        shell: bash
+        run: |
+          rm -rf RiveUnreal
+          rm -rf RiveRuntime
+          rm -rf downloaded
+    
+      - name: "Reuse today's rolling release refs, if this is a same-day retry"
+        id: reuse
+        if: ${{ github.event_name == 'schedule' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DATE="$(date -u +%Y-%m-%d)"
+          TAG="${TAG_PREFIX}${DATE}"
+          BODY=$(gh release view "$TAG" -R rive-app/rive-unreal --json body --jq '.body' 2>/dev/null || true)
+          REFS_JSON=$(printf '%s' "$BODY" | grep -o '<!-- rolling-release-refs: .*-->' | sed -E 's/<!-- rolling-release-refs: (.*) -->/\1/')
+          if [ -n "$REFS_JSON" ]; then
+            echo "Same-day retry detected for $TAG; reusing its recorded refs instead of re-resolving main."
+            echo "plugin_ref=$(printf '%s' "$REFS_JSON" | jq -r '.pluginSha')" >> "$GITHUB_OUTPUT"
+            echo "runtime_ref=$(printf '%s' "$REFS_JSON" | jq -r '.runtimeSha')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        name: Check out Rive Plugin Source
+        with:
+          clean: true
+          repository: "rive-app/rive-unreal"
+          path: "RiveUnreal"
+          ref: "${{ steps.reuse.outputs.plugin_ref || env.PLUGIN_REF }}"
+          
+      - uses: actions/checkout@v7
+        name: Check out Rive Runtime Source
+        with:
+          clean: true
+          lfs: true
+          repository: "rive-app/rive-runtime"
+          path: "RiveRuntime"
+          ref: "${{ steps.reuse.outputs.runtime_ref || env.RUNTIME_REF }}"
+          submodules: 'recursive'
+          fetch-tags: true
+          
+      - name: "Resolve Refs"
+        id: resolve_refs
+        shell: bash
+        run: |
+          pushd RiveUnreal
+          plugin_sha=$(git rev-parse HEAD)
+          echo "plugin_sha=$plugin_sha" >> $GITHUB_OUTPUT;
+          popd
+          pushd RiveRuntime
+          runtime_sha=$(git rev-parse HEAD)
+          echo "runtime_sha=$runtime_sha" >> $GITHUB_OUTPUT;
+          
+
+  build-runtime-win64:
+    runs-on: [self-hosted, Windows]
+    continue-on-error: true
+    outputs:
+      builtRuntime: ${{ steps.build-step-win64.outputs.rive-runtime-artifacts-id }}
+    needs: pre-run
+    steps:
+      - uses: $/.github/actions/build-runtime
+        name: Build Runtime [WINDOWS]
+        id: build-step-win64
+        with:
+          platform: "Windows"
+          plugin-ref: "${{needs.pre-run.outputs.PLUGIN_SHA}}"
+          runtime-ref: "${{needs.pre-run.outputs.RUNTIME_SHA}}"
+
+  build-runtime-macos:
+    runs-on: [self-hosted, rive-mini]
+    continue-on-error: true
+    outputs:
+      builtRuntime: ${{ steps.build-step-macos.outputs.rive-runtime-artifacts-id }}
+    needs: pre-run
+    steps:
+      - uses: $/.github/actions/build-runtime
+        name: Build Runtime [MACOS]
+        id: build-step-macos
+        with:
+          platform: "Mac"
+          plugin-ref: "${{needs.pre-run.outputs.PLUGIN_SHA}}"
+          runtime-ref: "${{needs.pre-run.outputs.RUNTIME_SHA}}"
+
+  build-runtime-linux:
+    runs-on: [self-hosted, Linux]
+    continue-on-error: true
+    outputs:
+      builtRuntime: ${{ steps.build-step-linux.outputs.rive-runtime-artifacts-id }}
+    needs: pre-run
+    steps:
+      - uses: $/.github/actions/build-runtime
+        name: Build Runtime [LINUX]
+        id: build-step-linux
+        with:
+          platform: "Linux"
+          plugin-ref: "${{needs.pre-run.outputs.PLUGIN_SHA}}"
+          runtime-ref: "${{needs.pre-run.outputs.RUNTIME_SHA}}"
+
+  build-runtime-android:
+    runs-on: [self-hosted, Linux]
+    continue-on-error: true
+    outputs:
+      builtRuntime: ${{ steps.build-step-android.outputs.rive-runtime-artifacts-id }}
+    needs: pre-run
+    steps:
+      - uses: $/.github/actions/build-runtime
+        name: Build Runtime [ANDROID]
+        id: build-step-android
+        with:
+          platform: "Android"
+          plugin-ref: "${{needs.pre-run.outputs.PLUGIN_SHA}}"
+          runtime-ref: "${{needs.pre-run.outputs.RUNTIME_SHA}}"
+
+  build-runtime-ios:
+    runs-on: [self-hosted, rive-mini]
+    continue-on-error: true
+    outputs:
+      builtRuntime: ${{ steps.build-step-ios.outputs.rive-runtime-artifacts-id }}
+    needs: pre-run
+    steps:
+      - uses: $/.github/actions/build-runtime
+        name: Build Runtime [IOS]
+        id: build-step-ios
+        with:
+          platform: "iOS"
+          plugin-ref: "${{needs.pre-run.outputs.PLUGIN_SHA}}"
+          runtime-ref: "${{needs.pre-run.outputs.RUNTIME_SHA}}"
+
+  check-runtime-builds:
+    runs-on: [self-hosted, Linux]
+    if: ${{ always() && needs.pre-run.result == 'success' }}
+    needs: [pre-run,build-runtime-win64,build-runtime-macos,build-runtime-linux,build-runtime-android,build-runtime-ios]
+    steps:
+      - name: Require at least one platform runtime build to have succeeded
+        shell: bash
+        run: |
+          if [ -z "${{ needs.build-runtime-win64.outputs.builtRuntime }}" ] && \
+             [ -z "${{ needs.build-runtime-macos.outputs.builtRuntime }}" ] && \
+             [ -z "${{ needs.build-runtime-linux.outputs.builtRuntime }}" ] && \
+             [ -z "${{ needs.build-runtime-android.outputs.builtRuntime }}" ] && \
+             [ -z "${{ needs.build-runtime-ios.outputs.builtRuntime }}" ]; then
+            echo "::error::All platform runtime builds failed; halting packaging."
+            exit 1
+          fi
+
+  assemble-fab-package:
+    runs-on: [self-hosted, Linux]
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        ue_version: [5.6, 5.7, 5.8]
+    if: ${{ always() && github.event_name == 'workflow_dispatch' && needs.pre-run.result == 'success' && needs.check-runtime-builds.result == 'success' }}
+    needs: [pre-run,build-runtime-win64,build-runtime-macos,build-runtime-linux,build-runtime-android,build-runtime-ios,check-runtime-builds]
+    steps:
+      - uses: $/.github/actions/create-source-packages
+        name: Create Source Packages (FAB)
+        with:
+          RUNTIME_REF: ${{ needs.pre-run.outputs.RUNTIME_SHA }}
+          PLUGIN_REF: ${{ needs.pre-run.outputs.PLUGIN_SHA }}
+          VERSION_NAME: ${{ env.VERSION_NAME }}
+          BUILD_WINDOWS: ${{ needs.build-runtime-win64.outputs.builtRuntime }}
+          BUILD_MACOS: ${{ needs.build-runtime-macos.outputs.builtRuntime }}
+          BUILD_LINUX: ${{ needs.build-runtime-linux.outputs.builtRuntime }}
+          BUILD_ANDROID: ${{ needs.build-runtime-android.outputs.builtRuntime }}
+          BUILD_IOS: ${{ needs.build-runtime-ios.outputs.builtRuntime }}
+          PACKAGE_FOR_FAB: 'true'
+          UE_VERSION: ${{ matrix.ue_version }}
+          GH_TOKEN: ${{ secrets.COUNT_RELEASES_TOKEN }}
+          FAB_URL: ${{secrets.FAB_URL }}
+
+  assemble-gh-package:
+    runs-on: [self-hosted, Linux]
+    if: ${{ always() && needs.pre-run.result == 'success' && needs.check-runtime-builds.result == 'success' }}
+    needs: [pre-run,build-runtime-win64,build-runtime-macos,build-runtime-linux,build-runtime-android,build-runtime-ios,check-runtime-builds]
+    outputs:
+      sourcePackageId: ${{ steps.create-source-package.outputs.SourceArtifact }}
+    steps:
+      - uses: $/.github/actions/create-source-packages
+        name: Create Source Packages (GH)
+        id: create-source-package
+        with:
+          RUNTIME_REF: ${{ needs.pre-run.outputs.RUNTIME_SHA }}
+          PLUGIN_REF: ${{ needs.pre-run.outputs.PLUGIN_SHA }}
+          VERSION_NAME: ${{ env.VERSION_NAME }}
+          BUILD_WINDOWS: ${{ needs.build-runtime-win64.outputs.builtRuntime }}
+          BUILD_MACOS: ${{ needs.build-runtime-macos.outputs.builtRuntime }}
+          BUILD_LINUX: ${{ needs.build-runtime-linux.outputs.builtRuntime }}
+          BUILD_ANDROID: ${{ needs.build-runtime-android.outputs.builtRuntime }}
+          BUILD_IOS: ${{ needs.build-runtime-ios.outputs.builtRuntime }}
+          GH_TOKEN: ${{ secrets.COUNT_RELEASES_TOKEN }}
+
+  update-rolling-release:
+    runs-on: [self-hosted, Linux]
+    permissions:
+      contents: write
+    if: ${{ always() && github.event_name == 'schedule' && needs.pre-run.result == 'success' && needs.assemble-gh-package.result == 'success' }}
+    needs: [pre-run,assemble-gh-package]
+    steps:
+      - uses: actions/download-artifact@v8
+        name: Download Binaries
+        continue-on-error: true
+        with:
+          path: downloaded
+          artifact-ids: ${{ needs.assemble-gh-package.outputs.sourcePackageId }}
+          skip-decompress: true
+
+      # The zip's name isn't known ahead of time, so find it.
+      - name: Locate zip
+        id: zip
+        run: |
+          mapfile -t zips < <(find downloaded -type f -iname '*.zip' -exec realpath {} +)
+          if [ "${#zips[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one .zip in the downloaded artifact, found ${#zips[@]}"
+            find downloaded -type f -exec realpath {} +
+            exit 1
+          fi
+          echo "Found zip: ${zips[0]}"
+          echo "path=${zips[0]}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        name: Check out Rive Plugin Source
+        with:
+          clean: true
+          repository: "rive-app/rive-unreal"
+          path: "RiveUnreal"
+          ref: "${{ needs.pre-run.outputs.PLUGIN_SHA }}"
+
+      - name: Set release variables
+        id: vars
+        run: |
+          DATE="$(date -u +%Y-%m-%d)"
+          echo "tag=${TAG_PREFIX}${DATE}" >> "$GITHUB_OUTPUT"
+
+      - name: Find previous rolling release
+        id: prev
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd RiveUnreal
+          PREV_TAG=$(gh release list --json tagName --jq \
+            '[.[] | select(.tagName | startswith(env.TAG_PREFIX))] | max_by(.tagName) | .tagName // empty')
+          echo "tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update "Latest Rolling Release"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.vars.outputs.tag }}
+          ZIP_PATH: ${{ steps.zip.outputs.path }}
+          PREV_TAG: ${{ steps.prev.outputs.tag }}
+          PLUGIN_SHA: ${{ needs.pre-run.outputs.PLUGIN_SHA }}
+          RUNTIME_SHA: ${{ needs.pre-run.outputs.RUNTIME_SHA }}
+        run: |
+          cd RiveUnreal
+          REFS_MARKER="<!-- rolling-release-refs: {\"pluginSha\":\"${PLUGIN_SHA}\",\"runtimeSha\":\"${RUNTIME_SHA}\"} -->"
+          MANUAL_NOTES="${REFS_MARKER}
+          Rolling release built from ${PLUGIN_SHA} on ${TAG#"$TAG_PREFIX"}."
+
+          NOTES_FLAGS=(--notes "$MANUAL_NOTES" --generate-notes)
+          if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$TAG" ]; then
+            NOTES_FLAGS+=(--notes-start-tag "$PREV_TAG")
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Same-day retry: an earlier attempt already created this release
+            # (and, as a side effect, its tag). Never touch the tag - a tag
+            # that a third party may already have fetched is never moved or
+            # recreated here. Just make sure the asset and notes are current.
+            echo "Release $TAG already exists; updating it instead of recreating."
+            ZIP_NAME="$(basename "$ZIP_PATH")"
+            if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -qxF "$ZIP_NAME"; then
+              # Asset is already attached (e.g. only the notes/title failed
+              # to apply last time) - --clobber deletes before it re-uploads,
+              # so skip it here rather than risk losing a good asset to a
+              # transient failure on a re-upload nothing actually needed.
+              echo "Asset $ZIP_NAME is already attached to $TAG; leaving it as-is."
+            else
+              echo "Asset $ZIP_NAME is missing from $TAG; uploading it."
+              gh release upload "$TAG" "$ZIP_PATH" --clobber
+            fi
+            gh release edit "$TAG" \
+              --title "$RELEASE_TITLE" \
+              --notes "$MANUAL_NOTES" \
+              --prerelease
+          else
+            # No tag is created ahead of time. gh creates the tag and the
+            # release together in a single call, pointed at $PLUGIN_SHA, so
+            # a tag is never pushed unless its release is also created -
+            # nothing for a same-day retry to collide with or roll back.
+            gh release create "$TAG" "$ZIP_PATH" \
+              --target "$PLUGIN_SHA" \
+              --title "$RELEASE_TITLE" \
+              "${NOTES_FLAGS[@]}" \
+              --prerelease
+          fi
+
+      - name: Delete old rolling release(s)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: 10
+        run: |
+          # Keep the newest $KEEP releases whose tag looks like
+          # rolling-YYYY-MM-DD (accounting for the one this run is about
+          # to create), delete the rest. Tags are intentionally left in
+          # place so old rolling builds stay reproducible/referenceable.
+          cd RiveUnreal
+          gh release list --limit 200 --json tagName --jq \
+            '[.[] | select(.tagName | test("^" + env.TAG_PREFIX + "[0-9]{4}-[0-9]{2}-[0-9]{2}$")) | .tagName]
+             | sort | reverse | .[((env.KEEP | tonumber)):] | .[]' |
+          while read -r tag; do
+            echo "Deleting release: $tag"
+            gh release delete "$tag" --yes
+          done

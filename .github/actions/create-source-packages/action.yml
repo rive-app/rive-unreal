@@ -1,0 +1,200 @@
+name: 'Build Source Packages'
+description: 'Builds source packages for release on FAB and Github Releases'
+
+inputs:
+  RUNTIME_REF:
+    description: 'Tag or Ref for the version of the core runtime to package.'
+    required: false
+    default: 'main'
+  PLUGIN_REF:
+    description: 'Tag or Ref for the version of the plugin source to package.'
+    required: false
+    default: 'latest'
+  VERSION_NAME:
+    description: 'The semantic version name to apply to this source package build.'
+    required: false
+    default: 'canary'
+  BUILD_WINDOWS:
+    description: 'The artifact ID for the windows runtime build'
+    required: false
+    default: ''
+  BUILD_MACOS:
+    description: 'The artifact ID for the mac runtime build'
+    required: false
+    default: ''
+  BUILD_LINUX:
+    description: 'The artifact ID for the linux runtime build'
+    required: false
+    default: ''
+  BUILD_ANDROID:
+    description: 'The artifact ID for the android runtime build'
+    required: false
+    default: ''
+  BUILD_IOS:
+    description: 'The artifact ID for the ios runtime build'
+    required: false
+    default: ''
+  PACKAGE_FOR_FAB:
+    description: 'Build this source package for a FAB release.'
+    required: false
+    default: 'false'
+  UE_VERSION:
+    description: 'Specific UE engine version to write into uplugin (FAB release only).'
+    required: false
+    default: 'NONE'
+  GH_TOKEN:
+    description: 'Authorization Token to complete GH tasks'
+    required: true
+  FAB_URL:
+    description: 'FAB url that needs to be written into the uplugin'
+    required: false
+    default: ''
+  ROLLINGRELEASE_TAG_PREFIX:
+    description: "Prefix of releases that are rolling, which don't count for bumping the version of the uplugin"
+    required: false
+    default: 'rolling-'
+
+outputs:
+  SourceArtifact: # id of output
+    description: 'ID of the source package artifact'
+    value: ${{ steps.artifact-upload-step-gh.outputs.artifact-id }}
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Clean up old directories and files"
+      id: cleanup
+      shell: bash
+      run: |
+        rm -rf RiveUnreal
+        rm -rf Runtime
+  
+    - name: Build artifact id list
+      id: artifact_ids
+      shell: bash
+      run: |
+        ids=""
+        for id in "${{ inputs.BUILD_WINDOWS }}" "${{ inputs.BUILD_MACOS }}" "${{ inputs.BUILD_LINUX }}" "${{ inputs.BUILD_ANDROID }}" "${{ inputs.BUILD_IOS }}"; do
+          [ -n "$id" ] && ids="${ids:+$ids,}$id"
+        done
+        echo "ids=$ids" >> "$GITHUB_OUTPUT"
+
+    - uses: actions/download-artifact@v8
+      name: Download Binaries
+      continue-on-error: true
+      with:
+        path: Runtime
+        artifact-ids: ${{ steps.artifact_ids.outputs.ids }}
+        merge-multiple: true
+
+    - uses: actions/checkout@v7
+      name: Check out Rive Plugin Source
+      with:
+        clean: true
+        repository: "rive-app/rive-unreal"
+        path: "RiveUnreal"
+        ref: "${{inputs.PLUGIN_REF}}"
+
+    - name: Copy Built Runtimes
+      id: process-built-runtimes
+      shell: bash
+      run: |
+        rm -rf RiveUnreal/Source/ThirdParty/RiveLibrary/Includes
+        rm -rf RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries
+        rm -rf RiveUnreal/Shaders/Private/Rive
+        [ ! -d "Runtime/Source/ThirdParty/RiveLibrary/Includes" ]   || cp -r Runtime/Source/ThirdParty/RiveLibrary/Includes RiveUnreal/Source/ThirdParty/RiveLibrary/
+        [ ! -d "Runtime/Source/ThirdParty/RiveLibrary/Libraries" ]  || cp -r Runtime/Source/ThirdParty/RiveLibrary/Libraries RiveUnreal/Source/ThirdParty/RiveLibrary/
+        [ ! -d "Runtime/Shaders/Private/Rive" ]                     || cp -r Runtime/Shaders/Private/Rive RiveUnreal/Shaders/Private/
+        [ ! -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries/Win64" ]   || { echo "R_PLATFORM_WIN64=Win64" >> $GITHUB_OUTPUT; echo "E_PLATFORM_WIN64=Win64" >> $GITHUB_OUTPUT; }
+        [ ! -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries/Mac" ]     || { echo "R_PLATFORM_MAC=Mac" >> $GITHUB_OUTPUT; echo "E_PLATFORM_MAC=Mac" >> $GITHUB_OUTPUT; }
+        [ ! -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries/Linux" ]   || { echo "R_PLATFORM_LINUX=Linux" >> $GITHUB_OUTPUT; echo "E_PLATFORM_LINUX=Linux" >> $GITHUB_OUTPUT; }
+        [ ! -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries/Android" ] || { echo "R_PLATFORM_ANDROID=Android" >> $GITHUB_OUTPUT; }
+        [ ! -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries/IOS" ]     || { echo "R_PLATFORM_IOS=IOS" >> $GITHUB_OUTPUT; }
+        [ -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries/Win64" ]   || { echo "::warning title=Missing Platform::Win64 Libraries failed to build, not including support for Win64 in source package";}
+        [ -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries/Mac" ]     || { echo "::warning title=Missing Platform::Mac Libraries failed to build, not including support for Mac in source package";}
+        [ -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries/Linux" ]   || { echo "::warning title=Missing Platform::Linux Libraries failed to build, not including support for Linux in source package";}
+        [ -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries/Android" ] || { echo "::warning title=Missing Platform::Android Libraries failed to build, not including support for Android in source package";}
+        [ -d "RiveUnreal/Source/ThirdParty/RiveLibrary/Libraries/IOS" ]     || { echo "::warning title=Missing Platform::IOS Libraries failed to build, not including support for IOS in source package";}
+
+    - name: Count Releases
+      id: count-releases
+      shell: bash
+      run: |
+        cd RiveUnreal
+        release_count=$(gh api --paginate --slurp 'repos/{owner}/{repo}/releases?per_page=100' | jq 'add | map(select(.tag_name | startswith("${{ inputs.ROLLINGRELEASE_TAG_PREFIX }}") | not)) | length')
+        echo "RELEASE_COUNT=$release_count" >> $GITHUB_OUTPUT;
+      env:
+        GITHUB_TOKEN: ${{ inputs.GH_TOKEN }}
+
+
+    - name: Render template (FAB)
+      if: inputs.PACKAGE_FOR_FAB == 'true'
+      id: render_template-fab
+      uses: $/.github/actions/build-uplugin-from-template
+      with:
+        source: RiveUnreal/.github/templates/Rive.uplugin.template
+        target: RiveUnreal/Rive.uplugin
+        context: |
+          {
+            "ReleaseCount" : "${{ steps.count-releases.outputs.RELEASE_COUNT }}",
+            "FAB_URL": ${{ toJson(inputs.FAB_URL) }},
+            "VersionName": ${{ toJson(inputs.VERSION_NAME) }},
+            "UnrealEngineVersion": ${{ toJson(inputs.UE_VERSION) }},
+            "RuntimeModulePlatforms": [
+                                        "${{ steps.process-built-runtimes.outputs.R_PLATFORM_WIN64 }}",
+                                        "${{ steps.process-built-runtimes.outputs.R_PLATFORM_MAC }}",
+                                        "${{ steps.process-built-runtimes.outputs.R_PLATFORM_LINUX }}",
+                                        "${{ steps.process-built-runtimes.outputs.R_PLATFORM_ANDROID }}",
+                                        "${{ steps.process-built-runtimes.outputs.R_PLATFORM_IOS }}"
+                                      ],
+            "EditorModulePlatforms": [
+                                        "${{ steps.process-built-runtimes.outputs.E_PLATFORM_WIN64 }}",
+                                        "${{ steps.process-built-runtimes.outputs.E_PLATFORM_MAC }}",
+                                        "${{ steps.process-built-runtimes.outputs.E_PLATFORM_LINUX }}"
+                                      ]
+          }
+
+    - name: Render template (GH)
+      if: inputs.PACKAGE_FOR_FAB == 'false'
+      id: render_template-gh
+      uses: $/.github/actions/build-uplugin-from-template
+      with:
+        source: RiveUnreal/.github/templates/Rive.uplugin.template
+        target: RiveUnreal/Rive.uplugin
+        context: |
+          {
+            "ReleaseCount" : "${{ steps.count-releases.outputs.RELEASE_COUNT }}",
+            "VersionName": ${{ toJson(inputs.VERSION_NAME) }},
+            "RuntimeModulePlatforms": [
+                                        "${{ steps.process-built-runtimes.outputs.R_PLATFORM_WIN64 }}",
+                                        "${{ steps.process-built-runtimes.outputs.R_PLATFORM_MAC }}",
+                                        "${{ steps.process-built-runtimes.outputs.R_PLATFORM_LINUX }}",
+                                        "${{ steps.process-built-runtimes.outputs.R_PLATFORM_ANDROID }}",
+                                        "${{ steps.process-built-runtimes.outputs.R_PLATFORM_IOS }}"
+                                      ],
+            "EditorModulePlatforms": [
+                                        "${{ steps.process-built-runtimes.outputs.E_PLATFORM_WIN64 }}",
+                                        "${{ steps.process-built-runtimes.outputs.E_PLATFORM_MAC }}",
+                                        "${{ steps.process-built-runtimes.outputs.E_PLATFORM_LINUX }}"
+                                      ]
+          }
+
+    - name: Upload Source Package
+      if: inputs.PACKAGE_FOR_FAB == 'true'
+      uses: actions/upload-artifact@v4
+      id: artifact-upload-step-fab
+      with:
+        name: RiveUnreal-FAB-UE${{inputs.UE_VERSION}}_${{inputs.VERSION_NAME}}
+        path: RiveUnreal
+        retention-days: 1
+
+    - name: Upload Source Package
+      if: inputs.PACKAGE_FOR_FAB == 'false'
+      uses: actions/upload-artifact@v4
+      id: artifact-upload-step-gh
+      with:
+        name: RiveUnreal-plugin_${{inputs.VERSION_NAME}}-rive_${{inputs.RUNTIME_REF}}
+        path: RiveUnreal
+        retention-days: 1
+
