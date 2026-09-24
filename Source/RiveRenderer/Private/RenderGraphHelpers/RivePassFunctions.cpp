@@ -202,7 +202,7 @@ FDepthStencilStateRHIRef StencilStateForPipeline(
 
     FDepthStencilStateInitializerRHI Initializer(
         PipelineState.depthWriteEnabled,
-        PipelineState.depthTestEnabled ? CF_Less : CF_Always,
+        PipelineState.depthTestEnabled ? CF_Greater : CF_Always,
         PipelineState.stencilTestEnabled,
         CompareOpForStencilCompareOps(FrontOps.compareOp),
         StencilOpForStencilFaceOps(FrontOps.stencilFailOp),
