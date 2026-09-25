@@ -49,10 +49,6 @@ inputs:
     description: 'FAB url that needs to be written into the uplugin'
     required: false
     default: ''
-  ROLLINGRELEASE_TAG_PREFIX:
-    description: "Prefix of releases that are rolling, which don't count for bumping the version of the uplugin"
-    required: false
-    default: 'rolling-'
 
 outputs:
   SourceArtifact: # id of output
@@ -122,7 +118,7 @@ runs:
       shell: bash
       run: |
         cd RiveUnreal
-        release_count=$(gh api --paginate --slurp 'repos/{owner}/{repo}/releases?per_page=100' | jq 'add | map(select(.tag_name | startswith("${{ inputs.ROLLINGRELEASE_TAG_PREFIX }}") | not)) | length')
+        release_count=$(gh api --paginate --slurp 'repos/{owner}/{repo}/releases?per_page=100' | jq 'add | map(select(.prerelease == false)) | length')
         echo "RELEASE_COUNT=$release_count" >> $GITHUB_OUTPUT;
       env:
         GITHUB_TOKEN: ${{ inputs.GH_TOKEN }}
@@ -166,6 +162,7 @@ runs:
           {
             "ReleaseCount" : "${{ steps.count-releases.outputs.RELEASE_COUNT }}",
             "VersionName": ${{ toJson(inputs.VERSION_NAME) }},
+            "UnrealEngineVersion": ${{ toJson(inputs.UE_VERSION) }},
             "RuntimeModulePlatforms": [
                                         "${{ steps.process-built-runtimes.outputs.R_PLATFORM_WIN64 }}",
                                         "${{ steps.process-built-runtimes.outputs.R_PLATFORM_MAC }}",
@@ -194,7 +191,7 @@ runs:
       uses: actions/upload-artifact@v4
       id: artifact-upload-step-gh
       with:
-        name: RiveUnreal-plugin_${{inputs.VERSION_NAME}}-rive_${{inputs.RUNTIME_REF}}
+        name: RiveUnreal-plugin_${{inputs.VERSION_NAME}}-rive_${{inputs.RUNTIME_REF}}-UE${{inputs.UE_VERSION}}
         path: RiveUnreal
         retention-days: 1
 
