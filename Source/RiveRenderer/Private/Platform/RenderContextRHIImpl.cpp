@@ -226,6 +226,29 @@ public:
     virtual void SetAllowCPUAccess(bool bInNeedsCPUAccess) override {}
 };
 
+struct FStaticResourceDataView : public FResourceArrayInterface
+{
+    const void* Data;
+    uint32 SizeInBytes;
+
+public:
+    FStaticResourceDataView(const void* Data, uint32 SizeInBytes) :
+        Data(Data), SizeInBytes(SizeInBytes)
+    {}
+
+    virtual const void* GetResourceData() const override { return Data; }
+
+    virtual uint32 GetResourceDataSize() const override { return SizeInBytes; }
+
+    virtual void Discard() override {}
+
+    virtual bool IsStatic() const override { return true; }
+
+    virtual bool GetAllowCPUAccess() const override { return true; }
+
+    virtual void SetAllowCPUAccess(bool bInNeedsCPUAccess) override {}
+};
+
 #include <optional>
 
 using namespace rive;
@@ -329,6 +352,26 @@ TStaticExternalResourceData GTessSpanIndices(kTessSpanIndices);
 
 TStaticResourceData<PatchVertex, kPatchVertexBufferCount> GPatchVertices;
 TStaticResourceData<uint16_t, kPatchIndexBufferCount> GPatchIndices;
+
+// The index patterns for depthStencil fills get their own buffers so their
+// draws can start from index 0. Reaching them with StartIndex instead costs
+// 26% of total framerate on Adreno.
+static_assert(DSMidpointFanFillBaseIndex >=
+              kOuterCurvePatchBaseIndex + kOuterCurvePatchIndexCount);
+FStaticResourceDataView GPathPatchIndices(*GPatchIndices,
+                                          DSMidpointFanFillBaseIndex *
+                                              sizeof(uint16_t));
+constexpr static uint32_t kDSMidpointFanFillIndexCount =
+    DSMidpointFanFillPatchMaxReps * DSMidpointFanFillPatchIndexCount;
+constexpr static uint32_t kDSOuterCubicFillIndexCount =
+    DSOuterCubicFillPatchMaxReps * DSOuterCubicFillPatchIndexCount;
+FStaticResourceDataView GDSMidpointFanFillIndices(
+    *GPatchIndices + DSMidpointFanFillBaseIndex,
+    kDSMidpointFanFillIndexCount * sizeof(uint16_t));
+FStaticResourceDataView GDSOuterCubicFillIndices(*GPatchIndices +
+                                                     DSOuterCubicFillBaseIndex,
+                                                 kDSOuterCubicFillIndexCount *
+                                                     sizeof(uint16_t));
 // clang format does weird things to this so turn it off
 // clang-format off
 static TAutoConsoleVariable<int32> CVarUseSubpassLoad(
@@ -1293,7 +1336,17 @@ RenderContextRHIImpl::RenderContextRHIImpl(
         makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
                                             TEXT("rive.PatchIndexBuffer"),
                                             EBufferUsageFlags::IndexBuffer,
-                                            GPatchIndices);
+                                            GPathPatchIndices);
+    m_dsMidpointFanFillIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(
+        CommandListImmediate,
+        TEXT("rive.DSMidpointFanFillIndexBuffer"),
+        EBufferUsageFlags::IndexBuffer,
+        GDSMidpointFanFillIndices);
+    m_dsOuterCubicFillIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(
+        CommandListImmediate,
+        TEXT("rive.DSOuterCubicFillIndexBuffer"),
+        EBufferUsageFlags::IndexBuffer,
+        GDSOuterCubicFillIndices);
 
     m_tessSpanIndexBuffer =
         makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
@@ -2614,6 +2667,10 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                          VertexDeclarations = VertexDeclarations,
                          patchVertexBuffer = m_patchVertexBuffer,
                          patchIndexBuffer = m_patchIndexBuffer,
+                         dsMidpointFanFillIndexBuffer =
+                             m_dsMidpointFanFillIndexBuffer,
+                         dsOuterCubicFillIndexBuffer =
+                             m_dsOuterCubicFillIndexBuffer,
                          triangleBuffer,
                          Viewport,
                          Scissor,
@@ -2745,19 +2802,11 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                                 NameForDrawType(
                                                     batch->drawType);
 
-                                            CommonPassParameters
-                                                .VertexDeclarationRHI =
-                                                VertexDeclarations[static_cast<
-                                                    int32>(EVertexDeclarations::
-                                                               Paths)];
-                                            CommonPassParameters
-                                                .VertexBuffers[0] =
-                                                patchVertexBuffer;
                                             CommonPassParameters.IndexBuffer =
-                                                patchIndexBuffer;
-
-                                            PassParameters->VS.baseInstance =
-                                                batch->baseElement;
+                                                drawTypeSubmitsOuterCubicPatches(
+                                                    batch->drawType)
+                                                    ? dsOuterCubicFillIndexBuffer
+                                                    : dsMidpointFanFillIndexBuffer;
 
                                             // One state per collapsed subpass.
                                             // Same order as the native
@@ -2809,13 +2858,31 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                     case DrawType::stencilOuterCubicReset:
                                     case DrawType::stencilOuterCubicWinding:
                                     case DrawType::stencilOuterCubicCover:
-                                    case DrawType::depthStrokes:
                                     case DrawType::
                                         stencilMidpointFanBorrowedCoverage:
                                     case DrawType::stencilMidpointFans:
                                     case DrawType::stencilMidpointFanReset:
                                     case DrawType::stencilMidpointFanWinding:
                                     case DrawType::stencilMidpointFanCover:
+                                    {
+                                        const FString& PassName =
+                                            NameForDrawType(batch->drawType);
+
+                                        CommonPassParameters.IndexBuffer =
+                                            drawTypeSubmitsOuterCubicPatches(
+                                                batch->drawType)
+                                                ? dsOuterCubicFillIndexBuffer
+                                                : dsMidpointFanFillIndexBuffer;
+
+                                        AddDrawMSAAFillsPass(
+                                            RHICmdList,
+                                            PassName,
+                                            &CommonPassParameters,
+                                            PassParameters);
+                                    }
+                                    break;
+
+                                    case DrawType::depthStrokes:
                                     {
                                         const FString& PassName =
                                             NameForDrawType(batch->drawType);

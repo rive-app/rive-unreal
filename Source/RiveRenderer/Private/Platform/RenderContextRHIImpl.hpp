@@ -490,6 +490,8 @@ private:
 
     FBufferRHIRef m_patchVertexBuffer;
     FBufferRHIRef m_patchIndexBuffer;
+    FBufferRHIRef m_dsMidpointFanFillIndexBuffer;
+    FBufferRHIRef m_dsOuterCubicFillIndexBuffer;
     FBufferRHIRef m_imageRectVertexBuffer;
     FBufferRHIRef m_imageRectIndexBuffer;
     FBufferRHIRef m_tessSpanIndexBuffer;

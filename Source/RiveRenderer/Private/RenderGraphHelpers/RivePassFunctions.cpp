@@ -5,10 +5,14 @@
 #include "RenderGraphBuilder.h"
 #include "RenderGraphEvent.h"
 #include "RenderGraphUtils.h"
+#include "CommonRenderResources.h" // GEmptyVertexDeclaration
+#include "DataDrivenShaderPlatformInfo.h"
 #include "RHIStaticStates.h"  // TStaticBlendState, etc.
 #include "RHICommandList.h"   // FRHICommandList
 #include "RenderGraphUtils.h" // Graph building helpers
 #include "rive/renderer/draw.hpp"
+#include "rive/renderer/range_chunker.hpp"
+#include "rive/shaders/constants.glsl"
 #include <ClearQuad.h>
 
 #if !UE_VERSION_OLDER_THAN(5, 7, 0)
@@ -546,6 +550,145 @@ FRHIBlendState* RHIBlendStateForBlendType(EBlendType BlendType)
     return TStaticBlendState<CW_NONE>::GetRHI();
 }
 
+template <typename TVertexShader>
+static void DrawDSFillChunks(
+    FRHICommandList& RHICmdList,
+    const TVertexShader& VertexShader,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters,
+    int32_t VertexFlags = 0)
+{
+    const rive::gpu::DrawType DrawType =
+        CommonPassParameters->DrawBatch.drawType;
+    const bool bOuterCubic =
+        rive::gpu::drawTypeSubmitsOuterCubicPatches(DrawType);
+    const bool bAbsoluteVertexID =
+        RHISupportsAbsoluteVertexID(GMaxRHIShaderPlatform);
+    for (auto [ChunkIndexCount, ChunkBaseVertex] :
+         rive::gpu::DSIndexRangeChunker(
+             DrawType,
+             CommonPassParameters->DrawBatch.elementCount,
+             CommonPassParameters->DrawBatch.baseElement,
+             VertexFlags))
+    {
+        if (!bAbsoluteVertexID)
+        {
+            PassParameters->VS.baseVertex =
+                static_cast<uint32>(ChunkBaseVertex);
+            SetShaderParameters(RHICmdList,
+                                VertexShader,
+                                VertexShader.GetVertexShader(),
+                                PassParameters->VS);
+        }
+        const uint32_t NumPatches =
+            ChunkIndexCount / rive::gpu::dsFillPatchIndexCount(bOuterCubic);
+        const uint32_t NumVertices = DS_PATCH_STRIDE(bOuterCubic) * NumPatches;
+        // The index patterns live in their own buffers, so the draw starts
+        // from index 0. StartIndex costs 26% of total framerate on Adreno.
+        RHICmdList.DrawIndexedPrimitive(
+            CommonPassParameters->IndexBuffer,
+            bAbsoluteVertexID ? ChunkBaseVertex : 0, // BaseVertexIndex
+            0,                                       // FirstInstance
+            NumVertices,                             // NumVertices
+            0,                                       // StartIndex
+            ChunkIndexCount / 3,                     // NumPrimitives
+            1);                                      // NumInstances
+    }
+}
+
+template <typename TPixelShader>
+static void AddDrawMSAAFillsPassImpl(
+    FRHICommandList& RHICmdList,
+    const FString& PassName,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters)
+{
+    RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                              STAT_RiveMSAA_Patches,
+                              "rive.MSAAFills");
+
+    TShaderMapRef<FRiveRDGFillMSAAVertexShader> VertexShader(
+        CommonPassParameters->ShaderMap,
+        CommonPassParameters->VertexPermutationDomain);
+    TShaderMapRef<TPixelShader> PixelShader(
+        CommonPassParameters->ShaderMap,
+        CommonPassParameters->PixelPermutationDomain);
+
+    CSV_CUSTOM_STAT(RiveMSAA, Draws, 1, ECsvCustomStatOp::Accumulate);
+
+    SetFlushUniformsPerShader(PassParameters);
+
+    auto DepthStencil = StencilStateForPipeline(
+        CommonPassParameters->PipelineState,
+        CommonPassParameters->GetUniqueKey(InterlockMode::depthStencil));
+
+    CSV_SCOPED_TIMING_STAT(RiveMSAA, PSOBuild);
+    FGraphicsPipelineStateInitializer GraphicsPSOInit;
+    GraphicsPSOInit.DepthStencilState = DepthStencil;
+
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode<true>(
+        CommonPassParameters->PipelineState.cullFace,
+        CommonPassParameters->bWireframe);
+
+    GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
+    GraphicsPSOInit.BlendState =
+        BlendStateForPipeline(CommonPassParameters->PipelineState);
+    GraphicsPSOInit.bDepthBounds = true;
+
+    RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+    // depthStencil fills don't have vertex attributes.
+    GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
+        GEmptyVertexDeclaration.VertexDeclarationRHI;
+    GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
+        VertexShader.GetVertexShader();
+    GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
+        PixelShader.GetPixelShader();
+
+    GraphicsPSOInit.bAllowVariableRateShading = false;
+
+    {
+        CSV_SCOPED_TIMING_STAT(RiveMSAA, PSOBind);
+        RiveSetGraphicsPipelineState(
+            RHICmdList,
+            GraphicsPSOInit,
+            CommonPassParameters->PipelineState.stencilReference);
+    }
+
+    RHICmdList.SetViewport(CommonPassParameters->Viewport.Min.X,
+                           CommonPassParameters->Viewport.Min.Y,
+                           0,
+                           CommonPassParameters->Viewport.Max.X,
+                           CommonPassParameters->Viewport.Max.Y,
+                           1);
+
+    RHICmdList.SetScissorRect(true,
+                              CommonPassParameters->Scissor.Min.X,
+                              CommonPassParameters->Scissor.Min.Y,
+                              CommonPassParameters->Scissor.Max.X,
+                              CommonPassParameters->Scissor.Max.Y);
+
+    RHICmdList.SetDepthBounds(rive::gpu::DEPTH_MIN, rive::gpu::DEPTH_MAX);
+
+    {
+        CSV_SCOPED_TIMING_STAT(RiveMSAA, BindParams);
+        SetShaderParameters(RHICmdList,
+                            VertexShader,
+                            VertexShader.GetVertexShader(),
+                            PassParameters->VS);
+        SetShaderParameters(RHICmdList,
+                            PixelShader,
+                            PixelShader.GetPixelShader(),
+                            PassParameters->PS);
+    }
+
+    CSV_SCOPED_TIMING_STAT(RiveMSAA, Draw);
+    DrawDSFillChunks(RHICmdList,
+                     VertexShader,
+                     CommonPassParameters,
+                     PassParameters);
+}
+
 template <typename TPixelShader>
 static void AddDrawMSAAPatchesPassImpl(
     FRHICommandList& RHICmdList,
@@ -667,7 +810,7 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
     check(PassPipelineStates.Num() ==
           UE_ARRAY_COUNT(kDynamicMidpointFanPasses));
 
-    TShaderMapRef<FRiveRDGPathMSAAVertexShader> VertexShader(
+    TShaderMapRef<FRiveRDGFillMSAAVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,
         CommonPassParameters->VertexPermutationDomain);
     TShaderMapRef<TPixelShader> PixelShader(
@@ -694,7 +837,6 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
                               CommonPassParameters->Scissor.Max.Y);
 
     RHICmdList.SetDepthBounds(rive::gpu::DEPTH_MIN, rive::gpu::DEPTH_MAX);
-    RHICmdList.SetStreamSource(0, CommonPassParameters->VertexBuffers[0], 0);
 
     // Which way the three passes reach the gpu.
     const int32 DynamicStateMode =
@@ -731,8 +873,9 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
+            // depthStencil fills don't have vertex attributes.
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
-                CommonPassParameters->VertexDeclarationRHI;
+                GEmptyVertexDeclaration.VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
                 VertexShader.GetVertexShader();
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
@@ -782,17 +925,18 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
                 RasterStateForCullModeAndDrawMode<true>(
                     PassPipelineState.cullFace,
                     CommonPassParameters->bWireframe),
-                PassPipelineState.colorWriteEnabled);
+                // Leave color-write on. It's handled below via
+                // VERTEX_FLAG_DISABLE_COLOR_WRITE.
+                /*bColorWriteEnabled=*/true);
 
             CSV_SCOPED_TIMING_STAT(RiveMSAA, Draw);
-            RHICmdList.DrawIndexedPrimitive(
-                CommonPassParameters->IndexBuffer,
-                0,
-                RiveFirstInstance(PassParameters->VS.baseInstance),
-                kPatchVertexBufferCount,
-                CommonPassParameters->DrawBatch.baseIndex,
-                CommonPassParameters->DrawBatch.indexCountPerInstance / 3,
-                CommonPassParameters->DrawBatch.elementCount);
+            DrawDSFillChunks(RHICmdList,
+                             VertexShader,
+                             CommonPassParameters,
+                             PassParameters,
+                             PassPipelineState.colorWriteEnabled
+                                 ? 0
+                                 : VERTEX_FLAG_DISABLE_COLOR_WRITE);
         }
 
         // The rhi also drops the override on the next pipeline bind, but the
@@ -828,8 +972,9 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
 
             RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
+            // depthStencil fills don't have vertex attributes.
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
-                CommonPassParameters->VertexDeclarationRHI;
+                GEmptyVertexDeclaration.VertexDeclarationRHI;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
                 VertexShader.GetVertexShader();
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
@@ -873,14 +1018,10 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
         }
 
         CSV_SCOPED_TIMING_STAT(RiveMSAA, Draw);
-        RHICmdList.DrawIndexedPrimitive(
-            CommonPassParameters->IndexBuffer,
-            0,
-            RiveFirstInstance(PassParameters->VS.baseInstance),
-            kPatchVertexBufferCount,
-            CommonPassParameters->DrawBatch.baseIndex,
-            CommonPassParameters->DrawBatch.indexCountPerInstance / 3,
-            CommonPassParameters->DrawBatch.elementCount);
+        DrawDSFillChunks(RHICmdList,
+                         VertexShader,
+                         CommonPassParameters,
+                         PassParameters);
     }
 
     if (DynamicStateMode == 2)
@@ -934,6 +1075,29 @@ void AddDrawMSAAPatchesPass(
     else
     {
         AddDrawMSAAPatchesPassImpl<FRiveRDGPathMSAAPixelShader>(
+            RHICmdList,
+            PassName,
+            CommonPassParameters,
+            PassParameters);
+    }
+}
+
+void AddDrawMSAAFillsPass(FRHICommandList& RHICmdList,
+                          const FString& PassName,
+                          const FRiveCommonPassParameters* CommonPassParameters,
+                          FRiveMSAAFlushPassParameters* PassParameters)
+{
+    if (CommonPassParameters->UseSubpassPixelShader())
+    {
+        AddDrawMSAAFillsPassImpl<FRiveRDGPathMSAASubpassPixelShader>(
+            RHICmdList,
+            PassName,
+            CommonPassParameters,
+            PassParameters);
+    }
+    else
+    {
+        AddDrawMSAAFillsPassImpl<FRiveRDGPathMSAAPixelShader>(
             RHICmdList,
             PassName,
             CommonPassParameters,
@@ -1382,6 +1546,7 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
 
             GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =
                 CommonPassParameters->VertexDeclarationRHI;
+            ;
             GraphicsPSOInit.BoundShaderState.VertexShaderRHI =
                 VertexShader.GetVertexShader();
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =

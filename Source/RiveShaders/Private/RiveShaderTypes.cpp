@@ -254,13 +254,10 @@ void ModifyMSAAPathVertexShaderEnvironment(
         Environment.SetDefine(TEXT("SV_INSTANCE_ID_INCLUDES_BASE"), TEXT("1"));
     }
 
-#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
-    if (IsTargetVulkan(Params))
+    if (RHISupportsAbsoluteVertexID(Params.Platform))
     {
-        Environment.SetDefine(TEXT("EMULATE_DYNAMIC_COLOR_WRITE_DISABLE"),
-                              TEXT("1"));
+        Environment.SetDefine(TEXT("SV_VERTEX_ID_INCLUDES_BASE"), TEXT("1"));
     }
-#endif
 }
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGGradientPixelShader,
@@ -445,6 +442,11 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAAPixelShader,
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAAVertexShader,
                         "/Plugin/Rive/Private/Rive/draw_depthstencil_path.usf",
+                        GLSL_drawVertexMain,
+                        SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGFillMSAAVertexShader,
+                        "/Plugin/Rive/Private/Rive/draw_depthstencil_fill.usf",
                         GLSL_drawVertexMain,
                         SF_Vertex);
 

@@ -192,6 +192,11 @@ void AddDrawMSAAPatchesPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters);
 
+void AddDrawMSAAFillsPass(FRHICommandList& RHICmdList,
+                          const FString& PassName,
+                          const FRiveCommonPassParameters* CommonPassParameters,
+                          FRiveMSAAFlushPassParameters* PassParameters);
+
 #if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
 // The msaa fast path fill, drawn as one batch instead of three.
 void AddDrawMSAADynamicMidpointFansPass(

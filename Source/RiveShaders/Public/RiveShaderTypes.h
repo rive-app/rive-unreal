@@ -246,6 +246,7 @@ SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>,
                                 GLSL_paintAuxBuffer_raw)
 SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 SHADER_PARAMETER(unsigned int, baseInstance)
+SHADER_PARAMETER(unsigned int, baseVertex)
 END_SHADER_PARAMETER_STRUCT()
 
 // Data driven so platforms added after this code was written are classified
@@ -964,6 +965,25 @@ public:
     DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGPathMSAAVertexShader,
                                    RIVESHADERS_API);
     SHADER_USE_PARAMETER_STRUCT(FRiveRDGPathMSAAVertexShader,
+                                FRiveBaseVertexShader);
+    using FParameters = FRiveMSAAVertexDrawUniforms;
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters& Parameters,
+        FShaderCompilerEnvironment& Environment)
+    {
+        ModifyMSAAPathVertexShaderEnvironment(Parameters, Environment);
+    }
+};
+
+class FRiveRDGFillMSAAVertexShader : public FRiveBaseVertexShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGFillMSAAVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGFillMSAAVertexShader,
                                 FRiveBaseVertexShader);
     using FParameters = FRiveMSAAVertexDrawUniforms;
 
