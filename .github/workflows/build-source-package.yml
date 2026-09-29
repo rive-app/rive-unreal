@@ -138,6 +138,7 @@ jobs:
     runs-on: [self-hosted, linux, X64, unreal-linux]
     concurrency:
       group: runtime_linux
+      queue: max
     continue-on-error: true
     outputs:
       builtRuntime: ${{ steps.build-step-linux.outputs.rive-runtime-artifacts-id }}
@@ -156,6 +157,7 @@ jobs:
     runs-on: [self-hosted, linux, X64, unreal-linux]
     concurrency:
       group: runtime_linux
+      queue: max
     continue-on-error: true
     outputs:
       builtRuntime: ${{ steps.build-step-linux.outputs.rive-runtime-artifacts-id }}
@@ -174,6 +176,7 @@ jobs:
     runs-on: [self-hosted, linux, X64, unreal-linux]
     concurrency:
       group: runtime_linux
+      queue: max
     continue-on-error: true
     outputs:
       builtRuntime: ${{ steps.build-step-linux.outputs.rive-runtime-artifacts-id }}

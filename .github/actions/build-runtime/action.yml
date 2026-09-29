@@ -57,6 +57,23 @@ runs:
       run: |
         apt-get update && apt-get install -y uuid-dev
 
+    - name: Install Library Environment (ANDROID)
+      shell: bash
+      if: ${{ inputs.platform == 'Android' }}
+      run: |
+        apt-get update && apt-get install -y uuid-dev
+        rm -rf commandlinetools-linux-15859902_latest.zip cmdline-tools android_sdk
+        wget https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip
+        unzip commandlinetools-linux-15859902_latest.zip
+        mkdir android_sdk
+        mv cmdline-tools android_sdk/cmdline-tools
+        pushd android_sdk/cmdline-tools/
+        mkdir latest
+        mv bin lib NOTICE.txt source.properties latest/
+        popd
+        (yes || true) | android_sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+        android_sdk/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.2.12479018"
+
     - name: Clean Old Runtime Files
       shell: python3 {0}
       run: |
@@ -101,6 +118,7 @@ runs:
         [ -d "RiveUnreal/Shaders/Private/Rive/" ] || { echo "Error: Build Failed, Shaders Directory missing." >&2; exit 1; }
       env:
         RIVE_UNREAL_ENGINE: ${{ inputs.unreal-version != '' && format('/UE_{0}', inputs.unreal-version) || '' }}
+        ANDROID_NDK: ${{ github.workspace }}/android_sdk/ndk/27.2.12479018
 
     - name: Upload Runtime Artifacts
       uses: actions/upload-artifact@v4

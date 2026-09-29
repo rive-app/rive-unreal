@@ -65,7 +65,22 @@ class PlatformBuildTypes(Enum):
 
     def __str__(self):
         return self.value
-    
+
+    @staticmethod
+    def to_shader_arch(e):
+        if PlatformBuildTypes.Windows == e:
+            return 'windows'
+        elif PlatformBuildTypes.Mac == e:
+            return 'mac/x64'
+        elif PlatformBuildTypes.Linux == e:
+            return 'linux'
+        elif PlatformBuildTypes.Android == e:
+            return 'android'
+        elif PlatformBuildTypes.iOS == e:
+            return 'ios'
+        else:
+            raise ValueError(f"No shader arch for platform: {e}")
+
     @staticmethod
     def from_string(s):
         try:
@@ -821,6 +836,12 @@ def get_shader_include_arch():
         raise Exception(f"Unsupported platform: {sys.platform}")
 
 def copy_includes(rive_runtime_path):
+
+    try:
+        shader_arch = PlatformBuildTypes.to_shader_arch(args.platforms[0])
+    except (IndexError, ValueError):
+        shader_arch = get_shader_include_arch()
+
     print_green('Copying rive includes...')
     rive_constant_include_src = os.path.join(rive_runtime_path, "renderer", "src", "shaders", "constants.glsl")
     rive_flush_uniforms_include_src = os.path.join(rive_runtime_path, "renderer", "src", "shaders", "flush_uniforms.glsl")
@@ -831,7 +852,7 @@ def copy_includes(rive_runtime_path):
     player_includes_path = os.path.join(tests_includes_path, 'player')
     common_includes_path = os.path.join(tests_includes_path, 'common')
     rive_pls_includes_path = os.path.join(rive_runtime_path, 'renderer', 'include')
-    rive_shaders_includes_path = os.path.join(rive_runtime_path, 'out', get_shader_include_arch(), 'release', "include")
+    rive_shaders_includes_path = os.path.join(rive_runtime_path, 'out', shader_arch, 'release', "include")
     rive_shader_source_path = os.path.join(rive_runtime_path, 'renderer', 'src', 'shaders', "unreal")
     rive_decoders_includes_path = os.path.join(rive_runtime_path, 'decoders', 'include')
     target_path = os.path.join(script_directory, '..', '..', 'Source', 'ThirdParty', 'RiveLibrary', 'Includes')
