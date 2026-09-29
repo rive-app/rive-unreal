@@ -51,6 +51,12 @@ runs:
         submodules: 'recursive'
         fetch-tags: true
 
+    - name: Install Library Environment (LINUX)
+      shell: bash
+      if: ${{ inputs.platform == 'Linux' }}
+      run: |
+        apt-get update && apt-get install -y uuid-dev
+
     - name: Clean Old Runtime Files
       shell: python3 {0}
       run: |

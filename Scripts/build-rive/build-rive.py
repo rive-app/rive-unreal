@@ -8,6 +8,7 @@ import stat
 from pathlib import Path
 from enum import Enum
 import importlib.util
+import contextlib
 
 parser = argparse.ArgumentParser(description="""
 Build and copy rive C++ runtime library and copy it and it headers into the correct location for unreal
@@ -110,6 +111,15 @@ test_targets = [
     'player',
     'tools_common'
 ]
+
+@contextlib.contextmanager
+def pushd(new_dir):
+    previous_dir = os.getcwd()
+    os.chdir(new_dir)
+    try:
+        yield
+    finally:
+        os.chdir(previous_dir)
 
 class CompileResult(Enum):
     SUCCESS=1 # compile finished succesfully
@@ -263,6 +273,46 @@ def execute_command(cmd) -> bool:
     return ret
 
 
+def execute_premake_bootstrap(rive_runtime_path) -> bool:
+    """attempt to run cmd in another process, piping output to this process stdout. returns a CompileResult"""
+
+    ret = CompileResult.SUCCESS
+    with pushd(script_directory):
+        custom_env = {
+            **os.environ,
+            "SCRIPT_DIR": Path(rive_runtime_path) / "build",
+            "HOST_MACHINE": "linux",
+        }    
+
+        cmd = ['bash', 'bootstrap_premake.sh']
+    
+        if sys.platform.startswith('darwin') or sys.platform.startswith('linux'):
+            cmd = " ".join(cmd)
+        
+        print_green(f'Executing {cmd}')
+        process = subprocess.Popen(cmd,
+                                   shell=True,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT,
+                                   text=True,
+                                   bufsize=1,
+                                   universal_newlines=True,
+                                   env=custom_env
+                                   )
+        
+        for output in iter(process.stdout.readline, ""):
+            if output:
+                if ('error:' in output.lower() or 'error :' in output.lower()) and 'Structured output' not in output and '0 Error' not in output:
+                    print_red(f'{output.strip()}')
+                    if ret == CompileResult.SUCCESS:
+                        ret = CompileResult.FAILED
+                else:
+                    print(output.strip())
+
+        process.wait()
+        
+    return ret == CompileResult.SUCCESS and process.returncode == 0
+
 def print_green(text):
     print(f'\033[32m{text}\033[0m')
 
@@ -382,6 +432,10 @@ def do_linux(rive_runtime_path, release):
     if args.release_only and not release:
         return True
 
+    if not execute_premake_bootstrap(rive_runtime_path):
+        print_red("Exiting due to errors bootstrapping premake...")
+        return False
+    
     should_build_tests = args.build_rive_tests and release
 
     # Build with the engine's clang toolchain so the libs use libc++ (matching Unreal's
