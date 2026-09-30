@@ -133,7 +133,7 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object,
             FRDGBuilder GraphBuilder(RHICmdList);
             RiveRenderer->ReplayDeferredFrame(
                 GraphBuilder,
-                [Context, AlignmentBox]() -> TUniquePtr<rive::Renderer> {
+                [Context, AlignmentBox](bool) -> TUniquePtr<rive::Renderer> {
                     Context->beginFrame({
                         .renderTargetWidth =
                             static_cast<uint32_t>(AlignmentBox.GetSize().X),

@@ -19,14 +19,17 @@
 class FRiveHostFrameSink final : public rive::cmd::HostFrameSink
 {
 public:
-    FRiveHostFrameSink(rive::gpu::RenderContext* InRenderContext,
-                       TFunctionRef<TUniquePtr<rive::Renderer>()> InBeginScreen,
-                       bool bInClear,
-                       uint32 InClearColor,
-                       bool bInReplayOre) :
+    FRiveHostFrameSink(
+        rive::gpu::RenderContext* InRenderContext,
+        TFunctionRef<TUniquePtr<rive::Renderer>(bool)> InBeginScreen,
+        bool bInClear,
+        uint32 InClearColor,
+        bool bInReplayOre,
+        rive::gpu::RenderTarget* InOreTarget) :
         HostFrameSink(bInClear, InClearColor, /*target=*/0, bInReplayOre),
         RenderContextPtr(InRenderContext),
-        BeginScreen(InBeginScreen)
+        BeginScreen(InBeginScreen),
+        OreTarget(InOreTarget)
     {
         // One session serves every render target this context drives, and a
         // draw records and replays before the next one starts, so they all
@@ -39,17 +42,38 @@ public:
         return RenderContextPtr;
     }
 
-    rive::Renderer* beginScreen(uint64_t, bool, uint32_t) override
+    rive::gpu::RenderTarget* targetRenderTarget() override { return OreTarget; }
+
+    rive::Renderer* beginScreen(uint64_t, bool bClear, uint32_t) override
     {
-        ScreenRenderer = BeginScreen();
+        // We always record with clear, so only a preserved target turns it off.
+        ScreenRenderer = BeginScreen(!bClear);
         return ScreenRenderer.Get();
     }
 
 private:
     rive::gpu::RenderContext* const RenderContextPtr;
-    TFunctionRef<TUniquePtr<rive::Renderer>()> BeginScreen;
+    TFunctionRef<TUniquePtr<rive::Renderer>(bool)> BeginScreen;
+    rive::gpu::RenderTarget* const OreTarget;
     TUniquePtr<rive::Renderer> ScreenRenderer;
 };
+
+// Ore wraps only a plain RHI texture in a format we map, so anything else
+// stays hidden from scripts.
+static rive::ore::Context::TargetDesc OreTargetDesc(
+    rive::gpu::RenderTarget* Target)
+{
+    auto* RHITarget = static_cast<RenderTargetRHI*>(Target);
+    if (RHITarget == nullptr || !RHITarget->texture().IsValid() ||
+        RHITarget->texture()->GetFormat() != PF_R8G8B8A8)
+    {
+        return {};
+    }
+    return {RHITarget->width(),
+            RHITarget->height(),
+            rive::ore::TextureFormat::rgba8unorm,
+            1};
+}
 
 static const FString RiveRenderOverrideDescription =
     TEXT("Forces a specific rendering interlock mode for rive renderer.\n"
@@ -203,14 +227,15 @@ rive::gpu::RenderContext* FRiveRenderer::GetRenderContext()
     return RenderContext.get();
 }
 
-rive::Renderer* FRiveRenderer::BeginDeferredFrame()
+rive::Renderer* FRiveRenderer::BeginDeferredFrame(
+    rive::gpu::RenderTarget* Target)
 {
     check(IsInRenderingThread());
     check(DeferredSession);
 
     // Every screen frame carries its own clear policy from the target it
     // opens, so the recording's is never read back.
-    InlineHost.beginRecord(true, 0);
+    InlineHost.beginRecord(true, 0, OreTargetDesc(Target));
     return InlineHost.screenRenderer();
 }
 
@@ -218,8 +243,9 @@ DECLARE_GPU_STAT_NAMED(ReplayDeferredFrame,
                        TEXT("FRiveRenderer::ReplayDeferredFrame"));
 void FRiveRenderer::ReplayDeferredFrame(
     FRDGBuilder& GraphBuilder,
-    TFunctionRef<TUniquePtr<rive::Renderer>()> BeginScreen,
-    TFunctionRef<void()> Present)
+    TFunctionRef<TUniquePtr<rive::Renderer>(bool)> BeginScreen,
+    TFunctionRef<void()> Present,
+    rive::gpu::RenderTarget* OreTarget)
 {
     check(IsInRenderingThread());
     check(RenderContext);
@@ -238,7 +264,8 @@ void FRiveRenderer::ReplayDeferredFrame(
                             BeginScreen,
                             InlineHost.doClear(),
                             InlineHost.clearColor(),
-                            InlineHost.replayOre());
+                            InlineHost.replayOre(),
+                            OreTarget);
 
     // Canvas passes flush as replay reaches them, so they render into this
     // frame's builder rather than reaching for the one immediate mode Lua
@@ -257,13 +284,15 @@ void FRiveRenderer::ReplayDeferredFrame(
     FRDGBuilder GraphBuilder(GRHICommandList.GetImmediateCommandList());
     ReplayDeferredFrame(
         GraphBuilder,
-        [this, &RenderTarget] {
-            return RenderTarget->BeginRenderFrame(RenderContext.get());
+        [this, &RenderTarget](bool bTargetPreserved) {
+            return RenderTarget->BeginRenderFrame(RenderContext.get(),
+                                                  bTargetPreserved);
         },
         [this, &RenderTarget, &GraphBuilder] {
             RenderContext->flush(
                 {RenderTarget->GetRenderTarget().get(), &GraphBuilder});
-        });
+        },
+        RenderTarget->GetRenderTarget().get());
     GraphBuilder.Execute();
 }
 

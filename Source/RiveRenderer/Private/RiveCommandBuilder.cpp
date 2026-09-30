@@ -216,7 +216,8 @@ void FRiveCommandBuilder::Execute()
 
                 // Draws record into the session's stream and reach the target
                 // when the frame replays below.
-                auto* Renderer = RiveRenderer->BeginDeferredFrame();
+                auto* Renderer = RiveRenderer->BeginDeferredFrame(
+                    RenderTarget->GetRenderTarget().get());
                 check(Renderer);
                 auto Factory = CommandServer->factory();
                 check(Factory);

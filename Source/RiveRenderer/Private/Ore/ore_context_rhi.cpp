@@ -1158,9 +1158,23 @@ rive::rcp<rive::ore::TextureView> OreContextRHI::wrapCanvasTexture(
     rive::gpu::RenderCanvas* canvas)
 {
     check(canvas != nullptr);
+    return wrapTarget(canvas->renderTarget());
+}
 
-    auto* Target = static_cast<RenderTargetRHI*>(canvas->renderTarget());
-    auto RHITexture = Target->texture();
+rive::rcp<rive::ore::TextureView> OreContextRHI::wrapRenderTarget(
+    rive::gpu::RenderTarget* target)
+{
+    return target != nullptr ? wrapTarget(target) : nullptr;
+}
+
+rive::rcp<rive::ore::TextureView> OreContextRHI::wrapTarget(
+    rive::gpu::RenderTarget* target)
+{
+    auto RHITexture = static_cast<RenderTargetRHI*>(target)->texture();
+    if (!RHITexture.IsValid())
+    {
+        return nullptr;
+    }
 
     rive::ore::TextureDesc TextureDesc;
     TextureDesc.width = RHITexture->GetSizeX();

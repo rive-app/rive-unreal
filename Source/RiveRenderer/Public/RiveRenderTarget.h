@@ -67,8 +67,10 @@ public:
         RHIResource = InRHIResource;
     }
 
+    // bPreserve loads over a clear, for script GPU work already in the target.
     TUniquePtr<rive::Renderer> BeginRenderFrame(
-        rive::gpu::RenderContext* RenderContextPtr);
+        rive::gpu::RenderContext* RenderContextPtr,
+        bool bPreserve = false);
     virtual void EndRenderFrame(rive::gpu::RenderContext* RenderContextPtr);
 
     uint32 GetWidth() const;

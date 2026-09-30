@@ -276,9 +276,8 @@ public:
             const bool bWireFrame = Inputs.bWireFrame;
             RiveRenderer->ReplayDeferredFrame(
                 GraphBuilder,
-                [Context,
-                 OutputSize,
-                 bWireFrame]() -> TUniquePtr<rive::Renderer> {
+                [Context, OutputSize, bWireFrame](
+                    bool) -> TUniquePtr<rive::Renderer> {
                     Context->beginFrame({
                         .renderTargetWidth =
                             static_cast<uint32_t>(OutputSize.X),

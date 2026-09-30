@@ -50,6 +50,8 @@ public:
 
     virtual rive::rcp<rive::ore::TextureView> wrapCanvasTexture(
         rive::gpu::RenderCanvas* canvas) override;
+    virtual rive::rcp<rive::ore::TextureView> wrapRenderTarget(
+        rive::gpu::RenderTarget* target) override;
     virtual rive::rcp<rive::ore::TextureView> wrapRiveTexture(
         rive::gpu::Texture* gpuTex,
         uint32_t width,
@@ -76,6 +78,9 @@ public:
     OreContextRHI();
 
 private:
+    rive::rcp<rive::ore::TextureView> wrapTarget(
+        rive::gpu::RenderTarget* target);
+
     // Returns the command list to record Ore work onto: the RDG-pass list while
     // a canvas render is in flight, otherwise the immediate list (resource
     // creation outside a render keeps its previous behavior).

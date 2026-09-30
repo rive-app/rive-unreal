@@ -64,16 +64,20 @@ public:
     // Opens this frame's recording and returns the recorder every draw in it
     // goes through. The recorder is the session's, so it outlives the frame;
     // ReplayDeferredFrame closes the recording and issues the real draws.
-    rive::Renderer* BeginDeferredFrame();
+    // Scripts see Target through gpuTarget() when Ore can wrap it.
+    rive::Renderer* BeginDeferredFrame(
+        rive::gpu::RenderTarget* Target = nullptr);
 
     // BeginScreen opens the real frame for the target being presented, and
     // Present issues its flush, running only when replay reached the screen.
     // Canvas passes replayed along the way flush into GraphBuilder, so it has
-    // to outlive the call.
+    // to outlive the call. OreTarget is the one BeginDeferredFrame declared.
     void ReplayDeferredFrame(
         FRDGBuilder& GraphBuilder,
-        TFunctionRef<TUniquePtr<rive::Renderer>()> BeginScreen,
-        TFunctionRef<void()> Present);
+        TFunctionRef<TUniquePtr<rive::Renderer>(bool bTargetPreserved)>
+            BeginScreen,
+        TFunctionRef<void()> Present,
+        rive::gpu::RenderTarget* OreTarget = nullptr);
 
     // Replays onto one render target, which opens and flushes its own frame.
     void ReplayDeferredFrame(const TSharedPtr<FRiveRenderTarget>& RenderTarget);

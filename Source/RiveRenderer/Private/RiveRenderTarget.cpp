@@ -119,18 +119,21 @@ void FRiveRenderTarget::UpdateRHIResorourceDirect(FTextureRHIRef InRenderTarget)
 }
 
 TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
-    rive::gpu::RenderContext* RenderContextPtr)
+    rive::gpu::RenderContext* RenderContextPtr,
+    bool bPreserve)
 {
     check(IsInRenderingThread());
+    const rive::gpu::LoadAction LoadAction =
+        bClearRenderTarget && !bPreserve
+            ? rive::gpu::LoadAction::clear
+            : rive::gpu::LoadAction::preserveRenderTarget;
     if (RHIResource)
     {
         FLinearColor Color = RHIResource->GetClearColor();
         rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
         FrameDescriptor.renderTargetWidth = RHIResource->GetSizeX();
         FrameDescriptor.renderTargetHeight = RHIResource->GetSizeY();
-        FrameDescriptor.loadAction =
-            bClearRenderTarget ? rive::gpu::LoadAction::clear
-                               : rive::gpu::LoadAction::preserveRenderTarget;
+        FrameDescriptor.loadAction = LoadAction;
         FrameDescriptor.clearColor = rive::colorARGB(Color.A * 0xFF,
                                                      Color.R * 0xFF,
                                                      Color.G * 0xFF,
@@ -151,9 +154,7 @@ TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
             ThumbnailRenderTarget->GetSizeXY().X;
         FrameDescriptor.renderTargetHeight =
             ThumbnailRenderTarget->GetSizeXY().Y;
-        FrameDescriptor.loadAction =
-            bClearRenderTarget ? rive::gpu::LoadAction::clear
-                               : rive::gpu::LoadAction::preserveRenderTarget;
+        FrameDescriptor.loadAction = LoadAction;
         FrameDescriptor.clearColor = rive::colorARGB(Color.A * 0xFF,
                                                      Color.R * 0xFF,
                                                      Color.G * 0xFF,
@@ -172,9 +173,7 @@ TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
         rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
         FrameDescriptor.renderTargetWidth = RenderTargetRDG->Desc.GetSize().X;
         FrameDescriptor.renderTargetHeight = RenderTargetRDG->Desc.GetSize().Y;
-        FrameDescriptor.loadAction =
-            bClearRenderTarget ? rive::gpu::LoadAction::clear
-                               : rive::gpu::LoadAction::preserveRenderTarget;
+        FrameDescriptor.loadAction = LoadAction;
         FrameDescriptor.clearColor = rive::colorARGB(Color.A * 0xFF,
                                                      Color.R * 0xFF,
                                                      Color.G * 0xFF,
