@@ -272,7 +272,10 @@ void URiveWidget::SetArtboard(URiveArtboard* InArtboard)
     if (IsValid(RiveArtboard))
     {
         RiveDescriptor.ArtboardName = RiveArtboard->GetArtboardName();
-        RiveWidget->SetArtboard(RiveArtboard);
+        if (RiveWidget.IsValid())
+        {
+            RiveWidget->SetArtboard(RiveArtboard);
+        }
         if (IsValid(RiveAudioEngine))
         {
             RiveArtboard->SetAudioEngine(RiveAudioEngine);
@@ -384,11 +387,6 @@ void URiveWidget::Setup()
         return;
     }
 
-    if (!RiveWidget.IsValid())
-    {
-        return;
-    }
-
     if (RiveArtboard == nullptr && RiveDescriptor.RiveFile != nullptr &&
         IsValid(RiveDescriptor.RiveFile))
     {
@@ -406,8 +404,11 @@ void URiveWidget::Setup()
     if (IsValid(RiveArtboard))
     {
         RiveDescriptor.ArtboardName = RiveArtboard->GetArtboardName();
-        RiveWidget->SetArtboard(RiveArtboard);
-        RiveWidget->SetRiveDescriptor(RiveDescriptor);
+        if (RiveWidget.IsValid())
+        {
+            RiveWidget->SetArtboard(RiveArtboard);
+            RiveWidget->SetRiveDescriptor(RiveDescriptor);
+        }
         if (IsValid(RiveAudioEngine))
         {
             RiveArtboard->SetAudioEngine(RiveAudioEngine);
