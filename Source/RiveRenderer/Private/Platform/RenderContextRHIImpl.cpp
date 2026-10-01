@@ -427,7 +427,6 @@ void GetPermutationForFeatures(
     const ShaderFeatures features,
     const ShaderMiscFlags miscFlags,
     const RHICapabilities& Capabilities,
-    bool needsLinearGamma,
     bool needsCoalesce,
     AtomicPixelPermutationDomain& PixelPermutationDomain,
     AtomicVertexPermutationDomain& VertexPermutationDomain)
@@ -462,7 +461,6 @@ void GetPermutationForFeatures(
         enums::is_flag_set(features, ShaderFeatures::ENABLE_FEATHER));
     PixelPermutationDomain.Set<FEnableClockwiseFill>(
         enums::is_flag_set(miscFlags, ShaderMiscFlags::clockwiseFill));
-    PixelPermutationDomain.Set<FEnableGammaCorrection>(needsLinearGamma);
     PixelPermutationDomain.Set<FCoalescedPlsResolveAndTransfer>(needsCoalesce);
     PixelPermutationDomain.Set<FEnableModulatedImage>(
         enums::is_flag_set(features, ShaderFeatures::ENABLE_MODULATED_IMAGE));
@@ -796,6 +794,9 @@ RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
         static_cast<bool>(m_textureTarget->GetDesc().Flags &
                           ETextureCreateFlags::ResolveTargetable);
 
+    m_targetTextureIsSRGB = static_cast<bool>(m_textureTarget->GetDesc().Flags &
+                                              ETextureCreateFlags::SRGB);
+
     // Rive is not currently supported without UAVs.
     check(Capabilities.bSupportsPixelShaderUAVs);
 }
@@ -819,6 +820,9 @@ RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
     m_targetTextureSupportsResolveTarget = static_cast<bool>(
         rhiTexture->GetDesc().Flags & ETextureCreateFlags::ResolveTargetable);
 
+    m_targetTextureIsSRGB = static_cast<bool>(rhiTexture->GetDesc().Flags &
+                                              ETextureCreateFlags::SRGB);
+
     // Rive is not currently supported without UAVs.
     check(Capabilities.bSupportsPixelShaderUAVs);
 }
@@ -839,6 +843,9 @@ RenderTargetRHI::RenderTargetRHI(const RHICapabilities& Capabilities,
     m_targetTextureSupportsResolveTarget =
         static_cast<bool>(m_rdgTextureTarget->Desc.Flags &
                           ETextureCreateFlags::ResolveTargetable);
+
+    m_targetTextureIsSRGB = static_cast<bool>(m_rdgTextureTarget->Desc.Flags &
+                                              ETextureCreateFlags::SRGB);
 
     // Rive is not currently supported without UAVs.
     check(Capabilities.bSupportsPixelShaderUAVs);
@@ -912,7 +919,6 @@ FRDGTextureRef RenderTargetRHI::backBufferTexture(
         CreateFlags |=
             ETextureCreateFlags::UAV | ETextureCreateFlags::ShaderResource;
 
-    // A uav can not be sRGB, those paths write the conversion in the shader.
     if (bTargetIsSRGB &&
         !static_cast<bool>(CreateFlags & ETextureCreateFlags::UAV))
     {
@@ -1480,28 +1486,41 @@ void RenderContextRHIImpl::updateFromInterlockCVar(int32 CVar)
 }
 #endif
 
+#define RIVE_ENSURE_LINEAR_TARGET(Target, Where)                               \
+    ensureMsgf(                                                                \
+        !(Target)->TargetTextureIsSRGB(),                                      \
+        TEXT("Rive %s: the render target has ETextureCreateFlags::SRGB set. "  \
+             "Rive only renders to linear targets -- turn sRGB off on the "    \
+             "texture (and set its format to a non-sRGB one). Colors will be " \
+             "wrong wherever anything blends."),                               \
+        TEXT(Where))
+
 rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(
     FRHICommandListImmediate& RHICmdList,
     const FTextureRHIRef& InTargetTexture)
 {
-    return make_rcp<RenderTargetRHI>(RHICmdList,
-                                     m_capabilities,
-                                     InTargetTexture);
+    auto Target =
+        make_rcp<RenderTargetRHI>(RHICmdList, m_capabilities, InTargetTexture);
+    RIVE_ENSURE_LINEAR_TARGET(Target, "makeRenderTarget");
+    return Target;
 }
 
 rive::rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(
     FRHICommandListImmediate& RHICmdList,
     FRenderTarget* InTargetTexture)
 {
-    return make_rcp<RenderTargetRHI>(RHICmdList,
-                                     m_capabilities,
-                                     InTargetTexture);
+    auto Target =
+        make_rcp<RenderTargetRHI>(RHICmdList, m_capabilities, InTargetTexture);
+    RIVE_ENSURE_LINEAR_TARGET(Target, "makeRenderTarget");
+    return Target;
 }
 
 rive::rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(
     FRDGTextureRef InTargetTexture)
 {
-    return make_rcp<RenderTargetRHI>(m_capabilities, InTargetTexture);
+    auto Target = make_rcp<RenderTargetRHI>(m_capabilities, InTargetTexture);
+    RIVE_ENSURE_LINEAR_TARGET(Target, "makeRenderTarget");
+    return Target;
 }
 
 EImageFormat imageFormatToUEImageFormat(const Bitmap::ImageFormat* format)
@@ -1975,6 +1994,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         auto targetTexture = renderTarget->targetTexture(GraphBuilder);
         check(targetTexture);
 
+        RIVE_ENSURE_LINEAR_TARGET(renderTarget, "flush");
+
         FRDGTextureRef backBuffer = nullptr;
 
         const bool NeedsBackBuffer =
@@ -2013,11 +2034,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 AddCopyTexturePass(GraphBuilder, targetTexture, backBuffer);
             }
         }
-
-        const bool TargetIsSRGB = static_cast<bool>(targetTexture->Desc.Flags &
-                                                    ETextureCreateFlags::SRGB);
-        const bool NeedsLinearColorOutput =
-            desc.fixedFunctionColorOutput && TargetIsSRGB && !NeedsBackBuffer;
 
         FRDGTextureUAVRef targetUAV = nullptr;
 
@@ -2663,7 +2679,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                              m_imageRectInstanceBuffer.get(),
                          imageMeshInstanceBuffer =
                              m_imageMeshInstanceBuffer.get(),
-                         NeedsLinearColorOutput,
                          VertexDeclarations = VertexDeclarations,
                          patchVertexBuffer = m_patchVertexBuffer,
                          patchIndexBuffer = m_patchIndexBuffer,
@@ -2734,7 +2749,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                     ShaderFeatures,
                                     shaderMiscFlags,
                                     capabilities,
-                                    NeedsLinearColorOutput,
                                     false,
                                     PixelPermutationDomain,
                                     VertexPermutationDomain);
@@ -3113,7 +3127,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 GetPermutationForFeatures(ShaderFeatures,
                                           ShaderMiscFlags,
                                           m_capabilities,
-                                          NeedsLinearColorOutput,
                                           NeedsCoalesceResolve &&
                                               batch.drawType ==
                                                   DrawType::renderPassResolve,
@@ -3369,7 +3382,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 GetPermutationForFeatures(ShaderFeatures,
                                           ShaderMiscFlags,
                                           m_capabilities,
-                                          NeedsLinearColorOutput,
                                           NeedsCoalesceResolve &&
                                               batch.drawType ==
                                                   DrawType::renderPassResolve,

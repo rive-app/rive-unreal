@@ -17,7 +17,7 @@ UTextureRenderTarget2D* FRiveRendererUtils::CreateDefaultRenderTarget(
     UTextureRenderTarget2D* const RenderTarget =
         NewObject<UTextureRenderTarget2D>(GetTransientPackage());
 
-    RenderTarget->bForceLinearGamma = false;
+    RenderTarget->bForceLinearGamma = true;
 
     RenderTarget->bAutoGenerateMips = false;
 

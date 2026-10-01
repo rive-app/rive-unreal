@@ -55,7 +55,11 @@ public:
 #if WITH_EDITOR
     virtual void PostEditChangeProperty(
         FPropertyChangedEvent& PropertyChangedEvent) override;
+
+    virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif // WITH_EDITOR
+
+    void EnforceLinearColorSpace();
 
 private:
     void UpdateArtboardSize();

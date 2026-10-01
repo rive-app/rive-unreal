@@ -67,6 +67,9 @@ public:
         m_targetTextureSupportsResolveTarget =
             static_cast<bool>(m_rdgTextureTarget->Desc.Flags &
                               ETextureCreateFlags::ResolveTargetable);
+
+        m_targetTextureIsSRGB = static_cast<bool>(
+            m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::SRGB);
     }
 
     void updateTargetTexture(FRenderTarget* InTextureTarget)
@@ -85,6 +88,9 @@ public:
         m_targetTextureSupportsResolveTarget =
             static_cast<bool>(rhiTexture->GetDesc().Flags &
                               ETextureCreateFlags::ResolveTargetable);
+
+        m_targetTextureIsSRGB = static_cast<bool>(rhiTexture->GetDesc().Flags &
+                                                  ETextureCreateFlags::SRGB);
     }
 
     // RDG Interface, RDG objects can not be cached so register the RHI textures
@@ -120,6 +126,7 @@ public:
     {
         return m_targetTextureSupportsResolveTarget;
     }
+    bool TargetTextureIsSRGB() const { return m_targetTextureIsSRGB; }
 
     FTextureRHIRef texture() const { return m_textureTarget; }
 
@@ -131,6 +138,7 @@ private:
     bool m_targetTextureSupportsUAV;
     bool m_targetTextureSupportsRenderTarget;
     bool m_targetTextureSupportsResolveTarget;
+    bool m_targetTextureIsSRGB;
     // Reference held for convenience. May be better to just DI it everywhere.
     const RHICapabilities& m_capabilities;
 };

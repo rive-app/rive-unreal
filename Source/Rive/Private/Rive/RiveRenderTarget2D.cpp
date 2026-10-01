@@ -10,21 +10,29 @@
 #include "Logs/RiveLog.h"
 #include "RiveRenderer/Private/Platform/RiveRenderTargetRHI.h"
 
+void URiveRenderTarget2D::EnforceLinearColorSpace()
+{
+    RenderTargetFormat = RTF_RGBA8;
+    SRGB = false;
+    bForceLinearGamma = true;
+    bAutoGenerateMips = false;
+}
+
 URiveRenderTarget2D::URiveRenderTarget2D()
 {
     Filter = TF_Bilinear;
     AddressX = TA_Clamp;
     AddressY = TA_Clamp;
-    RenderTargetFormat = RTF_RGBA8_SRGB;
     bCanCreateUAV = GRHISupportsPixelShaderUAVs;
-    bAutoGenerateMips = false;
-    bForceLinearGamma = false;
-    SRGB = true;
+    TargetGamma = 0.f;
+    EnforceLinearColorSpace();
 }
 
 void URiveRenderTarget2D::PostLoad()
 {
     Super::PostLoad();
+
+    EnforceLinearColorSpace();
 
     if (IsRunningCommandlet() || HasAnyFlags(RF_ClassDefaultObject))
     {
@@ -148,9 +156,33 @@ void URiveRenderTarget2D::Draw(URiveArtboard* InArtboard,
                           InDescriptor.ScaleFactor});
 }
 #if WITH_EDITOR
+bool URiveRenderTarget2D::CanEditChange(const FProperty* InProperty) const
+{
+    if (!Super::CanEditChange(InProperty))
+    {
+        return false;
+    }
+
+    if (InProperty == nullptr)
+    {
+        return true;
+    }
+
+    static const TSet<FName> LockedProperties = {
+        GET_MEMBER_NAME_CHECKED(UTextureRenderTarget2D, RenderTargetFormat),
+        GET_MEMBER_NAME_CHECKED(UTexture, SRGB),
+        GET_MEMBER_NAME_CHECKED(UTextureRenderTarget2D, bForceLinearGamma),
+        GET_MEMBER_NAME_CHECKED(UTextureRenderTarget2D, bAutoGenerateMips),
+    };
+
+    return !LockedProperties.Contains(InProperty->GetFName());
+}
+
 void URiveRenderTarget2D::PostEditChangeProperty(
     FPropertyChangedEvent& PropertyChangedEvent)
 {
+    EnforceLinearColorSpace();
+
     Super::PostEditChangeProperty(PropertyChangedEvent);
     const auto PropertyName = PropertyChangedEvent.GetPropertyName();
 

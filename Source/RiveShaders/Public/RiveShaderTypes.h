@@ -82,8 +82,6 @@ class FEnableEvenOdd : SHADER_PERMUTATION_BOOL("ENABLE_EVEN_ODD");
 class FEnableTypedUAVLoads
     : SHADER_PERMUTATION_BOOL("ENABLE_TYPED_UAV_LOAD_STORE");
 class FEnableClockwiseFill : SHADER_PERMUTATION_BOOL("CLOCKWISE_FILL");
-class FEnableGammaCorrection
-    : SHADER_PERMUTATION_BOOL("NEEDS_GAMMA_CORRECTION");
 class FCoalescedPlsResolveAndTransfer
     : SHADER_PERMUTATION_BOOL("COALESCED_PLS_RESOLVE_AND_TRANSFER");
 
@@ -97,7 +95,6 @@ typedef TShaderPermutationDomain<FEnableClip,
                                  FEnableHSLBlendMode,
                                  FEnableFeather,
                                  FEnableClockwiseFill,
-                                 FEnableGammaCorrection,
                                  FEnableModulatedImage>
 
     AtomicPixelPermutationDomain;

@@ -4,9 +4,9 @@
 
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
+#include "RiveRenderer.h"
 
 class IRiveRenderer;
-
 namespace rive
 {
 class CommandQueue;
@@ -33,7 +33,7 @@ public:
             ModuleName);
     }
 
-    class FRiveRenderer* GetRenderer() const { return RiveRenderer.Get(); }
+    FRiveRenderer* GetRenderer() const { return RiveRenderer.Get(); }
     static RIVERENDERER_API struct FRiveCommandBuilder& GetCommandBuilder();
 
     /**
