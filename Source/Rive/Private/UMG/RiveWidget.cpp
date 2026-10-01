@@ -60,7 +60,8 @@ FReply URiveWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry,
                                             const FPointerEvent& InMouseEvent)
 {
     Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
-    if (InMouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+    ERivePointerButton Button = ERivePointerButton::Primary;
+    if (!RiveKeyToPointerButton(InMouseEvent.GetEffectingButton(), Button))
     {
         return FReply::Unhandled();
     }
@@ -70,14 +71,24 @@ FReply URiveWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry,
         return FReply::Unhandled();
     }
 
-    if (!RiveArtboard->PointerDown(
-            InGeometry,
-            RiveDescriptor,
-            InMouseEvent,
-            UWidgetLayoutLibrary::GetViewportScale(this)))
+    // False either because nothing under the cursor wanted this button or
+    // because the press missed. Both belong to the rest of the game, and
+    // PointerDown settles them in one round trip.
+    if (!RiveArtboard->PointerDown(InGeometry,
+                                   RiveDescriptor,
+                                   InMouseEvent,
+                                   UWidgetLayoutLibrary::GetViewportScale(this),
+                                   Button))
     {
         return FReply::Unhandled();
     }
+
+    if (HeldButtonsTarget.Get() != RiveArtboard.Get())
+    {
+        HeldButtons = 0;
+        HeldButtonsTarget = RiveArtboard.Get();
+    }
+    HeldButtons |= ButtonBit(Button);
 
     // Only on a press that hit something, so clicking through a transparent
     // artboard leaves focus where the player put it.
@@ -88,7 +99,8 @@ FReply URiveWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry,
                                           const FPointerEvent& InMouseEvent)
 {
     Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
-    if (InMouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+    ERivePointerButton Button = ERivePointerButton::Primary;
+    if (!RiveKeyToPointerButton(InMouseEvent.GetEffectingButton(), Button))
     {
         return FReply::Unhandled();
     }
@@ -98,10 +110,21 @@ FReply URiveWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry,
         return FReply::Unhandled();
     }
 
+    // Primary is always delivered: a widget can appear under a cursor that is
+    // already held down, and the artboard still wants that release.
+    if (Button != ERivePointerButton::Primary &&
+        ((HeldButtons & ButtonBit(Button)) == 0 ||
+         HeldButtonsTarget.Get() != RiveArtboard.Get()))
+    {
+        return FReply::Unhandled();
+    }
+    HeldButtons &= static_cast<uint8>(~ButtonBit(Button));
+
     return RiveArtboard->PointerUp(InGeometry,
                                    RiveDescriptor,
                                    InMouseEvent,
-                                   UWidgetLayoutLibrary::GetViewportScale(this))
+                                   UWidgetLayoutLibrary::GetViewportScale(this),
+                                   Button)
                ? FReply::Handled()
                : FReply::Unhandled();
 }
