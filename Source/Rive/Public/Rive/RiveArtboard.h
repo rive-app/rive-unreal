@@ -124,11 +124,14 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
     bool PointerDown(const FRiveDescriptor& InDescriptor,
-                     const FVector2D& NormalLocationOnSurface)
+                     const FVector2D& NormalLocationOnSurface,
+                     ERivePointerButton Button = ERivePointerButton::Primary)
     {
         if (!StateMachine.IsValid())
             return false;
-        return StateMachine->PointerDown(InDescriptor, NormalLocationOnSurface);
+        return StateMachine->PointerDown(InDescriptor,
+                                         NormalLocationOnSurface,
+                                         Button);
     }
 
     UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
@@ -142,11 +145,14 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
     bool PointerUp(const FRiveDescriptor& InDescriptor,
-                   const FVector2D& NormalLocationOnSurface)
+                   const FVector2D& NormalLocationOnSurface,
+                   ERivePointerButton Button = ERivePointerButton::Primary)
     {
         if (!StateMachine.IsValid())
             return false;
-        return StateMachine->PointerUp(InDescriptor, NormalLocationOnSurface);
+        return StateMachine->PointerUp(InDescriptor,
+                                       NormalLocationOnSurface,
+                                       Button);
     }
 
     UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
@@ -161,14 +167,16 @@ public:
     bool PointerDown(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,
                      const FPointerEvent& MouseEvent,
-                     float DPI)
+                     float DPI,
+                     ERivePointerButton Button = ERivePointerButton::Primary)
     {
         if (!StateMachine.IsValid())
             return false;
         return StateMachine->PointerDown(MyGeometry,
                                          InDescriptor,
                                          MouseEvent,
-                                         DPI);
+                                         DPI,
+                                         Button);
     }
 
     bool PointerMove(const FGeometry& MyGeometry,
@@ -187,14 +195,16 @@ public:
     bool PointerUp(const FGeometry& MyGeometry,
                    const FRiveDescriptor& InDescriptor,
                    const FPointerEvent& MouseEvent,
-                   float DPI)
+                   float DPI,
+                   ERivePointerButton Button = ERivePointerButton::Primary)
     {
         if (!StateMachine.IsValid())
             return false;
         return StateMachine->PointerUp(MyGeometry,
                                        InDescriptor,
                                        MouseEvent,
-                                       DPI);
+                                       DPI,
+                                       Button);
     }
 
     bool PointerExit(const FGeometry& InGeometry,

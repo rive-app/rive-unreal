@@ -6,6 +6,7 @@
 THIRD_PARTY_INCLUDES_START
 #undef PI
 #include "rive/layout.hpp"
+#include "rive/pointer_button.hpp"
 THIRD_PARTY_INCLUDES_END
 
 FORCEINLINE rive::Alignment RiveAlignementToAlignment(ERiveAlignment Alignment)
@@ -55,5 +56,20 @@ FORCEINLINE rive::Fit RiveFitTypeToFit(ERiveFitType Fit)
         default:
         case ERiveFitType::None:
             return rive::Fit::none;
+    }
+}
+
+FORCEINLINE rive::PointerButton RivePointerButtonToPointerButton(
+    ERivePointerButton Button)
+{
+    switch (Button)
+    {
+        case ERivePointerButton::Secondary:
+            return rive::PointerButton::secondary;
+        case ERivePointerButton::Middle:
+            return rive::PointerButton::middle;
+        default:
+        case ERivePointerButton::Primary:
+            return rive::PointerButton::primary;
     }
 }
