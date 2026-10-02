@@ -132,8 +132,7 @@ void FRiveStateMachine::Advance(FRiveCommandBuilder& CommandBuilder,
 uint32 FRiveStateMachine::GetInputCount() const { return 0; }
 
 bool FRiveStateMachine::PointerDown(const FRiveDescriptor& InDescriptor,
-                                    const FVector2D& NormalLocationOnSurface,
-                                    ERivePointerButton Button)
+                                    const FVector2D& NormalLocationOnSurface)
 {
     bStateMachineSettled = false;
     auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
@@ -145,8 +144,7 @@ bool FRiveStateMachine::PointerDown(const FRiveDescriptor& InDescriptor,
          .screenBounds = {1, 1},
          .position = {static_cast<float>(NormalLocationOnSurface.X),
                       static_cast<float>(NormalLocationOnSurface.Y)},
-         .scaleFactor = InDescriptor.ScaleFactor,
-         .button = RivePointerButtonToPointerButton(Button)});
+         .scaleFactor = InDescriptor.ScaleFactor});
     return false;
 }
 
@@ -168,8 +166,7 @@ bool FRiveStateMachine::PointerMove(const FRiveDescriptor& InDescriptor,
 }
 
 bool FRiveStateMachine::PointerUp(const FRiveDescriptor& InDescriptor,
-                                  const FVector2D& NormalLocationOnSurface,
-                                  ERivePointerButton Button)
+                                  const FVector2D& NormalLocationOnSurface)
 {
     bStateMachineSettled = false;
     auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
@@ -181,8 +178,7 @@ bool FRiveStateMachine::PointerUp(const FRiveDescriptor& InDescriptor,
          .screenBounds = {1, 1},
          .position = {static_cast<float>(NormalLocationOnSurface.X),
                       static_cast<float>(NormalLocationOnSurface.Y)},
-         .scaleFactor = InDescriptor.ScaleFactor,
-         .button = RivePointerButtonToPointerButton(Button)});
+         .scaleFactor = InDescriptor.ScaleFactor});
     return false;
 }
 
@@ -276,8 +272,7 @@ static rive::HitResult SendPointerEventAndWait(
 bool FRiveStateMachine::PointerDown(const FGeometry& InGeometry,
                                     const FRiveDescriptor& InDescriptor,
                                     const FPointerEvent& InMouseEvent,
-                                    float DPI,
-                                    ERivePointerButton Button)
+                                    float DPI)
 {
     bStateMachineSettled = false;
     float ScaleFactor = 1.0f;
@@ -296,34 +291,17 @@ bool FRiveStateMachine::PointerDown(const FGeometry& InGeometry,
         ScreenBounds *= DPI;
     }
 
-    const rive::CommandQueue::PointerEvent Event{
-        .fit = RiveFitTypeToFit(InDescriptor.FitType),
-        .alignment = RiveAlignementToAlignment(InDescriptor.Alignment),
-        .screenBounds = {static_cast<float>(ScreenBounds.X),
-                         static_cast<float>(ScreenBounds.Y)},
-        .position = {static_cast<float>(Position.X),
-                     static_cast<float>(Position.Y)},
-        .scaleFactor = ScaleFactor,
-        .button = RivePointerButtonToPointerButton(Button)};
-
-    // Both questions answered in one round trip, since the callback already
-    // runs on the server thread and nothing advances between the two calls.
-    // Primary skips the query: it is the button a host gives Rive anyway, and
-    // gating it would also drop presses on hover-only shapes, whose listeners
-    // are bound to no button at all.
-    const bool bQueryButton = Button != ERivePointerButton::Primary;
-    const rive::StateMachineHandle Handle = NativeStateMachineHandle;
-    return RunOnServerAndWait<rive::HitResult>(
-               [Handle, Event, bQueryButton](rive::CommandServer* Server) {
-                   if (bQueryButton &&
-                       !Server->listensToButtonAtSynchronized(Handle, Event))
-                   {
-                       return rive::HitResult::none;
-                   }
-                   return Server->pointerDownSynchronized(Handle, Event);
-               },
-               rive::HitResult::none,
-               TEXT("Pointer event")) != rive::HitResult::none;
+    return SendPointerEventAndWait(
+               NativeStateMachineHandle,
+               {.fit = RiveFitTypeToFit(InDescriptor.FitType),
+                .alignment = RiveAlignementToAlignment(InDescriptor.Alignment),
+                .screenBounds = {static_cast<float>(ScreenBounds.X),
+                                 static_cast<float>(ScreenBounds.Y)},
+                .position = {static_cast<float>(Position.X),
+                             static_cast<float>(Position.Y)},
+                .scaleFactor = ScaleFactor},
+               &rive::CommandServer::pointerDownSynchronized) !=
+           rive::HitResult::none;
 }
 
 bool FRiveStateMachine::PointerMove(const FGeometry& InGeometry,
@@ -372,8 +350,7 @@ bool FRiveStateMachine::PointerMove(const FGeometry& InGeometry,
 bool FRiveStateMachine::PointerUp(const FGeometry& InGeometry,
                                   const FRiveDescriptor& InDescriptor,
                                   const FPointerEvent& InMouseEvent,
-                                  float DPI,
-                                  ERivePointerButton Button)
+                                  float DPI)
 {
     bStateMachineSettled = false;
     FVector2D Position = USlateBlueprintLibrary::AbsoluteToLocal(
@@ -399,8 +376,7 @@ bool FRiveStateMachine::PointerUp(const FGeometry& InGeometry,
                                  static_cast<float>(ScreenBounds.Y)},
                 .position = {static_cast<float>(Position.X),
                              static_cast<float>(Position.Y)},
-                .scaleFactor = ScaleFactor,
-                .button = RivePointerButtonToPointerButton(Button)},
+                .scaleFactor = ScaleFactor},
                &rive::CommandServer::pointerUpSynchronized) !=
            rive::HitResult::none;
 }

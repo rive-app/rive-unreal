@@ -113,15 +113,4 @@ private:
 
     FVector2f InitialArtboardSize;
     bool IsChangingFromLayout = false;
-
-    // Non-primary buttons whose press reached the artboard, one bit each.
-    // The release has to follow the press rather than ask again: by then the
-    // cursor may have left the shape that took it, which is a normal gesture.
-    uint8 HeldButtons = 0;
-    TWeakObjectPtr<URiveArtboard> HeldButtonsTarget;
-
-    static uint8 ButtonBit(ERivePointerButton Button)
-    {
-        return static_cast<uint8>(1u << static_cast<uint8>(Button));
-    }
 };

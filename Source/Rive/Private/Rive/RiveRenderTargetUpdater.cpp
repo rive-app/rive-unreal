@@ -89,16 +89,13 @@ void URiveRenderTargetUpdater::OnMouseLeave(AActor* TouchedActor)
 void URiveRenderTargetUpdater::OnMouseUp(AActor* TouchedActor,
                                          FKey ButtonPressed)
 {
-    ERivePointerButton Button = ERivePointerButton::Primary;
-    if (RiveKeyToPointerButton(ButtonPressed, Button))
+    if (ButtonPressed == EKeys::LeftMouseButton)
     {
         FVector2D UV;
         if (LineTraceWithUVResult(UV))
         {
             auto Artboard = RenderTargetToUpdate->GetArtboard();
-            Artboard->PointerUp(RenderTargetToUpdate->RiveDescriptor,
-                                UV,
-                                Button);
+            Artboard->PointerUp(RenderTargetToUpdate->RiveDescriptor, UV);
         }
     }
 }
@@ -106,18 +103,13 @@ void URiveRenderTargetUpdater::OnMouseUp(AActor* TouchedActor,
 void URiveRenderTargetUpdater::OnMouseDown(AActor* TouchedActor,
                                            FKey ButtonPressed)
 {
-    // Which keys arrive here is set by the project's click-event bindings;
-    // by default only the left button is bound.
-    ERivePointerButton Button = ERivePointerButton::Primary;
-    if (RiveKeyToPointerButton(ButtonPressed, Button))
+    if (ButtonPressed == EKeys::LeftMouseButton)
     {
         FVector2D UV;
         if (LineTraceWithUVResult(UV))
         {
             auto Artboard = RenderTargetToUpdate->GetArtboard();
-            Artboard->PointerDown(RenderTargetToUpdate->RiveDescriptor,
-                                  UV,
-                                  Button);
+            Artboard->PointerDown(RenderTargetToUpdate->RiveDescriptor, UV);
         }
     }
 }

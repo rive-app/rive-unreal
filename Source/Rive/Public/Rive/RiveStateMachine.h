@@ -21,30 +21,6 @@ THIRD_PARTY_INCLUDES_END
 
 class URiveViewModel;
 
-// Maps a Slate mouse key onto the button Rive listens for. False for keys the
-// runtime has no notion of, such as the thumb buttons, so a host can leave
-// those to the rest of the game.
-FORCEINLINE bool RiveKeyToPointerButton(const FKey& InKey,
-                                        ERivePointerButton& OutButton)
-{
-    if (InKey == EKeys::LeftMouseButton)
-    {
-        OutButton = ERivePointerButton::Primary;
-        return true;
-    }
-    if (InKey == EKeys::RightMouseButton)
-    {
-        OutButton = ERivePointerButton::Secondary;
-        return true;
-    }
-    if (InKey == EKeys::MiddleMouseButton)
-    {
-        OutButton = ERivePointerButton::Middle;
-        return true;
-    }
-    return false;
-}
-
 /**
  * Represents a Rive State Machine from an Artboard. A State Machine contains
  * Inputs.
@@ -66,28 +42,21 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
     uint32 GetInputCount() const;
 
     bool PointerDown(const FRiveDescriptor& InDescriptor,
-                     const FVector2D& NormalLocationOnSurface,
-                     ERivePointerButton Button = ERivePointerButton::Primary);
+                     const FVector2D& NormalLocationOnSurface);
 
     bool PointerMove(const FRiveDescriptor& InDescriptor,
                      const FVector2D& NormalLocationOnSurface);
 
     bool PointerUp(const FRiveDescriptor& InDescriptor,
-                   const FVector2D& NormalLocationOnSurface,
-                   ERivePointerButton Button = ERivePointerButton::Primary);
+                   const FVector2D& NormalLocationOnSurface);
 
     bool PointerExit(const FRiveDescriptor& InDescriptor,
                      const FVector2D& NormalLocationOnSurface);
 
-    // A press of a non-primary button that nothing under the cursor listens
-    // for never reaches the state machine and reports no hit, so a host can
-    // build an FReply from the return value alone. That question and the press
-    // itself are answered in one round trip.
     bool PointerDown(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,
                      const FPointerEvent& MouseEvent,
-                     float DPI,
-                     ERivePointerButton Button = ERivePointerButton::Primary);
+                     float DPI);
 
     bool PointerMove(const FGeometry& MyGeometry,
                      const FRiveDescriptor& InDescriptor,
@@ -97,8 +66,7 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
     bool PointerUp(const FGeometry& MyGeometry,
                    const FRiveDescriptor& InDescriptor,
                    const FPointerEvent& MouseEvent,
-                   float DPI,
-                   ERivePointerButton Button = ERivePointerButton::Primary);
+                   float DPI);
 
     bool PointerExit(const FGeometry& InGeometry,
                      const FRiveDescriptor& InDescriptor,
