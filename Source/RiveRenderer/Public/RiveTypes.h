@@ -97,3 +97,13 @@ public:
         return Center;
     }
 };
+
+// Mouse button a pointer down or up belongs to. Listeners match on it, and
+// touch and stylus input is always Primary.
+UENUM(BlueprintType)
+enum class ERivePointerButton : uint8
+{
+    Primary = 0,
+    Secondary = 1,
+    Middle = 2,
+};
