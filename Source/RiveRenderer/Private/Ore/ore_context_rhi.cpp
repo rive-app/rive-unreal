@@ -456,6 +456,11 @@ rive::rcp<rive::ore::BindGroup> OreContextRHI::makeBindGroup(
         setLastError("makeBindGroup: BindGroupDesc::layout is null");
         return nullptr;
     }
+    if (std::string err; !rive::ore::validateBindGroupDesc(desc, &err))
+    {
+        setLastError("makeBindGroup: %s", err.c_str());
+        return nullptr;
+    }
     rive::ore::BindGroupLayout* layout = desc.layout;
     const uint32_t groupIndex = layout->groupIndex();
     if (groupIndex >= rive::ore::kMaxBindGroups)
@@ -469,6 +474,7 @@ rive::rcp<rive::ore::BindGroup> OreContextRHI::makeBindGroup(
         rive::rcp<rive::ore::OreBindGroupRHI>(new rive::ore::OreBindGroupRHI());
     bindGroup->m_context = this;
     bindGroup->m_layoutRef = ref_rcp(layout);
+    bindGroup->recordDynamicRanges(desc);
 
     // UE's RHI binds loose resources per-stage by register slot, like D3D11's
     // independent VS / PS namespaces. The allocator's per-stage native slots
