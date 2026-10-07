@@ -446,7 +446,7 @@ IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAAVertexShader,
                         SF_Vertex);
 
 IMPLEMENT_GLOBAL_SHADER(FRiveRDGFillMSAAVertexShader,
-                        "/Plugin/Rive/Private/Rive/draw_depthstencil_fill.usf",
+                        "/Plugin/Rive/Private/Rive/draw_depthstencil_path.usf",
                         GLSL_drawVertexMain,
                         SF_Vertex);
 

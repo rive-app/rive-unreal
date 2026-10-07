@@ -67,6 +67,23 @@ THIRD_PARTY_INCLUDES_END
 #define RHI_ATLAS_ONLY_FEATHER 0
 #endif
 
+// The two depthStencil fill index patterns keep separate RHI index buffers.
+static bool IsOuterCubicFillDrawType(rive::gpu::DrawType DrawType)
+{
+    switch (DrawType)
+    {
+        case rive::gpu::DrawType::stencilOuterCubicBorrowedCoverage:
+        case rive::gpu::DrawType::stencilOuterCubics:
+        case rive::gpu::DrawType::stencilOuterCubicReset:
+        case rive::gpu::DrawType::stencilDynamicOuterCubics:
+        case rive::gpu::DrawType::stencilOuterCubicWinding:
+        case rive::gpu::DrawType::stencilOuterCubicCover:
+            return true;
+        default:
+            return false;
+    }
+}
+
 static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
 {
     switch (InDrawType)
@@ -89,8 +106,6 @@ static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
             return TEXT("stencilOuterCubicWinding");
         case rive::gpu::DrawType::stencilOuterCubicCover:
             return TEXT("stencilOuterCubicCover");
-        case rive::gpu::DrawType::depthStrokes:
-            return TEXT("depthStrokes");
         case rive::gpu::DrawType::stencilMidpointFanBorrowedCoverage:
             return TEXT("stencilMidpointFanBorrowedCoverage");
         case rive::gpu::DrawType::stencilDynamicMidpointFans:
@@ -103,6 +118,10 @@ static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
             return TEXT("stencilMidpointFanWinding");
         case rive::gpu::DrawType::stencilMidpointFanCover:
             return TEXT("stencilMidpointFanCover");
+        case rive::gpu::DrawType::depthStrokes:
+            return TEXT("depthStrokes");
+        case rive::gpu::DrawType::depthAAStrokes:
+            return TEXT("depthAAStrokes");
         case rive::gpu::DrawType::interiorTriangulation:
             return TEXT("interiorTriangulation");
         case rive::gpu::DrawType::clipReset:
@@ -2817,7 +2836,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                                     batch->drawType);
 
                                             CommonPassParameters.IndexBuffer =
-                                                drawTypeSubmitsOuterCubicPatches(
+                                                IsOuterCubicFillDrawType(
                                                     batch->drawType)
                                                     ? dsOuterCubicFillIndexBuffer
                                                     : dsMidpointFanFillIndexBuffer;
@@ -2883,7 +2902,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                             NameForDrawType(batch->drawType);
 
                                         CommonPassParameters.IndexBuffer =
-                                            drawTypeSubmitsOuterCubicPatches(
+                                            IsOuterCubicFillDrawType(
                                                 batch->drawType)
                                                 ? dsOuterCubicFillIndexBuffer
                                                 : dsMidpointFanFillIndexBuffer;
@@ -3342,7 +3361,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::imageRect:
                     case DrawType::renderPassInitialize:
                     case DrawType::renderPassResolve:
-                    case DrawType::depthStrokes:
                     case DrawType::stencilMidpointFanBorrowedCoverage:
                     case DrawType::stencilDynamicMidpointFans:
                     case DrawType::stencilMidpointFans:
@@ -3355,6 +3373,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::stencilOuterCubicReset:
                     case DrawType::stencilOuterCubicWinding:
                     case DrawType::stencilOuterCubicCover:
+                    case DrawType::depthStrokes:
+                    case DrawType::depthAAStrokes:
                     case DrawType::clipReset:
                         RIVE_UNREACHABLE();
                 }
@@ -3633,7 +3653,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     }
                     break;
                     case DrawType::renderPassInitialize:
-                    case DrawType::depthStrokes:
                     case DrawType::stencilMidpointFanBorrowedCoverage:
                     case DrawType::stencilDynamicMidpointFans:
                     case DrawType::stencilMidpointFans:
@@ -3646,6 +3665,8 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::stencilOuterCubicReset:
                     case DrawType::stencilOuterCubicWinding:
                     case DrawType::stencilOuterCubicCover:
+                    case DrawType::depthStrokes:
+                    case DrawType::depthAAStrokes:
                     case DrawType::clipReset:
                         RIVE_UNREACHABLE();
                 }

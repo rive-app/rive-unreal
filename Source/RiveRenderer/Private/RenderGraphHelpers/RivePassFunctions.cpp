@@ -560,16 +560,11 @@ static void DrawDSFillChunks(
 {
     const rive::gpu::DrawType DrawType =
         CommonPassParameters->DrawBatch.drawType;
-    const bool bOuterCubic =
-        rive::gpu::drawTypeSubmitsOuterCubicPatches(DrawType);
     const bool bAbsoluteVertexID =
         RHISupportsAbsoluteVertexID(GMaxRHIShaderPlatform);
     for (auto [ChunkIndexCount, ChunkBaseVertex] :
-         rive::gpu::DSIndexRangeChunker(
-             DrawType,
-             CommonPassParameters->DrawBatch.elementCount,
-             CommonPassParameters->DrawBatch.baseElement,
-             VertexFlags))
+         rive::gpu::DSIndexRangeChunker(CommonPassParameters->DrawBatch,
+                                        VertexFlags))
     {
         if (!bAbsoluteVertexID)
         {
@@ -581,8 +576,10 @@ static void DrawDSFillChunks(
                                 PassParameters->VS);
         }
         const uint32_t NumPatches =
-            ChunkIndexCount / rive::gpu::dsFillPatchIndexCount(bOuterCubic);
-        const uint32_t NumVertices = DS_PATCH_STRIDE(bOuterCubic) * NumPatches;
+            ChunkIndexCount /
+            CommonPassParameters->DrawBatch.indexCountPerInstance;
+        const uint32_t NumVertices =
+            (1u << rive::gpu::dsPatchStrideLog2(DrawType)) * NumPatches;
         // The index patterns live in their own buffers, so the draw starts
         // from index 0. StartIndex costs 26% of total framerate on Adreno.
         RHICmdList.DrawIndexedPrimitive(
