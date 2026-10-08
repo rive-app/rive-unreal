@@ -506,7 +506,7 @@ private:
 
     FSamplerStateRHIRef
         m_imageSamplers[rive::ImageSampler::MAX_SAMPLER_PERMUTATIONS];
-    FSamplerStateRHIRef m_linearSampler;
+    FSamplerStateRHIRef m_gradSampler;
     FSamplerStateRHIRef m_featherAtlasSampler;
     FSamplerStateRHIRef m_gaussianIntegralSampler;
 

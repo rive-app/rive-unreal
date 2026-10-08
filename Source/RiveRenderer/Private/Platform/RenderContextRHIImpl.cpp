@@ -1409,14 +1409,14 @@ RenderContextRHIImpl::RenderContextRHIImpl(
                                                     1,
                                                     0,
                                                     SCF_Never>::GetRHI();
-    m_linearSampler = TStaticSamplerState<SF_Bilinear,
-                                          AM_Clamp,
-                                          AM_Clamp,
-                                          AM_Clamp,
-                                          0,
-                                          1,
-                                          0,
-                                          SCF_Never>::GetRHI();
+    m_gradSampler = TStaticSamplerState<SF_Bilinear,
+                                        AM_Wrap,
+                                        AM_Wrap,
+                                        AM_Clamp,
+                                        0,
+                                        1,
+                                        0,
+                                        SCF_Never>::GetRHI();
 
     for (size_t i = 0; i < rive::ImageSampler::MAX_SAMPLER_PERMUTATIONS; i++)
     {
@@ -2619,7 +2619,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     desc.renderTargetUpdateBounds.bottom};
 
                 PassParameters->FlushUniforms = flushUniforms;
-                PassParameters->PS.gradSampler = m_linearSampler;
+                PassParameters->PS.gradSampler = m_gradSampler;
 
                 PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
                 PassParameters->PS.gaussianIntegralSampler =
@@ -3196,7 +3196,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                         .AllocParameters<FRiveRasterOrderFlushPassParameters>();
 
                 PassParameters->FlushUniforms = flushUniforms;
-                PassParameters->PS.gradSampler = m_linearSampler;
+                PassParameters->PS.gradSampler = m_gradSampler;
                 check(batch.imageSampler.asKey() <
                       ImageSampler::MAX_SAMPLER_PERMUTATIONS);
                 PassParameters->PS.imageSampler =
@@ -3452,7 +3452,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     GraphBuilder.AllocParameters<FRiveFlushPassParameters>();
 
                 PassParameters->FlushUniforms = flushUniforms;
-                PassParameters->PS.gradSampler = m_linearSampler;
+                PassParameters->PS.gradSampler = m_gradSampler;
                 check(batch.imageSampler.asKey() <
                       ImageSampler::MAX_SAMPLER_PERMUTATIONS);
                 PassParameters->PS.imageSampler =
