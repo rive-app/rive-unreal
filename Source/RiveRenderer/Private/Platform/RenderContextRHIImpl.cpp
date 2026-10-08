@@ -122,6 +122,8 @@ static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
             return TEXT("depthStrokes");
         case rive::gpu::DrawType::depthAAStrokes:
             return TEXT("depthAAStrokes");
+        case rive::gpu::DrawType::depthAAOuterHairline:
+            return TEXT("depthAAOuterHairline");
         case rive::gpu::DrawType::interiorTriangulation:
             return TEXT("interiorTriangulation");
         case rive::gpu::DrawType::clipReset:
@@ -3375,6 +3377,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::stencilOuterCubicCover:
                     case DrawType::depthStrokes:
                     case DrawType::depthAAStrokes:
+                    case DrawType::depthAAOuterHairline:
                     case DrawType::clipReset:
                         RIVE_UNREACHABLE();
                 }
@@ -3667,6 +3670,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                     case DrawType::stencilOuterCubicCover:
                     case DrawType::depthStrokes:
                     case DrawType::depthAAStrokes:
+                    case DrawType::depthAAOuterHairline:
                     case DrawType::clipReset:
                         RIVE_UNREACHABLE();
                 }
