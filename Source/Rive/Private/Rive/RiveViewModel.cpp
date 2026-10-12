@@ -1081,8 +1081,16 @@ void URiveViewModel::SetTrigger(const FString& TriggerName)
     check(RiveRenderer);
     auto& Builder = RiveRenderer->GetCommandBuilder();
     Builder.SetViewModelTrigger(NativeViewModelInstance, TriggerName);
-    IgnoredTriggerCallbacks.Add(*TriggerName);
     UnsettleStateMachine(TEXT("SetTrigger"));
+}
+
+void URiveViewModel::K2_SetTrigger(const FString& TriggerName)
+{
+    if (bIsInDataCallback)
+        return;
+
+    IgnoredTriggerCallbacks.Add(*TriggerName);
+    SetTrigger(TriggerName);
 }
 
 void URiveViewModel::OnViewModelDataReceived(
@@ -1119,8 +1127,10 @@ void URiveViewModel::OnViewModelDataReceived(
         return;
     }
 
-    // Don't process trigger requests we made via "call" in blueprints
-    if (IgnoredTriggerCallbacks.Remove(Property->GetFName()))
+    // Don't process trigger requests we made via "call" in blueprints. One
+    // marker per call, so two calls before either callback arrives suppress
+    // one callback each rather than the first clearing both.
+    if (IgnoredTriggerCallbacks.RemoveSingle(Property->GetFName()) > 0)
     {
         return;
     }
@@ -1705,7 +1715,7 @@ void URiveTriggerDelegate::SetTrigger()
             ViewModel->ViewModelDefinition.PropertyDefinitions[TriggerIndex]
                 .Type;
         check(TriggerType == ERiveDataType::Trigger)
-            ViewModel->SetTrigger(TriggerName);
+            ViewModel->K2_SetTrigger(TriggerName);
 
         OnTrigger.Broadcast(ViewModel.Get(), TriggerName);
     }

@@ -184,8 +184,12 @@ public:
                       ScriptName = "RemoveFromListAtIndex"))
     void K2_RemoveFromListAtIndex(FRiveList List, int32 Index);
 
-    UFUNCTION(BlueprintCallable, Category = "Rive|ViewModel")
     void SetTrigger(const FString& TriggerName);
+
+    UFUNCTION(BlueprintCallable,
+              Category = "Rive|ViewModel",
+              meta = (DisplayName = "Set Trigger", ScriptName = "SetTrigger"))
+    void K2_SetTrigger(const FString& TriggerName);
 
     // C++ access to trigger callbacks
     URiveTriggerDelegate* GetTriggerDelegateForName(
