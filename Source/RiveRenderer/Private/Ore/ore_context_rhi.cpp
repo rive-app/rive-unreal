@@ -340,6 +340,7 @@ rive::rcp<rive::ore::Sampler> OreContextRHI::makeSampler(
         rive::rcp<rive::ore::OreSamplerRHI>(new rive::ore::OreSamplerRHI());
     FSamplerStateInitializerRHI init = SamplerStateInitializerFromOreDesc(desc);
     sampler->m_sampler = RHICreateSamplerState(init);
+    sampler->recordDesc(desc);
     return sampler;
 }
 
