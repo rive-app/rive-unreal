@@ -34,11 +34,28 @@ class RenderContext;
 
 class FRiveRenderTarget;
 
+struct FRiveFrameOverrides
+{
+    uint32 MSAASampleCount = 0;
+    bool bClockwiseFill = false;
+    bool bInkbleed = false;
+
+    bool IsSet() const { return MSAASampleCount != 0; }
+};
+
 class RIVERENDERER_API FRiveRenderer
 {
 public:
     FRiveRenderer();
     ~FRiveRenderer();
+
+    void SetFrameOverrides(const FRiveFrameOverrides& InFrameOverrides)
+    {
+        FrameOverrides = InFrameOverrides;
+    }
+
+    void ApplyFrameOverrides(
+        rive::gpu::RenderContext::FrameDescriptor& Desc) const;
 
     TSharedPtr<FRiveRenderTarget> CreateRenderTarget(
         const FString& InRiveName,
@@ -125,4 +142,5 @@ private:
     TUniquePtr<rive::CommandServer> CommandServer;
     rive::rcp<rive::CommandQueue> CommandQueue;
     FRiveCommandBuilder CommandBuilder;
+    FRiveFrameOverrides FrameOverrides;
 };

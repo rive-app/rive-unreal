@@ -142,6 +142,11 @@ TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
         FrameDescriptor.fillsDisabled = false;
         FrameDescriptor.strokesDisabled = false;
 
+        if (RiveRenderer != nullptr)
+        {
+            RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
+        }
+
         RenderContextPtr->beginFrame(std::move(FrameDescriptor));
     }
     else if (ThumbnailRenderTarget)
@@ -163,6 +168,11 @@ TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
         FrameDescriptor.fillsDisabled = false;
         FrameDescriptor.strokesDisabled = false;
 
+        if (RiveRenderer != nullptr)
+        {
+            RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
+        }
+
         RenderContextPtr->beginFrame(std::move(FrameDescriptor));
     }
     else if (RenderTargetRDG != nullptr)
@@ -181,6 +191,11 @@ TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
         FrameDescriptor.wireframe = false;
         FrameDescriptor.fillsDisabled = false;
         FrameDescriptor.strokesDisabled = false;
+
+        if (RiveRenderer != nullptr)
+        {
+            RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
+        }
 
         RenderContextPtr->beginFrame(std::move(FrameDescriptor));
     }

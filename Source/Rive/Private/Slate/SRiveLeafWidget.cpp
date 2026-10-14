@@ -274,11 +274,12 @@ public:
         {
             const FIntVector OutputSize = Inputs.OutputTexture->Desc.GetSize();
             const bool bWireFrame = Inputs.bWireFrame;
+            FRiveRenderer* const RiveRendererLocal = RiveRenderer;
             RiveRenderer->ReplayDeferredFrame(
                 GraphBuilder,
-                [Context, OutputSize, bWireFrame](
+                [Context, OutputSize, bWireFrame, RiveRendererLocal](
                     bool) -> TUniquePtr<rive::Renderer> {
-                    Context->beginFrame({
+                    rive::gpu::RenderContext::FrameDescriptor FrameDescriptor{
                         .renderTargetWidth =
                             static_cast<uint32_t>(OutputSize.X),
                         .renderTargetHeight =
@@ -286,7 +287,9 @@ public:
                         .loadAction =
                             rive::gpu::LoadAction::preserveRenderTarget,
                         .wireframe = bWireFrame,
-                    });
+                    };
+                    RiveRendererLocal->ApplyFrameOverrides(FrameDescriptor);
+                    Context->beginFrame(FrameDescriptor);
                     return MakeUnique<rive::RiveRenderer>(Context);
                 },
                 [Context, &renderTarget, &GraphBuilder] {

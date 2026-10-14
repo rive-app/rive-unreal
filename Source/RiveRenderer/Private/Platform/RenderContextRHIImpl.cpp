@@ -393,6 +393,18 @@ FStaticResourceDataView GDSOuterCubicFillIndices(*GPatchIndices +
                                                      DSOuterCubicFillBaseIndex,
                                                  kDSOuterCubicFillIndexCount *
                                                      sizeof(uint16_t));
+constexpr static uint32_t kDSStrokeIndexCount =
+    DSStrokePatchMaxReps * DSStrokePatchIndexCount;
+constexpr static uint32_t kDSAAStrokeIndexCount =
+    DSAAStrokePatchMaxReps * DSAAStrokePatchIndexCount;
+FStaticResourceDataView GDSStrokeIndices(*GPatchIndices +
+                                             DSStrokePatchBaseIndex,
+                                         kDSStrokeIndexCount *
+                                             sizeof(uint16_t));
+FStaticResourceDataView GDSAAStrokeIndices(*GPatchIndices +
+                                               DSAAStrokePatchBaseIndex,
+                                           kDSAAStrokeIndexCount *
+                                               sizeof(uint16_t));
 // clang format does weird things to this so turn it off
 // clang-format off
 static TAutoConsoleVariable<int32> CVarUseSubpassLoad(
@@ -432,15 +444,19 @@ static TAutoConsoleVariable<bool> CVarRiveWireframe(
     TEXT("Render rive in Wireframe"),
     ECVF_Scalability | ECVF_RenderThreadSafe);
 #if WITH_EDITOR
-static TAutoConsoleVariable<int32> CVarInterlocksMode(
+static TAutoConsoleVariable<FString> CVarInterlocksMode(
     TEXT("r.rive.interlock"),
-    0,
+    TEXT("default"),
     TEXT("Forces a specific interlock mode for rive render context. Only works in editor.\n")
-        TEXT(" 0: Default, Auto select based on platform.\n")
-        TEXT(" 1: Atomics, force atomic, using interlock add etc.\n")
-        TEXT(" 2: RasterOrdered, For raster ordering, using RasterizeOrderedViews etc.\n")
-        TEXT(" 3: MSAA, Forces MSAA mode, rendering using stencil buffers and multi sampling."),
-    ECVF_Scalability | ECVF_RenderThreadSafe);
+        TEXT(" default: Auto select based on platform.\n")
+        TEXT(" atomics: force atomic, using interlock add etc.\n")
+        TEXT(" raster: For raster ordering, using RasterizeOrderedViews etc.\n")
+        TEXT(" msaa: Forces MSAA mode, rendering using stencil buffers and multi sampling.\n")
+        TEXT(" cwmsaa1: Single-sample depthStencil plus the clockwise fill rule,\n")
+        TEXT("          which replaces each path's own evenOdd/nonZero rule. Paths\n")
+        TEXT("          with counterclockwise regions render differently, so this\n")
+        TEXT("          only matches clockwise goldens."),
+    ECVF_Scalability);
 #endif
 // clang-format on
 
@@ -926,13 +942,25 @@ FRDGTextureRef RenderTargetRHI::backBufferTexture(
 
     ETextureCreateFlags CreateFlags = ETextureCreateFlags::None;
     EPixelFormat UAVFormat = PF_Unknown;
-    if (Desc.interlockMode == InterlockMode::depthStencil)
+    if (Desc.interlockMode == InterlockMode::depthStencil &&
+        Desc.msaaSampleCount > 1)
     {
         // ShaderResource because the final copy samples this back buffer.
         // RenderTargetable is deliberately absent, it asserts alongside
         // ResolveTargetable in D3D12Texture.cpp.
         CreateFlags |= ETextureCreateFlags::ResolveTargetable |
                        ETextureCreateFlags::ShaderResource;
+    }
+    else if (Desc.interlockMode == InterlockMode::depthStencil)
+    {
+        // A single sample resolves nothing, so the flush draws straight into
+        // this texture, and advanced blend composites into it as a UAV.
+        CreateFlags |= ETextureCreateFlags::RenderTargetable |
+                       ETextureCreateFlags::ShaderResource;
+        if (!Desc.fixedFunctionColorOutput)
+        {
+            CreateFlags |= ETextureCreateFlags::UAV;
+        }
     }
     else if (Desc.fixedFunctionColorOutput)
         CreateFlags |= ETextureCreateFlags::RenderTargetable;
@@ -986,7 +1014,8 @@ FRDGTextureRef RenderTargetRHI::coverageTexture(FRDGBuilder& Builder)
 }
 
 FRDGTextureRef RenderTargetRHI::msaaColorTexture(FRDGBuilder& Builder,
-                                                 const FLinearColor& ClearColor)
+                                                 const FLinearColor& ClearColor,
+                                                 uint32 SampleCount)
 {
     check(m_rdgTextureTarget || m_textureTarget || m_renderTarget);
 
@@ -1034,13 +1063,14 @@ FRDGTextureRef RenderTargetRHI::msaaColorTexture(FRDGBuilder& Builder,
                                   FClearValueBinding(ClearColor),
                                   CreateFlags,
                                   1,
-                                  4);
+                                  SampleCount);
     return Builder.CreateTexture(desc, TEXT("rive.MSAAColor"));
 }
 
 FRDGTextureRef RenderTargetRHI::msaaStencilTexture(FRDGBuilder& Builder,
                                                    float DepthClear,
-                                                   uint32 StencilClear)
+                                                   uint32 StencilClear,
+                                                   uint32 SampleCount)
 {
     FIntPoint Extent{static_cast<int32>(width()), static_cast<int32>(height())};
 
@@ -1050,7 +1080,7 @@ FRDGTextureRef RenderTargetRHI::msaaStencilTexture(FRDGBuilder& Builder,
                                   FClearValueBinding(DepthClear, StencilClear),
                                   ETextureCreateFlags::DepthStencilTargetable,
                                   1,
-                                  4);
+                                  SampleCount);
 
     return Builder.CreateTexture(desc, TEXT("rive.MSAADepthStencil"));
 }
@@ -1209,6 +1239,9 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     m_platformFeatures.alwaysFeatherToAtlas = RHI_ATLAS_ONLY_FEATHER;
 #if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
     m_platformFeatures.supportsPipelineDynamicState = true;
+#else
+    m_platformFeatures.supportsPipelineDynamicState =
+        !IsVulkanPlatform(GMaxRHIShaderPlatform);
 #endif
 #if RIVE_FORCE_RASTER_ORDER
     m_platformFeatures.supportsAtomicMode = false;
@@ -1374,6 +1407,16 @@ RenderContextRHIImpl::RenderContextRHIImpl(
         TEXT("rive.DSOuterCubicFillIndexBuffer"),
         EBufferUsageFlags::IndexBuffer,
         GDSOuterCubicFillIndices);
+    m_dsStrokeIndexBuffer =
+        makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
+                                            TEXT("rive.DSStrokeIndexBuffer"),
+                                            EBufferUsageFlags::IndexBuffer,
+                                            GDSStrokeIndices);
+    m_dsAAStrokeIndexBuffer =
+        makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
+                                            TEXT("rive.DSAAStrokeIndexBuffer"),
+                                            EBufferUsageFlags::IndexBuffer,
+                                            GDSAAStrokeIndices);
 
     m_tessSpanIndexBuffer =
         makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
@@ -1483,23 +1526,26 @@ RenderContextRHIImpl::RenderContextRHIImpl(
         false);
 }
 #if WITH_EDITOR
-void RenderContextRHIImpl::updateFromInterlockCVar(int32 CVar)
+void RenderContextRHIImpl::updateFromInterlockOverride(
+    ERiveInterlockOverride Override)
 {
-    switch (CVar)
+    switch (Override)
     {
         default:
-        case 0:
+        case ERiveInterlockOverride::None:
+        case ERiveInterlockOverride::CWMSAA1:
+        case ERiveInterlockOverride::CWIB:
             m_platformFeatures = m_originalPlatformFeatures;
             break;
-        case 1:
+        case ERiveInterlockOverride::Atomics:
             m_platformFeatures.supportsAtomicMode = true;
             m_platformFeatures.supportsRasterOrderingMode = false;
             break;
-        case 2:
+        case ERiveInterlockOverride::Raster:
             m_platformFeatures.supportsAtomicMode = false;
             m_platformFeatures.supportsRasterOrderingMode = true;
             break;
-        case 3:
+        case ERiveInterlockOverride::MSAA:
             m_platformFeatures.supportsAtomicMode = false;
             m_platformFeatures.supportsRasterOrderingMode = false;
             break;
@@ -1988,8 +2034,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         static const bool callOnce = [interlockMode = desc.interlockMode]() {
             UE_LOG(LogRiveRenderer,
                    Display,
-                   TEXT("RenderContextRHIImpl::flush Interlock: %s"),
-                   StrForInterlock(interlockMode))
+                   TEXT("RenderContextRHIImpl::flush Interlock: %s, "
+                        "Resources: %s"),
+                   StrForInterlock(interlockMode),
+                   RivePlatformWantsBindless(GMaxRHIShaderPlatform)
+                       ? TEXT("bindless")
+                       : TEXT("bindful"))
             return true;
         }();
     }
@@ -2025,7 +2075,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             (!renderTarget->TargetTextureSupportsRenderTarget() &&
              desc.fixedFunctionColorOutput) ||
             (!renderTarget->TargetTextureSupportsResolveTarget() &&
-             desc.interlockMode == InterlockMode::depthStencil) ||
+             desc.interlockMode == InterlockMode::depthStencil &&
+             desc.msaaSampleCount > 1) ||
+            // A single sample draws straight into the target, so it has to be
+            // renderTargetable even when the color output is not fixed
+            // function.
+            (!renderTarget->TargetTextureSupportsRenderTarget() &&
+             desc.interlockMode == InterlockMode::depthStencil &&
+             desc.msaaSampleCount <= 1) ||
             (!desc.fixedFunctionColorOutput &&
              desc.interlockMode != InterlockMode::depthStencil &&
              targetTexture->Desc.Format != PF_R8G8B8A8);
@@ -2485,22 +2542,39 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             static const bool bNeedsCustomDrawResolve =
                 MSAA_NEEDS_CUSTOM_RESOLVE || bNeedsSeperateResolve;
 
+            const bool bSingleSampleTarget = desc.msaaSampleCount <= 1;
+
+            // With no framebuffer fetch, a single sample target can be bound
+            // as a UAV so advanced blend reads dst in place instead of
+            // copying it to a scratch texture.
+            const bool bUseUavColor =
+                bSingleSampleTarget && !bUseSinglePassBarrier &&
+                GRHISupportsPixelShaderUAVs &&
+                enums::is_flag_set(desc.combinedShaderFeatures,
+                                   gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND);
+
             // EClear is only safe while the flush stays in one render pass,
             // since a restart re-clears the earlier passes. A separate resolve
             // leaves the pass no resolve target, so it clears standalone.
             const bool bClearInPass = bUseSinglePassBarrier &&
                                       !bNeedsSeperateResolve &&
+                                      !bSingleSampleTarget &&
                                       desc.colorLoadAction == LoadAction::clear;
 
             float values[4];
             rive::UnpackColorToRGBA32FPremul(desc.colorClearValue, values);
             FLinearColor ClearColor(values[0], values[1], values[2], values[3]);
             MSAAColorTexture =
-                renderTarget->msaaColorTexture(GraphBuilder, ClearColor);
+                bSingleSampleTarget
+                    ? (NeedsBackBuffer ? backBuffer : targetTexture)
+                    : renderTarget->msaaColorTexture(GraphBuilder,
+                                                     ClearColor,
+                                                     desc.msaaSampleCount);
             DepthStencilTexture =
                 renderTarget->msaaStencilTexture(GraphBuilder,
                                                  desc.depthClearValue,
-                                                 desc.stencilClearValue);
+                                                 desc.stencilClearValue,
+                                                 desc.msaaSampleCount);
 
             AddClearDepthStencilPass(GraphBuilder, DepthStencilTexture);
             if (desc.colorLoadAction == LoadAction::clear)
@@ -2509,12 +2583,13 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                          NeedsBackBuffer ? backBuffer
                                                          : targetTexture,
                                          ClearColor);
-                if (!bClearInPass)
+                if (!bClearInPass && !bSingleSampleTarget)
                 {
                     AddClearRenderTargetPass(GraphBuilder, MSAAColorTexture);
                 }
             }
-            else if (desc.colorLoadAction == LoadAction::preserveRenderTarget)
+            else if (desc.colorLoadAction == LoadAction::preserveRenderTarget &&
+                     !(bSingleSampleTarget && !NeedsBackBuffer))
             {
                 auto Params =
                     GraphBuilder
@@ -2538,7 +2613,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             }
 
             // The scratch readback texture serves the fallback path.
-            if (!bUseSinglePassBarrier &&
+            if (!bUseSinglePassBarrier && !bUseUavColor &&
                 enums::is_flag_set(desc.combinedShaderFeatures,
                                    gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND))
             {
@@ -2576,11 +2651,18 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                    SeedCopyInfo);
             }
 
-            auto AllocPassParameters = [&]() {
+            auto AllocPassParameters = [&](bool bPassUsesUav) {
                 auto PassParameters =
                     GraphBuilder
                         .AllocParameters<FRiveMSAAFlushPassParameters>();
-                if (bNeedsSeperateResolve)
+                if (bPassUsesUav)
+                {
+                    // The framebuffer is the UAV for this pass, so it must not
+                    // also be bound as a color attachment.
+                    PassParameters->PS.GLSL_dstColorUav_raw =
+                        GraphBuilder.CreateUAV(MSAAColorTexture);
+                }
+                else if (bNeedsSeperateResolve || bSingleSampleTarget)
                 {
                     PassParameters->RenderTargets[0] = {
                         MSAAColorTexture,
@@ -2667,20 +2749,45 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 // A null split list keeps the whole flush in one render pass
                 // with in-pass barriers.
                 const bool bSinglePass = bUseSinglePassBarrier;
-                const DrawBatch* const FirstRenderPassSplit =
+
+                // Advanced blend writes the framebuffer UAV; everything else
+                // writes the color attachment. A pass can only bind one of
+                // them, so the flush alternates passes as the mode changes.
+                auto BatchUsesUav = [bUseUavColor](const DrawBatch* Batch) {
+                    return bUseUavColor &&
+                           enums::is_flag_set(
+                               Batch->shaderFeatures,
+                               gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND);
+                };
+                auto SegmentEnd = [&BatchUsesUav](const DrawBatch* Start,
+                                                  const DrawBatch* BarrierEnd) {
+                    const bool bMode = BatchUsesUav(Start);
+                    for (const DrawBatch* Batch = Start->next;
+                         Batch != nullptr && Batch != BarrierEnd;
+                         Batch = Batch->next)
+                    {
+                        if (BatchUsesUav(Batch) != bMode)
+                        {
+                            return Batch;
+                        }
+                    }
+                    return BarrierEnd;
+                };
+
+                // Only batches that start a pass carry a barrier pointer, so
+                // the barrier end is tracked here and only advances once a
+                // pass actually reaches it.
+                const DrawBatch* RenderPassStart = CopyList->head();
+                const DrawBatch* BarrierEnd =
                     bSinglePass ? nullptr
                                 : CopyList->head()->nextDstBlendBarrier;
-                for (const DrawBatch *
-                         RenderPassStart = CopyList->head(),
-                        *NextRenderPass = FirstRenderPassSplit;
-                     RenderPassStart != nullptr;
-                     RenderPassStart = NextRenderPass,
-                        NextRenderPass =
-                            (RenderPassStart != nullptr && !bSinglePass)
-                                ? RenderPassStart->nextDstBlendBarrier
-                                : nullptr)
+                while (RenderPassStart != nullptr)
                 {
-                    auto PassParameters = AllocPassParameters();
+                    const DrawBatch* NextRenderPass =
+                        bSinglePass ? nullptr
+                                    : SegmentEnd(RenderPassStart, BarrierEnd);
+                    const bool bPassUsesUav = BatchUsesUav(RenderPassStart);
+                    auto PassParameters = AllocPassParameters(bPassUsesUav);
 
                     GraphBuilder.AddPass(
                         RDG_EVENT_NAME("Rive_Draw_MSAA_Render_Pass"),
@@ -2696,6 +2803,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                          NextRenderPass,
                          bUseSinglePassBarrier,
                          bUseSubpassLoad,
+                         bPassUsesUav,
                          imageRectInstanceBuffer =
                              m_imageRectInstanceBuffer.get(),
                          imageMeshInstanceBuffer =
@@ -2707,10 +2815,11 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                              m_dsMidpointFanFillIndexBuffer,
                          dsOuterCubicFillIndexBuffer =
                              m_dsOuterCubicFillIndexBuffer,
+                         dsStrokeIndexBuffer = m_dsStrokeIndexBuffer,
+                         dsAAStrokeIndexBuffer = m_dsAAStrokeIndexBuffer,
                          triangleBuffer,
                          Viewport,
                          Scissor,
-                         m_platformFeatures = m_platformFeatures,
                          FixedFunctionColorOutput =
                              desc.fixedFunctionColorOutput](
                             FRHICommandListImmediate& RHICmdList) {
@@ -2804,7 +2913,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                 FRiveCommonPassParameters CommonPassParameters(
                                     *batch,
                                     PipelineState,
-                                    m_platformFeatures,
+                                    platformFeatures,
                                     ShaderMap);
 
                                 CommonPassParameters.VertexPermutationDomain =
@@ -2824,11 +2933,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                     desc.wireframe;
                                 CommonPassParameters.bUseSubpassLoad =
                                     bUseSubpassLoad;
+                                CommonPassParameters.bUseUavColor =
+                                    bPassUsesUav;
+                                CommonPassParameters.bEnableMSAA =
+                                    desc.msaaSampleCount > 1;
                                 switch (batch->drawType)
                                 {
                                     case DrawType::stencilDynamicMidpointFans:
                                     case DrawType::stencilDynamicOuterCubics:
-#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
                                         // Only emitted when the context reports
                                         // supportsPipelineDynamicState, which
                                         // requires the engine patch.
@@ -2883,9 +2995,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                                 PassStates);
                                         }
                                         break;
-#else
-                                        RIVE_UNREACHABLE();
-#endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
 
                                     case DrawType::stencilOuterCubics:
                                     case DrawType::
@@ -2918,24 +3027,19 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                     break;
 
                                     case DrawType::depthStrokes:
+                                    case DrawType::depthAAStrokes:
+                                    case DrawType::depthAAOuterHairline:
                                     {
                                         const FString& PassName =
                                             NameForDrawType(batch->drawType);
 
-                                        CommonPassParameters
-                                            .VertexDeclarationRHI =
-                                            VertexDeclarations[static_cast<
-                                                int32>(
-                                                EVertexDeclarations::Paths)];
-                                        CommonPassParameters.VertexBuffers[0] =
-                                            patchVertexBuffer;
                                         CommonPassParameters.IndexBuffer =
-                                            patchIndexBuffer;
+                                            batch->drawType ==
+                                                    DrawType::depthAAStrokes
+                                                ? dsAAStrokeIndexBuffer
+                                                : dsStrokeIndexBuffer;
 
-                                        PassParameters->VS.baseInstance =
-                                            batch->baseElement;
-
-                                        AddDrawMSAAPatchesPass(
+                                        AddDrawMSAAFillsPass(
                                             RHICmdList,
                                             PassName,
                                             &CommonPassParameters,
@@ -3041,7 +3145,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                         DstBoundaries,
                                         1,
                                         ECsvCustomStatOp::Accumulate);
-                        if (bNeedsSeperateResolve)
+                        if (bNeedsSeperateResolve && !bSingleSampleTarget)
                         {
                             RDG_EVENT_SCOPE_STAT(
                                 GraphBuilder,
@@ -3085,9 +3189,17 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                                DstCopyInfo);
                         }
                     }
+
+                    RenderPassStart = NextRenderPass;
+                    if (RenderPassStart != nullptr &&
+                        RenderPassStart == BarrierEnd)
+                    {
+                        BarrierEnd = RenderPassStart->nextDstBlendBarrier;
+                    }
                 }
 
-                if (bNeedsSeperateResolve && MSAAColorTexture)
+                if (bNeedsSeperateResolve && MSAAColorTexture &&
+                    !bSingleSampleTarget)
                 {
                     if (bNeedsCustomDrawResolve)
                     {

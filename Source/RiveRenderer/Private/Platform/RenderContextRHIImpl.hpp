@@ -111,11 +111,13 @@ public:
     FRDGTextureRef coverageTexture(FRDGBuilder& Builder);
 
     FRDGTextureRef msaaColorTexture(FRDGBuilder& Builder,
-                                    const FLinearColor& ClearColor);
+                                    const FLinearColor& ClearColor,
+                                    uint32 SampleCount);
 
     FRDGTextureRef msaaStencilTexture(FRDGBuilder& Builder,
                                       float DepthClear,
-                                      uint32 StencilClear);
+                                      uint32 StencilClear,
+                                      uint32 SampleCount);
 
     bool TargetTextureSupportsUAV() const { return m_targetTextureSupportsUAV; }
     bool TargetTextureSupportsRenderTarget() const
@@ -338,6 +340,42 @@ enum class EVertexDeclarations : int32
     NumVertexDeclarations
 };
 
+enum class ERiveInterlockOverride
+{
+    None,
+    Atomics,
+    Raster,
+    MSAA,
+    CWMSAA1,
+    CWIB,
+};
+
+inline ERiveInterlockOverride ParseRiveInterlockOverride(const FString& Name)
+{
+    const FString Lower = Name.ToLower();
+    if (Lower == TEXT("atomics"))
+    {
+        return ERiveInterlockOverride::Atomics;
+    }
+    if (Lower == TEXT("raster"))
+    {
+        return ERiveInterlockOverride::Raster;
+    }
+    if (Lower == TEXT("msaa"))
+    {
+        return ERiveInterlockOverride::MSAA;
+    }
+    if (Lower == TEXT("cwmsaa1"))
+    {
+        return ERiveInterlockOverride::CWMSAA1;
+    }
+    if (Lower == TEXT("cwib") || Lower == TEXT("inkbleed"))
+    {
+        return ERiveInterlockOverride::CWIB;
+    }
+    return ERiveInterlockOverride::None;
+}
+
 class RIVERENDERER_API RenderContextRHIImpl
     : public rive::gpu::RenderContextImpl
 {
@@ -371,7 +409,7 @@ public:
     RenderContextRHIImpl(FRHICommandListImmediate& CommandListImmediate,
                          const RHICapabilitiesOverrides& Overrides);
 #if WITH_EDITOR
-    void updateFromInterlockCVar(int32 CVar);
+    void updateFromInterlockOverride(ERiveInterlockOverride Override);
 #endif
     rive::rcp<RenderTargetRHI> makeRenderTarget(
         FRHICommandListImmediate& RHICmdList,
@@ -500,6 +538,8 @@ private:
     FBufferRHIRef m_patchIndexBuffer;
     FBufferRHIRef m_dsMidpointFanFillIndexBuffer;
     FBufferRHIRef m_dsOuterCubicFillIndexBuffer;
+    FBufferRHIRef m_dsStrokeIndexBuffer;
+    FBufferRHIRef m_dsAAStrokeIndexBuffer;
     FBufferRHIRef m_imageRectVertexBuffer;
     FBufferRHIRef m_imageRectIndexBuffer;
     FBufferRHIRef m_tessSpanIndexBuffer;

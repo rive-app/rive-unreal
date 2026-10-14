@@ -133,8 +133,9 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object,
             FRDGBuilder GraphBuilder(RHICmdList);
             RiveRenderer->ReplayDeferredFrame(
                 GraphBuilder,
-                [Context, AlignmentBox](bool) -> TUniquePtr<rive::Renderer> {
-                    Context->beginFrame({
+                [Context, AlignmentBox, RiveRenderer](
+                    bool) -> TUniquePtr<rive::Renderer> {
+                    rive::gpu::RenderContext::FrameDescriptor FrameDescriptor{
                         .renderTargetWidth =
                             static_cast<uint32_t>(AlignmentBox.GetSize().X),
                         .renderTargetHeight =
@@ -142,7 +143,9 @@ void URiveFileThumbnailRenderer::Draw(UObject* Object,
                         .loadAction = rive::gpu::LoadAction::clear,
                         .clearColor = rive::colorRed(255),
                         .wireframe = false,
-                    });
+                    };
+                    RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
+                    Context->beginFrame(FrameDescriptor);
                     return MakeUnique<rive::RiveRenderer>(Context);
                 },
                 [Context, &RenderTarget, &GraphBuilder] {

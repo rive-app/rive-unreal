@@ -218,6 +218,7 @@ SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, GLSL_featherAtlasTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_gradTexture_raw)
 SHADER_PARAMETER_TEXTURE(Texture2D, GLSL_imageTexture_raw)
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GLSL_dstColorTexture_raw)
+SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<float4>, GLSL_dstColorUav_raw)
 
 SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
@@ -355,6 +356,8 @@ public:
         const FShaderPermutationParameters&,
         FShaderCompilerEnvironment&);
 };
+
+RIVESHADERS_API bool RivePlatformWantsBindless(EShaderPlatform Platform);
 
 RIVESHADERS_API void ModifyMSAAPathVertexShaderEnvironment(
     const FShaderPermutationParameters& Parameters,
@@ -1013,6 +1016,82 @@ public:
     }
 };
 
+class FRiveRDGPolarStrokeMSAAVertexShader : public FRiveBaseVertexShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGPolarStrokeMSAAVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGPolarStrokeMSAAVertexShader,
+                                FRiveBaseVertexShader);
+    using FParameters = FRiveMSAAVertexDrawUniforms;
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters& Parameters,
+        FShaderCompilerEnvironment& Environment)
+    {
+        ModifyMSAAPathVertexShaderEnvironment(Parameters, Environment);
+    }
+};
+
+class FRiveRDGHairlineStrokeMSAAVertexShader : public FRiveBaseVertexShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGHairlineStrokeMSAAVertexShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGHairlineStrokeMSAAVertexShader,
+                                FRiveBaseVertexShader);
+    using FParameters = FRiveMSAAVertexDrawUniforms;
+
+    USE_ATOMIC_VERTEX_PERMUTATIONS
+
+    static void ModifyCompilationEnvironment(
+        const FShaderPermutationParameters& Parameters,
+        FShaderCompilerEnvironment& Environment)
+    {
+        ModifyMSAAPathVertexShaderEnvironment(Parameters, Environment);
+    }
+};
+
+class FRiveRDGPolarStrokeMSAAPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGPolarStrokeMSAAPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGPolarStrokeMSAAPixelShader,
+                                FRiveBasePixelShader);
+    using FParameters = FRiveMSAAPixelDrawUniforms;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return ShouldCompilePixelMSAAPermutation<
+            FRiveRDGPolarStrokeMSAAPixelShader>(Parameters);
+    }
+};
+
+class FRiveRDGHairlineStrokeMSAAPixelShader : public FRiveBasePixelShader
+{
+public:
+    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveRDGHairlineStrokeMSAAPixelShader,
+                                   RIVESHADERS_API);
+    SHADER_USE_PARAMETER_STRUCT(FRiveRDGHairlineStrokeMSAAPixelShader,
+                                FRiveBasePixelShader);
+    using FParameters = FRiveMSAAPixelDrawUniforms;
+
+    USE_ATOMIC_PIXEL_PERMUTATIONS
+
+    static bool ShouldCompilePermutation(
+        const FShaderPermutationParameters& Parameters)
+    {
+        return ShouldCompilePixelMSAAPermutation<
+            FRiveRDGHairlineStrokeMSAAPixelShader>(Parameters);
+    }
+};
+
 class FRiveRDGStencilMSAAVertexShader : public FRiveBaseVertexShader
 {
 public:
@@ -1091,6 +1170,61 @@ RIVE_MSAA_SUBPASS_PIXEL_SHADER(FRiveRDGAtlasBlitMSAASubpassPixelShader,
                                FRiveRDGAtlasBlitMSAAPixelShader)
 RIVE_MSAA_SUBPASS_PIXEL_SHADER(FRiveRDGImageMeshMSAASubpassPixelShader,
                                FRiveRDGImageMeshMSAAPixelShader)
+RIVE_MSAA_SUBPASS_PIXEL_SHADER(FRiveRDGPolarStrokeMSAASubpassPixelShader,
+                               FRiveRDGPolarStrokeMSAAPixelShader)
+RIVE_MSAA_SUBPASS_PIXEL_SHADER(FRiveRDGHairlineStrokeMSAASubpassPixelShader,
+                               FRiveRDGHairlineStrokeMSAAPixelShader)
+
+RIVESHADERS_API bool RivePlatformSupportsPixelShaderUAVs(
+    const FShaderPermutationParameters& Parameters);
+
+RIVESHADERS_API void ModifyMSAAUavShaderEnvironment(
+    const FShaderPermutationParameters& Parameters,
+    FShaderCompilerEnvironment& Environment);
+
+#define RIVE_MSAA_UAV_PIXEL_SHADER(NAME, BASE)                                 \
+    class NAME : public FRiveBasePixelShader                                   \
+    {                                                                          \
+    public:                                                                    \
+        DECLARE_EXPORTED_GLOBAL_SHADER(NAME, RIVESHADERS_API);                 \
+        SHADER_USE_PARAMETER_STRUCT(NAME, FRiveBasePixelShader);               \
+        using FParameters = FRiveMSAAPixelDrawUniforms;                        \
+                                                                               \
+        USE_ATOMIC_PIXEL_PERMUTATIONS                                          \
+                                                                               \
+        static bool ShouldCompilePermutation(                                  \
+            const FShaderPermutationParameters& Parameters)                    \
+        {                                                                      \
+            /* Same dst color read set as the subpass variants: only advanced  \
+               blend with a non fixed function color output reads dst. */      \
+            FPermutationDomain Permutation(Parameters.PermutationId);          \
+            if (!Permutation.template Get<FEnableAdvanceBlend>() ||            \
+                Permutation.template Get<FEnableFixedFunctionColorOutput>())   \
+            {                                                                  \
+                return false;                                                  \
+            }                                                                  \
+            return RivePlatformSupportsPixelShaderUAVs(Parameters) &&          \
+                   ShouldCompilePixelMSAAPermutation<BASE>(Parameters);        \
+        }                                                                      \
+                                                                               \
+        static void ModifyCompilationEnvironment(                              \
+            const FShaderPermutationParameters& Parameters,                    \
+            FShaderCompilerEnvironment& Environment)                           \
+        {                                                                      \
+            ModifyMSAAUavShaderEnvironment(Parameters, Environment);           \
+        }                                                                      \
+    };
+
+RIVE_MSAA_UAV_PIXEL_SHADER(FRiveRDGPathMSAAUavPixelShader,
+                           FRiveRDGPathMSAAPixelShader)
+RIVE_MSAA_UAV_PIXEL_SHADER(FRiveRDGAtlasBlitMSAAUavPixelShader,
+                           FRiveRDGAtlasBlitMSAAPixelShader)
+RIVE_MSAA_UAV_PIXEL_SHADER(FRiveRDGImageMeshMSAAUavPixelShader,
+                           FRiveRDGImageMeshMSAAPixelShader)
+RIVE_MSAA_UAV_PIXEL_SHADER(FRiveRDGPolarStrokeMSAAUavPixelShader,
+                           FRiveRDGPolarStrokeMSAAPixelShader)
+RIVE_MSAA_UAV_PIXEL_SHADER(FRiveRDGHairlineStrokeMSAAUavPixelShader,
+                           FRiveRDGHairlineStrokeMSAAPixelShader)
 
 // Atlas Render
 

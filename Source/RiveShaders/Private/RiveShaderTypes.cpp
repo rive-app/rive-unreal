@@ -78,6 +78,13 @@ static TAutoConsoleVariable<int32> CVarNeedsPathIdClampWorkaround(
     TEXT("1 to clamp the path id in the shaders."),
     ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarBindless(
+    TEXT("r.rive.Bindless"),
+    0,
+    TEXT("1 to let the rhi bind rive's resources through its descriptor heap, "
+         "where the shader platform supports it."),
+    ECVF_ReadOnly);
+
 // Defaults on: platforms whose shader compiler already knows ushort turn it
 // off.
 static TAutoConsoleVariable<int32> CVarNeedsUshortDefine(
@@ -99,6 +106,22 @@ bool RivePlatformNeedsPathIdClampWorkaround(
     static FShaderPlatformCachedIniValue<bool> Value(
         TEXT("r.rive.NeedsPathIdClampWorkaround"));
     return Value.Get(Params.Platform);
+}
+
+bool RivePlatformWantsBindless(EShaderPlatform Platform)
+{
+#if UE_VERSION_OLDER_THAN(5, 4, 0)
+    return false;
+#else
+    if (!FDataDrivenShaderPlatformInfo::GetIsLanguageD3D(Platform) ||
+        !FDataDrivenShaderPlatformInfo::GetSupportsBindless(Platform))
+    {
+        return false;
+    }
+
+    static FShaderPlatformCachedIniValue<bool> Value(TEXT("r.rive.Bindless"));
+    return Value.Get(Platform);
+#endif
 }
 
 bool RivePlatformNeedsUshortDefine(const FShaderPermutationParameters& Params)
@@ -130,7 +153,8 @@ bool RivePlatformSupportsSubpassLoad(const FShaderPermutationParameters& Params)
 void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
                              FShaderCompilerEnvironment& Environment,
                              const bool IsVertexShader,
-                             const bool bWantsSubpassLoad)
+                             const bool bWantsSubpassLoad,
+                             const bool bWantsUavColor = false)
 {
 #if UE_VERSION_OLDER_THAN(5, 5, 0) || RIVE_FORCE_USE_GENERATED_UNIFORMS
     Environment.SetDefine(TEXT("UNIFORM_DEFINITIONS_AUTO_GENERATED"),
@@ -163,8 +187,12 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
     {
         Environment.SetDefine(TEXT("FRAGMENT"), TEXT("1"));
         Environment.CompilerFlags.Add(CFLAG_AllowTypedUAVLoads);
+        if (bWantsUavColor)
+        {
+            Environment.SetDefine(TEXT("RENDER_TO_UAV"), TEXT("1"));
+        }
         // Only set when engine patch is present.
-        if (bWantsSubpassLoad && RivePlatformSupportsSubpassLoad(Params))
+        else if (bWantsSubpassLoad && RivePlatformSupportsSubpassLoad(Params))
         {
             Environment.SetDefine(TEXT("SUPPORTS_SUBPASS_LOAD"), TEXT("1"));
         }
@@ -176,8 +204,10 @@ void ModifyShaderEnvironment(const FShaderPermutationParameters& Params,
     }
 // 5.4 and up
 #if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 4 && !PLATFORM_APPLE
-    // We are not bindless so this flag must be added for vulkan to work
-    Environment.CompilerFlags.Add(CFLAG_ForceBindful);
+    if (!RivePlatformWantsBindless(Params.Platform))
+    {
+        Environment.CompilerFlags.Add(CFLAG_ForceBindful);
+    }
 #endif
 }
 
@@ -234,6 +264,18 @@ void ModifyMSAASubpassShaderEnvironment(
     FShaderCompilerEnvironment& Environment)
 {
     ModifyShaderEnvironment(Params, Environment, false, true);
+}
+
+bool RivePlatformSupportsPixelShaderUAVs(
+    const FShaderPermutationParameters& Params)
+{
+    return IsFeatureLevelSupported(Params.Platform, ERHIFeatureLevel::SM5);
+}
+
+void ModifyMSAAUavShaderEnvironment(const FShaderPermutationParameters& Params,
+                                    FShaderCompilerEnvironment& Environment)
+{
+    ModifyShaderEnvironment(Params, Environment, false, false, true);
 }
 
 void ModifyMSAAPathVertexShaderEnvironment(
@@ -470,6 +512,72 @@ IMPLEMENT_GLOBAL_SHADER(
 
 IMPLEMENT_GLOBAL_SHADER(
     FRiveRDGImageMeshMSAASubpassPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_image_mesh.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
+
+// Same entry points again, compiled to read dst color from the framebuffer uav.
+IMPLEMENT_GLOBAL_SHADER(FRiveRDGPathMSAAUavPixelShader,
+                        "/Plugin/Rive/Private/Rive/draw_depthstencil_path.usf",
+                        GLSL_drawFragmentMain,
+                        SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGPolarStrokeMSAAVertexShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_polar_stroke.usf",
+    GLSL_drawVertexMain,
+    SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGHairlineStrokeMSAAVertexShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_hairline_stroke.usf",
+    GLSL_drawVertexMain,
+    SF_Vertex);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGPolarStrokeMSAAPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_polar_stroke.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGPolarStrokeMSAASubpassPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_polar_stroke.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGPolarStrokeMSAAUavPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_polar_stroke.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGHairlineStrokeMSAAPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_hairline_stroke.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGHairlineStrokeMSAASubpassPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_hairline_stroke.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGHairlineStrokeMSAAUavPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_hairline_stroke.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGAtlasBlitMSAAUavPixelShader,
+    "/Plugin/Rive/Private/Rive/draw_depthstencil_atlas_blit.usf",
+    GLSL_drawFragmentMain,
+    SF_Pixel);
+
+IMPLEMENT_GLOBAL_SHADER(
+    FRiveRDGImageMeshMSAAUavPixelShader,
     "/Plugin/Rive/Private/Rive/draw_depthstencil_image_mesh.usf",
     GLSL_drawFragmentMain,
     SF_Pixel);

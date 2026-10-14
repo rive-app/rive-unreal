@@ -25,9 +25,20 @@
 #include "ProfilingDebugging/CsvProfiler.h"
 
 CSV_DEFINE_CATEGORY(RiveMSAA, true);
+CSV_DEFINE_CATEGORY(RiveAtomic, true);
 
 // Per-draw-type gpu cost inside the msaa render pass.
 DECLARE_GPU_STAT_NAMED(STAT_RiveMSAA_Patches, TEXT("Rive MSAA Patches"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveAtomic_Patches, TEXT("Rive Atomic Patches"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveAtomic_InteriorTriangles,
+                       TEXT("Rive Atomic Interior Triangles"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveAtomic_AtlasBlit,
+                       TEXT("Rive Atomic Atlas Blit"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveAtomic_ImageRect,
+                       TEXT("Rive Atomic Image Rect"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveAtomic_ImageMesh,
+                       TEXT("Rive Atomic Image Mesh"));
+DECLARE_GPU_STAT_NAMED(STAT_RiveAtomic_Resolve, TEXT("Rive Atomic Resolve"));
 DECLARE_GPU_STAT_NAMED(STAT_RiveMSAA_MidpointFans,
                        TEXT("Rive MSAA Midpoint Fans"));
 DECLARE_GPU_STAT_NAMED(STAT_RiveMSAA_StencilClipReset,
@@ -49,6 +60,15 @@ static TAutoConsoleVariable<int32> CVarRiveDynamicPipelineState(
                  "against 0, so a difference isolates the override mechanism "
                  "from the collapse itself."),
     ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static int32 RiveDynamicPipelineStateMode()
+{
+    return GRHISupportsDynamicPipelineState
+               ? CVarRiveDynamicPipelineState.GetValueOnRenderThread()
+               : 0;
+}
+#else
+static int32 RiveDynamicPipelineStateMode() { return 0; }
 #endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
 
 using namespace rive::gpu;
@@ -306,6 +326,14 @@ FRHIRasterizerState* RasterStateForCullModeAndDrawMode(CullFace CF,
                         CM_None,
                         ERasterizerDepthClipMode::DepthClamp,
                         EnableMSAA);
+}
+
+static FRHIRasterizerState* RasterStateForCullModeAndDrawMode(bool EnableMSAA,
+                                                              CullFace CF,
+                                                              bool WireFrame)
+{
+    return EnableMSAA ? RasterStateForCullModeAndDrawMode<true>(CF, WireFrame)
+                      : RasterStateForCullModeAndDrawMode<false>(CF, WireFrame);
 }
 
 template <typename PassParamType>
@@ -593,7 +621,7 @@ static void DrawDSFillChunks(
     }
 }
 
-template <typename TPixelShader>
+template <typename TVertexShader, typename TPixelShader>
 static void AddDrawMSAAFillsPassImpl(
     FRHICommandList& RHICmdList,
     const FString& PassName,
@@ -604,7 +632,7 @@ static void AddDrawMSAAFillsPassImpl(
                               STAT_RiveMSAA_Patches,
                               "rive.MSAAFills");
 
-    TShaderMapRef<FRiveRDGFillMSAAVertexShader> VertexShader(
+    TShaderMapRef<TVertexShader> VertexShader(
         CommonPassParameters->ShaderMap,
         CommonPassParameters->VertexPermutationDomain);
     TShaderMapRef<TPixelShader> PixelShader(
@@ -623,7 +651,8 @@ static void AddDrawMSAAFillsPassImpl(
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
     GraphicsPSOInit.DepthStencilState = DepthStencil;
 
-    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode<true>(
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode(
+        CommonPassParameters->bEnableMSAA,
         CommonPassParameters->PipelineState.cullFace,
         CommonPassParameters->bWireframe);
 
@@ -683,7 +712,12 @@ static void AddDrawMSAAFillsPassImpl(
     DrawDSFillChunks(RHICmdList,
                      VertexShader,
                      CommonPassParameters,
-                     PassParameters);
+                     PassParameters,
+                     CommonPassParameters->PipelineState.colorWriteEnabled ||
+                             rive::gpu::drawTypeIsDepthAAStroke(
+                                 CommonPassParameters->DrawBatch.drawType)
+                         ? 0
+                         : VERTEX_FLAG_DISABLE_COLOR_WRITE);
 }
 
 template <typename TPixelShader>
@@ -716,7 +750,8 @@ static void AddDrawMSAAPatchesPassImpl(
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
     GraphicsPSOInit.DepthStencilState = DepthStencil;
 
-    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode<true>(
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode(
+        CommonPassParameters->bEnableMSAA,
         CommonPassParameters->PipelineState.cullFace,
         CommonPassParameters->bWireframe);
 
@@ -783,7 +818,6 @@ static void AddDrawMSAAPatchesPassImpl(
         CommonPassParameters->DrawBatch.elementCount);
 }
 
-#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
 // The three collapsed subpasses, in the order the stencil algorithm needs them.
 // Must match the native vulkan backend's for stencilDynamicMidpointFans.
 static constexpr DrawType kDynamicMidpointFanPasses[] = {
@@ -836,11 +870,9 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
     RHICmdList.SetDepthBounds(rive::gpu::DEPTH_MIN, rive::gpu::DEPTH_MAX);
 
     // Which way the three passes reach the gpu.
-    const int32 DynamicStateMode =
-        GRHISupportsDynamicPipelineState
-            ? CVarRiveDynamicPipelineState.GetValueOnRenderThread()
-            : 0;
+    const int32 DynamicStateMode = RiveDynamicPipelineStateMode();
 
+#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
     // The three passes differ only in depth/stencil, cull face and colour
     // write, so they can share one pipeline with per-pass overrides.
     if (DynamicStateMode == 1)
@@ -859,10 +891,10 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
                 CommonPassParameters->GetUniqueKeyForDrawType(
                     kDynamicMidpointFanPasses[0],
                     InterlockMode::depthStencil));
-            GraphicsPSOInit.RasterizerState =
-                RasterStateForCullModeAndDrawMode<true>(
-                    PassPipelineStates[0].cullFace,
-                    CommonPassParameters->bWireframe);
+            GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode(
+                CommonPassParameters->bEnableMSAA,
+                PassPipelineStates[0].cullFace,
+                CommonPassParameters->bWireframe);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
             GraphicsPSOInit.BlendState =
                 BlendStateForPipeline(ColorWritingState);
@@ -919,7 +951,8 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
             RHICmdList.SetDynamicPipelineStateOverride(
                 DepthStencil.GetReference(),
                 PassPipelineState.stencilReference,
-                RasterStateForCullModeAndDrawMode<true>(
+                RasterStateForCullModeAndDrawMode(
+                    CommonPassParameters->bEnableMSAA,
                     PassPipelineState.cullFace,
                     CommonPassParameters->bWireframe),
                 // Leave color-write on. It's handled below via
@@ -942,6 +975,7 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
         RHICmdList.ClearDynamicPipelineStateOverride();
         return;
     }
+#endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
 
     for (int32 PassIndex = 0; PassIndex < PassPipelineStates.Num(); ++PassIndex)
     {
@@ -958,10 +992,10 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
         {
             CSV_SCOPED_TIMING_STAT(RiveMSAA, PSOBuild);
             GraphicsPSOInit.DepthStencilState = DepthStencil;
-            GraphicsPSOInit.RasterizerState =
-                RasterStateForCullModeAndDrawMode<true>(
-                    PassPipelineState.cullFace,
-                    CommonPassParameters->bWireframe);
+            GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode(
+                CommonPassParameters->bEnableMSAA,
+                PassPipelineState.cullFace,
+                CommonPassParameters->bWireframe);
             GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
             GraphicsPSOInit.BlendState =
                 BlendStateForPipeline(PassPipelineState);
@@ -1003,28 +1037,36 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
 
         // Diagnostic mode 2: same pipelines as mode 0, plus a redundant
         // override restating each pipeline's own values.
+#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
         if (DynamicStateMode == 2)
         {
             RHICmdList.SetDynamicPipelineStateOverride(
                 DepthStencil.GetReference(),
                 PassPipelineState.stencilReference,
-                RasterStateForCullModeAndDrawMode<true>(
+                RasterStateForCullModeAndDrawMode(
+                    CommonPassParameters->bEnableMSAA,
                     PassPipelineState.cullFace,
                     CommonPassParameters->bWireframe),
                 PassPipelineState.colorWriteEnabled);
         }
+#endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
 
         CSV_SCOPED_TIMING_STAT(RiveMSAA, Draw);
         DrawDSFillChunks(RHICmdList,
                          VertexShader,
                          CommonPassParameters,
-                         PassParameters);
+                         PassParameters,
+                         PassPipelineState.colorWriteEnabled
+                             ? 0
+                             : VERTEX_FLAG_DISABLE_COLOR_WRITE);
     }
 
+#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
     if (DynamicStateMode == 2)
     {
         RHICmdList.ClearDynamicPipelineStateOverride();
     }
+#endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
 }
 
 void AddDrawMSAADynamicMidpointFansPass(
@@ -1034,6 +1076,11 @@ void AddDrawMSAADynamicMidpointFansPass(
     FRiveMSAAFlushPassParameters* PassParameters,
     TConstArrayView<rive::gpu::PipelineState> PassPipelineStates)
 {
+    CSV_SCOPED_TIMING_STAT(RiveMSAA, TypeDynMidpointFans);
+    CSV_CUSTOM_STAT(RiveMSAA,
+                    TypeDynMidpointFansN,
+                    1,
+                    ECsvCustomStatOp::Accumulate);
     if (CommonPassParameters->UseSubpassPixelShader())
     {
         AddDrawMSAADynamicMidpointFansPassImpl<
@@ -1042,6 +1089,15 @@ void AddDrawMSAADynamicMidpointFansPass(
                                                 CommonPassParameters,
                                                 PassParameters,
                                                 PassPipelineStates);
+    }
+    else if (CommonPassParameters->UseUavPixelShader())
+    {
+        AddDrawMSAADynamicMidpointFansPassImpl<FRiveRDGPathMSAAUavPixelShader>(
+            RHICmdList,
+            PassName,
+            CommonPassParameters,
+            PassParameters,
+            PassPipelineStates);
     }
     else
     {
@@ -1053,7 +1109,6 @@ void AddDrawMSAADynamicMidpointFansPass(
             PassPipelineStates);
     }
 }
-#endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
 
 void AddDrawMSAAPatchesPass(
     FRHICommandList& RHICmdList,
@@ -1061,9 +1116,19 @@ void AddDrawMSAAPatchesPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters)
 {
+    CSV_SCOPED_TIMING_STAT(RiveMSAA, TypePatches);
+    CSV_CUSTOM_STAT(RiveMSAA, TypePatchesN, 1, ECsvCustomStatOp::Accumulate);
     if (CommonPassParameters->UseSubpassPixelShader())
     {
         AddDrawMSAAPatchesPassImpl<FRiveRDGPathMSAASubpassPixelShader>(
+            RHICmdList,
+            PassName,
+            CommonPassParameters,
+            PassParameters);
+    }
+    else if (CommonPassParameters->UseUavPixelShader())
+    {
+        AddDrawMSAAPatchesPassImpl<FRiveRDGPathMSAAUavPixelShader>(
             RHICmdList,
             PassName,
             CommonPassParameters,
@@ -1079,14 +1144,27 @@ void AddDrawMSAAPatchesPass(
     }
 }
 
-void AddDrawMSAAFillsPass(FRHICommandList& RHICmdList,
-                          const FString& PassName,
-                          const FRiveCommonPassParameters* CommonPassParameters,
-                          FRiveMSAAFlushPassParameters* PassParameters)
+template <typename TVertexShader,
+          typename TPixelShader,
+          typename TSubpassPixelShader,
+          typename TUavPixelShader>
+static void AddDrawMSAAFillsPassVariant(
+    FRHICommandList& RHICmdList,
+    const FString& PassName,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters)
 {
     if (CommonPassParameters->UseSubpassPixelShader())
     {
-        AddDrawMSAAFillsPassImpl<FRiveRDGPathMSAASubpassPixelShader>(
+        AddDrawMSAAFillsPassImpl<TVertexShader, TSubpassPixelShader>(
+            RHICmdList,
+            PassName,
+            CommonPassParameters,
+            PassParameters);
+    }
+    else if (CommonPassParameters->UseUavPixelShader())
+    {
+        AddDrawMSAAFillsPassImpl<TVertexShader, TUavPixelShader>(
             RHICmdList,
             PassName,
             CommonPassParameters,
@@ -1094,11 +1172,54 @@ void AddDrawMSAAFillsPass(FRHICommandList& RHICmdList,
     }
     else
     {
-        AddDrawMSAAFillsPassImpl<FRiveRDGPathMSAAPixelShader>(
+        AddDrawMSAAFillsPassImpl<TVertexShader, TPixelShader>(
             RHICmdList,
             PassName,
             CommonPassParameters,
             PassParameters);
+    }
+}
+
+void AddDrawMSAAFillsPass(FRHICommandList& RHICmdList,
+                          const FString& PassName,
+                          const FRiveCommonPassParameters* CommonPassParameters,
+                          FRiveMSAAFlushPassParameters* PassParameters)
+{
+    CSV_SCOPED_TIMING_STAT(RiveMSAA, TypeFills);
+    CSV_CUSTOM_STAT(RiveMSAA, TypeFillsN, 1, ECsvCustomStatOp::Accumulate);
+    switch (CommonPassParameters->DrawBatch.drawType)
+    {
+        case DrawType::depthStrokes:
+        case DrawType::depthAAStrokes:
+            AddDrawMSAAFillsPassVariant<
+                FRiveRDGPolarStrokeMSAAVertexShader,
+                FRiveRDGPolarStrokeMSAAPixelShader,
+                FRiveRDGPolarStrokeMSAASubpassPixelShader,
+                FRiveRDGPolarStrokeMSAAUavPixelShader>(RHICmdList,
+                                                       PassName,
+                                                       CommonPassParameters,
+                                                       PassParameters);
+            break;
+        case DrawType::depthAAOuterHairline:
+            AddDrawMSAAFillsPassVariant<
+                FRiveRDGHairlineStrokeMSAAVertexShader,
+                FRiveRDGHairlineStrokeMSAAPixelShader,
+                FRiveRDGHairlineStrokeMSAASubpassPixelShader,
+                FRiveRDGHairlineStrokeMSAAUavPixelShader>(RHICmdList,
+                                                          PassName,
+                                                          CommonPassParameters,
+                                                          PassParameters);
+            break;
+        default:
+            AddDrawMSAAFillsPassVariant<FRiveRDGFillMSAAVertexShader,
+                                        FRiveRDGPathMSAAPixelShader,
+                                        FRiveRDGPathMSAASubpassPixelShader,
+                                        FRiveRDGPathMSAAUavPixelShader>(
+                RHICmdList,
+                PassName,
+                CommonPassParameters,
+                PassParameters);
+            break;
     }
 }
 
@@ -1107,6 +1228,11 @@ void AddDrawMSAAStencilClipResetPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters)
 {
+    CSV_SCOPED_TIMING_STAT(RiveMSAA, TypeStencilClipReset);
+    CSV_CUSTOM_STAT(RiveMSAA,
+                    TypeStencilClipResetN,
+                    1,
+                    ECsvCustomStatOp::Accumulate);
     RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
                               STAT_RiveMSAA_StencilClipReset,
                               "rive.MSAAStencilClipReset");
@@ -1125,7 +1251,8 @@ void AddDrawMSAAStencilClipResetPass(
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
     GraphicsPSOInit.DepthStencilState = DepthStencil;
 
-    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode<true>(
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode(
+        CommonPassParameters->bEnableMSAA,
         CommonPassParameters->PipelineState.cullFace,
         CommonPassParameters->bWireframe);
 
@@ -1205,7 +1332,8 @@ static void AddDrawMSAAAtlasBlitPassImpl(
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
     GraphicsPSOInit.DepthStencilState = DepthStencil;
 
-    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode<true>(
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode(
+        CommonPassParameters->bEnableMSAA,
         CommonPassParameters->PipelineState.cullFace,
         CommonPassParameters->bWireframe);
 
@@ -1267,9 +1395,18 @@ void AddDrawMSAAAtlasBlitPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters)
 {
+    CSV_SCOPED_TIMING_STAT(RiveMSAA, TypeAtlasBlit);
+    CSV_CUSTOM_STAT(RiveMSAA, TypeAtlasBlitN, 1, ECsvCustomStatOp::Accumulate);
     if (CommonPassParameters->UseSubpassPixelShader())
     {
         AddDrawMSAAAtlasBlitPassImpl<FRiveRDGAtlasBlitMSAASubpassPixelShader>(
+            RHICmdList,
+            CommonPassParameters,
+            PassParameters);
+    }
+    else if (CommonPassParameters->UseUavPixelShader())
+    {
+        AddDrawMSAAAtlasBlitPassImpl<FRiveRDGAtlasBlitMSAAUavPixelShader>(
             RHICmdList,
             CommonPassParameters,
             PassParameters);
@@ -1310,7 +1447,8 @@ static void AddDrawMSAAImageMeshPassImpl(
     FGraphicsPipelineStateInitializer GraphicsPSOInit;
     GraphicsPSOInit.DepthStencilState = DepthStencil;
 
-    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode<true>(
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode(
+        CommonPassParameters->bEnableMSAA,
         CommonPassParameters->PipelineState.cullFace,
         CommonPassParameters->bWireframe);
 
@@ -1385,9 +1523,19 @@ void AddDrawMSAAImageMeshPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters)
 {
+    CSV_SCOPED_TIMING_STAT(RiveMSAA, TypeImageMesh);
+    CSV_CUSTOM_STAT(RiveMSAA, TypeImageMeshN, 1, ECsvCustomStatOp::Accumulate);
     if (CommonPassParameters->UseSubpassPixelShader())
     {
         AddDrawMSAAImageMeshPassImpl<FRiveRDGImageMeshMSAASubpassPixelShader>(
+            RHICmdList,
+            NumVertices,
+            CommonPassParameters,
+            PassParameters);
+    }
+    else if (CommonPassParameters->UseUavPixelShader())
+    {
+        AddDrawMSAAImageMeshPassImpl<FRiveRDGImageMeshMSAAUavPixelShader>(
             RHICmdList,
             NumVertices,
             CommonPassParameters,
@@ -1434,7 +1582,17 @@ FRDGPassRef AddDrawPatchesPass(
         ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
             FRHICommandList& RHICmdList) {
-            RHI_BREADCRUMB_EVENT(RHICmdList, "rive.AtomicPatch");
+            RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                                      STAT_RiveAtomic_Patches,
+                                      "rive.AtomicPatch");
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, RenderPass);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, TypePatches);
+            CSV_CUSTOM_STAT(RiveAtomic,
+                            TypePatchesN,
+                            1,
+                            ECsvCustomStatOp::Accumulate);
+            CSV_CUSTOM_STAT(RiveAtomic, Draws, 1, ECsvCustomStatOp::Accumulate);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBuild);
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
             GraphicsPSOInit.DepthStencilState =
                 TStaticDepthStencilState<false,
@@ -1470,17 +1628,24 @@ FRDGPassRef AddDrawPatchesPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit, 0);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBind);
+                SET_PIPELINE_STATE(RHICmdList, GraphicsPSOInit, 0);
+            }
 
-            SetShaderParameters(RHICmdList,
-                                VertexShader,
-                                VertexShader.GetVertexShader(),
-                                PassParameters->VS);
-            SetShaderParameters(RHICmdList,
-                                PixelShader,
-                                PixelShader.GetPixelShader(),
-                                PassParameters->PS);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, BindParams);
+                SetShaderParameters(RHICmdList,
+                                    VertexShader,
+                                    VertexShader.GetVertexShader(),
+                                    PassParameters->VS);
+                SetShaderParameters(RHICmdList,
+                                    PixelShader,
+                                    PixelShader.GetPixelShader(),
+                                    PassParameters->PS);
+            }
 
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, Draw);
             RHICmdList.SetStreamSource(0,
                                        CommonPassParameters->VertexBuffers[0],
                                        0);
@@ -1525,7 +1690,17 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
         ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
             FRHICommandList& RHICmdList) {
-            RHI_BREADCRUMB_EVENT(RHICmdList, "rive.InteriorTriangles");
+            RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                                      STAT_RiveAtomic_InteriorTriangles,
+                                      "rive.InteriorTriangles");
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, RenderPass);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, TypeInteriorTriangles);
+            CSV_CUSTOM_STAT(RiveAtomic,
+                            TypeInteriorTrianglesN,
+                            1,
+                            ECsvCustomStatOp::Accumulate);
+            CSV_CUSTOM_STAT(RiveAtomic, Draws, 1, ECsvCustomStatOp::Accumulate);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBuild);
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
             GraphicsPSOInit.DepthStencilState =
                 TStaticDepthStencilState<false,
@@ -1549,10 +1724,13 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(
-                RHICmdList,
-                GraphicsPSOInit,
-                CommonPassParameters->PipelineState.stencilReference);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBind);
+                SET_PIPELINE_STATE(
+                    RHICmdList,
+                    GraphicsPSOInit,
+                    CommonPassParameters->PipelineState.stencilReference);
+            }
 
             RHICmdList.SetViewport(CommonPassParameters->Viewport.Min.X,
                                    CommonPassParameters->Viewport.Min.Y,
@@ -1567,15 +1745,19 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
                                       CommonPassParameters->Scissor.Max.X,
                                       CommonPassParameters->Scissor.Max.Y);
 
-            SetShaderParameters(RHICmdList,
-                                VertexShader,
-                                VertexShader.GetVertexShader(),
-                                PassParameters->VS);
-            SetShaderParameters(RHICmdList,
-                                PixelShader,
-                                PixelShader.GetPixelShader(),
-                                PassParameters->PS);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, BindParams);
+                SetShaderParameters(RHICmdList,
+                                    VertexShader,
+                                    VertexShader.GetVertexShader(),
+                                    PassParameters->VS);
+                SetShaderParameters(RHICmdList,
+                                    PixelShader,
+                                    PixelShader.GetPixelShader(),
+                                    PassParameters->PS);
+            }
 
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, Draw);
             RHICmdList.SetStreamSource(0,
                                        CommonPassParameters->VertexBuffers[0],
                                        0);
@@ -1616,7 +1798,17 @@ FRDGPassRef AddDrawAtlasBlitPass(
         ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
             FRHICommandList& RHICmdList) {
-            RHI_BREADCRUMB_EVENT(RHICmdList, "rive.AtlasBlit");
+            RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                                      STAT_RiveAtomic_AtlasBlit,
+                                      "rive.AtlasBlit");
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, RenderPass);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, TypeAtlasBlit);
+            CSV_CUSTOM_STAT(RiveAtomic,
+                            TypeAtlasBlitN,
+                            1,
+                            ECsvCustomStatOp::Accumulate);
+            CSV_CUSTOM_STAT(RiveAtomic, Draws, 1, ECsvCustomStatOp::Accumulate);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBuild);
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
             GraphicsPSOInit.DepthStencilState =
                 TStaticDepthStencilState<false,
@@ -1652,20 +1844,27 @@ FRDGPassRef AddDrawAtlasBlitPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(
-                RHICmdList,
-                GraphicsPSOInit,
-                CommonPassParameters->PipelineState.stencilReference);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBind);
+                SET_PIPELINE_STATE(
+                    RHICmdList,
+                    GraphicsPSOInit,
+                    CommonPassParameters->PipelineState.stencilReference);
+            }
 
-            SetShaderParameters(RHICmdList,
-                                VertexShader,
-                                VertexShader.GetVertexShader(),
-                                PassParameters->VS);
-            SetShaderParameters(RHICmdList,
-                                PixelShader,
-                                PixelShader.GetPixelShader(),
-                                PassParameters->PS);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, BindParams);
+                SetShaderParameters(RHICmdList,
+                                    VertexShader,
+                                    VertexShader.GetVertexShader(),
+                                    PassParameters->VS);
+                SetShaderParameters(RHICmdList,
+                                    PixelShader,
+                                    PixelShader.GetPixelShader(),
+                                    PassParameters->PS);
+            }
 
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, Draw);
             RHICmdList.SetStreamSource(0,
                                        CommonPassParameters->VertexBuffers[0],
                                        0);
@@ -1706,7 +1905,17 @@ FRDGPassRef AddDrawImageRectPass(
         ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
             FRHICommandList& RHICmdList) {
-            RHI_BREADCRUMB_EVENT(RHICmdList, "rive.ImageRect");
+            RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                                      STAT_RiveAtomic_ImageRect,
+                                      "rive.ImageRect");
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, RenderPass);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, TypeImageRect);
+            CSV_CUSTOM_STAT(RiveAtomic,
+                            TypeImageRectN,
+                            1,
+                            ECsvCustomStatOp::Accumulate);
+            CSV_CUSTOM_STAT(RiveAtomic, Draws, 1, ECsvCustomStatOp::Accumulate);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBuild);
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
             GraphicsPSOInit.DepthStencilState =
                 TStaticDepthStencilState<false,
@@ -1748,20 +1957,27 @@ FRDGPassRef AddDrawImageRectPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(
-                RHICmdList,
-                GraphicsPSOInit,
-                CommonPassParameters->PipelineState.stencilReference);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBind);
+                SET_PIPELINE_STATE(
+                    RHICmdList,
+                    GraphicsPSOInit,
+                    CommonPassParameters->PipelineState.stencilReference);
+            }
 
-            SetShaderParameters(RHICmdList,
-                                VertexShader,
-                                VertexShader.GetVertexShader(),
-                                PassParameters->VS);
-            SetShaderParameters(RHICmdList,
-                                PixelShader,
-                                PixelShader.GetPixelShader(),
-                                PassParameters->PS);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, BindParams);
+                SetShaderParameters(RHICmdList,
+                                    VertexShader,
+                                    VertexShader.GetVertexShader(),
+                                    PassParameters->VS);
+                SetShaderParameters(RHICmdList,
+                                    PixelShader,
+                                    PixelShader.GetPixelShader(),
+                                    PassParameters->PS);
+            }
 
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, Draw);
             RHICmdList.SetStreamSource(0,
                                        CommonPassParameters->VertexBuffers[0],
                                        0);
@@ -1818,7 +2034,17 @@ FRDGPassRef AddDrawImageMeshPass(
          NumVertices,
          VertexShader,
          PixelShader](FRHICommandList& RHICmdList) {
-            RHI_BREADCRUMB_EVENT(RHICmdList, "rive.ImageMesh");
+            RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                                      STAT_RiveAtomic_ImageMesh,
+                                      "rive.ImageMesh");
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, RenderPass);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, TypeImageMesh);
+            CSV_CUSTOM_STAT(RiveAtomic,
+                            TypeImageMeshN,
+                            1,
+                            ECsvCustomStatOp::Accumulate);
+            CSV_CUSTOM_STAT(RiveAtomic, Draws, 1, ECsvCustomStatOp::Accumulate);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBuild);
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
             GraphicsPSOInit.DepthStencilState =
                 TStaticDepthStencilState<false,
@@ -1860,20 +2086,27 @@ FRDGPassRef AddDrawImageMeshPass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(
-                RHICmdList,
-                GraphicsPSOInit,
-                CommonPassParameters->PipelineState.stencilReference);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBind);
+                SET_PIPELINE_STATE(
+                    RHICmdList,
+                    GraphicsPSOInit,
+                    CommonPassParameters->PipelineState.stencilReference);
+            }
 
-            SetShaderParameters(RHICmdList,
-                                VertexShader,
-                                VertexShader.GetVertexShader(),
-                                PassParameters->VS);
-            SetShaderParameters(RHICmdList,
-                                PixelShader,
-                                PixelShader.GetPixelShader(),
-                                PassParameters->PS);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, BindParams);
+                SetShaderParameters(RHICmdList,
+                                    VertexShader,
+                                    VertexShader.GetVertexShader(),
+                                    PassParameters->VS);
+                SetShaderParameters(RHICmdList,
+                                    PixelShader,
+                                    PixelShader.GetPixelShader(),
+                                    PassParameters->PS);
+            }
 
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, Draw);
             RHICmdList.SetStreamSource(0,
                                        CommonPassParameters->VertexBuffers[0],
                                        0);
@@ -1930,7 +2163,17 @@ FRDGPassRef AddAtomicResolvePass(
         ERDGPassFlags::Raster,
         [CommonPassParameters, PassParameters, VertexShader, PixelShader](
             FRHICommandList& RHICmdList) {
-            RHI_BREADCRUMB_EVENT(RHICmdList, "rive.AtomicResolve");
+            RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
+                                      STAT_RiveAtomic_Resolve,
+                                      "rive.AtomicResolve");
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, RenderPass);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, TypeResolve);
+            CSV_CUSTOM_STAT(RiveAtomic,
+                            TypeResolveN,
+                            1,
+                            ECsvCustomStatOp::Accumulate);
+            CSV_CUSTOM_STAT(RiveAtomic, Draws, 1, ECsvCustomStatOp::Accumulate);
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBuild);
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
             GraphicsPSOInit.DepthStencilState =
                 TStaticDepthStencilState<false,
@@ -1967,20 +2210,27 @@ FRDGPassRef AddAtomicResolvePass(
             GraphicsPSOInit.BoundShaderState.PixelShaderRHI =
                 PixelShader.GetPixelShader();
 
-            SET_PIPELINE_STATE(
-                RHICmdList,
-                GraphicsPSOInit,
-                CommonPassParameters->PipelineState.stencilReference);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, PSOBind);
+                SET_PIPELINE_STATE(
+                    RHICmdList,
+                    GraphicsPSOInit,
+                    CommonPassParameters->PipelineState.stencilReference);
+            }
 
-            SetShaderParameters(RHICmdList,
-                                PixelShader,
-                                PixelShader.GetPixelShader(),
-                                PassParameters->PS);
-            SetShaderParameters(RHICmdList,
-                                VertexShader,
-                                VertexShader.GetVertexShader(),
-                                PassParameters->VS);
+            {
+                CSV_SCOPED_TIMING_STAT(RiveAtomic, BindParams);
+                SetShaderParameters(RHICmdList,
+                                    PixelShader,
+                                    PixelShader.GetPixelShader(),
+                                    PassParameters->PS);
+                SetShaderParameters(RHICmdList,
+                                    VertexShader,
+                                    VertexShader.GetVertexShader(),
+                                    PassParameters->VS);
+            }
 
+            CSV_SCOPED_TIMING_STAT(RiveAtomic, Draw);
             RHICmdList.DrawPrimitive(0, 2, 1);
         });
 }

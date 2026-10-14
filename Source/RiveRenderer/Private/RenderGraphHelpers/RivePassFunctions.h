@@ -30,6 +30,7 @@ struct FRiveCommonPassParameters
     FUint32Rect Viewport;
     FUint32Rect Scissor;
     bool bWireframe = false;
+    bool bEnableMSAA = true;
     FGlobalShaderMap* ShaderMap;
     const rive::gpu::DrawBatch
         DrawBatch; // Copy intentionally since lambda execution is deferred for
@@ -43,6 +44,7 @@ struct FRiveCommonPassParameters
     // Picks the subpass read msaa pixel shaders over the sampled dst color
     // ones. Both variants are compiled, so this is a runtime choice.
     bool bUseSubpassLoad = false;
+    bool bUseUavColor = false;
 
     // The subpass variants only exist for permutations that actually read the
     // dst color, which is what their ShouldCompilePermutation allows. Asking
@@ -50,6 +52,16 @@ struct FRiveCommonPassParameters
     bool UseSubpassPixelShader() const
     {
         return bUseSubpassLoad &&
+               PixelPermutationDomain.Get<FEnableAdvanceBlend>() &&
+               !PixelPermutationDomain.Get<FEnableFixedFunctionColorOutput>();
+    }
+
+    // Composites into the framebuffer UAV instead of a color attachment. Same
+    // permutation set as the subpass variants, for platforms with no
+    // framebuffer fetch.
+    bool UseUavPixelShader() const
+    {
+        return bUseUavColor &&
                PixelPermutationDomain.Get<FEnableAdvanceBlend>() &&
                !PixelPermutationDomain.Get<FEnableFixedFunctionColorOutput>();
     }
@@ -197,7 +209,6 @@ void AddDrawMSAAFillsPass(FRHICommandList& RHICmdList,
                           const FRiveCommonPassParameters* CommonPassParameters,
                           FRiveMSAAFlushPassParameters* PassParameters);
 
-#if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
 // The msaa fast path fill, drawn as one batch instead of three.
 void AddDrawMSAADynamicMidpointFansPass(
     FRHICommandList& RHICmdList,
@@ -205,7 +216,6 @@ void AddDrawMSAADynamicMidpointFansPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters,
     TConstArrayView<rive::gpu::PipelineState> PassPipelineStates);
-#endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
 
 void AddDrawMSAAStencilClipResetPass(
     FRHICommandList& RHICmdList,

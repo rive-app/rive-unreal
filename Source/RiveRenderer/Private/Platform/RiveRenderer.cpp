@@ -12,6 +12,20 @@
 #include "RenderGraphResources.h"
 #include "RiveStats.h"
 
+static FRiveFrameOverrides FrameOverridesForInterlock(
+    ERiveInterlockOverride Override)
+{
+    FRiveFrameOverrides Result;
+    if (Override == ERiveInterlockOverride::CWMSAA1 ||
+        Override == ERiveInterlockOverride::CWIB)
+    {
+        Result.MSAASampleCount = 1;
+        Result.bClockwiseFill = true;
+        Result.bInkbleed = Override == ERiveInterlockOverride::CWIB;
+    }
+    return Result;
+}
+
 // Replays a recorded frame against the real render context. The host opens
 // the screen through BeginScreen and hands back a raw renderer that has to
 // survive the replay, so the sink keeps the one it made.
@@ -160,20 +174,6 @@ void FRiveRenderer::BeginFrameRenderThread()
 
     check(IsInRenderingThread());
     check(CommandServer);
-#if WITH_EDITOR
-    static const auto CVarInterlock =
-        IConsoleManager::Get().FindConsoleVariable(TEXT("r.rive.interlock"));
-    static int32 LastCVar = 0;
-    int32 CVar = CVarInterlock->GetInt();
-    if (LastCVar != CVar)
-    {
-        LastCVar = CVar;
-        if (auto impl = RenderContext->static_impl_cast<RenderContextRHIImpl>())
-        {
-            impl->updateFromInterlockCVar(CVar);
-        }
-    }
-#endif
 
     SCOPED_NAMED_EVENT_TEXT(TEXT("CommandServer->processCommands"),
                             FColor::White);
@@ -188,6 +188,29 @@ void FRiveRenderer::BeginFrameGameThread()
 {
     check(IsInGameThread());
     check(CommandQueue);
+
+#if WITH_EDITOR
+    static const auto CVarInterlock =
+        IConsoleManager::Get().FindConsoleVariable(TEXT("r.rive.interlock"));
+    static FString LastCVar = TEXT("default");
+    FString CVar = CVarInterlock->GetString();
+    if (LastCVar != CVar)
+    {
+        LastCVar = CVar;
+        const ERiveInterlockOverride Override =
+            ParseRiveInterlockOverride(CVar);
+        ENQUEUE_RENDER_COMMAND(FRiveApplyInterlockOverride)
+        ([this, Override](FRHICommandListImmediate& RHICmdList) {
+            if (auto impl =
+                    RenderContext->static_impl_cast<RenderContextRHIImpl>())
+            {
+                impl->updateFromInterlockOverride(Override);
+            }
+
+            SetFrameOverrides(FrameOverridesForInterlock(Override));
+        });
+    }
+#endif
 
     SCOPED_NAMED_EVENT_TEXT(TEXT("CommandQueue->processMessages"),
                             FColor::White);
@@ -359,23 +382,42 @@ void FRiveRenderer::CreateRenderContext(FRHICommandListImmediate& RHICmdList)
                       TEXT("riveRenderOverride="),
                       renderOverrides))
     {
-        auto lower = renderOverrides.ToLower();
-        if (lower == TEXT("atomics"))
+        const ERiveInterlockOverride Override =
+            ParseRiveInterlockOverride(renderOverrides);
+        switch (Override)
         {
-            Overrides.bSupportsPixelShaderUAVs = true;
-            Overrides.bSupportsRasterOrderViews = false;
+            case ERiveInterlockOverride::Atomics:
+                Overrides.bSupportsPixelShaderUAVs = true;
+                Overrides.bSupportsRasterOrderViews = false;
+                break;
+            case ERiveInterlockOverride::Raster:
+                Overrides.bSupportsPixelShaderUAVs = false;
+                Overrides.bSupportsRasterOrderViews = true;
+                break;
+            case ERiveInterlockOverride::MSAA:
+                Overrides.bSupportsPixelShaderUAVs = false;
+                Overrides.bSupportsRasterOrderViews = false;
+                break;
+            case ERiveInterlockOverride::CWMSAA1:
+            case ERiveInterlockOverride::CWIB:
+            case ERiveInterlockOverride::None:
+                break;
         }
-        else if (lower == TEXT("raster"))
-        {
-            Overrides.bSupportsPixelShaderUAVs = false;
-            Overrides.bSupportsRasterOrderViews = true;
-        }
-        else if (lower == TEXT("msaa"))
-        {
-            Overrides.bSupportsPixelShaderUAVs = false;
-            Overrides.bSupportsRasterOrderViews = false;
-        }
+        SetFrameOverrides(FrameOverridesForInterlock(Override));
     }
 
     RenderContext = RenderContextRHIImpl::MakeContext(RHICmdList, Overrides);
+}
+
+void FRiveRenderer::ApplyFrameOverrides(
+    rive::gpu::RenderContext::FrameDescriptor& Desc) const
+{
+    if (!FrameOverrides.IsSet())
+    {
+        return;
+    }
+
+    Desc.msaaSampleCount = FrameOverrides.MSAASampleCount;
+    Desc.clockwiseFillOverride = FrameOverrides.bClockwiseFill;
+    Desc.inkbleedOverride = FrameOverrides.bInkbleed;
 }
