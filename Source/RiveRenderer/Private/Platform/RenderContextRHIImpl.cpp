@@ -480,6 +480,8 @@ void GetPermutationForFeatures(
       enums::is_flag_set(features, ShaderFeatures::ENABLE_FEATHER));
   VertexPermutationDomain.Set<FEnableModulatedImage>(
       enums::is_flag_set(features, ShaderFeatures::ENABLE_MODULATED_IMAGE));
+  VertexPermutationDomain.Set<FEnableAngularGradient>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_ANGULAR_GRADIENT));
 
   PixelPermutationDomain.Set<FEnableClip>(
       enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIPPING));
@@ -502,6 +504,8 @@ void GetPermutationForFeatures(
   PixelPermutationDomain.Set<FCoalescedPlsResolveAndTransfer>(needsCoalesce);
   PixelPermutationDomain.Set<FEnableModulatedImage>(
       enums::is_flag_set(features, ShaderFeatures::ENABLE_MODULATED_IMAGE));
+  PixelPermutationDomain.Set<FEnableAngularGradient>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_ANGULAR_GRADIENT));
 }
 
 /*

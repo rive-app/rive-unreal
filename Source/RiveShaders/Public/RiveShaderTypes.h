@@ -11,6 +11,7 @@
 #include "UniformBuffer.h"
 
 #include "HLSLTypeAliases.h"
+#include "rive/enums.hpp"
 #include "rive/generated/shaders/rhi.glsl.exports.h"
 #include "Misc/EngineVersionComparison.h"
 
@@ -73,6 +74,8 @@ class FEnableClipRect : SHADER_PERMUTATION_BOOL("ENABLE_CLIP_RECT");
 class FEnableAdvanceBlend : SHADER_PERMUTATION_BOOL("ENABLE_ADVANCED_BLEND");
 class FEnableFeather : SHADER_PERMUTATION_BOOL("ENABLE_FEATHER");
 class FEnableModulatedImage : SHADER_PERMUTATION_BOOL("ENABLE_MODULATED_IMAGE");
+class FEnableAngularGradient
+    : SHADER_PERMUTATION_BOOL("ENABLE_ANGULAR_GRADIENT");
 
 // FragmentOnly
 class FEnableFixedFunctionColorOutput
@@ -97,7 +100,8 @@ typedef TShaderPermutationDomain<
     FEnableHSLBlendMode,
     FEnableFeather,
     FEnableClockwiseFill,
-    FEnableModulatedImage>
+    FEnableModulatedImage,
+    FEnableAngularGradient>
 
     AtomicPixelPermutationDomain;
 typedef TShaderPermutationDomain<
@@ -105,7 +109,8 @@ typedef TShaderPermutationDomain<
     FEnableClipRect,
     FEnableAdvanceBlend,
     FEnableFeather,
-    FEnableModulatedImage>
+    FEnableModulatedImage,
+    FEnableAngularGradient>
     AtomicVertexPermutationDomain;
 
 #define USE_ATOMIC_PIXEL_PERMUTATIONS                                          \
@@ -286,13 +291,37 @@ RIVESHADERS_API bool RivePlatformNeedsPathIdClampWorkaround(
 RIVESHADERS_API bool RivePlatformNeedsUshortDefine(
     const FShaderPermutationParameters& Params);
 
+namespace rive
+{
+// This enum lives in the rive namespace so it can discover the flag operators.
+enum class PixelPermutationFlags
+{
+  none = 0x00,
+  isResolve = 0x01,
+  isAtomicBuffer = 0x02,
+  allowModulatedImage = 0x04,
+  allowAngularGradient = 0x08,
+};
+} // namespace rive
+
 template <typename ShaderClass>
 static bool RiveShouldCompilePixelPermutation(
     const FShaderPermutationParameters& Parameters,
-    bool isResolve = false,
-    bool isAtomicBuffer = false,
-    bool allowModulatedImage = false)
+    rive::PixelPermutationFlags flags)
 {
+  bool isResolve = rive::enums::is_flag_set(
+      flags,
+      rive::PixelPermutationFlags::isResolve);
+  bool isAtomicBuffer = rive::enums::is_flag_set(
+      flags,
+      rive::PixelPermutationFlags::isAtomicBuffer);
+  bool allowModulatedImage = rive::enums::is_flag_set(
+      flags,
+      rive::PixelPermutationFlags::allowModulatedImage);
+  bool allowAngularGradient = rive::enums::is_flag_set(
+      flags,
+      rive::PixelPermutationFlags::allowAngularGradient);
+
   typename ShaderClass::FPermutationDomain PermutationVector(
       Parameters.PermutationId);
 
@@ -300,6 +329,9 @@ static bool RiveShouldCompilePixelPermutation(
       !allowModulatedImage)
     return false;
 
+  if (PermutationVector.template Get<FEnableAngularGradient>() &&
+      !allowAngularGradient)
+    return false;
   const bool bAtomicBufferOnly = IsTargetMetal(Parameters) ||
                                  RivePlatformForcesAtomicBuffer(Parameters);
 
@@ -351,9 +383,8 @@ bool ShouldCompilePixelMSAAPermutation(
 {
   return RiveShouldCompilePixelPermutation<ShaderClass>(
       Parameters,
-      /*isResolve=*/false,
-      /*isAtomicBuffer=*/false,
-      /*allowModulatedImage=*/true);
+      rive::PixelPermutationFlags::allowModulatedImage |
+          rive::PixelPermutationFlags::allowAngularGradient);
 }
 
 class FRiveBasePixelShader : public FGlobalShader
@@ -461,7 +492,8 @@ public:
       const FShaderPermutationParameters& Parameters)
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGPathPixelShader>(
-        Parameters);
+        Parameters,
+        rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -479,8 +511,8 @@ public:
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGPathPixelShader>(
         Parameters,
-        false,
-        true);
+        rive::PixelPermutationFlags::isAtomicBuffer |
+            rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -511,7 +543,9 @@ public:
       const FShaderPermutationParameters& Parameters)
   {
     return RiveShouldCompilePixelPermutation<
-        FRiveRDGInteriorTrianglesPixelShader>(Parameters);
+        FRiveRDGInteriorTrianglesPixelShader>(
+        Parameters,
+        rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -532,7 +566,10 @@ public:
       const FShaderPermutationParameters& Parameters)
   {
     return RiveShouldCompilePixelPermutation<
-        FRiveRDGInteriorTrianglesPixelShader>(Parameters, false, true);
+        FRiveRDGInteriorTrianglesPixelShader>(
+        Parameters,
+        rive::PixelPermutationFlags::isAtomicBuffer |
+            rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -565,7 +602,9 @@ public:
       const FShaderPermutationParameters& Parameters)
   {
     return RiveShouldCompilePixelPermutation<
-        FRiveRDGInteriorTrianglesPixelShader>(Parameters);
+        FRiveRDGInteriorTrianglesPixelShader>(
+        Parameters,
+        rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -586,7 +625,10 @@ public:
       const FShaderPermutationParameters& Parameters)
   {
     return RiveShouldCompilePixelPermutation<
-        FRiveRDGInteriorTrianglesPixelShader>(Parameters, false, true);
+        FRiveRDGInteriorTrianglesPixelShader>(
+        Parameters,
+        rive::PixelPermutationFlags::isAtomicBuffer |
+            rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -620,7 +662,8 @@ public:
       const FShaderPermutationParameters& Parameters)
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGImageRectPixelShader>(
-        Parameters);
+        Parameters,
+        rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -643,8 +686,8 @@ public:
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGImageRectPixelShader>(
         Parameters,
-        false,
-        true);
+        rive::PixelPermutationFlags::isAtomicBuffer |
+            rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -679,7 +722,8 @@ public:
       const FShaderPermutationParameters& Parameters)
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGImageMeshPixelShader>(
-        Parameters);
+        Parameters,
+        rive::PixelPermutationFlags::none);
   }
 };
 
@@ -702,8 +746,7 @@ public:
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGImageMeshPixelShader>(
         Parameters,
-        false,
-        true);
+        rive::PixelPermutationFlags::isAtomicBuffer);
   }
 };
 
@@ -741,7 +784,7 @@ public:
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGAtomicResolvePixelShader>(
         Parameters,
-        true);
+        rive::PixelPermutationFlags::isResolve);
   }
 };
 
@@ -764,8 +807,8 @@ public:
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGAtomicResolvePixelShader>(
         Parameters,
-        true,
-        true);
+        rive::PixelPermutationFlags::isResolve |
+            rive::PixelPermutationFlags::isAtomicBuffer);
   }
 };
 
@@ -805,9 +848,8 @@ public:
     return RiveShouldCompilePixelPermutation<
         FRiveRDGRasterOrderPathPixelShader>(
         Parameters,
-        /*isResolve=*/false,
-        /*isAtomicBuffer=*/false,
-        /*allowModulatedImage=*/true);
+        rive::PixelPermutationFlags::allowModulatedImage |
+            rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -845,9 +887,8 @@ public:
     return RiveShouldCompilePixelPermutation<
         FRiveRDGRasterOrderInteriorTrianglesPixelShader>(
         Parameters,
-        /*isResolve=*/false,
-        /*isAtomicBuffer=*/false,
-        /*allowModulatedImage=*/true);
+        rive::PixelPermutationFlags::allowModulatedImage |
+            rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -886,9 +927,7 @@ public:
     return RiveShouldCompilePixelPermutation<
         FRiveRDGRasterOrderImageMeshPixelShader>(
         Parameters,
-        /*isResolve=*/false,
-        /*isAtomicBuffer=*/false,
-        /*allowModulatedImage=*/true);
+        rive::PixelPermutationFlags::none);
   }
 };
 
@@ -926,9 +965,8 @@ public:
     return RiveShouldCompilePixelPermutation<
         FRiveRDGRasterOrderAtlasBlitPixelShader>(
         Parameters,
-        /*isResolve=*/false,
-        /*isAtomicBuffer=*/false,
-        /*allowModulatedImage=*/true);
+        rive::PixelPermutationFlags::allowModulatedImage |
+            rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
