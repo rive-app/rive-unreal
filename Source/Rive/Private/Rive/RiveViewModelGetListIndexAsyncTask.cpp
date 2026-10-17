@@ -15,123 +15,125 @@ THIRD_PARTY_INCLUDES_END
 URiveViewModelGetListIndexAsyncTask* URiveViewModelGetListIndexAsyncTask::
     RunGetListIndexAsyncTaskAsync(URiveViewModel* ViewModel)
 {
-    URiveViewModelGetListIndexAsyncTask* Action =
-        NewObject<URiveViewModelGetListIndexAsyncTask>();
-    Action->ViewModel = ViewModel;
+  URiveViewModelGetListIndexAsyncTask*
+      Action = NewObject<URiveViewModelGetListIndexAsyncTask>();
+  Action->ViewModel = ViewModel;
 
-    // Keeps the object alive until SetReadyToDestroy() is called
-    Action->RegisterWithGameInstance(ViewModel);
-    return Action;
+  // Keeps the object alive until SetReadyToDestroy() is called
+  Action->RegisterWithGameInstance(ViewModel);
+  return Action;
 }
 
 void URiveViewModelGetListIndexAsyncTask::Activate()
 {
-    Super::Activate();
+  Super::Activate();
 
-    if (!IsValid(ViewModel))
+  if (!IsValid(ViewModel))
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModelGetListIndexAsyncTask ViewModel is invalid"));
+    // We pass null here because the view model is invalid anyway.
+    OnFailure.Broadcast(0, nullptr);
+    SetReadyToDestroy();
+    return;
+  }
+
+  auto Definition = ViewModel->GetViewModelDefinition();
+  auto SymbolListIndexPropertyDef = Definition.PropertyDefinitions
+                                        .FindByPredicate(
+                                            [](const FRivePropertyData& P) {
+                                              return P.Type ==
+                                                     ERiveDataType::
+                                                         SymbolListIndex;
+                                            });
+
+  if (!SymbolListIndexPropertyDef)
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT(
+            "URiveViewModelGetListIndexAsyncTask No List Index Property Found on %s"),
+        *ViewModel->GetName());
+    OnFailure.Broadcast(0, ViewModel);
+    SetReadyToDestroy();
+    return;
+  }
+
+  auto NativeHandle = ViewModel->GetNativeHandle();
+  if (NativeHandle == RIVE_NULL_HANDLE)
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModelGetListIndexAsyncTask NativeHandle is null"));
+    OnFailure.Broadcast(0, ViewModel);
+    SetReadyToDestroy();
+    return;
+  }
+
+  auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
+  TWeakObjectPtr<URiveViewModelGetListIndexAsyncTask> WeakThis(this);
+  CommandBuilder.RunOnce([WeakThis,
+                          NativeHandle,
+                          Name = SymbolListIndexPropertyDef->Name](
+                             rive::CommandServer* Server) {
+    auto NativeInstance = Server->getViewModelInstance(NativeHandle);
+    if (NativeInstance == RIVE_NULL_HANDLE)
     {
-        UE_LOG(
-            LogRive,
-            Error,
-            TEXT("URiveViewModelGetListIndexAsyncTask ViewModel is invalid"));
-        // We pass null here because the view model is invalid anyway.
-        OnFailure.Broadcast(0, nullptr);
-        SetReadyToDestroy();
-        return;
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT(
+              "URiveViewModelGetListIndexAsyncTask view model native handle is invalid"));
+      AsyncTask(ENamedThreads::GameThread, [WeakThis]() {
+        if (auto StrongThis = WeakThis.Pin(); StrongThis.IsValid())
+        {
+          StrongThis->OnFailure.Broadcast(0, StrongThis->ViewModel);
+          StrongThis->SetReadyToDestroy();
+        }
+      });
+      return;
     }
 
-    auto Definition = ViewModel->GetViewModelDefinition();
-    auto SymbolListIndexPropertyDef =
-        Definition.PropertyDefinitions.FindByPredicate(
-            [](const FRivePropertyData& P) {
-                return P.Type == ERiveDataType::SymbolListIndex;
-            });
+    int32 Index = -1;
 
-    if (!SymbolListIndexPropertyDef)
+    if (auto IndexProperty = NativeInstance->propertyListIndex(
+            TCHAR_TO_UTF8(*Name)))
     {
-        UE_LOG(
-            LogRive,
-            Error,
-            TEXT(
-                "URiveViewModelGetListIndexAsyncTask No List Index Property Found on %s"),
-            *ViewModel->GetName());
-        OnFailure.Broadcast(0, ViewModel);
-        SetReadyToDestroy();
-        return;
+      Index = IndexProperty->value();
+    }
+    else
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT(
+              "URiveViewModelGetListIndexAsyncTask failed to find list index property named %s"),
+          *Name);
     }
 
-    auto NativeHandle = ViewModel->GetNativeHandle();
-    if (NativeHandle == RIVE_NULL_HANDLE)
-    {
-        UE_LOG(
-            LogRive,
-            Error,
-            TEXT("URiveViewModelGetListIndexAsyncTask NativeHandle is null"));
-        OnFailure.Broadcast(0, ViewModel);
-        SetReadyToDestroy();
+    AsyncTask(ENamedThreads::GameThread, [WeakThis, Index]() {
+      auto StrongThis = WeakThis.Pin();
+      if (!StrongThis.IsValid())
+      {
         return;
-    }
+      }
 
-    auto& CommandBuilder = IRiveRendererModule::GetCommandBuilder();
-    TWeakObjectPtr<URiveViewModelGetListIndexAsyncTask> WeakThis(this);
-    CommandBuilder.RunOnce([WeakThis,
-                            NativeHandle,
-                            Name = SymbolListIndexPropertyDef->Name](
-                               rive::CommandServer* Server) {
-        auto NativeInstance = Server->getViewModelInstance(NativeHandle);
-        if (NativeInstance == RIVE_NULL_HANDLE)
-        {
-            UE_LOG(
-                LogRive,
-                Error,
-                TEXT(
-                    "URiveViewModelGetListIndexAsyncTask view model native handle is invalid"));
-            AsyncTask(ENamedThreads::GameThread, [WeakThis]() {
-                if (auto StrongThis = WeakThis.Pin(); StrongThis.IsValid())
-                {
-                    StrongThis->OnFailure.Broadcast(0, StrongThis->ViewModel);
-                    StrongThis->SetReadyToDestroy();
-                }
-            });
-            return;
-        }
+      // Broadcast fires the execution pin and passes data to BP
+      if (Index != -1)
+      {
+        StrongThis->OnSuccess.Broadcast(Index, StrongThis->ViewModel);
+      }
+      else
+      {
+        StrongThis->OnFailure.Broadcast(0, StrongThis->ViewModel);
+      }
 
-        int32 Index = -1;
-
-        if (auto IndexProperty =
-                NativeInstance->propertyListIndex(TCHAR_TO_UTF8(*Name)))
-        {
-            Index = IndexProperty->value();
-        }
-        else
-        {
-            UE_LOG(
-                LogRive,
-                Error,
-                TEXT(
-                    "URiveViewModelGetListIndexAsyncTask failed to find list index property named %s"),
-                *Name);
-        }
-
-        AsyncTask(ENamedThreads::GameThread, [WeakThis, Index]() {
-            auto StrongThis = WeakThis.Pin();
-            if (!StrongThis.IsValid())
-            {
-                return;
-            }
-
-            // Broadcast fires the execution pin and passes data to BP
-            if (Index != -1)
-            {
-                StrongThis->OnSuccess.Broadcast(Index, StrongThis->ViewModel);
-            }
-            else
-            {
-                StrongThis->OnFailure.Broadcast(0, StrongThis->ViewModel);
-            }
-
-            // Clean up the object for garbage collection
-            StrongThis->SetReadyToDestroy();
-        });
+      // Clean up the object for garbage collection
+      StrongThis->SetReadyToDestroy();
     });
+  });
 }

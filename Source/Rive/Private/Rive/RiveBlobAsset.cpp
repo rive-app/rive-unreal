@@ -8,29 +8,30 @@
 
 void URiveBlobAsset::BeginDestroy()
 {
-    if (!IsRunningCommandlet() && !HasAnyFlags(RF_ClassDefaultObject) &&
-        NativeBlobHandle != RIVE_NULL_HANDLE)
-    {
-        auto Renderer = IRiveRendererModule::Get().GetRenderer();
-        check(Renderer);
-        auto& CommandBuilder = Renderer->GetCommandBuilder();
-        CommandBuilder.DestroyBlob(NativeBlobHandle);
-    }
+  if (!IsRunningCommandlet() && !HasAnyFlags(RF_ClassDefaultObject) &&
+      NativeBlobHandle != RIVE_NULL_HANDLE)
+  {
+    auto Renderer = IRiveRendererModule::Get().GetRenderer();
+    check(Renderer);
+    auto& CommandBuilder = Renderer->GetCommandBuilder();
+    CommandBuilder.DestroyBlob(NativeBlobHandle);
+  }
 
-    Super::BeginDestroy();
+  Super::BeginDestroy();
 }
 
 URiveBlobAsset* URiveBlobAsset::MakeBlobAsset(const TArray<uint8>& Bytes)
 {
-    auto Renderer = IRiveRendererModule::Get().GetRenderer();
-    check(Renderer);
-    auto* BlobAsset = NewObject<URiveBlobAsset>();
-    BlobAsset->Initialize(Renderer->GetCommandBuilder(), Bytes);
-    return BlobAsset;
+  auto Renderer = IRiveRendererModule::Get().GetRenderer();
+  check(Renderer);
+  auto* BlobAsset = NewObject<URiveBlobAsset>();
+  BlobAsset->Initialize(Renderer->GetCommandBuilder(), Bytes);
+  return BlobAsset;
 }
 
-void URiveBlobAsset::Initialize(FRiveCommandBuilder& Builder,
-                                const TArray<uint8>& Bytes)
+void URiveBlobAsset::Initialize(
+    FRiveCommandBuilder& Builder,
+    const TArray<uint8>& Bytes)
 {
-    NativeBlobHandle = Builder.CreateBlobAsset(Bytes);
+  NativeBlobHandle = Builder.CreateBlobAsset(Bytes);
 }

@@ -24,132 +24,136 @@ TMap<rive::ViewModelInstanceHandle, URiveViewModel*>
 
 static rive::DataType RiveDataTypeToDataType(ERiveDataType Type)
 {
-    switch (Type)
-    {
-        case ERiveDataType::None:
-            return rive::DataType::none;
-        case ERiveDataType::String:
-            return rive::DataType::string;
-        case ERiveDataType::Number:
-            return rive::DataType::number;
-        case ERiveDataType::Boolean:
-            return rive::DataType::boolean;
-        case ERiveDataType::Color:
-            return rive::DataType::color;
-        case ERiveDataType::List:
-            return rive::DataType::list;
-        case ERiveDataType::EnumType:
-            return rive::DataType::enumType;
-        case ERiveDataType::Trigger:
-            return rive::DataType::trigger;
-        case ERiveDataType::ViewModel:
-            return rive::DataType::viewModel;
-        case ERiveDataType::AssetImage:
-            return rive::DataType::assetImage;
-        case ERiveDataType::AssetBlob:
-            return rive::DataType::assetBlob;
-        case ERiveDataType::Artboard:
-            return rive::DataType::artboard;
-        case ERiveDataType::SymbolListIndex:
-            return rive::DataType::symbolListIndex;
-    }
+  switch (Type)
+  {
+    case ERiveDataType::None:
+      return rive::DataType::none;
+    case ERiveDataType::String:
+      return rive::DataType::string;
+    case ERiveDataType::Number:
+      return rive::DataType::number;
+    case ERiveDataType::Boolean:
+      return rive::DataType::boolean;
+    case ERiveDataType::Color:
+      return rive::DataType::color;
+    case ERiveDataType::List:
+      return rive::DataType::list;
+    case ERiveDataType::EnumType:
+      return rive::DataType::enumType;
+    case ERiveDataType::Trigger:
+      return rive::DataType::trigger;
+    case ERiveDataType::ViewModel:
+      return rive::DataType::viewModel;
+    case ERiveDataType::AssetImage:
+      return rive::DataType::assetImage;
+    case ERiveDataType::AssetBlob:
+      return rive::DataType::assetBlob;
+    case ERiveDataType::Artboard:
+      return rive::DataType::artboard;
+    case ERiveDataType::SymbolListIndex:
+      return rive::DataType::symbolListIndex;
+  }
 
-    return rive::DataType::none;
+  return rive::DataType::none;
 }
 
 class FRiveViewModelListener final
     : public rive::CommandQueue::ViewModelInstanceListener
 {
 public:
-    FRiveViewModelListener(TWeakObjectPtr<URiveViewModel> ListeningViewModel) :
-        ListeningViewModel(ListeningViewModel)
-    {}
+  FRiveViewModelListener(TWeakObjectPtr<URiveViewModel> ListeningViewModel)
+      : ListeningViewModel(ListeningViewModel)
+  {}
 
-    virtual void onViewModelInstanceError(
-        const rive::ViewModelInstanceHandle Handle,
-        uint64_t RequestId,
-        std::string Error) override
+  virtual void onViewModelInstanceError(
+      const rive::ViewModelInstanceHandle Handle,
+      uint64_t RequestId,
+      std::string Error) override
+  {
+    FUTF8ToTCHAR Conversion(Error.c_str());
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("Rive View Model RequestId: %llu Error {%s}"),
+        RequestId,
+        Conversion.Get());
+  }
+
+  virtual void onViewModelDeleted(
+      const rive::ViewModelInstanceHandle Handle,
+      uint64_t RequestId) override
+  {
+    check(IsInGameThread());
+    if (auto StrongViewModel = ListeningViewModel.Pin();
+        StrongViewModel.IsValid())
     {
-        FUTF8ToTCHAR Conversion(Error.c_str());
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Rive View Model RequestId: %llu Error {%s}"),
-               RequestId,
-               Conversion.Get());
+      UE_LOG(
+          LogRive,
+          Display,
+          TEXT("Rive View Model Named %s deleted"),
+          *StrongViewModel->GetName());
+    }
+    else
+    {
+      UE_LOG(
+          LogRive,
+          VeryVerbose,
+          TEXT("Rive View Model Handle %p deleted"),
+          Handle);
     }
 
-    virtual void onViewModelDeleted(const rive::ViewModelInstanceHandle Handle,
-                                    uint64_t RequestId) override
-    {
-        check(IsInGameThread());
-        if (auto StrongViewModel = ListeningViewModel.Pin();
-            StrongViewModel.IsValid())
-        {
-            UE_LOG(LogRive,
-                   Display,
-                   TEXT("Rive View Model Named %s deleted"),
-                   *StrongViewModel->GetName());
-        }
-        else
-        {
-            UE_LOG(LogRive,
-                   VeryVerbose,
-                   TEXT("Rive View Model Handle %p deleted"),
-                   Handle);
-        }
+    delete this;
+  }
 
-        delete this;
-    }
-
-    virtual void onViewModelDataReceived(
-        const rive::ViewModelInstanceHandle Handle,
-        uint64_t RequestId,
-        rive::CommandQueue::ViewModelInstanceData Data) override
+  virtual void onViewModelDataReceived(
+      const rive::ViewModelInstanceHandle Handle,
+      uint64_t RequestId,
+      rive::CommandQueue::ViewModelInstanceData Data) override
+  {
+    if (auto StrongViewModel = ListeningViewModel.Pin())
     {
-        if (auto StrongViewModel = ListeningViewModel.Pin())
-        {
-            StrongViewModel->OnViewModelDataReceived(RequestId, MoveTemp(Data));
-        }
+      StrongViewModel->OnViewModelDataReceived(RequestId, MoveTemp(Data));
     }
+  }
 
-    virtual void onViewModelListSizeReceived(
-        const rive::ViewModelInstanceHandle Handle,
-        uint64_t RequestId,
-        std::string Path,
-        size_t Size) override
+  virtual void onViewModelListSizeReceived(
+      const rive::ViewModelInstanceHandle Handle,
+      uint64_t RequestId,
+      std::string Path,
+      size_t Size) override
+  {
+    if (auto StrongViewModel = ListeningViewModel.Pin())
     {
-        if (auto StrongViewModel = ListeningViewModel.Pin())
-        {
-            StrongViewModel->OnViewModelListSizeReceived(MoveTemp(Path), Size);
-        }
+      StrongViewModel->OnViewModelListSizeReceived(MoveTemp(Path), Size);
     }
+  }
 
 private:
-    TWeakObjectPtr<URiveViewModel> ListeningViewModel = nullptr;
+  TWeakObjectPtr<URiveViewModel> ListeningViewModel = nullptr;
 };
 
 constexpr bool GetIsPropertyTypeWithDefault(ERiveDataType Type)
 {
-    switch (Type)
-    {
-        case ERiveDataType::String:
-        case ERiveDataType::Number:
-        case ERiveDataType::Boolean:
-        case ERiveDataType::Color:
-        case ERiveDataType::EnumType:
-        case ERiveDataType::ViewModel:
-        case ERiveDataType::Artboard:
-            return true;
-        case ERiveDataType::AssetImage:
-        case ERiveDataType::AssetBlob:
-        case ERiveDataType::List:
-        case ERiveDataType::Trigger:
-        case ERiveDataType::SymbolListIndex:
-        case ERiveDataType::None:
-            break;
-    }
+  switch (Type)
+  {
+    case ERiveDataType::String:
+    case ERiveDataType::Number:
+    case ERiveDataType::Boolean:
+    case ERiveDataType::Color:
+    case ERiveDataType::EnumType:
+    case ERiveDataType::ViewModel:
+    case ERiveDataType::Artboard:
+      return true;
+    case ERiveDataType::AssetImage:
+    case ERiveDataType::AssetBlob:
+    case ERiveDataType::List:
+    case ERiveDataType::Trigger:
+    case ERiveDataType::SymbolListIndex:
+    case ERiveDataType::None:
+      break;
+  }
 
-    return false;
+  return false;
 }
 
 void URiveViewModel::Initialize(
@@ -158,51 +162,53 @@ void URiveViewModel::Initialize(
     const FViewModelDefinition& InViewModelDefinition,
     const FString& InstanceName)
 {
-    if (!IsValid(OwningFile))
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveViewModel::Initialize Invalid Rive File"));
-        return;
-    }
+  if (!IsValid(OwningFile))
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModel::Initialize Invalid Rive File"));
+    return;
+  }
 
-    if (InViewModelDefinition.Name.IsEmpty())
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveViewModel::Initialize Invalid ViewModelDefinition"));
-        return;
-    }
+  if (InViewModelDefinition.Name.IsEmpty())
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModel::Initialize Invalid ViewModelDefinition"));
+    return;
+  }
 
-    ViewModelDefinition = InViewModelDefinition;
+  ViewModelDefinition = InViewModelDefinition;
 
-    const bool bIsBlankInstance = InstanceName == GViewModelInstanceBlankName;
+  const bool bIsBlankInstance = InstanceName == GViewModelInstanceBlankName;
 
-    if (bIsBlankInstance)
-    {
-        NativeViewModelInstance =
-            Builder.CreateBlankViewModel(OwningFile->GetNativeFileHandle(),
-                                         ViewModelDefinition.Name,
-                                         new FRiveViewModelListener(this));
-    }
-    else if (InstanceName == GViewModelInstanceDefaultName ||
-             InstanceName.IsEmpty())
-    {
-        NativeViewModelInstance =
-            Builder.CreateDefaultViewModel(OwningFile->GetNativeFileHandle(),
-                                           ViewModelDefinition.Name,
-                                           new FRiveViewModelListener(this));
-    }
-    else
-    {
-        NativeViewModelInstance =
-            Builder.CreateViewModel(OwningFile->GetNativeFileHandle(),
-                                    ViewModelDefinition.Name,
-                                    InstanceName,
-                                    new FRiveViewModelListener(this));
-    }
+  if (bIsBlankInstance)
+  {
+    NativeViewModelInstance = Builder.CreateBlankViewModel(
+        OwningFile->GetNativeFileHandle(),
+        ViewModelDefinition.Name,
+        new FRiveViewModelListener(this));
+  }
+  else if (
+      InstanceName == GViewModelInstanceDefaultName || InstanceName.IsEmpty())
+  {
+    NativeViewModelInstance = Builder.CreateDefaultViewModel(
+        OwningFile->GetNativeFileHandle(),
+        ViewModelDefinition.Name,
+        new FRiveViewModelListener(this));
+  }
+  else
+  {
+    NativeViewModelInstance = Builder.CreateViewModel(
+        OwningFile->GetNativeFileHandle(),
+        ViewModelDefinition.Name,
+        InstanceName,
+        new FRiveViewModelListener(this));
+  }
 
-    SetupGeneratedProperties(Builder, OwningFile, InstanceName);
+  SetupGeneratedProperties(Builder, OwningFile, InstanceName);
 }
 
 void URiveViewModel::InitializeReferenced(
@@ -213,1479 +219,1508 @@ void URiveViewModel::InitializeReferenced(
     const FString& Path,
     const FString& InstanceName)
 {
-    if (!IsValid(OwningFile))
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveViewModel::InitializeReferenced Invalid Rive File"));
-        return;
-    }
+  if (!IsValid(OwningFile))
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModel::InitializeReferenced Invalid Rive File"));
+    return;
+  }
 
-    if (InViewModelDefinition.Name.IsEmpty())
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveViewModel::InitializeReferenced Invalid "
-                    "ViewModelDefinition"));
-        return;
-    }
+  if (InViewModelDefinition.Name.IsEmpty())
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModel::InitializeReferenced Invalid "
+             "ViewModelDefinition"));
+    return;
+  }
 
-    if (RootViewModel == RIVE_NULL_HANDLE)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveViewModel::InitializeReferenced Invalid root view "
-                    "model"));
-        return;
-    }
+  if (RootViewModel == RIVE_NULL_HANDLE)
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModel::InitializeReferenced Invalid root view "
+             "model"));
+    return;
+  }
 
-    ViewModelDefinition = InViewModelDefinition;
-    bIsReferenced = true;
+  ViewModelDefinition = InViewModelDefinition;
+  bIsReferenced = true;
 
-    NativeViewModelInstance =
-        Builder.RefViewModel(RootViewModel,
-                             Path,
-                             new FRiveViewModelListener(this));
+  NativeViewModelInstance = Builder.RefViewModel(
+      RootViewModel,
+      Path,
+      new FRiveViewModelListener(this));
 
-    SetupGeneratedProperties(Builder, OwningFile, InstanceName);
+  SetupGeneratedProperties(Builder, OwningFile, InstanceName);
 }
 
-void URiveViewModel::SetupGeneratedProperties(FRiveCommandBuilder& Builder,
-                                              URiveFile* OwningFile,
-                                              const FString& InstanceName)
+void URiveViewModel::SetupGeneratedProperties(
+    FRiveCommandBuilder& Builder,
+    URiveFile* OwningFile,
+    const FString& InstanceName)
 {
-    // This handle should not exist in the map.
-    check(!ViewModelInstances.Contains(NativeViewModelInstance));
-    ViewModelInstances.Add(NativeViewModelInstance, this);
+  // This handle should not exist in the map.
+  check(!ViewModelInstances.Contains(NativeViewModelInstance));
+  ViewModelInstances.Add(NativeViewModelInstance, this);
 
-    const bool bIsBlankInstance = InstanceName == GViewModelInstanceBlankName;
-    const FString ResolvedInstanceName =
-        (InstanceName == GViewModelInstanceDefaultName || bIsBlankInstance ||
-         InstanceName.IsEmpty())
-            ? ViewModelDefinition.DefaultInstanceName
-            : InstanceName;
-    // There is no reason to auto-subscribe if we aren't a generated view model.
-    if (bIsGenerated)
+  const bool bIsBlankInstance = InstanceName == GViewModelInstanceBlankName;
+  const FString
+      ResolvedInstanceName = (InstanceName == GViewModelInstanceDefaultName ||
+                              bIsBlankInstance || InstanceName.IsEmpty())
+                                 ? ViewModelDefinition.DefaultInstanceName
+                                 : InstanceName;
+  // There is no reason to auto-subscribe if we aren't a generated view model.
+  if (bIsGenerated)
+  {
+    int32 DefaultValueIndex = 0;
+    const auto
+        ViewModelDefault = ViewModelDefinition.InstanceDefaults.FindByPredicate(
+            [ResolvedInstanceName](const auto& ViewModelDefault) {
+              return ViewModelDefault.InstanceName == ResolvedInstanceName;
+            });
+    UBlueprintGeneratedClass* GeneratedClass = Cast<UBlueprintGeneratedClass>(
+        GetClass());
+    if (!ViewModelDefault)
     {
-        int32 DefaultValueIndex = 0;
-        const auto ViewModelDefault =
-            ViewModelDefinition.InstanceDefaults.FindByPredicate(
-                [ResolvedInstanceName](const auto& ViewModelDefault) {
-                    return ViewModelDefault.InstanceName ==
-                           ResolvedInstanceName;
-                });
-        UBlueprintGeneratedClass* GeneratedClass =
-            Cast<UBlueprintGeneratedClass>(GetClass());
-        if (!ViewModelDefault)
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("URiveViewModel::Initialize No View Model Default !"));
-            return;
-        }
-        if (!GeneratedClass)
-        {
-            UE_LOG(
-                LogRive,
-                Error,
-                TEXT(
-                    "URiveViewModel::Initialize Class is not a generated class !"));
-            return;
-        }
-        for (int32 Index = 0;
-             Index < ViewModelDefinition.PropertyDefinitions.Num();
-             ++Index)
-        {
-            const auto& PropertyDefinition =
-                ViewModelDefinition.PropertyDefinitions[Index];
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("URiveViewModel::Initialize No View Model Default !"));
+      return;
+    }
+    if (!GeneratedClass)
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("URiveViewModel::Initialize Class is not a generated class !"));
+      return;
+    }
+    for (int32 Index = 0; Index < ViewModelDefinition.PropertyDefinitions.Num();
+         ++Index)
+    {
+      const auto& PropertyDefinition = ViewModelDefinition
+                                           .PropertyDefinitions[Index];
 
-            if (ViewModelDefault &&
-                GetIsPropertyTypeWithDefault(PropertyDefinition.Type))
+      if (ViewModelDefault &&
+          GetIsPropertyTypeWithDefault(PropertyDefinition.Type))
+      {
+        const FPropertyDefaultData&
+            DefaultData = ViewModelDefault->PropertyValues[DefaultValueIndex++];
+        if (DefaultData.Name != PropertyDefinition.Name)
+        {
+          UE_LOG(
+              LogRive,
+              Warning,
+              TEXT(
+                  "URiveViewModel::Initialize Default Property Name Mismatch !"));
+          continue;
+        }
+        const FString& DefaultValue = DefaultData.Value;
+        switch (PropertyDefinition.Type)
+        {
+          case ERiveDataType::String:
+          {
+            if (FStrProperty* Prop = FindFProperty<FStrProperty>(
+                    GeneratedClass,
+                    *PropertyDefinition.Name))
             {
-                const FPropertyDefaultData& DefaultData =
-                    ViewModelDefault->PropertyValues[DefaultValueIndex++];
-                if (DefaultData.Name != PropertyDefinition.Name)
-                {
-                    UE_LOG(
-                        LogRive,
-                        Warning,
-                        TEXT(
-                            "URiveViewModel::Initialize Default Property Name Mismatch !"));
-                    continue;
-                }
-                const FString& DefaultValue = DefaultData.Value;
-                switch (PropertyDefinition.Type)
-                {
-                    case ERiveDataType::String:
-                    {
-                        if (FStrProperty* Prop = FindFProperty<FStrProperty>(
-                                GeneratedClass,
-                                *PropertyDefinition.Name))
-                        {
-                            Prop->SetPropertyValue_InContainer(this,
-                                                               DefaultValue);
-                        }
-                    }
-                    break;
-                    case ERiveDataType::Number:
-                    {
-                        if (FFloatProperty* Prop =
-                                FindFProperty<FFloatProperty>(
-                                    GeneratedClass,
-                                    *PropertyDefinition.Name))
-                        {
-                            Prop->SetPropertyValue_InContainer(
-                                this,
-                                FCString::Atof(*DefaultValue));
-                        }
-                    }
-                    break;
-                    case ERiveDataType::Boolean:
-                    {
-                        if (FBoolProperty* Prop = FindFProperty<FBoolProperty>(
-                                GeneratedClass,
-                                *PropertyDefinition.Name))
-                        {
-                            Prop->SetPropertyValue_InContainer(
-                                this,
-                                DefaultValue == TEXT("True") ? true : false);
-                        }
-                    }
-                    break;
-                    case ERiveDataType::Color:
-                    {
-                        if (FStructProperty* Prop =
-                                FindFProperty<FStructProperty>(
-                                    GeneratedClass,
-                                    *PropertyDefinition.Name))
-                        {
-                            FLinearColor* ColorValue =
-                                Prop->ContainerPtrToValuePtr<FLinearColor>(
-                                    this);
-                            rive::ColorInt ColorInt =
-                                FCString::Atoi(*DefaultValue);
-                            float Values[4];
-                            rive::UnpackColorToRGBA32F(ColorInt, Values);
-                            ColorValue->R = Values[0];
-                            ColorValue->G = Values[1];
-                            ColorValue->B = Values[2];
-                            ColorValue->A = Values[3];
-                        }
-                    }
-                    break;
-                    case ERiveDataType::EnumType:
-                    {
-                        if (FByteProperty* Prop = FindFProperty<FByteProperty>(
-                                GeneratedClass,
-                                *PropertyDefinition.Name))
-                        {
-                            UEnum* Enum = Prop->GetIntPropertyEnum();
-                            if (ensure(Enum))
-                            {
-                                Prop->SetPropertyValue_InContainer(
-                                    this,
-                                    Enum->GetIndexByNameString(DefaultValue));
-                            }
-                        }
-                    }
-                    break;
-                    case ERiveDataType::ViewModel:
-                    {
-                        if (FObjectProperty* Prop =
-                                FindFProperty<FObjectProperty>(
-                                    GeneratedClass,
-                                    *PropertyDefinition.Name))
-                        {
-                            FString ViewModelType;
-                            FString ViewModelInstanceName;
-                            ensure(DefaultValue.Split(TEXT("/"),
-                                                      &ViewModelType,
-                                                      &ViewModelInstanceName));
-                            if (bIsBlankInstance)
-                                ViewModelInstanceName =
-                                    GViewModelInstanceBlankName.ToString();
-
-                            TObjectPtr<URiveViewModel> NestedViewModel =
-                                URiveFile::CreateReferencedViewModelByName(
-                                    OwningFile,
-                                    ViewModelType,
-                                    ViewModelInstanceName,
-                                    NativeViewModelInstance,
-                                    PropertyDefinition.Name);
-                            if (NestedViewModel)
-                            {
-                                NestedViewModel->SetOwningViewModel(this);
-                                Prop->SetPropertyValue_InContainer(
-                                    this,
-                                    NestedViewModel);
-                            }
-                        }
-                    }
-                    break;
-                    case ERiveDataType::Artboard:
-                    case ERiveDataType::AssetImage:
-                    case ERiveDataType::AssetBlob:
-                    case ERiveDataType::List:
-                    case ERiveDataType::None:
-                    case ERiveDataType::Trigger:
-                    case ERiveDataType::SymbolListIndex:
-                        continue;
-                }
+              Prop->SetPropertyValue_InContainer(this, DefaultValue);
             }
-
-            // These properties do not have subscriptions.
-            if (PropertyDefinition.Type == ERiveDataType::ViewModel ||
-                PropertyDefinition.Type == ERiveDataType::SymbolListIndex ||
-                PropertyDefinition.Type == ERiveDataType::AssetImage ||
-                PropertyDefinition.Type == ERiveDataType::AssetBlob ||
-                PropertyDefinition.Type == ERiveDataType::Artboard)
+          }
+          break;
+          case ERiveDataType::Number:
+          {
+            if (FFloatProperty* Prop = FindFProperty<FFloatProperty>(
+                    GeneratedClass,
+                    *PropertyDefinition.Name))
             {
-                continue;
+              Prop->SetPropertyValue_InContainer(
+                  this,
+                  FCString::Atof(*DefaultValue));
             }
-
-            Builder.SubscribeToProperty(
-                NativeViewModelInstance,
-                PropertyDefinition.Name,
-                RiveDataTypeToDataType(PropertyDefinition.Type));
-
-            if (PropertyDefinition.Type == ERiveDataType::Trigger)
+          }
+          break;
+          case ERiveDataType::Boolean:
+          {
+            if (FBoolProperty* Prop = FindFProperty<FBoolProperty>(
+                    GeneratedClass,
+                    *PropertyDefinition.Name))
             {
-                FScriptDelegate GenericDelegate;
-                const FString TriggerName =
-                    GET_FUNCTION_NAME_STRING_CHECKED(URiveTriggerDelegate,
-                                                     SetTrigger);
-                URiveTriggerDelegate* TriggerDelegate =
-                    NewObject<URiveTriggerDelegate>(
-                        this,
-                        FName(PropertyDefinition.Name +
-                              TEXT("_TriggerDelegate")));
-                TriggerDelegate->OwningViewModel = this;
-                TriggerDelegate->TriggerIndex = Index;
-                TriggerDelegates.Add(PropertyDefinition.Name, TriggerDelegate);
-                GenericDelegate.BindUFunction(TriggerDelegate,
-                                              FName(TriggerName));
-                if (auto DelegateProperty =
-                        FindFProperty<FMulticastDelegateProperty>(
-                            GetClass(),
-                            *PropertyDefinition.Name))
-                {
-                    DelegateProperty->AddDelegate(GenericDelegate, this);
-                }
+              Prop->SetPropertyValue_InContainer(
+                  this,
+                  DefaultValue == TEXT("True") ? true : false);
             }
-            else if (PropertyDefinition.Type == ERiveDataType::List)
+          }
+          break;
+          case ERiveDataType::Color:
+          {
+            if (FStructProperty* Prop = FindFProperty<FStructProperty>(
+                    GeneratedClass,
+                    *PropertyDefinition.Name))
             {
-                Builder.GetPropertyListSize(NativeViewModelInstance,
-                                            PropertyDefinition.Name);
+              FLinearColor*
+                  ColorValue = Prop->ContainerPtrToValuePtr<FLinearColor>(this);
+              rive::ColorInt ColorInt = FCString::Atoi(*DefaultValue);
+              float Values[4];
+              rive::UnpackColorToRGBA32F(ColorInt, Values);
+              ColorValue->R = Values[0];
+              ColorValue->G = Values[1];
+              ColorValue->B = Values[2];
+              ColorValue->A = Values[3];
             }
+          }
+          break;
+          case ERiveDataType::EnumType:
+          {
+            if (FByteProperty* Prop = FindFProperty<FByteProperty>(
+                    GeneratedClass,
+                    *PropertyDefinition.Name))
+            {
+              UEnum* Enum = Prop->GetIntPropertyEnum();
+              if (ensure(Enum))
+              {
+                Prop->SetPropertyValue_InContainer(
+                    this,
+                    Enum->GetIndexByNameString(DefaultValue));
+              }
+            }
+          }
+          break;
+          case ERiveDataType::ViewModel:
+          {
+            if (FObjectProperty* Prop = FindFProperty<FObjectProperty>(
+                    GeneratedClass,
+                    *PropertyDefinition.Name))
+            {
+              FString ViewModelType;
+              FString ViewModelInstanceName;
+              ensure(DefaultValue.Split(
+                  TEXT("/"),
+                  &ViewModelType,
+                  &ViewModelInstanceName));
+              if (bIsBlankInstance)
+                ViewModelInstanceName = GViewModelInstanceBlankName.ToString();
+
+              TObjectPtr<URiveViewModel>
+                  NestedViewModel = URiveFile::CreateReferencedViewModelByName(
+                      OwningFile,
+                      ViewModelType,
+                      ViewModelInstanceName,
+                      NativeViewModelInstance,
+                      PropertyDefinition.Name);
+              if (NestedViewModel)
+              {
+                NestedViewModel->SetOwningViewModel(this);
+                Prop->SetPropertyValue_InContainer(this, NestedViewModel);
+              }
+            }
+          }
+          break;
+          case ERiveDataType::Artboard:
+          case ERiveDataType::AssetImage:
+          case ERiveDataType::AssetBlob:
+          case ERiveDataType::List:
+          case ERiveDataType::None:
+          case ERiveDataType::Trigger:
+          case ERiveDataType::SymbolListIndex:
+            continue;
         }
-    }
-}
+      }
 
-bool URiveViewModel::GetBoolValue(const FString& PropertyName,
-                                  bool& OutValue) const
-{
-    check(bIsGenerated);
-    if (auto BoolProperty =
-            FindFProperty<FBoolProperty>(GetClass(), *PropertyName))
-    {
-        OutValue = BoolProperty->GetPropertyValue_InContainer(this);
-        return true;
-    }
+      // These properties do not have subscriptions.
+      if (PropertyDefinition.Type == ERiveDataType::ViewModel ||
+          PropertyDefinition.Type == ERiveDataType::SymbolListIndex ||
+          PropertyDefinition.Type == ERiveDataType::AssetImage ||
+          PropertyDefinition.Type == ERiveDataType::AssetBlob ||
+          PropertyDefinition.Type == ERiveDataType::Artboard)
+      {
+        continue;
+      }
 
-    return false;
-}
+      Builder.SubscribeToProperty(
+          NativeViewModelInstance,
+          PropertyDefinition.Name,
+          RiveDataTypeToDataType(PropertyDefinition.Type));
 
-bool URiveViewModel::GetColorValue(const FString& PropertyName,
-                                   FLinearColor& OutColor) const
-{
-    check(bIsGenerated);
-    if (auto BoolProperty =
-            FindFProperty<FStructProperty>(GetClass(), *PropertyName))
-    {
-        if (const auto LinearColor =
-                BoolProperty->ContainerPtrToValuePtr<FLinearColor>(this))
+      if (PropertyDefinition.Type == ERiveDataType::Trigger)
+      {
+        FScriptDelegate GenericDelegate;
+        const FString TriggerName = GET_FUNCTION_NAME_STRING_CHECKED(
+            URiveTriggerDelegate,
+            SetTrigger);
+        URiveTriggerDelegate* TriggerDelegate = NewObject<URiveTriggerDelegate>(
+            this,
+            FName(PropertyDefinition.Name + TEXT("_TriggerDelegate")));
+        TriggerDelegate->OwningViewModel = this;
+        TriggerDelegate->TriggerIndex = Index;
+        TriggerDelegates.Add(PropertyDefinition.Name, TriggerDelegate);
+        GenericDelegate.BindUFunction(TriggerDelegate, FName(TriggerName));
+        if (auto DelegateProperty = FindFProperty<FMulticastDelegateProperty>(
+                GetClass(),
+                *PropertyDefinition.Name))
         {
-            OutColor = *LinearColor;
-            return true;
+          DelegateProperty->AddDelegate(GenericDelegate, this);
         }
+      }
+      else if (PropertyDefinition.Type == ERiveDataType::List)
+      {
+        Builder.GetPropertyListSize(
+            NativeViewModelInstance,
+            PropertyDefinition.Name);
+      }
     }
-    return false;
+  }
 }
 
-bool URiveViewModel::GetStringValue(const FString& PropertyName,
-                                    FString& OutString) const
+bool URiveViewModel::GetBoolValue(const FString& PropertyName, bool& OutValue)
+    const
 {
-    check(bIsGenerated);
-    if (auto StrProperty =
-            FindFProperty<FStrProperty>(GetClass(), *PropertyName))
-    {
-        OutString = StrProperty->GetPropertyValue_InContainer(this);
-        return true;
-    }
-    return false;
+  check(bIsGenerated);
+  if (auto BoolProperty = FindFProperty<FBoolProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    OutValue = BoolProperty->GetPropertyValue_InContainer(this);
+    return true;
+  }
+
+  return false;
 }
 
-bool URiveViewModel::GetEnumValue(const FString& PropertyName,
-                                  FString& EnumValue) const
+bool URiveViewModel::GetColorValue(
+    const FString& PropertyName,
+    FLinearColor& OutColor) const
 {
-    check(bIsGenerated);
-    if (auto EnumProperty =
-            FindFProperty<FByteProperty>(GetClass(), *PropertyName))
+  check(bIsGenerated);
+  if (auto BoolProperty = FindFProperty<FStructProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    if (const auto LinearColor = BoolProperty
+                                     ->ContainerPtrToValuePtr<FLinearColor>(
+                                         this))
     {
-        const uint64 EnumIndex =
-            EnumProperty->GetUnsignedIntPropertyValue_InContainer(this);
-        // The short name, as Rive names it and as SetEnumValue accepts it.
-        EnumValue =
-            EnumProperty->GetIntPropertyEnum()->GetNameStringByIndex(EnumIndex);
-
-        return true;
+      OutColor = *LinearColor;
+      return true;
     }
-    return false;
+  }
+  return false;
 }
 
-bool URiveViewModel::GetNumberValue(const FString& PropertyName,
-                                    float& OutNumber) const
+bool URiveViewModel::GetStringValue(
+    const FString& PropertyName,
+    FString& OutString) const
 {
-    check(bIsGenerated);
-    if (auto FloatProperty =
-            FindFProperty<FFloatProperty>(GetClass(), *PropertyName))
-    {
-        OutNumber = FloatProperty->GetPropertyValue_InContainer(this);
-        return true;
-    }
-    return false;
+  check(bIsGenerated);
+  if (auto StrProperty = FindFProperty<FStrProperty>(GetClass(), *PropertyName))
+  {
+    OutString = StrProperty->GetPropertyValue_InContainer(this);
+    return true;
+  }
+  return false;
 }
 
-bool URiveViewModel::GetListSize(const FString& PropertyName,
-                                 int32& OutSize) const
+bool URiveViewModel::GetEnumValue(
+    const FString& PropertyName,
+    FString& EnumValue) const
 {
-    check(bIsGenerated);
-    if (auto ListProperty =
-            FindFProperty<FStructProperty>(GetClass(), *PropertyName))
-    {
-        if (const auto List =
-                ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
-        {
-            OutSize = List->ListSize;
-            return true;
-        }
-    }
-    return false;
+  check(bIsGenerated);
+  if (auto EnumProperty = FindFProperty<FByteProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    const uint64
+        EnumIndex = EnumProperty->GetUnsignedIntPropertyValue_InContainer(this);
+    // The short name, as Rive names it and as SetEnumValue accepts it.
+    EnumValue = EnumProperty->GetIntPropertyEnum()->GetNameStringByIndex(
+        EnumIndex);
+
+    return true;
+  }
+  return false;
 }
 
-bool URiveViewModel::GetArtboardValue(const FString& PropertyName,
-                                      URiveArtboard*& OutArtboard)
+bool URiveViewModel::GetNumberValue(
+    const FString& PropertyName,
+    float& OutNumber) const
 {
-    check(bIsGenerated);
-    if (auto ObjectProperty =
-            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
-    {
-        if (ObjectProperty->PropertyClass != URiveArtboard::StaticClass())
-        {
-            return false;
-        }
-
-        auto ValuePtr =
-            ObjectProperty->ContainerPtrToValuePtr<URiveArtboard*>(this);
-        if (ensureMsgf(
-                ValuePtr,
-                TEXT("URiveViewModel::GetArtboardValue Value Ptr is invalid")))
-        {
-            OutArtboard = *ValuePtr;
-            return true;
-        }
-    }
-    return false;
+  check(bIsGenerated);
+  if (auto FloatProperty = FindFProperty<FFloatProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    OutNumber = FloatProperty->GetPropertyValue_InContainer(this);
+    return true;
+  }
+  return false;
 }
 
-bool URiveViewModel::GetViewModelValue(const FString& PropertyName,
-                                       URiveViewModel*& OutViewModel)
+bool URiveViewModel::GetListSize(const FString& PropertyName, int32& OutSize)
+    const
 {
-    check(bIsGenerated);
-    if (auto ObjectProperty =
-            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
+  check(bIsGenerated);
+  if (auto ListProperty = FindFProperty<FStructProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    if (const auto List = ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
     {
-        if (ObjectProperty->PropertyClass != URiveViewModel::StaticClass())
-        {
-            return false;
-        }
+      OutSize = List->ListSize;
+      return true;
+    }
+  }
+  return false;
+}
 
-        auto ValuePtr =
-            ObjectProperty->ContainerPtrToValuePtr<URiveViewModel*>(this);
-        if (ensureMsgf(
-                ValuePtr,
-                TEXT("URiveViewModel::GetViewModelValue ValuePtr is invalid")))
-        {
-            OutViewModel = *ValuePtr;
-            return true;
-        }
+bool URiveViewModel::GetArtboardValue(
+    const FString& PropertyName,
+    URiveArtboard*& OutArtboard)
+{
+  check(bIsGenerated);
+  if (auto ObjectProperty = FindFProperty<FObjectProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    if (ObjectProperty->PropertyClass != URiveArtboard::StaticClass())
+    {
+      return false;
     }
 
-    return false;
+    auto ValuePtr = ObjectProperty->ContainerPtrToValuePtr<URiveArtboard*>(
+        this);
+    if (ensureMsgf(
+            ValuePtr,
+            TEXT("URiveViewModel::GetArtboardValue Value Ptr is invalid")))
+    {
+      OutArtboard = *ValuePtr;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool URiveViewModel::GetViewModelValue(
+    const FString& PropertyName,
+    URiveViewModel*& OutViewModel)
+{
+  check(bIsGenerated);
+  if (auto ObjectProperty = FindFProperty<FObjectProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    if (ObjectProperty->PropertyClass != URiveViewModel::StaticClass())
+    {
+      return false;
+    }
+
+    auto ValuePtr = ObjectProperty->ContainerPtrToValuePtr<URiveViewModel*>(
+        this);
+    if (ensureMsgf(
+            ValuePtr,
+            TEXT("URiveViewModel::GetViewModelValue ValuePtr is invalid")))
+    {
+      OutViewModel = *ValuePtr;
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool URiveViewModel::ContainsListsByName(const FString& ListName) const
 {
-    if (auto ListProperty =
-            FindFProperty<FStructProperty>(GetClass(), *ListName))
+  if (auto ListProperty = FindFProperty<FStructProperty>(GetClass(), *ListName))
+  {
+    if (auto List = ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
     {
-        if (auto List = ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
-        {
-            return true;
-        }
+      return true;
     }
+  }
 
-    return false;
+  return false;
 }
 
-bool URiveViewModel::GetListByName(const FString ListName,
-                                   FRiveList& OutList) const
+bool URiveViewModel::GetListByName(const FString ListName, FRiveList& OutList)
+    const
 {
-    if (auto ListProperty =
-            FindFProperty<FStructProperty>(GetClass(), *ListName))
+  if (auto ListProperty = FindFProperty<FStructProperty>(GetClass(), *ListName))
+  {
+    if (auto List = ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
     {
-        if (auto List = ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
-        {
-            OutList = *List;
-            return true;
-        }
+      OutList = *List;
+      return true;
     }
+  }
 
-    return false;
+  return false;
 }
 
 bool URiveViewModel::ContainsLists(FRiveList InList) const
 {
-    if (auto ListProperty =
-            FindFProperty<FStructProperty>(GetClass(), *InList.Path))
+  if (auto ListProperty = FindFProperty<FStructProperty>(
+          GetClass(),
+          *InList.Path))
+  {
+    if (auto List = ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
     {
-        if (auto List = ListProperty->ContainerPtrToValuePtr<FRiveList>(this))
-        {
-            return List == &InList;
-        }
+      return List == &InList;
     }
+  }
 
-    return false;
+  return false;
 }
 
 bool URiveViewModel::SetBoolValue(const FString& PropertyName, bool Value)
 {
-    check(bIsGenerated);
-    if (auto BoolProperty =
-            FindFProperty<FBoolProperty>(GetClass(), *PropertyName))
-    {
-        BoolProperty->SetPropertyValue_InContainer(this, Value);
-        UnsettleStateMachine(TEXT("SetBoolValue"));
-        UE::FieldNotification::FFieldId Field =
-            GetFieldNotificationDescriptor().GetField(GetClass(),
-                                                      *PropertyName);
-        BroadcastFieldValueChanged(Field);
-        return true;
-    }
+  check(bIsGenerated);
+  if (auto BoolProperty = FindFProperty<FBoolProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    BoolProperty->SetPropertyValue_InContainer(this, Value);
+    UnsettleStateMachine(TEXT("SetBoolValue"));
+    UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
+                                                .GetField(
+                                                    GetClass(),
+                                                    *PropertyName);
+    BroadcastFieldValueChanged(Field);
+    return true;
+  }
 
-    return false;
+  return false;
 }
 
-bool URiveViewModel::SetColorValue(const FString& PropertyName,
-                                   FLinearColor Color)
+bool URiveViewModel::SetColorValue(
+    const FString& PropertyName,
+    FLinearColor Color)
 {
-    check(bIsGenerated);
-    if (auto BoolProperty =
-            FindFProperty<FStructProperty>(GetClass(), *PropertyName))
+  check(bIsGenerated);
+  if (auto BoolProperty = FindFProperty<FStructProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    if (const auto LinearColor = BoolProperty
+                                     ->ContainerPtrToValuePtr<FLinearColor>(
+                                         this))
     {
-        if (const auto LinearColor =
-                BoolProperty->ContainerPtrToValuePtr<FLinearColor>(this))
-        {
-            *LinearColor = Color;
-            UnsettleStateMachine(TEXT("SetColorValue"));
-            UE::FieldNotification::FFieldId Field =
-                GetFieldNotificationDescriptor().GetField(GetClass(),
-                                                          *PropertyName);
-            BroadcastFieldValueChanged(Field);
-            return true;
-        }
+      *LinearColor = Color;
+      UnsettleStateMachine(TEXT("SetColorValue"));
+      UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
+                                                  .GetField(
+                                                      GetClass(),
+                                                      *PropertyName);
+      BroadcastFieldValueChanged(Field);
+      return true;
     }
-    return false;
+  }
+  return false;
 }
 
-bool URiveViewModel::SetStringValue(const FString& PropertyName,
-                                    const FString& String)
+bool URiveViewModel::SetStringValue(
+    const FString& PropertyName,
+    const FString& String)
 {
-    check(bIsGenerated);
-    if (auto StrProperty =
-            FindFProperty<FStrProperty>(GetClass(), *PropertyName))
-    {
-        StrProperty->SetPropertyValue_InContainer(this, String);
-        UnsettleStateMachine(TEXT("SetStringValue"));
-        UE::FieldNotification::FFieldId Field =
-            GetFieldNotificationDescriptor().GetField(GetClass(),
-                                                      *PropertyName);
-        BroadcastFieldValueChanged(Field);
-        return true;
-    }
-    return false;
+  check(bIsGenerated);
+  if (auto StrProperty = FindFProperty<FStrProperty>(GetClass(), *PropertyName))
+  {
+    StrProperty->SetPropertyValue_InContainer(this, String);
+    UnsettleStateMachine(TEXT("SetStringValue"));
+    UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
+                                                .GetField(
+                                                    GetClass(),
+                                                    *PropertyName);
+    BroadcastFieldValueChanged(Field);
+    return true;
+  }
+  return false;
 }
 
-bool URiveViewModel::SetEnumValue(const FString& PropertyName,
-                                  const FString& EnumValue)
+bool URiveViewModel::SetEnumValue(
+    const FString& PropertyName,
+    const FString& EnumValue)
 {
-    check(bIsGenerated);
-    if (auto EnumProperty =
-            FindFProperty<FByteProperty>(GetClass(), *PropertyName))
-    {
-        const uint64 EnumIndex =
-            EnumProperty->GetIntPropertyEnum()->GetIndexByNameString(EnumValue);
-        EnumProperty->SetValue_InContainer(this, EnumIndex);
-        UnsettleStateMachine(TEXT("SetEnumValue"));
-        UE::FieldNotification::FFieldId Field =
-            GetFieldNotificationDescriptor().GetField(GetClass(),
-                                                      *PropertyName);
-        BroadcastFieldValueChanged(Field);
-        return true;
-    }
-    return false;
+  check(bIsGenerated);
+  if (auto EnumProperty = FindFProperty<FByteProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    const uint64 EnumIndex = EnumProperty->GetIntPropertyEnum()
+                                 ->GetIndexByNameString(EnumValue);
+    EnumProperty->SetValue_InContainer(this, EnumIndex);
+    UnsettleStateMachine(TEXT("SetEnumValue"));
+    UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
+                                                .GetField(
+                                                    GetClass(),
+                                                    *PropertyName);
+    BroadcastFieldValueChanged(Field);
+    return true;
+  }
+  return false;
 }
 
 bool URiveViewModel::SetNumberValue(const FString& PropertyName, float Number)
 {
-    check(bIsGenerated);
-    if (auto FloatProperty =
-            FindFProperty<FFloatProperty>(GetClass(), *PropertyName))
-    {
-        FloatProperty->SetPropertyValue_InContainer(this, Number);
-        UnsettleStateMachine(TEXT("SetNumberValue"));
-        UE::FieldNotification::FFieldId Field =
-            GetFieldNotificationDescriptor().GetField(GetClass(),
-                                                      *PropertyName);
-        BroadcastFieldValueChanged(Field);
-        return true;
-    }
-    return false;
-}
-
-bool URiveViewModel::SetImageValue(const FString& PropertyName,
-                                   UTexture* InImage)
-{
-    check(bIsGenerated);
-    if (auto ObjectProperty =
-            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
-    {
-        if (ObjectProperty->PropertyClass != UTexture::StaticClass())
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("Invalid Property %s For Image Value Set"),
-                   *PropertyName);
-            return false;
-        }
-        ObjectProperty->SetPropertyValue_InContainer(this, InImage);
-        UnsettleStateMachine(TEXT("SetImageValue"));
-        UE::FieldNotification::FFieldId Field =
-            GetFieldNotificationDescriptor().GetField(GetClass(),
-                                                      *PropertyName);
-        BroadcastFieldValueChanged(Field);
-        return true;
-    }
-    return false;
-}
-
-bool URiveViewModel::SetBlobValue(const FString& PropertyName,
-                                  URiveBlobAsset* InBlob)
-{
-    check(bIsGenerated);
-    if (auto ObjectProperty =
-            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
-    {
-        if (ObjectProperty->PropertyClass != URiveBlobAsset::StaticClass())
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("Invalid Property %s For Blob Value Set"),
-                   *PropertyName);
-            return false;
-        }
-        ObjectProperty->SetPropertyValue_InContainer(this, InBlob);
-        UnsettleStateMachine(TEXT("SetBlobValue"));
-        UE::FieldNotification::FFieldId Field =
-            GetFieldNotificationDescriptor().GetField(GetClass(),
-                                                      *PropertyName);
-        BroadcastFieldValueChanged(Field);
-        return true;
-    }
-    return false;
-}
-
-bool URiveViewModel::SetArtboardValue(const FString& PropertyName,
-                                      URiveArtboard* InArtboard)
-{
-    check(bIsGenerated);
-    if (auto ObjectProperty =
-            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
-    {
-        if (ObjectProperty->PropertyClass != URiveArtboard::StaticClass())
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("Invalid Property %s For Artboard Value Set"),
-                   *PropertyName);
-            return false;
-        }
-        ObjectProperty->SetPropertyValue_InContainer(this, InArtboard);
-        UnsettleStateMachine(TEXT("SetArtboardValue"));
-        UE::FieldNotification::FFieldId Field =
-            GetFieldNotificationDescriptor().GetField(GetClass(),
-                                                      *PropertyName);
-        BroadcastFieldValueChanged(Field);
-        return true;
-    }
-    return false;
-}
-
-bool URiveViewModel::SetViewModelValue(const FString& PropertyName,
-                                       URiveViewModel* InViewModel)
-{
-    check(bIsGenerated);
-    if (auto ObjectProperty =
-            FindFProperty<FObjectProperty>(GetClass(), *PropertyName))
-    {
-        if (ObjectProperty->PropertyClass != URiveViewModel::StaticClass())
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("Invalid Property %s For View Model Value Set"),
-                   *PropertyName);
-            return false;
-        }
-
-        InViewModel->SetOwningViewModel(this);
-        ObjectProperty->SetPropertyValue_InContainer(this, InViewModel);
-        UnsettleStateMachine(TEXT("SetViewModelValue"));
-        UE::FieldNotification::FFieldId Field =
-            GetFieldNotificationDescriptor().GetField(GetClass(),
-                                                      *PropertyName);
-        BroadcastFieldValueChanged(Field);
-
-        return true;
-    }
-    return false;
-}
-
-bool URiveViewModel::AppendToList(const FString& ListName,
-                                  URiveViewModel* Value)
-{
-    if (!ContainsListsByName(ListName))
-        return false;
-
-    Value->SetOwningViewModel(this);
-
-    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    auto& Builder = RiveRenderer->GetCommandBuilder();
-    Builder.AppendViewModelList(NativeViewModelInstance,
-                                ListName,
-                                Value->NativeViewModelInstance);
-    UpdateListWithViewModelData(ListName, Value, false);
-    UnsettleStateMachine(TEXT("AppendToList"));
+  check(bIsGenerated);
+  if (auto FloatProperty = FindFProperty<FFloatProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    FloatProperty->SetPropertyValue_InContainer(this, Number);
+    UnsettleStateMachine(TEXT("SetNumberValue"));
+    UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
+                                                .GetField(
+                                                    GetClass(),
+                                                    *PropertyName);
+    BroadcastFieldValueChanged(Field);
     return true;
+  }
+  return false;
 }
 
-bool URiveViewModel::InsertToList(const FString& ListName,
-                                  int32 Index,
-                                  URiveViewModel* Value)
+bool URiveViewModel::SetImageValue(
+    const FString& PropertyName,
+    UTexture* InImage)
 {
-    if (!ContainsListsByName(ListName))
-        return false;
+  check(bIsGenerated);
+  if (auto ObjectProperty = FindFProperty<FObjectProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    if (ObjectProperty->PropertyClass != UTexture::StaticClass())
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("Invalid Property %s For Image Value Set"),
+          *PropertyName);
+      return false;
+    }
+    ObjectProperty->SetPropertyValue_InContainer(this, InImage);
+    UnsettleStateMachine(TEXT("SetImageValue"));
+    UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
+                                                .GetField(
+                                                    GetClass(),
+                                                    *PropertyName);
+    BroadcastFieldValueChanged(Field);
+    return true;
+  }
+  return false;
+}
 
-    Value->SetOwningViewModel(this);
+bool URiveViewModel::SetBlobValue(
+    const FString& PropertyName,
+    URiveBlobAsset* InBlob)
+{
+  check(bIsGenerated);
+  if (auto ObjectProperty = FindFProperty<FObjectProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    if (ObjectProperty->PropertyClass != URiveBlobAsset::StaticClass())
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("Invalid Property %s For Blob Value Set"),
+          *PropertyName);
+      return false;
+    }
+    ObjectProperty->SetPropertyValue_InContainer(this, InBlob);
+    UnsettleStateMachine(TEXT("SetBlobValue"));
+    UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
+                                                .GetField(
+                                                    GetClass(),
+                                                    *PropertyName);
+    BroadcastFieldValueChanged(Field);
+    return true;
+  }
+  return false;
+}
 
-    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    auto& Builder = RiveRenderer->GetCommandBuilder();
-    Builder.InsertViewModelList(NativeViewModelInstance,
-                                ListName,
-                                Value->NativeViewModelInstance,
-                                Index);
-    UpdateListWithViewModelData(ListName, Value, false);
+bool URiveViewModel::SetArtboardValue(
+    const FString& PropertyName,
+    URiveArtboard* InArtboard)
+{
+  check(bIsGenerated);
+  if (auto ObjectProperty = FindFProperty<FObjectProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    if (ObjectProperty->PropertyClass != URiveArtboard::StaticClass())
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("Invalid Property %s For Artboard Value Set"),
+          *PropertyName);
+      return false;
+    }
+    ObjectProperty->SetPropertyValue_InContainer(this, InArtboard);
+    UnsettleStateMachine(TEXT("SetArtboardValue"));
+    UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
+                                                .GetField(
+                                                    GetClass(),
+                                                    *PropertyName);
+    BroadcastFieldValueChanged(Field);
+    return true;
+  }
+  return false;
+}
 
-    UnsettleStateMachine(TEXT("InsertToList"));
+bool URiveViewModel::SetViewModelValue(
+    const FString& PropertyName,
+    URiveViewModel* InViewModel)
+{
+  check(bIsGenerated);
+  if (auto ObjectProperty = FindFProperty<FObjectProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    if (ObjectProperty->PropertyClass != URiveViewModel::StaticClass())
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("Invalid Property %s For View Model Value Set"),
+          *PropertyName);
+      return false;
+    }
+
+    InViewModel->SetOwningViewModel(this);
+    ObjectProperty->SetPropertyValue_InContainer(this, InViewModel);
+    UnsettleStateMachine(TEXT("SetViewModelValue"));
+    UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
+                                                .GetField(
+                                                    GetClass(),
+                                                    *PropertyName);
+    BroadcastFieldValueChanged(Field);
 
     return true;
+  }
+  return false;
+}
+
+bool URiveViewModel::AppendToList(
+    const FString& ListName,
+    URiveViewModel* Value)
+{
+  if (!ContainsListsByName(ListName))
+    return false;
+
+  Value->SetOwningViewModel(this);
+
+  auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+  check(RiveRenderer);
+  auto& Builder = RiveRenderer->GetCommandBuilder();
+  Builder.AppendViewModelList(
+      NativeViewModelInstance,
+      ListName,
+      Value->NativeViewModelInstance);
+  UpdateListWithViewModelData(ListName, Value, false);
+  UnsettleStateMachine(TEXT("AppendToList"));
+  return true;
+}
+
+bool URiveViewModel::InsertToList(
+    const FString& ListName,
+    int32 Index,
+    URiveViewModel* Value)
+{
+  if (!ContainsListsByName(ListName))
+    return false;
+
+  Value->SetOwningViewModel(this);
+
+  auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+  check(RiveRenderer);
+  auto& Builder = RiveRenderer->GetCommandBuilder();
+  Builder.InsertViewModelList(
+      NativeViewModelInstance,
+      ListName,
+      Value->NativeViewModelInstance,
+      Index);
+  UpdateListWithViewModelData(ListName, Value, false);
+
+  UnsettleStateMachine(TEXT("InsertToList"));
+
+  return true;
 }
 
 bool URiveViewModel::ClearList(const FString& ListName)
 {
-    if (!ContainsListsByName(ListName))
-        return false;
+  if (!ContainsListsByName(ListName))
+    return false;
 
-    auto& Builder = IRiveRendererModule::Get().GetCommandBuilder();
-    Builder.ClearViewModelList(NativeViewModelInstance, ListName);
-    UnsettleStateMachine(TEXT("ClearList"));
-    ClearListData(ListName);
-    return true;
+  auto& Builder = IRiveRendererModule::Get().GetCommandBuilder();
+  Builder.ClearViewModelList(NativeViewModelInstance, ListName);
+  UnsettleStateMachine(TEXT("ClearList"));
+  ClearListData(ListName);
+  return true;
 }
 
-bool URiveViewModel::RemoveFromList(const FString& ListName,
-                                    URiveViewModel* Value)
+bool URiveViewModel::RemoveFromList(
+    const FString& ListName,
+    URiveViewModel* Value)
 {
-    if (!ContainsListsByName(ListName))
-        return false;
+  if (!ContainsListsByName(ListName))
+    return false;
 
-    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    auto& Builder = RiveRenderer->GetCommandBuilder();
-    Builder.RemoveViewModelList(NativeViewModelInstance,
-                                ListName,
-                                Value->GetNativeHandle());
-    UnsettleStateMachine(TEXT("RemoveFromList"));
-    Value->SetOwningViewModel(nullptr);
-    UpdateListWithViewModelData(ListName, Value, true);
-    return true;
+  auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+  check(RiveRenderer);
+  auto& Builder = RiveRenderer->GetCommandBuilder();
+  Builder.RemoveViewModelList(
+      NativeViewModelInstance,
+      ListName,
+      Value->GetNativeHandle());
+  UnsettleStateMachine(TEXT("RemoveFromList"));
+  Value->SetOwningViewModel(nullptr);
+  UpdateListWithViewModelData(ListName, Value, true);
+  return true;
 }
 
 bool URiveViewModel::RemoveFromListAtIndex(const FString& ListName, int32 Index)
 {
-    if (!ContainsListsByName(ListName))
-        return false;
+  if (!ContainsListsByName(ListName))
+    return false;
 
-    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    auto& Builder = RiveRenderer->GetCommandBuilder();
-    TWeakObjectPtr<URiveViewModel> WeakThis(this);
-    Builder.RunOnceImmediate([ListPath = ListName,
-                              WeakThis,
-                              Handle = NativeViewModelInstance,
-                              Index](rive::CommandServer* Server) {
-        auto VM = Server->getViewModelInstance(Handle);
-        if (VM)
+  auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+  check(RiveRenderer);
+  auto& Builder = RiveRenderer->GetCommandBuilder();
+  TWeakObjectPtr<URiveViewModel> WeakThis(this);
+  Builder.RunOnceImmediate([ListPath = ListName,
+                            WeakThis,
+                            Handle = NativeViewModelInstance,
+                            Index](rive::CommandServer* Server) {
+    auto VM = Server->getViewModelInstance(Handle);
+    if (VM)
+    {
+      auto PropertyList = VM->propertyList(TCHAR_TO_UTF8(*ListPath));
+      if (PropertyList && PropertyList->size() > Index)
+      {
+        auto ViewModel = PropertyList->instanceAt(Index);
+        if (ViewModel)
         {
-            auto PropertyList = VM->propertyList(TCHAR_TO_UTF8(*ListPath));
-            if (PropertyList && PropertyList->size() > Index)
-            {
-                auto ViewModel = PropertyList->instanceAt(Index);
-                if (ViewModel)
+          auto NestedHandle = Server->getHandleForInstance(ViewModel.get());
+          AsyncTask(
+              ENamedThreads::GameThread,
+              [ListPath, WeakThis, NestedHandle, Index]() {
+                // Make sure this view model still exsists
+                // when trying to modify the list.
+                if (auto StrongThis = WeakThis.Pin())
                 {
-                    auto NestedHandle =
-                        Server->getHandleForInstance(ViewModel.get());
-                    AsyncTask(
-                        ENamedThreads::GameThread,
-                        [ListPath, WeakThis, NestedHandle, Index]() {
-                            // Make sure this view model still exsists
-                            // when trying to modify the list.
-                            if (auto StrongThis = WeakThis.Pin())
-                            {
-                                // Items the file created have no Unreal
-                                // object; only ones added from here do.
-                                URiveViewModel* ViewModelToRemove =
-                                    ViewModelInstances.FindRef(NestedHandle);
-                                if (ViewModelToRemove)
-                                {
-                                    StrongThis->UpdateListWithViewModelData(
-                                        ListPath,
-                                        ViewModelToRemove,
-                                        true);
-                                    ViewModelToRemove->SetOwningViewModel(
-                                        nullptr);
-                                }
-                            }
-                        });
+                  // Items the file created have no Unreal
+                  // object; only ones added from here do.
+                  URiveViewModel* ViewModelToRemove = ViewModelInstances
+                                                          .FindRef(
+                                                              NestedHandle);
+                  if (ViewModelToRemove)
+                  {
+                    StrongThis->UpdateListWithViewModelData(
+                        ListPath,
+                        ViewModelToRemove,
+                        true);
+                    ViewModelToRemove->SetOwningViewModel(nullptr);
+                  }
                 }
-                else
-                {
-                    UE_LOG(
-                        LogRive,
-                        Error,
-                        TEXT(
-                            "Could not find nested view model at index %i for list %s"),
-                        Index,
-                        *ListPath);
-                }
-            }
-            else
-            {
-                UE_LOG(
-                    LogRive,
-                    Error,
-                    TEXT(
-                        "Invalid Index (%i) for removing list index on view model list %s"),
-                    Index,
-                    *ListPath);
-            }
+              });
         }
         else
         {
-            UE_LOG(
-                LogRive,
-                Error,
-                TEXT(
-                    "Invalid view model root for removing list index %i on List %s"),
-                Index,
-                *ListPath);
+          UE_LOG(
+              LogRive,
+              Error,
+              TEXT("Could not find nested view model at index %i for list %s"),
+              Index,
+              *ListPath);
         }
-    });
-    Builder.RemoveViewModelList(NativeViewModelInstance, ListName, Index);
-    UnsettleStateMachine(TEXT("RemoveFromListAtIndex"));
-    return true;
+      }
+      else
+      {
+        UE_LOG(
+            LogRive,
+            Error,
+            TEXT(
+                "Invalid Index (%i) for removing list index on view model list %s"),
+            Index,
+            *ListPath);
+      }
+    }
+    else
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("Invalid view model root for removing list index %i on List %s"),
+          Index,
+          *ListPath);
+    }
+  });
+  Builder.RemoveViewModelList(NativeViewModelInstance, ListName, Index);
+  UnsettleStateMachine(TEXT("RemoveFromListAtIndex"));
+  return true;
 }
 
 void URiveViewModel::K2_AddFieldValueChangedDelegate(
     FFieldNotificationId InFieldId,
     FFieldValueChangedDynamicDelegate InDelegate)
 {
-    if (InFieldId.IsValid())
-    {
-        const UE::FieldNotification::FFieldId FieldId =
-            GetFieldNotificationDescriptor().GetField(GetClass(),
-                                                      InFieldId.FieldName);
-        ensureMsgf(FieldId.IsValid(),
-                   TEXT("The field should be compiled correctly."));
-        Delegates.Add(this, FieldId, InDelegate);
-    }
+  if (InFieldId.IsValid())
+  {
+    const UE::FieldNotification::FFieldId
+        FieldId = GetFieldNotificationDescriptor().GetField(
+            GetClass(),
+            InFieldId.FieldName);
+    ensureMsgf(
+        FieldId.IsValid(),
+        TEXT("The field should be compiled correctly."));
+    Delegates.Add(this, FieldId, InDelegate);
+  }
 }
 
 void URiveViewModel::K2_RemoveFieldValueChangedDelegate(
     FFieldNotificationId InFieldId,
     FFieldValueChangedDynamicDelegate InDelegate)
 {
-    RemoveFieldValueChangedDelegate(InFieldId, MoveTemp(InDelegate));
+  RemoveFieldValueChangedDelegate(InFieldId, MoveTemp(InDelegate));
 }
 
 void URiveViewModel::K2_AppendToList(FRiveList List, URiveViewModel* Value)
 {
-    AppendToList(List.Path, Value);
+  AppendToList(List.Path, Value);
 }
 
-void URiveViewModel::K2_InsertToList(FRiveList List,
-                                     int32 Index,
-                                     URiveViewModel* Value)
+void URiveViewModel::K2_InsertToList(
+    FRiveList List,
+    int32 Index,
+    URiveViewModel* Value)
 {
-    InsertToList(List.Path, Index, Value);
+  InsertToList(List.Path, Index, Value);
 }
 
 void URiveViewModel::K2_ClearList(FRiveList List) { ClearList(List.Path); }
 
 void URiveViewModel::K2_RemoveFromList(FRiveList List, URiveViewModel* Value)
 {
-    RemoveFromList(List.Path, Value);
+  RemoveFromList(List.Path, Value);
 }
 
 void URiveViewModel::K2_RemoveFromListAtIndex(FRiveList List, int32 Index)
 {
-    RemoveFromListAtIndex(List.Path, Index);
+  RemoveFromListAtIndex(List.Path, Index);
 }
 
 void URiveViewModel::SetTrigger(const FString& TriggerName)
 {
-    if (bIsInDataCallback)
-        return;
-    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    auto& Builder = RiveRenderer->GetCommandBuilder();
-    Builder.SetViewModelTrigger(NativeViewModelInstance, TriggerName);
-    UnsettleStateMachine(TEXT("SetTrigger"));
+  if (bIsInDataCallback)
+    return;
+  auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+  check(RiveRenderer);
+  auto& Builder = RiveRenderer->GetCommandBuilder();
+  Builder.SetViewModelTrigger(NativeViewModelInstance, TriggerName);
+  UnsettleStateMachine(TEXT("SetTrigger"));
 }
 
 void URiveViewModel::K2_SetTrigger(const FString& TriggerName)
 {
-    if (bIsInDataCallback)
-        return;
+  if (bIsInDataCallback)
+    return;
 
-    IgnoredTriggerCallbacks.Add(*TriggerName);
-    SetTrigger(TriggerName);
+  IgnoredTriggerCallbacks.Add(*TriggerName);
+  SetTrigger(TriggerName);
 }
 
 void URiveViewModel::OnViewModelDataReceived(
     uint64_t RequestId,
     rive::CommandQueue::ViewModelInstanceData Data)
 {
-    FUTF8ToTCHAR Conversion(Data.metaData.name.c_str());
-    auto PropertyFNamePtr = PropertyNameMap.FindKey(Conversion.Get());
-    if (!PropertyFNamePtr)
-    {
-        UE_LOG(
-            LogRive,
-            Error,
-            TEXT(
-                "Failed to find property mapping for \"%s\" for view model named "
-                "\"%s\" with class \"%s\" on sub update !"),
-            Conversion.Get(),
-            *GetName(),
-            *GetClass()->GetName());
-        return;
-    }
+  FUTF8ToTCHAR Conversion(Data.metaData.name.c_str());
+  auto PropertyFNamePtr = PropertyNameMap.FindKey(Conversion.Get());
+  if (!PropertyFNamePtr)
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("Failed to find property mapping for \"%s\" for view model named "
+             "\"%s\" with class \"%s\" on sub update !"),
+        Conversion.Get(),
+        *GetName(),
+        *GetClass()->GetName());
+    return;
+  }
 
-    FProperty* Property =
-        FindFProperty<FProperty>(GetClass(), *PropertyFNamePtr);
-    if (!Property)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Failed to find property \"%s\" for view model named "
-                    "\"%s\" with class \"%s\" on sub update !"),
-               Conversion.Get(),
-               *GetName(),
-               *GetClass()->GetName());
-        return;
-    }
+  FProperty* Property = FindFProperty<FProperty>(GetClass(), *PropertyFNamePtr);
+  if (!Property)
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("Failed to find property \"%s\" for view model named "
+             "\"%s\" with class \"%s\" on sub update !"),
+        Conversion.Get(),
+        *GetName(),
+        *GetClass()->GetName());
+    return;
+  }
 
-    // Don't process trigger requests we made via "call" in blueprints. One
-    // marker per call, so two calls before either callback arrives suppress
-    // one callback each rather than the first clearing both.
-    if (IgnoredTriggerCallbacks.RemoveSingle(Property->GetFName()) > 0)
-    {
-        return;
-    }
+  // Don't process trigger requests we made via "call" in blueprints. One
+  // marker per call, so two calls before either callback arrives suppress
+  // one callback each rather than the first clearing both.
+  if (IgnoredTriggerCallbacks.RemoveSingle(Property->GetFName()) > 0)
+  {
+    return;
+  }
 
-    FString PropName(Data.metaData.name.size(), Data.metaData.name.c_str());
-    UE_LOG(LogRive,
-           VeryVerbose,
-           TEXT("URiveViewModel::OnViewModelDataReceived %s property updated "
-                "for view model %s"),
-           *PropName,
-           *GetName());
+  FString PropName(Data.metaData.name.size(), Data.metaData.name.c_str());
+  UE_LOG(
+      LogRive,
+      VeryVerbose,
+      TEXT("URiveViewModel::OnViewModelDataReceived %s property updated "
+           "for view model %s"),
+      *PropName,
+      *GetName());
 
-    bIsInDataCallback = true;
-    switch (Data.metaData.type)
-    {
-        case rive::DataType::string:
-            if (auto StrProperty = CastField<FStrProperty>(Property))
-            {
-                FUTF8ToTCHAR StringValueConversion(Data.stringValue.c_str());
-                StrProperty->SetPropertyValue_InContainer(
-                    this,
-                    StringValueConversion.Get());
-            }
-            break;
-        case rive::DataType::boolean:
-            if (auto BoolProperty = CastField<FBoolProperty>(Property))
-            {
-                BoolProperty->SetPropertyValue_InContainer(this,
-                                                           Data.boolValue);
-            }
-            break;
-        case rive::DataType::color:
-            if (auto StructProperty = CastField<FStructProperty>(Property))
-            {
-                auto ColorValue =
-                    StructProperty->ContainerPtrToValuePtr<FLinearColor>(this);
-                float colors[4];
-                rive::UnpackColorToRGBA32F(Data.colorValue, colors);
-                ColorValue->R = colors[0];
-                ColorValue->G = colors[1];
-                ColorValue->B = colors[2];
-                ColorValue->A = colors[3];
-            }
-            break;
-        case rive::DataType::enumType:
-            if (auto ByteProperty = CastField<FByteProperty>(Property))
-            {
-                UEnum* EnumValue = ByteProperty->GetIntPropertyEnum();
-                FUTF8ToTCHAR EnumStr(Data.stringValue.c_str());
-                FName FullEnumName(EnumStr.Get());
-                auto NewIndex = EnumValue->GetIndexByName(FullEnumName);
-                ByteProperty->SetPropertyValue_InContainer(this, NewIndex);
-            }
-            break;
-        case rive::DataType::trigger:
-            if (auto DelegateProperty =
-                    CastField<FMulticastDelegateProperty>(Property))
-            {
+  bIsInDataCallback = true;
+  switch (Data.metaData.type)
+  {
+    case rive::DataType::string:
+      if (auto StrProperty = CastField<FStrProperty>(Property))
+      {
+        FUTF8ToTCHAR StringValueConversion(Data.stringValue.c_str());
+        StrProperty->SetPropertyValue_InContainer(
+            this,
+            StringValueConversion.Get());
+      }
+      break;
+    case rive::DataType::boolean:
+      if (auto BoolProperty = CastField<FBoolProperty>(Property))
+      {
+        BoolProperty->SetPropertyValue_InContainer(this, Data.boolValue);
+      }
+      break;
+    case rive::DataType::color:
+      if (auto StructProperty = CastField<FStructProperty>(Property))
+      {
+        auto ColorValue = StructProperty->ContainerPtrToValuePtr<FLinearColor>(
+            this);
+        float colors[4];
+        rive::UnpackColorToRGBA32F(Data.colorValue, colors);
+        ColorValue->R = colors[0];
+        ColorValue->G = colors[1];
+        ColorValue->B = colors[2];
+        ColorValue->A = colors[3];
+      }
+      break;
+    case rive::DataType::enumType:
+      if (auto ByteProperty = CastField<FByteProperty>(Property))
+      {
+        UEnum* EnumValue = ByteProperty->GetIntPropertyEnum();
+        FUTF8ToTCHAR EnumStr(Data.stringValue.c_str());
+        FName FullEnumName(EnumStr.Get());
+        auto NewIndex = EnumValue->GetIndexByName(FullEnumName);
+        ByteProperty->SetPropertyValue_InContainer(this, NewIndex);
+      }
+      break;
+    case rive::DataType::trigger:
+      if (auto DelegateProperty = CastField<FMulticastDelegateProperty>(
+              Property))
+      {
 
-                auto Delegate = DelegateProperty->GetMulticastDelegate(
-                    DelegateProperty->ContainerPtrToValuePtr<void>(this));
-                if (!Delegate)
-                {
-                    UE_LOG(
-                        LogRive,
-                        Error,
-                        TEXT(
-                            "Multicast Delegate for Delegate Property %s is null"),
-                        *PropName);
-                    return;
-                }
-                // We don't have any inputs or outputs for triggers
-                FString SigName =
-                    Conversion +
-                    FString(HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX);
-                // FindDelegateSignature would assert if ambiguous, but we don't
-                // care so bypass it.
-                auto SignatureFunction = GetClass()->FindFunctionByName(
-                    *SigName,
-                    EIncludeSuperFlag::ExcludeSuper);
-                if (!ensure(SignatureFunction))
-                {
-                    UE_LOG(LogRive,
-                           Error,
-                           TEXT("Failed to find delegate signature for "
-                                "trigger \"%s\" on view model \"%s\" with "
-                                "class \"%s\" !"),
-                           Conversion.Get(),
-                           *GetName(),
-                           *GetClass()->GetName());
-                    return;
-                }
+        auto Delegate = DelegateProperty->GetMulticastDelegate(
+            DelegateProperty->ContainerPtrToValuePtr<void>(this));
+        if (!Delegate)
+        {
+          UE_LOG(
+              LogRive,
+              Error,
+              TEXT("Multicast Delegate for Delegate Property %s is null"),
+              *PropName);
+          return;
+        }
+        // We don't have any inputs or outputs for triggers
+        FString SigName = Conversion +
+                          FString(HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX);
+        // FindDelegateSignature would assert if ambiguous, but we don't
+        // care so bypass it.
+        auto SignatureFunction = GetClass()->FindFunctionByName(
+            *SigName,
+            EIncludeSuperFlag::ExcludeSuper);
+        if (!ensure(SignatureFunction))
+        {
+          UE_LOG(
+              LogRive,
+              Error,
+              TEXT("Failed to find delegate signature for "
+                   "trigger \"%s\" on view model \"%s\" with "
+                   "class \"%s\" !"),
+              Conversion.Get(),
+              *GetName(),
+              *GetClass()->GetName());
+          return;
+        }
 
-                if (SignatureFunction->ParmsSize <= 0)
-                {
-                    UE_LOG(
-                        LogRive,
-                        Error,
-                        TEXT(
-                            "SignatureFunction->ParmsSize is invalid. Try re-importing riv file."));
-                    return;
-                }
+        if (SignatureFunction->ParmsSize <= 0)
+        {
+          UE_LOG(
+              LogRive,
+              Error,
+              TEXT(
+                  "SignatureFunction->ParmsSize is invalid. Try re-importing riv file."));
+          return;
+        }
 
-                uint8* Parameters = (uint8*)FMemory_Alloca_Aligned(
-                    SignatureFunction->ParmsSize,
-                    SignatureFunction->GetMinAlignment());
-                if (!ensure(Parameters))
-                {
-                    UE_LOG(
-                        LogRive,
-                        Error,
-                        TEXT(
-                            "FMemory_Alloca_Aligned Failed, Maybe out of memory ?"));
-                    return;
-                }
-                FMemory::Memzero(Parameters, SignatureFunction->ParmsSize);
-                if (FProperty* InputProperty = CastField<FProperty>(
-                        SignatureFunction->ChildProperties))
-                {
-                    if (auto ObjectProperty =
-                            CastField<FObjectProperty>(InputProperty);
-                        ensure(ObjectProperty))
-                    {
-                        ObjectProperty->SetObjectPropertyValue_InContainer(
-                            Parameters,
-                            this);
-                    }
-                    else
-                    {
-                        UE_LOG(LogRive,
-                               Error,
-                               TEXT("Failed to get delegate input property"));
-                    }
-                }
-#if UE_VERSION_OLDER_THAN(5, 8, 0)
-                Delegate->ProcessMulticastDelegate<UObject>(Parameters);
-#else
-                Delegate->ProcessDelegate<UObject>(Parameters);
-#endif
-            }
-            break;
-        case rive::DataType::number:
-            if (auto FloatProperty = CastField<FFloatProperty>(Property))
-            {
-                auto ValuePtr =
-                    FloatProperty->ContainerPtrToValuePtr<float>(this);
-                *ValuePtr = Data.numberValue;
-            }
-            break;
-        case rive::DataType::list:
-            // now we request the new list size since we know it changed
-            {
-                auto& Builder = IRiveRendererModule::GetCommandBuilder();
-                Builder.GetPropertyListSize(NativeViewModelInstance,
-                                            Property->GetName());
-                break;
-            }
-        // Valid values but nothing to do
-        case rive::DataType::viewModel:
-        case rive::DataType::artboard:
-        case rive::DataType::assetImage:
-        case rive::DataType::assetBlob:
-            break;
-        // Invalid values
-        case rive::DataType::none:
-        case rive::DataType::input:
-        case rive::DataType::integer:
-        case rive::DataType::symbolListIndex:
+        uint8* Parameters = (uint8*)FMemory_Alloca_Aligned(
+            SignatureFunction->ParmsSize,
+            SignatureFunction->GetMinAlignment());
+        if (!ensure(Parameters))
+        {
+          UE_LOG(
+              LogRive,
+              Error,
+              TEXT("FMemory_Alloca_Aligned Failed, Maybe out of memory ?"));
+          return;
+        }
+        FMemory::Memzero(Parameters, SignatureFunction->ParmsSize);
+        if (FProperty* InputProperty = CastField<FProperty>(
+                SignatureFunction->ChildProperties))
+        {
+          if (auto ObjectProperty = CastField<FObjectProperty>(InputProperty);
+              ensure(ObjectProperty))
+          {
+            ObjectProperty->SetObjectPropertyValue_InContainer(
+                Parameters,
+                this);
+          }
+          else
+          {
             UE_LOG(
                 LogRive,
                 Error,
-                TEXT(
-                    "URiveViewModel::OnViewModelDataReceived Invalid property type received for update"));
-            break;
-    }
-
-    if (UBlueprintGeneratedClass* BlueprintClass =
-            Cast<UBlueprintGeneratedClass>(GetClass()))
-    {
-        for (int32 Index = 0; Index < BlueprintClass->FieldNotifies.Num();
-             ++Index)
-        {
-            UE::FieldNotification::FFieldId FieldId(
-                BlueprintClass->FieldNotifies[Index].GetFieldName(),
-                Index + BlueprintClass->FieldNotifiesStartBitNumber);
-            if (FieldId.GetName() == Property->GetName())
-            {
-                Delegates.Broadcast(this, FieldId);
-                break;
-            }
+                TEXT("Failed to get delegate input property"));
+          }
         }
-    }
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
+        Delegate->ProcessMulticastDelegate<UObject>(Parameters);
+#else
+        Delegate->ProcessDelegate<UObject>(Parameters);
+#endif
+      }
+      break;
+    case rive::DataType::number:
+      if (auto FloatProperty = CastField<FFloatProperty>(Property))
+      {
+        auto ValuePtr = FloatProperty->ContainerPtrToValuePtr<float>(this);
+        *ValuePtr = Data.numberValue;
+      }
+      break;
+    case rive::DataType::list:
+      // now we request the new list size since we know it changed
+      {
+        auto& Builder = IRiveRendererModule::GetCommandBuilder();
+        Builder.GetPropertyListSize(
+            NativeViewModelInstance,
+            Property->GetName());
+        break;
+      }
+    // Valid values but nothing to do
+    case rive::DataType::viewModel:
+    case rive::DataType::artboard:
+    case rive::DataType::assetImage:
+    case rive::DataType::assetBlob:
+      break;
+    // Invalid values
+    case rive::DataType::none:
+    case rive::DataType::input:
+    case rive::DataType::integer:
+    case rive::DataType::symbolListIndex:
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT(
+              "URiveViewModel::OnViewModelDataReceived Invalid property type received for update"));
+      break;
+  }
 
-    bIsInDataCallback = false;
+  if (UBlueprintGeneratedClass* BlueprintClass = Cast<UBlueprintGeneratedClass>(
+          GetClass()))
+  {
+    for (int32 Index = 0; Index < BlueprintClass->FieldNotifies.Num(); ++Index)
+    {
+      UE::FieldNotification::FFieldId FieldId(
+          BlueprintClass->FieldNotifies[Index].GetFieldName(),
+          Index + BlueprintClass->FieldNotifiesStartBitNumber);
+      if (FieldId.GetName() == Property->GetName())
+      {
+        Delegates.Broadcast(this, FieldId);
+        break;
+      }
+    }
+  }
+
+  bIsInDataCallback = false;
 }
 
-void URiveViewModel::OnViewModelListSizeReceived(std::string Path,
-                                                 size_t ListSize)
+void URiveViewModel::OnViewModelListSizeReceived(
+    std::string Path,
+    size_t ListSize)
 {
-    FUTF8ToTCHAR Conversion(Path.c_str());
-    FStructProperty* Property =
-        FindFProperty<FStructProperty>(GetClass(), Conversion.Get());
-    if (!Property)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Failed to find list property to update !"));
-        return;
-    }
+  FUTF8ToTCHAR Conversion(Path.c_str());
+  FStructProperty* Property = FindFProperty<FStructProperty>(
+      GetClass(),
+      Conversion.Get());
+  if (!Property)
+  {
+    UE_LOG(LogRive, Error, TEXT("Failed to find list property to update !"));
+    return;
+  }
 
-    FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
-    if (!List)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Failed to find list property to update !"));
-        return;
-    }
-    List->ListSize = static_cast<int32>(ListSize);
+  FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
+  if (!List)
+  {
+    UE_LOG(LogRive, Error, TEXT("Failed to find list property to update !"));
+    return;
+  }
+  List->ListSize = static_cast<int32>(ListSize);
 
-    if (UBlueprintGeneratedClass* BlueprintClass =
-            Cast<UBlueprintGeneratedClass>(GetClass()))
+  if (UBlueprintGeneratedClass* BlueprintClass = Cast<UBlueprintGeneratedClass>(
+          GetClass()))
+  {
+    for (int32 Index = 0; Index < BlueprintClass->FieldNotifies.Num(); ++Index)
     {
-        for (int32 Index = 0; Index < BlueprintClass->FieldNotifies.Num();
-             ++Index)
-        {
-            UE::FieldNotification::FFieldId FieldId(
-                BlueprintClass->FieldNotifies[Index].GetFieldName(),
-                Index + BlueprintClass->FieldNotifiesStartBitNumber);
-            if (FieldId.GetName() == Property->GetName())
-            {
-                Delegates.Broadcast(this, FieldId);
-                break;
-            }
-        }
+      UE::FieldNotification::FFieldId FieldId(
+          BlueprintClass->FieldNotifies[Index].GetFieldName(),
+          Index + BlueprintClass->FieldNotifiesStartBitNumber);
+      if (FieldId.GetName() == Property->GetName())
+      {
+        Delegates.Broadcast(this, FieldId);
+        break;
+      }
     }
+  }
 }
 
 void URiveViewModel::SetOwningArtboard(TWeakObjectPtr<URiveArtboard> Artboard)
 {
-    // Direct set only. Nested view models track their owner through
-    // OwningViewModel, so there is no need to recurse here. This must only ever
-    // be called from URiveArtboard.
-    OwningArtboard = Artboard;
+  // Direct set only. Nested view models track their owner through
+  // OwningViewModel, so there is no need to recurse here. This must only ever
+  // be called from URiveArtboard.
+  OwningArtboard = Artboard;
 }
 
 void URiveViewModel::SetOwningViewModel(
     TWeakObjectPtr<URiveViewModel> ViewModel)
 {
-    // Direct set only. UnsettleStateMachine walks up the ownership chain via
-    // OwningViewModel until it reaches the view model owned by the artboard.
-    OwningViewModel = ViewModel;
+  // Direct set only. UnsettleStateMachine walks up the ownership chain via
+  // OwningViewModel until it reaches the view model owned by the artboard.
+  OwningViewModel = ViewModel;
 }
 
 void URiveViewModel::ClearPropertyMappings() { PropertyNameMap.Empty(); }
 
-void URiveViewModel::SetPropertyMapping(const FName& InName,
-                                        const FString& InPropertyName)
+void URiveViewModel::SetPropertyMapping(
+    const FName& InName,
+    const FString& InPropertyName)
 {
-    if (PropertyNameMap.Contains(InName))
-    {
-        UE_LOG(LogRive,
-               Warning,
-               TEXT("Duplicate property name mapping: %s"),
-               *InName.ToString());
-    }
+  if (PropertyNameMap.Contains(InName))
+  {
+    UE_LOG(
+        LogRive,
+        Warning,
+        TEXT("Duplicate property name mapping: %s"),
+        *InName.ToString());
+  }
 
-    PropertyNameMap.Add(InName, InPropertyName);
+  PropertyNameMap.Add(InName, InPropertyName);
 }
 
 const FString* URiveViewModel::GetPropertyMapping(const FName& InName) const
 {
-    auto Value = PropertyNameMap.Find(InName);
+  auto Value = PropertyNameMap.Find(InName);
 #if WITH_EDITOR
-    if (!Value)
-    {
-        FFormatNamedArguments Arguments;
-        Arguments.Add(TEXT("Name"), FText::FromString(InName.ToString()));
-        // Show a Yes/No dialog
-        EAppReturnType::Type Response = FMessageDialog::Open(
-            EAppMsgType::Ok,
-            FText::Format(
-                FTextFormat::FromString(TEXT(
-                    "Mapping for {Name} missing, Please re-import riv file.")),
-                Arguments));
-    }
+  if (!Value)
+  {
+    FFormatNamedArguments Arguments;
+    Arguments.Add(TEXT("Name"), FText::FromString(InName.ToString()));
+    // Show a Yes/No dialog
+    EAppReturnType::Type Response = FMessageDialog::Open(
+        EAppMsgType::Ok,
+        FText::Format(
+            FTextFormat::FromString(
+                TEXT("Mapping for {Name} missing, Please re-import riv file.")),
+            Arguments));
+  }
 #endif
-    return Value;
+  return Value;
 }
 
 void URiveViewModel::BeginDestroy()
 {
-    if (NativeViewModelInstance != RIVE_NULL_HANDLE)
+  if (NativeViewModelInstance != RIVE_NULL_HANDLE)
+  {
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& Builder = RiveRenderer->GetCommandBuilder();
+    for (auto PropertyDefinition : ViewModelDefinition.PropertyDefinitions)
     {
-        auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-        check(RiveRenderer);
-        auto& Builder = RiveRenderer->GetCommandBuilder();
-        for (auto PropertyDefinition : ViewModelDefinition.PropertyDefinitions)
-        {
-            if (PropertyDefinition.Type == ERiveDataType::ViewModel)
-                continue;
-            Builder.UnsubscribeFromProperty(
-                NativeViewModelInstance,
-                PropertyDefinition.Name,
-                RiveDataTypeToDataType(PropertyDefinition.Type));
-        }
-        Builder.DestroyViewModel(NativeViewModelInstance);
-        ensure(ViewModelInstances.Contains(NativeViewModelInstance));
-        ViewModelInstances.Remove(NativeViewModelInstance);
+      if (PropertyDefinition.Type == ERiveDataType::ViewModel)
+        continue;
+      Builder.UnsubscribeFromProperty(
+          NativeViewModelInstance,
+          PropertyDefinition.Name,
+          RiveDataTypeToDataType(PropertyDefinition.Type));
     }
-    UObject::BeginDestroy();
+    Builder.DestroyViewModel(NativeViewModelInstance);
+    ensure(ViewModelInstances.Contains(NativeViewModelInstance));
+    ViewModelInstances.Remove(NativeViewModelInstance);
+  }
+  UObject::BeginDestroy();
 }
 
 void URiveViewModel::OnUpdatedField(UE::FieldNotification::FFieldId InFieldId)
 {
-    auto Varient = InFieldId.ToVariant(this);
-    if (!ensure(Varient.IsValid()))
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveViewModel::OnUpdatedField Invalid FieldId %s."),
-               *InFieldId.GetName().GetPlainNameString());
-        return;
-    }
-    auto Property = Varient.GetProperty();
-    if (!ensure(Property))
-    {
-        UE_LOG(
-            LogRive,
-            Error,
-            TEXT("URiveViewModel::OnUpdatedField Field %s is not a property."),
-            *InFieldId.GetName().GetPlainNameString());
-        return;
-    }
+  auto Varient = InFieldId.ToVariant(this);
+  if (!ensure(Varient.IsValid()))
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModel::OnUpdatedField Invalid FieldId %s."),
+        *InFieldId.GetName().GetPlainNameString());
+    return;
+  }
+  auto Property = Varient.GetProperty();
+  if (!ensure(Property))
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModel::OnUpdatedField Field %s is not a property."),
+        *InFieldId.GetName().GetPlainNameString());
+    return;
+  }
 
-    UnsettleStateMachine(TEXT("OnUpdatedField"));
+  UnsettleStateMachine(TEXT("OnUpdatedField"));
 
-    auto PropFName = Property->GetFName();
-    auto PropNamePtr = GetPropertyMapping(PropFName);
-    if (!PropNamePtr)
+  auto PropFName = Property->GetFName();
+  auto PropNamePtr = GetPropertyMapping(PropFName);
+  if (!PropNamePtr)
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModel::OnUpdatedField Failed to find property "
+             "name for %s."),
+        *PropFName.ToString());
+    return;
+  }
+  auto PropName = *PropNamePtr;
+  auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+  check(RiveRenderer);
+  auto& Builder = RiveRenderer->GetCommandBuilder();
+  if (auto StrProperty = CastField<FStrProperty>(Property))
+  {
+    const FString StringValue = StrProperty->GetPropertyValue_InContainer(this);
+    Builder.SetViewModelString(NativeViewModelInstance, PropName, StringValue);
+  }
+  else if (auto ByteProperty = CastField<FByteProperty>(Property))
+  {
+    UEnum* EnumValue = ByteProperty->GetIntPropertyEnum();
+    const uint64
+        EnumIndex = ByteProperty->GetUnsignedIntPropertyValue_InContainer(this);
+    const FName NameValue = EnumValue->GetNameByIndex(EnumIndex);
+    FString StringValue = NameValue.ToString();
+    FString Left, Right;
+    if (StringValue.Split("::", &Left, &Right))
     {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveViewModel::OnUpdatedField Failed to find property "
-                    "name for %s."),
-               *PropFName.ToString());
-        return;
+      StringValue = Right;
     }
-    auto PropName = *PropNamePtr;
-    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    auto& Builder = RiveRenderer->GetCommandBuilder();
-    if (auto StrProperty = CastField<FStrProperty>(Property))
+    Builder.SetViewModelEnum(NativeViewModelInstance, PropName, StringValue);
+  }
+  else if (auto BoolProperty = CastField<FBoolProperty>(Property))
+  {
+    const bool BoolValue = BoolProperty->GetPropertyValue_InContainer(this);
+    Builder.SetViewModelBool(NativeViewModelInstance, PropName, BoolValue);
+  }
+  else if (auto FloatProperty = CastField<FFloatProperty>(Property))
+  {
+    const float FloatValue = FloatProperty->GetPropertyValue_InContainer(this);
+    Builder.SetViewModelNumber(NativeViewModelInstance, PropName, FloatValue);
+  }
+  else if (auto StructProperty = CastField<FStructProperty>(Property))
+  {
+    if (StructProperty->Struct->GetFName() == NAME_LinearColor)
     {
-        const FString StringValue =
-            StrProperty->GetPropertyValue_InContainer(this);
-        Builder.SetViewModelString(NativeViewModelInstance,
-                                   PropName,
-                                   StringValue);
+      const FLinearColor*
+          StructValue = StructProperty->ContainerPtrToValuePtr<FLinearColor>(
+              this);
+      Builder.SetViewModelColor(
+          NativeViewModelInstance,
+          PropName,
+          *StructValue);
     }
-    else if (auto ByteProperty = CastField<FByteProperty>(Property))
-    {
-        UEnum* EnumValue = ByteProperty->GetIntPropertyEnum();
-        const uint64 EnumIndex =
-            ByteProperty->GetUnsignedIntPropertyValue_InContainer(this);
-        const FName NameValue = EnumValue->GetNameByIndex(EnumIndex);
-        FString StringValue = NameValue.ToString();
-        FString Left, Right;
-        if (StringValue.Split("::", &Left, &Right))
-        {
-            StringValue = Right;
-        }
-        Builder.SetViewModelEnum(NativeViewModelInstance,
-                                 PropName,
-                                 StringValue);
-    }
-    else if (auto BoolProperty = CastField<FBoolProperty>(Property))
-    {
-        const bool BoolValue = BoolProperty->GetPropertyValue_InContainer(this);
-        Builder.SetViewModelBool(NativeViewModelInstance, PropName, BoolValue);
-    }
-    else if (auto FloatProperty = CastField<FFloatProperty>(Property))
-    {
-        const float FloatValue =
-            FloatProperty->GetPropertyValue_InContainer(this);
-        Builder.SetViewModelNumber(NativeViewModelInstance,
-                                   PropName,
-                                   FloatValue);
-    }
-    else if (auto StructProperty = CastField<FStructProperty>(Property))
-    {
-        if (StructProperty->Struct->GetFName() == NAME_LinearColor)
-        {
-            const FLinearColor* StructValue =
-                StructProperty->ContainerPtrToValuePtr<FLinearColor>(this);
-            Builder.SetViewModelColor(NativeViewModelInstance,
-                                      PropName,
-                                      *StructValue);
-        }
-    }
-    else if (auto ObjectProperty = CastField<FObjectProperty>(Property))
-    {
-        auto ObjectClass = ObjectProperty->PropertyClass;
-        auto Object = ObjectProperty->GetObjectPropertyValue_InContainer(this);
+  }
+  else if (auto ObjectProperty = CastField<FObjectProperty>(Property))
+  {
+    auto ObjectClass = ObjectProperty->PropertyClass;
+    auto Object = ObjectProperty->GetObjectPropertyValue_InContainer(this);
 
-        if (ObjectClass == URiveViewModel::StaticClass())
-        {
-            if (URiveViewModel* ViewModelObject = Cast<URiveViewModel>(Object))
-            {
-                // Var was set.
-                Builder.SetViewModelViewModel(
-                    NativeViewModelInstance,
-                    PropName,
-                    ViewModelObject->NativeViewModelInstance);
-            }
-        }
-        else if (ObjectClass == UTexture::StaticClass())
-        {
-            if (UTexture* TextureObject = Cast<UTexture>(Object))
-            {
-                // Var was set.
-                Builder.SetViewModelImage(NativeViewModelInstance,
-                                          PropName,
-                                          TextureObject);
-            }
-        }
-        else if (ObjectClass == URiveBlobAsset::StaticClass())
-        {
-            // A null blob clears the property.
-            URiveBlobAsset* BlobObject = Cast<URiveBlobAsset>(Object);
-            Builder.SetViewModelBlob(NativeViewModelInstance,
-                                     PropName,
-                                     BlobObject != nullptr
-                                         ? BlobObject->GetNativeBlobHandle()
-                                         : RIVE_NULL_HANDLE);
-        }
-        else if (ObjectClass == URiveArtboard::StaticClass())
-        {
-            if (URiveArtboard* ArtboardObject = Cast<URiveArtboard>(Object))
-            {
-                // Var was set.
-                Builder.SetViewModelArtboard(
-                    NativeViewModelInstance,
-                    PropName,
-                    ArtboardObject->GetNativeArtboardHandle());
-            }
-        }
-        else
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("URiveViewModel::OnUpdatedField Unsupported Object "
-                        "Type %s."),
-                   *ObjectClass->GetName());
-        }
+    if (ObjectClass == URiveViewModel::StaticClass())
+    {
+      if (URiveViewModel* ViewModelObject = Cast<URiveViewModel>(Object))
+      {
+        // Var was set.
+        Builder.SetViewModelViewModel(
+            NativeViewModelInstance,
+            PropName,
+            ViewModelObject->NativeViewModelInstance);
+      }
+    }
+    else if (ObjectClass == UTexture::StaticClass())
+    {
+      if (UTexture* TextureObject = Cast<UTexture>(Object))
+      {
+        // Var was set.
+        Builder.SetViewModelImage(
+            NativeViewModelInstance,
+            PropName,
+            TextureObject);
+      }
+    }
+    else if (ObjectClass == URiveBlobAsset::StaticClass())
+    {
+      // A null blob clears the property.
+      URiveBlobAsset* BlobObject = Cast<URiveBlobAsset>(Object);
+      Builder.SetViewModelBlob(
+          NativeViewModelInstance,
+          PropName,
+          BlobObject != nullptr ? BlobObject->GetNativeBlobHandle()
+                                : RIVE_NULL_HANDLE);
+    }
+    else if (ObjectClass == URiveArtboard::StaticClass())
+    {
+      if (URiveArtboard* ArtboardObject = Cast<URiveArtboard>(Object))
+      {
+        // Var was set.
+        Builder.SetViewModelArtboard(
+            NativeViewModelInstance,
+            PropName,
+            ArtboardObject->GetNativeArtboardHandle());
+      }
     }
     else
     {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("URiveViewModel::OnUpdatedField Unsupported Property "
-                    "%s."),
-               *Property->GetName());
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("URiveViewModel::OnUpdatedField Unsupported Object "
+               "Type %s."),
+          *ObjectClass->GetName());
     }
+  }
+  else
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveViewModel::OnUpdatedField Unsupported Property "
+             "%s."),
+        *Property->GetName());
+  }
 }
 
 bool URiveViewModel::RemoveFieldValueChangedDelegate(
     FFieldNotificationId InFieldId,
     const FFieldValueChangedDynamicDelegate& InDelegate)
 {
-    auto RemoveResult = Delegates.Remove(InDelegate);
-    return RemoveResult.bRemoved;
+  auto RemoveResult = Delegates.Remove(InDelegate);
+  return RemoveResult.bRemoved;
 }
 
 void URiveViewModel::ClearListData(const FString& ListPath)
 {
-    FStructProperty* Property =
-        FindFProperty<FStructProperty>(GetClass(), *ListPath);
-    if (!Property)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Failed to find list property to update !"));
-        return;
-    }
+  FStructProperty* Property = FindFProperty<FStructProperty>(
+      GetClass(),
+      *ListPath);
+  if (!Property)
+  {
+    UE_LOG(LogRive, Error, TEXT("Failed to find list property to update !"));
+    return;
+  }
 
-    FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
-    if (!List)
-    {
-        UE_LOG(
-            LogRive,
-            Error,
-            TEXT(
-                "URiveViewModel::UpdateListWithViewModelData Failed to find list property to update !"));
-        return;
-    }
+  FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
+  if (!List)
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT(
+            "URiveViewModel::UpdateListWithViewModelData Failed to find list property to update !"));
+    return;
+  }
 
-    List->ViewModels.Empty();
+  List->ViewModels.Empty();
 }
 
-void URiveViewModel::UpdateListWithViewModelData(const FString& ListPath,
-                                                 URiveViewModel* Value,
-                                                 bool bRemove)
+void URiveViewModel::UpdateListWithViewModelData(
+    const FString& ListPath,
+    URiveViewModel* Value,
+    bool bRemove)
 {
-    FStructProperty* Property =
-        FindFProperty<FStructProperty>(GetClass(), *ListPath);
-    if (!Property)
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Failed to find list property to update !"));
-        return;
-    }
+  FStructProperty* Property = FindFProperty<FStructProperty>(
+      GetClass(),
+      *ListPath);
+  if (!Property)
+  {
+    UE_LOG(LogRive, Error, TEXT("Failed to find list property to update !"));
+    return;
+  }
 
-    FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
-    if (!List)
-    {
-        UE_LOG(
-            LogRive,
-            Error,
-            TEXT(
-                "URiveViewModel::UpdateListWithViewModelData Failed to find list property to update !"));
-        return;
-    }
-    if (bRemove)
-    {
-        List->ViewModels.Remove(Value);
-    }
-    else
-    {
-        List->ViewModels.Add(Value);
-    }
+  FRiveList* List = Property->ContainerPtrToValuePtr<FRiveList>(this);
+  if (!List)
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT(
+            "URiveViewModel::UpdateListWithViewModelData Failed to find list property to update !"));
+    return;
+  }
+  if (bRemove)
+  {
+    List->ViewModels.Remove(Value);
+  }
+  else
+  {
+    List->ViewModels.Add(Value);
+  }
 }
 
 void URiveViewModel::UnsettleStateMachine(const TCHAR* Context) const
 {
-    // Nested view models unsettle through their owning view model, walking up
-    // the ownership chain until a view model owned directly by an artboard is
-    // reached.
-    if (auto StrongViewModel = OwningViewModel.Pin(); StrongViewModel.IsValid())
-    {
-        StrongViewModel->UnsettleStateMachine(Context);
-    }
-    else if (auto StrongArtboard = OwningArtboard.Pin();
-             StrongArtboard.IsValid())
-    {
-        StrongArtboard->UnsettleStateMachine();
-    }
-    else
-    {
-        UE_LOG(LogRive,
-               VeryVerbose,
-               TEXT("Failed to unsettle view models artboard state machine %s"),
-               Context);
-    }
+  // Nested view models unsettle through their owning view model, walking up
+  // the ownership chain until a view model owned directly by an artboard is
+  // reached.
+  if (auto StrongViewModel = OwningViewModel.Pin(); StrongViewModel.IsValid())
+  {
+    StrongViewModel->UnsettleStateMachine(Context);
+  }
+  else if (auto StrongArtboard = OwningArtboard.Pin(); StrongArtboard.IsValid())
+  {
+    StrongArtboard->UnsettleStateMachine();
+  }
+  else
+  {
+    UE_LOG(
+        LogRive,
+        VeryVerbose,
+        TEXT("Failed to unsettle view models artboard state machine %s"),
+        Context);
+  }
 }
 
 void URiveViewModel::FFieldNotificationClassDescriptor::ForEachField(
@@ -1693,30 +1728,30 @@ void URiveViewModel::FFieldNotificationClassDescriptor::ForEachField(
     TFunctionRef<bool(::UE::FieldNotification::FFieldId FieldId)> Callback)
     const
 {
-    if (const UBlueprintGeneratedClass* BPClass =
-            Cast<const UBlueprintGeneratedClass>(Class))
-    {
-        BPClass->ForEachFieldNotify(Callback, true);
-    }
+  if (const UBlueprintGeneratedClass*
+          BPClass = Cast<const UBlueprintGeneratedClass>(Class))
+  {
+    BPClass->ForEachFieldNotify(Callback, true);
+  }
 }
 
 void URiveTriggerDelegate::SetTrigger()
 {
-    if (auto ViewModel = OwningViewModel.Pin())
-    {
-        check(TriggerIndex >= 0);
-        check(ViewModel->ViewModelDefinition.PropertyDefinitions.IsValidIndex(
-            TriggerIndex));
+  if (auto ViewModel = OwningViewModel.Pin())
+  {
+    check(TriggerIndex >= 0);
+    check(ViewModel->ViewModelDefinition.PropertyDefinitions.IsValidIndex(
+        TriggerIndex));
 
-        const auto& TriggerName =
-            ViewModel->ViewModelDefinition.PropertyDefinitions[TriggerIndex]
-                .Name;
-        const auto& TriggerType =
-            ViewModel->ViewModelDefinition.PropertyDefinitions[TriggerIndex]
-                .Type;
-        check(TriggerType == ERiveDataType::Trigger)
-            ViewModel->K2_SetTrigger(TriggerName);
+    const auto& TriggerName = ViewModel->ViewModelDefinition
+                                  .PropertyDefinitions[TriggerIndex]
+                                  .Name;
+    const auto& TriggerType = ViewModel->ViewModelDefinition
+                                  .PropertyDefinitions[TriggerIndex]
+                                  .Type;
+    check(TriggerType == ERiveDataType::Trigger)
+        ViewModel->K2_SetTrigger(TriggerName);
 
-        OnTrigger.Broadcast(ViewModel.Get(), TriggerName);
-    }
+    OnTrigger.Broadcast(ViewModel.Get(), TriggerName);
+  }
 }

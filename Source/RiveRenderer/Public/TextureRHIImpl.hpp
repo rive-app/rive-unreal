@@ -23,20 +23,21 @@ THIRD_PARTY_INCLUDES_END
 class TextureRHIImpl : public rive::gpu::Texture
 {
 public:
-    TextureRHIImpl(const FTextureRHIRef& Texture);
+  TextureRHIImpl(const FTextureRHIRef& Texture);
 
-    TextureRHIImpl(uint32_t width,
-                   uint32_t height,
-                   uint32_t mipLevelCount,
-                   const uint8_t* imageData,
-                   EPixelFormat PixelFormat = PF_B8G8R8A8);
+  TextureRHIImpl(
+      uint32_t width,
+      uint32_t height,
+      uint32_t mipLevelCount,
+      const uint8_t* imageData,
+      EPixelFormat PixelFormat = PF_B8G8R8A8);
 
-    FRDGTextureRef asRDGTexture(FRDGBuilder& Builder) const;
-    virtual ~TextureRHIImpl() override;
-    FTextureRHIRef contents() const;
+  FRDGTextureRef asRDGTexture(FRDGBuilder& Builder) const;
+  virtual ~TextureRHIImpl() override;
+  FTextureRHIRef contents() const;
 
 private:
-    FTextureRHIRef m_texture;
+  FTextureRHIRef m_texture;
 };
 #else // UE VERSION > 5_5:
 // FRHIAsyncCommandList was removed in 5.5 we should probably defer load these
@@ -44,38 +45,40 @@ private:
 class TextureRHIImpl : public rive::gpu::Texture
 {
 public:
-    TextureRHIImpl(const FTextureRHIRef& InTexture);
-    TextureRHIImpl(const FRDGTextureRef& InTexture);
+  TextureRHIImpl(const FTextureRHIRef& InTexture);
+  TextureRHIImpl(const FRDGTextureRef& InTexture);
 
-    // For an rdg texture that has been made external, so contents() works for
-    // paths that bind a raw rhi texture.
-    TextureRHIImpl(const FRDGTextureRef& InRDGTexture,
-                   const FTextureRHIRef& InTexture);
+  // For an rdg texture that has been made external, so contents() works for
+  // paths that bind a raw rhi texture.
+  TextureRHIImpl(
+      const FRDGTextureRef& InRDGTexture,
+      const FTextureRHIRef& InTexture);
 
-    // Variants for data binding render targets.
-    TextureRHIImpl(UTextureRenderTarget2D* InTexture);
+  // Variants for data binding render targets.
+  TextureRHIImpl(UTextureRenderTarget2D* InTexture);
 
-    // Variant for data binding utextures
-    TextureRHIImpl(UTexture2D* InTexture);
+  // Variant for data binding utextures
+  TextureRHIImpl(UTexture2D* InTexture);
 
-    TextureRHIImpl(uint32_t width,
-                   uint32_t height,
-                   uint32_t mipLevelCount,
-                   const uint8_t* imageData,
-                   EPixelFormat PixelFormat = PF_B8G8R8A8);
+  TextureRHIImpl(
+      uint32_t width,
+      uint32_t height,
+      uint32_t mipLevelCount,
+      const uint8_t* imageData,
+      EPixelFormat PixelFormat = PF_B8G8R8A8);
 
-    FRDGTextureRef asRDGTexture(FRDGBuilder& Builder) const;
-    virtual ~TextureRHIImpl() override;
-    FTextureRHIRef contents() const;
+  FRDGTextureRef asRDGTexture(FRDGBuilder& Builder) const;
+  virtual ~TextureRHIImpl() override;
+  FTextureRHIRef contents() const;
 
 private:
-    FRDGTextureRef m_RDGTexture = nullptr;
-    // asRDGTexture is called once per draw, so images drawn many times in one
-    // flush would otherwise allocate a pooled wrapper and register with rdg
-    // every single time. Valid only for the flush it was made in.
-    mutable FRDGTextureRef m_cachedRDGTexture = nullptr;
-    mutable uint64 m_cachedRDGFlushSerial = 0;
-    FTextureRHIRef m_texture = nullptr;
-    TStrongObjectPtr<UTexture> m_UTexture;
+  FRDGTextureRef m_RDGTexture = nullptr;
+  // asRDGTexture is called once per draw, so images drawn many times in one
+  // flush would otherwise allocate a pooled wrapper and register with rdg
+  // every single time. Valid only for the flush it was made in.
+  mutable FRDGTextureRef m_cachedRDGTexture = nullptr;
+  mutable uint64 m_cachedRDGFlushSerial = 0;
+  FTextureRHIRef m_texture = nullptr;
+  TStrongObjectPtr<UTexture> m_UTexture;
 };
 #endif

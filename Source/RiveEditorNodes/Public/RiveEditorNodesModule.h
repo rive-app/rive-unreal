@@ -7,19 +7,19 @@
 
 class FRiveEditorNodesModule final : public IModuleInterface
 {
-    //~ BEGIN : IModuleInterface Interface
+  //~ BEGIN : IModuleInterface Interface
 
 public:
-    virtual void StartupModule() override;
+  virtual void StartupModule() override;
 
-    virtual void ShutdownModule() override;
+  virtual void ShutdownModule() override;
 
-    //~ END : IModuleInterface Interface
+  //~ END : IModuleInterface Interface
 
-    /**
-     * Implementation(s)
-     */
+  /**
+   * Implementation(s)
+   */
 
 private:
-    void TestRiveIntegration();
+  void TestRiveIntegration();
 };

@@ -11,163 +11,165 @@
 FText UK2Node_MakeArtboardViewModel::GetNodeTitle(
     ENodeTitleType::Type TitleType) const
 {
-    if (NodeTitleCache.IsOutOfDate(this))
-    {
-        NodeTitleCache.SetCachedText(
-            NSLOCTEXT("Rive", "NodeTitle", "Make Artboard View Model"),
-            this);
-    }
-    return NodeTitleCache;
+  if (NodeTitleCache.IsOutOfDate(this))
+  {
+    NodeTitleCache.SetCachedText(
+        NSLOCTEXT("Rive", "NodeTitle", "Make Artboard View Model"),
+        this);
+  }
+  return NodeTitleCache;
 }
 
 FText UK2Node_MakeArtboardViewModel::GetTooltipText() const
 {
-    return FText::FromString(
-        "Used to create a default view model for a given artboard. To use, "
-        "select a file in the dropdown and then select the artboard.");
+  return FText::FromString(
+      "Used to create a default view model for a given artboard. To use, "
+      "select a file in the dropdown and then select the artboard.");
 }
 
 FText UK2Node_MakeArtboardViewModel::GetToolTipHeading() const
 {
-    return FText::FromString("Make Artboard View Model");
+  return FText::FromString("Make Artboard View Model");
 }
 
 FText UK2Node_MakeArtboardViewModel::GetKeywords() const
 {
-    return FText::FromString("Rive Artboard View Model");
+  return FText::FromString("Rive Artboard View Model");
 }
 
 bool UK2Node_MakeArtboardViewModel::CheckForErrors(
     FKismetCompilerContext& CompilerContext)
 {
-    auto RiveFile = GetSelectedRiveFile();
+  auto RiveFile = GetSelectedRiveFile();
 
-    if (!IsValid(RiveFile))
-    {
-        return Super::CheckForErrors(CompilerContext);
-    }
-
-    if (!RiveFile->GetHasData())
-    {
-        return Super::CheckForErrors(CompilerContext);
-    }
-
-    auto ViewModelSource = GetSelectedViewModelSource();
-
-    if (ViewModelSource.IsEmpty())
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(TEXT("Selected artboard is invalid.")));
-        return true;
-    }
-
-    auto SelectedArtboard = RiveFile->ArtboardDefinitions.FindByPredicate(
-        [ViewModelSource](const FArtboardDefinition& L) {
-            return L.Name == ViewModelSource;
-        });
-    if (SelectedArtboard == nullptr)
-    {
-        CompilerContext.MessageLog.Error(*FString::Printf(
-            TEXT("Selected artboard is not in selected rive file.")));
-        return true;
-    }
-
-    if (SelectedArtboard->DefaultViewModel.IsEmpty())
-    {
-        CompilerContext.MessageLog.Error(*FString::Printf(
-            TEXT("Selected artboard %s does not contain a default view model."),
-            *SelectedArtboard->Name));
-        return true;
-    }
-
+  if (!IsValid(RiveFile))
+  {
     return Super::CheckForErrors(CompilerContext);
+  }
+
+  if (!RiveFile->GetHasData())
+  {
+    return Super::CheckForErrors(CompilerContext);
+  }
+
+  auto ViewModelSource = GetSelectedViewModelSource();
+
+  if (ViewModelSource.IsEmpty())
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(TEXT("Selected artboard is invalid.")));
+    return true;
+  }
+
+  auto SelectedArtboard = RiveFile->ArtboardDefinitions.FindByPredicate(
+      [ViewModelSource](const FArtboardDefinition& L) {
+        return L.Name == ViewModelSource;
+      });
+  if (SelectedArtboard == nullptr)
+  {
+    CompilerContext.MessageLog.Error(*FString::Printf(
+        TEXT("Selected artboard is not in selected rive file.")));
+    return true;
+  }
+
+  if (SelectedArtboard->DefaultViewModel.IsEmpty())
+  {
+    CompilerContext.MessageLog.Error(*FString::Printf(
+        TEXT("Selected artboard %s does not contain a default view model."),
+        *SelectedArtboard->Name));
+    return true;
+  }
+
+  return Super::CheckForErrors(CompilerContext);
 }
 
 UEnum* UK2Node_MakeArtboardViewModel::GenerateViewModelSourceEnum(
     TObjectPtr<URiveFile> RiveFile)
 {
-    check(RiveFile->ArtboardEnum);
-    return RiveFile->ArtboardEnum;
+  check(RiveFile->ArtboardEnum);
+  return RiveFile->ArtboardEnum;
 }
 
 UEdGraphPin* UK2Node_MakeArtboardViewModel::GetTargetPinForViewModelSource(
     const UK2Node* Node)
 {
-    return Node->FindPin(TEXT("ArtboardName"));
+  return Node->FindPin(TEXT("ArtboardName"));
 }
 
 int UK2Node_MakeArtboardViewModel::GetIndexFromSelection(
     const FString& Selection)
 {
-    auto RiveFile = GetSelectedRiveFile();
-    check(RiveFile);
-    for (int Index = 0; Index < RiveFile->ArtboardDefinitions.Num(); ++Index)
+  auto RiveFile = GetSelectedRiveFile();
+  check(RiveFile);
+  for (int Index = 0; Index < RiveFile->ArtboardDefinitions.Num(); ++Index)
+  {
+    if (RiveFile->ArtboardDefinitions[Index].Name == Selection)
     {
-        if (RiveFile->ArtboardDefinitions[Index].Name == Selection)
-        {
-            return Index;
-        }
+      return Index;
     }
+  }
 
-    return Super::GetIndexFromSelection(Selection);
+  return Super::GetIndexFromSelection(Selection);
 }
 
 FViewModelDefinition* UK2Node_MakeArtboardViewModel::
     GetViewModelDefinitionFromIndex(int Index)
 {
-    auto RiveFile = GetSelectedRiveFile();
-    check(RiveFile);
-    check(RiveFile->ArtboardDefinitions.IsValidIndex(Index));
-    auto ArtboardDefinition = RiveFile->ArtboardDefinitions[Index];
-    auto ViewModelName = ArtboardDefinition.DefaultViewModel;
-    for (int ViewModelIndex = 0;
-         ViewModelIndex < RiveFile->ViewModelDefinitions.Num();
-         ++ViewModelIndex)
+  auto RiveFile = GetSelectedRiveFile();
+  check(RiveFile);
+  check(RiveFile->ArtboardDefinitions.IsValidIndex(Index));
+  auto ArtboardDefinition = RiveFile->ArtboardDefinitions[Index];
+  auto ViewModelName = ArtboardDefinition.DefaultViewModel;
+  for (int ViewModelIndex = 0;
+       ViewModelIndex < RiveFile->ViewModelDefinitions.Num();
+       ++ViewModelIndex)
+  {
+    if (RiveFile->ViewModelDefinitions[ViewModelIndex].Name == ViewModelName)
     {
-        if (RiveFile->ViewModelDefinitions[ViewModelIndex].Name ==
-            ViewModelName)
-        {
-            return &RiveFile->ViewModelDefinitions[ViewModelIndex];
-        }
+      return &RiveFile->ViewModelDefinitions[ViewModelIndex];
     }
-    UE_LOG(LogRiveNode,
-           Error,
-           TEXT("Can not find default view model %s for Artboard %s "),
-           *ArtboardDefinition.DefaultViewModel,
-           *ArtboardDefinition.Name);
-    return nullptr;
+  }
+  UE_LOG(
+      LogRiveNode,
+      Error,
+      TEXT("Can not find default view model %s for Artboard %s "),
+      *ArtboardDefinition.DefaultViewModel,
+      *ArtboardDefinition.Name);
+  return nullptr;
 }
 
 void UK2Node_MakeArtboardViewModel::SetFunctionOnIntermediateNode(
     UK2Node_CallFunction* Node) const
 {
-    static const FName FunctionName =
-        GET_FUNCTION_NAME_CHECKED(URiveFile, CreateViewModelByArtboardName);
-    Node->FunctionReference.SetExternalMember(FunctionName,
-                                              URiveFile::StaticClass());
+  static const FName FunctionName = GET_FUNCTION_NAME_CHECKED(
+      URiveFile,
+      CreateViewModelByArtboardName);
+  Node->FunctionReference.SetExternalMember(
+      FunctionName,
+      URiveFile::StaticClass());
 }
 
 FString UK2Node_MakeArtboardViewModel::GetViewModelSourceValueFromSelection(
     const FString& Selection) const
 {
-    auto RiveFile = GetSelectedRiveFile();
-    check(RiveFile);
-    const auto ArtboardDefinition =
-        RiveFile->ArtboardDefinitions.FindByPredicate(
-            [Selection](const FArtboardDefinition& A) {
-                return A.Name == Selection;
-            });
+  auto RiveFile = GetSelectedRiveFile();
+  check(RiveFile);
+  const auto ArtboardDefinition = RiveFile->ArtboardDefinitions.FindByPredicate(
+      [Selection](const FArtboardDefinition& A) {
+        return A.Name == Selection;
+      });
 
-    if (!ArtboardDefinition)
-    {
-        UE_LOG(LogRiveNode,
-               Error,
-               TEXT("Can not find artboard definition for %s "),
-               *Selection);
-        return "";
-    }
+  if (!ArtboardDefinition)
+  {
+    UE_LOG(
+        LogRiveNode,
+        Error,
+        TEXT("Can not find artboard definition for %s "),
+        *Selection);
+    return "";
+  }
 
-    return ArtboardDefinition->DefaultViewModel;
+  return ArtboardDefinition->DefaultViewModel;
 }
 
 #undef LOCTEXT_NAMESPACE

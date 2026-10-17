@@ -23,137 +23,139 @@ URiveFileThumbnailRenderer::URiveFileThumbnailRenderer() {}
 
 bool URiveFileThumbnailRenderer::CanVisualizeAsset(UObject* Object)
 {
-    return Object->IsA<URiveFile>();
+  return Object->IsA<URiveFile>();
 }
 
 EThumbnailRenderFrequency URiveFileThumbnailRenderer::
     GetThumbnailRenderFrequency(UObject* Object) const
 {
-    return EThumbnailRenderFrequency::OnAssetSave;
+  return EThumbnailRenderFrequency::OnAssetSave;
 }
 
-void URiveFileThumbnailRenderer::Draw(UObject* Object,
-                                      int32 X,
-                                      int32 Y,
-                                      uint32 Width,
-                                      uint32 Height,
-                                      FRenderTarget* Viewport,
-                                      FCanvas* Canvas,
-                                      bool bAdditionalViewFamily)
+void URiveFileThumbnailRenderer::Draw(
+    UObject* Object,
+    int32 X,
+    int32 Y,
+    uint32 Width,
+    uint32 Height,
+    FRenderTarget* Viewport,
+    FCanvas* Canvas,
+    bool bAdditionalViewFamily)
 {
-    if (URiveFile* RiveFile = Cast<URiveFile>(Object))
+  if (URiveFile* RiveFile = Cast<URiveFile>(Object))
+  {
+    FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+
+    if (!RiveRenderTarget)
     {
-        FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-
-        if (!RiveRenderTarget)
-        {
-            RiveRenderTarget =
-                RiveRenderer->CreateRenderTarget(GetName(), Viewport);
-        }
-        else
-        {
-            RiveRenderTarget->UpdateTargetTexture(Viewport);
-        }
-
-        auto NativeFileHandle = RiveFile->GetNativeFileHandle();
-
-        FBox2f AlignmentBox{
-            {static_cast<float>(X), static_cast<float>(Y)},
-            {static_cast<float>(Width), static_cast<float>(Height)}};
-
-        // This completly bypasses the command server / queue. This is because
-        // we have to render and return now. Any delay prevents the icon from
-        // rendering.
-        ENQUEUE_RENDER_COMMAND(URiveFileThumbnailRenderer_Draw)
-        ([RiveRenderer,
-          AlignmentBox,
-          NativeFileHandle,
-          RiveRenderTarget =
-              RiveRenderTarget](FRHICommandListImmediate& RHICmdList) {
-            auto CommandServer = RiveRenderer->GetCommandServer();
-            auto RenderTarget = RiveRenderTarget->GetRenderTarget();
-
-            if (!CommandServer)
-            {
-                UE_LOG(
-                    LogRiveEditor,
-                    Error,
-                    TEXT(
-                        "URiveFileThumbnailRenderer::Draw No Command Server !"));
-                return;
-            }
-
-            if (!RenderTarget)
-            {
-                UE_LOG(
-                    LogRiveEditor,
-                    Error,
-                    TEXT(
-                        "URiveFileThumbnailRenderer::Draw No Render Target !"));
-                return;
-            }
-
-            auto File = CommandServer->getFile(NativeFileHandle);
-
-            if (!File)
-            {
-                UE_LOG(LogRiveEditor,
-                       Error,
-                       TEXT("URiveFileThumbnailRenderer::Draw Invalid File"));
-                return;
-            }
-
-            auto ArtboardInstance = File->artboardDefault();
-
-            if (!ArtboardInstance)
-            {
-                UE_LOG(LogRiveEditor,
-                       Error,
-                       TEXT("URiveFileThumbnailRenderer::Draw Invalid Default "
-                            "Artboard Instance"));
-                return;
-            }
-
-            ArtboardInstance->advance(1.0);
-
-            auto Context = RiveRenderer->GetRenderContext();
-
-            auto* Renderer = RiveRenderer->BeginDeferredFrame();
-            Renderer->save();
-            Renderer->align(rive::Fit::contain,
-                            rive::Alignment::center,
-                            {AlignmentBox.Min.X,
-                             AlignmentBox.Min.Y,
-                             AlignmentBox.Max.X,
-                             AlignmentBox.Max.Y},
-                            ArtboardInstance->bounds());
-            ArtboardInstance->draw(Renderer);
-            Renderer->restore();
-
-            FRDGBuilder GraphBuilder(RHICmdList);
-            RiveRenderer->ReplayDeferredFrame(
-                GraphBuilder,
-                [Context, AlignmentBox, RiveRenderer](
-                    bool) -> TUniquePtr<rive::Renderer> {
-                    rive::gpu::RenderContext::FrameDescriptor FrameDescriptor{
-                        .renderTargetWidth =
-                            static_cast<uint32_t>(AlignmentBox.GetSize().X),
-                        .renderTargetHeight =
-                            static_cast<uint32_t>(AlignmentBox.GetSize().Y),
-                        .loadAction = rive::gpu::LoadAction::clear,
-                        .clearColor = rive::colorRed(255),
-                        .wireframe = false,
-                    };
-                    RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
-                    Context->beginFrame(FrameDescriptor);
-                    return MakeUnique<rive::RiveRenderer>(Context);
-                },
-                [Context, &RenderTarget, &GraphBuilder] {
-                    Context->flush({.renderTarget = RenderTarget.get(),
-                                    .externalCommandBuffer = &GraphBuilder});
-                });
-            GraphBuilder.Execute();
-        });
+      RiveRenderTarget = RiveRenderer->CreateRenderTarget(GetName(), Viewport);
     }
-    Canvas->SetRenderTargetDirty(true);
+    else
+    {
+      RiveRenderTarget->UpdateTargetTexture(Viewport);
+    }
+
+    auto NativeFileHandle = RiveFile->GetNativeFileHandle();
+
+    FBox2f AlignmentBox{
+        {static_cast<float>(X), static_cast<float>(Y)},
+        {static_cast<float>(Width), static_cast<float>(Height)}};
+
+    // This completly bypasses the command server / queue. This is because
+    // we have to render and return now. Any delay prevents the icon from
+    // rendering.
+    ENQUEUE_RENDER_COMMAND(URiveFileThumbnailRenderer_Draw)
+    ([RiveRenderer,
+      AlignmentBox,
+      NativeFileHandle,
+      RiveRenderTarget = RiveRenderTarget](
+         FRHICommandListImmediate& RHICmdList) {
+      auto CommandServer = RiveRenderer->GetCommandServer();
+      auto RenderTarget = RiveRenderTarget->GetRenderTarget();
+
+      if (!CommandServer)
+      {
+        UE_LOG(
+            LogRiveEditor,
+            Error,
+            TEXT("URiveFileThumbnailRenderer::Draw No Command Server !"));
+        return;
+      }
+
+      if (!RenderTarget)
+      {
+        UE_LOG(
+            LogRiveEditor,
+            Error,
+            TEXT("URiveFileThumbnailRenderer::Draw No Render Target !"));
+        return;
+      }
+
+      auto File = CommandServer->getFile(NativeFileHandle);
+
+      if (!File)
+      {
+        UE_LOG(
+            LogRiveEditor,
+            Error,
+            TEXT("URiveFileThumbnailRenderer::Draw Invalid File"));
+        return;
+      }
+
+      auto ArtboardInstance = File->artboardDefault();
+
+      if (!ArtboardInstance)
+      {
+        UE_LOG(
+            LogRiveEditor,
+            Error,
+            TEXT("URiveFileThumbnailRenderer::Draw Invalid Default "
+                 "Artboard Instance"));
+        return;
+      }
+
+      ArtboardInstance->advance(1.0);
+
+      auto Context = RiveRenderer->GetRenderContext();
+
+      auto* Renderer = RiveRenderer->BeginDeferredFrame();
+      Renderer->save();
+      Renderer->align(
+          rive::Fit::contain,
+          rive::Alignment::center,
+          {AlignmentBox.Min.X,
+           AlignmentBox.Min.Y,
+           AlignmentBox.Max.X,
+           AlignmentBox.Max.Y},
+          ArtboardInstance->bounds());
+      ArtboardInstance->draw(Renderer);
+      Renderer->restore();
+
+      FRDGBuilder GraphBuilder(RHICmdList);
+      RiveRenderer->ReplayDeferredFrame(
+          GraphBuilder,
+          [Context, AlignmentBox, RiveRenderer](
+              bool) -> TUniquePtr<rive::Renderer> {
+            rive::gpu::RenderContext::FrameDescriptor FrameDescriptor{
+                .renderTargetWidth = static_cast<uint32_t>(
+                    AlignmentBox.GetSize().X),
+                .renderTargetHeight = static_cast<uint32_t>(
+                    AlignmentBox.GetSize().Y),
+                .loadAction = rive::gpu::LoadAction::clear,
+                .clearColor = rive::colorRed(255),
+                .wireframe = false,
+            };
+            RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
+            Context->beginFrame(FrameDescriptor);
+            return MakeUnique<rive::RiveRenderer>(Context);
+          },
+          [Context, &RenderTarget, &GraphBuilder] {
+            Context->flush(
+                {.renderTarget = RenderTarget.get(),
+                 .externalCommandBuffer = &GraphBuilder});
+          });
+      GraphBuilder.Execute();
+    });
+  }
+  Canvas->SetRenderTargetDirty(true);
 }

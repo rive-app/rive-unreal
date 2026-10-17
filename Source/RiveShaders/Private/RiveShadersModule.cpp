@@ -10,10 +10,10 @@
 
 void FRiveShadersModule::StartupModule()
 {
-    FString PluginShaderDir = FPaths::Combine(
-        IPluginManager::Get().FindPlugin(TEXT("Rive"))->GetBaseDir(),
-        TEXT("Shaders"));
-    AddShaderSourceDirectoryMapping(TEXT("/Plugin/Rive"), PluginShaderDir);
+  FString PluginShaderDir = FPaths::Combine(
+      IPluginManager::Get().FindPlugin(TEXT("Rive"))->GetBaseDir(),
+      TEXT("Shaders"));
+  AddShaderSourceDirectoryMapping(TEXT("/Plugin/Rive"), PluginShaderDir);
 }
 
 void FRiveShadersModule::ShutdownModule() {}

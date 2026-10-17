@@ -15,19 +15,21 @@ struct FViewModelDefinition;
 // tests generate into a transient folder without saving.
 struct RIVEEDITOR_API FRiveBlueprintGeneration
 {
-    // Generates every enum and view model class for File under FolderPath
-    // and registers the classes on the file.
-    static void GenerateForFile(URiveFile* File,
-                                const FString& FolderPath,
-                                bool bSave = true);
+  // Generates every enum and view model class for File under FolderPath
+  // and registers the classes on the file.
+  static void GenerateForFile(
+      URiveFile* File,
+      const FString& FolderPath,
+      bool bSave = true);
 
-    static UEnum* GenerateEnum(const FString& FolderPath,
-                               const FEnumDefinition& Definition,
-                               bool bSave = true);
+  static UEnum* GenerateEnum(
+      const FString& FolderPath,
+      const FEnumDefinition& Definition,
+      bool bSave = true);
 
-    static UBlueprint* GenerateViewModelBlueprint(
-        const FString& FolderPath,
-        const FViewModelDefinition& Definition,
-        const TArray<UEnum*>& Enums,
-        bool bSave = true);
+  static UBlueprint* GenerateViewModelBlueprint(
+      const FString& FolderPath,
+      const FViewModelDefinition& Definition,
+      const TArray<UEnum*>& Enums,
+      bool bSave = true);
 };

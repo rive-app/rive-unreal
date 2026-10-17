@@ -10,13 +10,13 @@ class URiveRenderTarget2D;
 class RIVEEDITOR_API FRiveRenderTargetFactory
 {
 public:
-    FRiveRenderTargetFactory(URiveFile* InRiveFile);
+  FRiveRenderTargetFactory(URiveFile* InRiveFile);
 
-    bool Create();
-    URiveRenderTarget2D* CreateRenderTarget();
+  bool Create();
+  URiveRenderTarget2D* CreateRenderTarget();
 
-    bool SaveAsset(URiveRenderTarget2D* InRiveObject);
+  bool SaveAsset(URiveRenderTarget2D* InRiveObject);
 
 private:
-    TObjectPtr<URiveFile> RiveFile;
+  TObjectPtr<URiveFile> RiveFile;
 };

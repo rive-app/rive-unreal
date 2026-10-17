@@ -14,11 +14,12 @@ bool URiveAudioAsset::LoadNativeAssetBytes(
     rive::Factory* InRiveFactory,
     const rive::Span<const uint8>& AssetBytes)
 {
-    rive::SimpleArray<uint8_t> Data =
-        rive::SimpleArray(AssetBytes.data(), AssetBytes.count());
-    rive::AudioSource* AudioSource = new rive::AudioSource(Data);
-    rive::AudioAsset* AudioAsset = InAsset.as<rive::AudioAsset>();
-    AudioAsset->audioSource(ref_rcp(AudioSource));
-    NativeAsset = AudioAsset;
-    return true;
+  rive::SimpleArray<uint8_t> Data = rive::SimpleArray(
+      AssetBytes.data(),
+      AssetBytes.count());
+  rive::AudioSource* AudioSource = new rive::AudioSource(Data);
+  rive::AudioAsset* AudioAsset = InAsset.as<rive::AudioAsset>();
+  AudioAsset->audioSource(ref_rcp(AudioSource));
+  NativeAsset = AudioAsset;
+  return true;
 }

@@ -15,31 +15,32 @@ class UUserWidget;
 class RIVE_API SRiveLeafWidget : public SLeafWidget
 {
 public:
-    SLATE_BEGIN_ARGS(SRiveLeafWidget) {}
-    SLATE_ATTRIBUTE(TObjectPtr<UUserWidget>, OwningWidget)
-    SLATE_ATTRIBUTE(TWeakObjectPtr<URiveArtboard>, Artboard)
-    SLATE_ATTRIBUTE(FRiveDescriptor, Descriptor)
-    SLATE_END_ARGS()
+  SLATE_BEGIN_ARGS(SRiveLeafWidget) {}
+  SLATE_ATTRIBUTE(TObjectPtr<UUserWidget>, OwningWidget)
+  SLATE_ATTRIBUTE(TWeakObjectPtr<URiveArtboard>, Artboard)
+  SLATE_ATTRIBUTE(FRiveDescriptor, Descriptor)
+  SLATE_END_ARGS()
 
-    void SetRiveDescriptor(const FRiveDescriptor& InDescriptor);
+  void SetRiveDescriptor(const FRiveDescriptor& InDescriptor);
 
-    void SetArtboard(TWeakObjectPtr<URiveArtboard> InArtboard);
+  void SetArtboard(TWeakObjectPtr<URiveArtboard> InArtboard);
 
-    void Construct(const FArguments& InArgs);
-    virtual int32 OnPaint(const FPaintArgs& Args,
-                          const FGeometry& AllottedGeometry,
-                          const FSlateRect& MyCullingRect,
-                          FSlateWindowElementList& OutDrawElements,
-                          int32 LayerId,
-                          const FWidgetStyle& InWidgetStyle,
-                          bool bParentEnabled) const override;
+  void Construct(const FArguments& InArgs);
+  virtual int32 OnPaint(
+      const FPaintArgs& Args,
+      const FGeometry& AllottedGeometry,
+      const FSlateRect& MyCullingRect,
+      FSlateWindowElementList& OutDrawElements,
+      int32 LayerId,
+      const FWidgetStyle& InWidgetStyle,
+      bool bParentEnabled) const override;
 
-    virtual FVector2D ComputeDesiredSize(float) const override;
+  virtual FVector2D ComputeDesiredSize(float) const override;
 
 private:
-    TObjectPtr<UUserWidget> OwningWidget;
-    TWeakObjectPtr<URiveArtboard> Artboard;
-    TSharedPtr<class FRiveRendererDrawElement> RiveRendererDrawElement;
+  TObjectPtr<UUserWidget> OwningWidget;
+  TWeakObjectPtr<URiveArtboard> Artboard;
+  TSharedPtr<class FRiveRendererDrawElement> RiveRendererDrawElement;
 
-    bool bScaleByDPI = false;
+  bool bScaleByDPI = false;
 };

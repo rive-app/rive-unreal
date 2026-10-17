@@ -7,23 +7,24 @@
 
 class FRiveEditorModule final : public IRiveEditorModuleModule
 {
-    //~ BEGIN : IModuleInterface Interface
+  //~ BEGIN : IModuleInterface Interface
 
 public:
-    virtual void StartupModule() override;
-    virtual void ShutdownModule() override;
-    //~ END : IModuleInterface Interface
+  virtual void StartupModule() override;
+  virtual void ShutdownModule() override;
+  //~ END : IModuleInterface Interface
 
 private:
-    void RegisterAssetTypeActions(IAssetTools& AssetTools,
-                                  TSharedRef<IAssetTypeActions> Action);
+  void RegisterAssetTypeActions(
+      IAssetTools& AssetTools,
+      TSharedRef<IAssetTypeActions> Action);
 
-    EAssetTypeCategories::Type RiveAssetCategory = EAssetTypeCategories::None;
+  EAssetTypeCategories::Type RiveAssetCategory = EAssetTypeCategories::None;
 
-    /** All created asset type actions.  Cached here so that we can unregister
-     * them during shutdown.
-     */
-    TArray<TSharedPtr<IAssetTypeActions>> CreatedAssetTypeActions;
-    TSharedPtr<SNotificationItem> RHINotification;
-    FDelegateHandle OnBeginFrameHandle;
+  /** All created asset type actions.  Cached here so that we can unregister
+   * them during shutdown.
+   */
+  TArray<TSharedPtr<IAssetTypeActions>> CreatedAssetTypeActions;
+  TSharedPtr<SNotificationItem> RHINotification;
+  FDelegateHandle OnBeginFrameHandle;
 };

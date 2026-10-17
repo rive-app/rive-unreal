@@ -18,14 +18,14 @@
 // the HLSL register() decorations), and setBindGroup applies them on Vulkan.
 struct FOreVulkanSlotRemap
 {
-    TMap<uint16, uint16> Texture;
-    TMap<uint16, uint16> Sampler;
-    TMap<uint16, uint16> Uniform;
+  TMap<uint16, uint16> Texture;
+  TMap<uint16, uint16> Sampler;
+  TMap<uint16, uint16> Uniform;
 
-    bool IsEmpty() const
-    {
-        return Texture.Num() == 0 && Sampler.Num() == 0 && Uniform.Num() == 0;
-    }
+  bool IsEmpty() const
+  {
+    return Texture.Num() == 0 && Sampler.Num() == 0 && Uniform.Num() == 0;
+  }
 };
 
 RIVERENDERER_API FArchive& operator<<(FArchive& Ar, FOreVulkanSlotRemap& Remap);

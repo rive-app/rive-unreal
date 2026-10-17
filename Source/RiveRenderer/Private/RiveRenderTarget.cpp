@@ -18,212 +18,219 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/render_target.hpp"
 THIRD_PARTY_INCLUDES_END
 
-FRiveRenderTarget::FRiveRenderTarget(FRiveRenderer* Renderer,
-                                     const FString& InRiveName,
-                                     UTexture2DDynamic* InRenderTarget) :
-    RiveName(InRiveName), RiveRenderer(Renderer), RenderTarget(InRenderTarget)
+FRiveRenderTarget::FRiveRenderTarget(
+    FRiveRenderer* Renderer,
+    const FString& InRiveName,
+    UTexture2DDynamic* InRenderTarget)
+    : RiveName(InRiveName)
+    , RiveRenderer(Renderer)
+    , RenderTarget(InRenderTarget)
 
 {
-    check(IsInGameThread());
-    RIVE_DEBUG_FUNCTION_INDENT;
+  check(IsInGameThread());
+  RIVE_DEBUG_FUNCTION_INDENT;
 }
 
-FRiveRenderTarget::FRiveRenderTarget(FRiveRenderer* Renderer,
-                                     const FString& InRiveName,
-                                     UTextureRenderTarget2D* InRenderTarget) :
-    RiveName(InRiveName),
-    RiveRenderer(Renderer),
-    RenderToTextureTarget(InRenderTarget)
+FRiveRenderTarget::FRiveRenderTarget(
+    FRiveRenderer* Renderer,
+    const FString& InRiveName,
+    UTextureRenderTarget2D* InRenderTarget)
+    : RiveName(InRiveName)
+    , RiveRenderer(Renderer)
+    , RenderToTextureTarget(InRenderTarget)
 {
-    check(IsInGameThread());
+  check(IsInGameThread());
 }
 
-FRiveRenderTarget::FRiveRenderTarget(FRiveRenderer* Renderer,
-                                     const FString& InRiveName,
-                                     FRenderTarget* InRenderTarget) :
-    RiveName(InRiveName),
-    RiveRenderer(Renderer),
-    ThumbnailRenderTarget(InRenderTarget)
+FRiveRenderTarget::FRiveRenderTarget(
+    FRiveRenderer* Renderer,
+    const FString& InRiveName,
+    FRenderTarget* InRenderTarget)
+    : RiveName(InRiveName)
+    , RiveRenderer(Renderer)
+    , ThumbnailRenderTarget(InRenderTarget)
 {
-    check(IsInGameThread());
-    RIVE_DEBUG_FUNCTION_INDENT;
+  check(IsInGameThread());
+  RIVE_DEBUG_FUNCTION_INDENT;
 }
 
-FRiveRenderTarget::FRiveRenderTarget(FRiveRenderer* Renderer,
-                                     const FString& InRiveName,
-                                     FRDGTextureRef InRenderTarget) :
-    RiveName(InRiveName),
-    RiveRenderer(Renderer),
-    RenderTargetRDG(InRenderTarget)
+FRiveRenderTarget::FRiveRenderTarget(
+    FRiveRenderer* Renderer,
+    const FString& InRiveName,
+    FRDGTextureRef InRenderTarget)
+    : RiveName(InRiveName)
+    , RiveRenderer(Renderer)
+    , RenderTargetRDG(InRenderTarget)
 
 {
-    check(IsInRenderingThread());
-    RIVE_DEBUG_FUNCTION_INDENT;
+  check(IsInRenderingThread());
+  RIVE_DEBUG_FUNCTION_INDENT;
 }
 
 FRiveRenderTarget::~FRiveRenderTarget() { RIVE_DEBUG_FUNCTION_INDENT; }
 
 void FRiveRenderTarget::Initialize()
 {
-    check(IsInGameThread());
-    UTexture2DDynamic* DynamicTarget = RenderTarget.Get();
-    UTextureRenderTarget2D* TextureTarget = RenderToTextureTarget.Get();
-    if (DynamicTarget == nullptr && TextureTarget == nullptr)
-    {
-        return;
-    }
-    FTextureResource* RenderTargetResource = DynamicTarget
-                                                 ? DynamicTarget->GetResource()
-                                                 : TextureTarget->GetResource();
-    check(RenderTargetResource);
-    ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)
-    ([RenderTargetResource,
-      StrongThis = AsShared()](FRHICommandListImmediate& RHICmdList) {
-        StrongThis->RHIResource = RenderTargetResource->TextureRHI;
-        StrongThis->CacheTextureTarget_RenderThread(
-            RHICmdList,
-            RenderTargetResource->TextureRHI);
-    });
+  check(IsInGameThread());
+  UTexture2DDynamic* DynamicTarget = RenderTarget.Get();
+  UTextureRenderTarget2D* TextureTarget = RenderToTextureTarget.Get();
+  if (DynamicTarget == nullptr && TextureTarget == nullptr)
+  {
+    return;
+  }
+  FTextureResource* RenderTargetResource = DynamicTarget
+                                               ? DynamicTarget->GetResource()
+                                               : TextureTarget->GetResource();
+  check(RenderTargetResource);
+  ENQUEUE_RENDER_COMMAND(CacheTextureTarget_RenderThread)
+  ([RenderTargetResource,
+    StrongThis = AsShared()](FRHICommandListImmediate& RHICmdList) {
+    StrongThis->RHIResource = RenderTargetResource->TextureRHI;
+    StrongThis->CacheTextureTarget_RenderThread(
+        RHICmdList,
+        RenderTargetResource->TextureRHI);
+  });
 }
 
 void FRiveRenderTarget::UpdateTargetTexture(UTexture2DDynamic* InRenderTarget)
 {
-    RenderTargetRDG = nullptr;
-    ThumbnailRenderTarget = nullptr;
-    RenderTarget = InRenderTarget;
-    Initialize();
+  RenderTargetRDG = nullptr;
+  ThumbnailRenderTarget = nullptr;
+  RenderTarget = InRenderTarget;
+  Initialize();
 }
 
 void FRiveRenderTarget::UpdateTargetTexture(FRDGTextureRef InRenderTarget)
 {
-    check(IsInRenderingThread());
-    RenderTarget.Reset();
-    ThumbnailRenderTarget = nullptr;
-    RenderTargetRDG = InRenderTarget;
+  check(IsInRenderingThread());
+  RenderTarget.Reset();
+  ThumbnailRenderTarget = nullptr;
+  RenderTargetRDG = InRenderTarget;
 }
 
 void FRiveRenderTarget::UpdateTargetTexture(FRenderTarget* InRenderTarget)
 {
-    RenderTarget.Reset();
-    RenderTargetRDG = nullptr;
-    ThumbnailRenderTarget = InRenderTarget;
+  RenderTarget.Reset();
+  RenderTargetRDG = nullptr;
+  ThumbnailRenderTarget = InRenderTarget;
 }
 
 void FRiveRenderTarget::UpdateRHIResorourceDirect(FTextureRHIRef InRenderTarget)
 {
-    check(IsInRenderingThread());
-    RenderTarget.Reset();
-    RenderTargetRDG = nullptr;
-    ThumbnailRenderTarget = nullptr;
-    RHIResource = InRenderTarget;
+  check(IsInRenderingThread());
+  RenderTarget.Reset();
+  RenderTargetRDG = nullptr;
+  ThumbnailRenderTarget = nullptr;
+  RHIResource = InRenderTarget;
 }
 
 TUniquePtr<rive::Renderer> FRiveRenderTarget::BeginRenderFrame(
     rive::gpu::RenderContext* RenderContextPtr,
     bool bPreserve)
 {
-    check(IsInRenderingThread());
-    const rive::gpu::LoadAction LoadAction =
-        bClearRenderTarget && !bPreserve
-            ? rive::gpu::LoadAction::clear
-            : rive::gpu::LoadAction::preserveRenderTarget;
-    if (RHIResource)
+  check(IsInRenderingThread());
+  const rive::gpu::LoadAction
+      LoadAction = bClearRenderTarget && !bPreserve
+                       ? rive::gpu::LoadAction::clear
+                       : rive::gpu::LoadAction::preserveRenderTarget;
+  if (RHIResource)
+  {
+    FLinearColor Color = RHIResource->GetClearColor();
+    rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
+    FrameDescriptor.renderTargetWidth = RHIResource->GetSizeX();
+    FrameDescriptor.renderTargetHeight = RHIResource->GetSizeY();
+    FrameDescriptor.loadAction = LoadAction;
+    FrameDescriptor.clearColor = rive::colorARGB(
+        Color.A * 0xFF,
+        Color.R * 0xFF,
+        Color.G * 0xFF,
+        Color.B * 0xFF);
+    FrameDescriptor.wireframe = false;
+    FrameDescriptor.fillsDisabled = false;
+    FrameDescriptor.strokesDisabled = false;
+
+    if (RiveRenderer != nullptr)
     {
-        FLinearColor Color = RHIResource->GetClearColor();
-        rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
-        FrameDescriptor.renderTargetWidth = RHIResource->GetSizeX();
-        FrameDescriptor.renderTargetHeight = RHIResource->GetSizeY();
-        FrameDescriptor.loadAction = LoadAction;
-        FrameDescriptor.clearColor = rive::colorARGB(Color.A * 0xFF,
-                                                     Color.R * 0xFF,
-                                                     Color.G * 0xFF,
-                                                     Color.B * 0xFF);
-        FrameDescriptor.wireframe = false;
-        FrameDescriptor.fillsDisabled = false;
-        FrameDescriptor.strokesDisabled = false;
-
-        if (RiveRenderer != nullptr)
-        {
-            RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
-        }
-
-        RenderContextPtr->beginFrame(std::move(FrameDescriptor));
+      RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
     }
-    else if (ThumbnailRenderTarget)
+
+    RenderContextPtr->beginFrame(std::move(FrameDescriptor));
+  }
+  else if (ThumbnailRenderTarget)
+  {
+    // Assume black because FRenderTarget does not have a way to query clear
+    // color
+    FLinearColor Color = FLinearColor::Black;
+    rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
+    FrameDescriptor.renderTargetWidth = ThumbnailRenderTarget->GetSizeXY().X;
+    FrameDescriptor.renderTargetHeight = ThumbnailRenderTarget->GetSizeXY().Y;
+    FrameDescriptor.loadAction = LoadAction;
+    FrameDescriptor.clearColor = rive::colorARGB(
+        Color.A * 0xFF,
+        Color.R * 0xFF,
+        Color.G * 0xFF,
+        Color.B * 0xFF);
+    FrameDescriptor.wireframe = false;
+    FrameDescriptor.fillsDisabled = false;
+    FrameDescriptor.strokesDisabled = false;
+
+    if (RiveRenderer != nullptr)
     {
-        // Assume black because FRenderTarget does not have a way to query clear
-        // color
-        FLinearColor Color = FLinearColor::Black;
-        rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
-        FrameDescriptor.renderTargetWidth =
-            ThumbnailRenderTarget->GetSizeXY().X;
-        FrameDescriptor.renderTargetHeight =
-            ThumbnailRenderTarget->GetSizeXY().Y;
-        FrameDescriptor.loadAction = LoadAction;
-        FrameDescriptor.clearColor = rive::colorARGB(Color.A * 0xFF,
-                                                     Color.R * 0xFF,
-                                                     Color.G * 0xFF,
-                                                     Color.B * 0xFF);
-        FrameDescriptor.wireframe = false;
-        FrameDescriptor.fillsDisabled = false;
-        FrameDescriptor.strokesDisabled = false;
-
-        if (RiveRenderer != nullptr)
-        {
-            RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
-        }
-
-        RenderContextPtr->beginFrame(std::move(FrameDescriptor));
+      RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
     }
-    else if (RenderTargetRDG != nullptr)
+
+    RenderContextPtr->beginFrame(std::move(FrameDescriptor));
+  }
+  else if (RenderTargetRDG != nullptr)
+  {
+    // Assume black because FRenderTarget does not have a way to query clear
+    // color
+    FLinearColor Color = RenderTargetRDG->Desc.ClearValue.GetClearColor();
+    rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
+    FrameDescriptor.renderTargetWidth = RenderTargetRDG->Desc.GetSize().X;
+    FrameDescriptor.renderTargetHeight = RenderTargetRDG->Desc.GetSize().Y;
+    FrameDescriptor.loadAction = LoadAction;
+    FrameDescriptor.clearColor = rive::colorARGB(
+        Color.A * 0xFF,
+        Color.R * 0xFF,
+        Color.G * 0xFF,
+        Color.B * 0xFF);
+    FrameDescriptor.wireframe = false;
+    FrameDescriptor.fillsDisabled = false;
+    FrameDescriptor.strokesDisabled = false;
+
+    if (RiveRenderer != nullptr)
     {
-        // Assume black because FRenderTarget does not have a way to query clear
-        // color
-        FLinearColor Color = RenderTargetRDG->Desc.ClearValue.GetClearColor();
-        rive::gpu::RenderContext::FrameDescriptor FrameDescriptor;
-        FrameDescriptor.renderTargetWidth = RenderTargetRDG->Desc.GetSize().X;
-        FrameDescriptor.renderTargetHeight = RenderTargetRDG->Desc.GetSize().Y;
-        FrameDescriptor.loadAction = LoadAction;
-        FrameDescriptor.clearColor = rive::colorARGB(Color.A * 0xFF,
-                                                     Color.R * 0xFF,
-                                                     Color.G * 0xFF,
-                                                     Color.B * 0xFF);
-        FrameDescriptor.wireframe = false;
-        FrameDescriptor.fillsDisabled = false;
-        FrameDescriptor.strokesDisabled = false;
-
-        if (RiveRenderer != nullptr)
-        {
-            RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
-        }
-
-        RenderContextPtr->beginFrame(std::move(FrameDescriptor));
+      RiveRenderer->ApplyFrameOverrides(FrameDescriptor);
     }
-    else
-    {
-        RIVE_UNREACHABLE();
-    }
-    return MakeUnique<rive::RiveRenderer>(RenderContextPtr);
+
+    RenderContextPtr->beginFrame(std::move(FrameDescriptor));
+  }
+  else
+  {
+    RIVE_UNREACHABLE();
+  }
+  return MakeUnique<rive::RiveRenderer>(RenderContextPtr);
 }
 
 void FRiveRenderTarget::EndRenderFrame(
     rive::gpu::RenderContext* RenderContextPtr)
 {
-    check(IsInRenderingThread());
-    auto& RHICmdList = GRHICommandList.GetImmediateCommandList();
-    FRDGBuilder GraphBuilder(RHICmdList);
-    RenderContextPtr->flush({GetRenderTarget().get(), &GraphBuilder});
-    GraphBuilder.Execute();
+  check(IsInRenderingThread());
+  auto& RHICmdList = GRHICommandList.GetImmediateCommandList();
+  FRDGBuilder GraphBuilder(RHICmdList);
+  RenderContextPtr->flush({GetRenderTarget().get(), &GraphBuilder});
+  GraphBuilder.Execute();
 }
 
 uint32 FRiveRenderTarget::GetWidth() const
 {
-    const UTexture2DDynamic* DynamicTarget = RenderTarget.Get();
-    return DynamicTarget ? DynamicTarget->SizeX : 0;
+  const UTexture2DDynamic* DynamicTarget = RenderTarget.Get();
+  return DynamicTarget ? DynamicTarget->SizeX : 0;
 }
 
 uint32 FRiveRenderTarget::GetHeight() const
 {
-    const UTexture2DDynamic* DynamicTarget = RenderTarget.Get();
-    return DynamicTarget ? DynamicTarget->SizeY : 0;
+  const UTexture2DDynamic* DynamicTarget = RenderTarget.Get();
+  return DynamicTarget ? DynamicTarget->SizeY : 0;
 }

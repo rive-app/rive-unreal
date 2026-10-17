@@ -32,321 +32,332 @@ THIRD_PARTY_INCLUDES_END
 UCLASS(BlueprintType)
 class RIVE_API URiveArtboard : public UObject, public FTickableGameObject
 {
-    GENERATED_BODY()
+  GENERATED_BODY()
 
 public:
-    virtual void BeginDestroy() override;
+  virtual void BeginDestroy() override;
 
-    virtual bool IsTickableInEditor() const override { return true; }
+  virtual bool IsTickableInEditor() const override { return true; }
 
-    virtual UWorld* GetTickableGameObjectWorld() const override
-    {
-        return GetWorld();
-    }
+  virtual UWorld* GetTickableGameObjectWorld() const override
+  {
+    return GetWorld();
+  }
 
-    virtual TStatId GetStatId() const override;
+  virtual TStatId GetStatId() const override;
 
-    virtual void Tick(float InDeltaSeconds) override;
-    virtual bool IsTickable() const override { return true; }
+  virtual void Tick(float InDeltaSeconds) override;
+  virtual bool IsTickable() const override { return true; }
 
-    // Set the underlying artboard instance size. Used with layouts.
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void SetNativeArtboardSizeWithScale(float Width,
-                                        float Height,
-                                        float Scale = 1.f);
-    // Reset the underlying artboard instance size.
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void ResetNativeArtboardSize();
+  // Set the underlying artboard instance size. Used with layouts.
+  UFUNCTION(BlueprintCallable, Category = Rive)
+  void SetNativeArtboardSizeWithScale(
+      float Width,
+      float Height,
+      float Scale = 1.f);
+  // Reset the underlying artboard instance size.
+  UFUNCTION(BlueprintCallable, Category = Rive)
+  void ResetNativeArtboardSize();
 
-    // Used by view model updates to unsettle the state machine.
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void UnsettleStateMachine();
+  // Used by view model updates to unsettle the state machine.
+  UFUNCTION(BlueprintCallable, Category = Rive)
+  void UnsettleStateMachine();
 
-    DECLARE_MULTICAST_DELEGATE_OneParam(FDataReadyDelegate, URiveArtboard*);
-    FDataReadyDelegate OnDataReady;
+  DECLARE_MULTICAST_DELEGATE_OneParam(FDataReadyDelegate, URiveArtboard*);
+  FDataReadyDelegate OnDataReady;
 
-    /** Returns the transformation Matrix from the start of the Render Queue up
-     * to now */
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    FMatrix GetLastDrawTransformMatrix() const { return LastDrawTransform; }
+  /** Returns the transformation Matrix from the start of the Render Queue up
+   * to now */
+  UFUNCTION(BlueprintCallable, Category = Rive)
+  FMatrix GetLastDrawTransformMatrix() const { return LastDrawTransform; }
 
-    void DrawToRenderTarget(FRiveCommandBuilder& CommandBuilder,
-                            TSharedPtr<FRiveRenderTarget> RenderTarget);
+  void DrawToRenderTarget(
+      FRiveCommandBuilder& CommandBuilder,
+      TSharedPtr<FRiveRenderTarget> RenderTarget);
 
-    /*
-     * This requires that the audio engine has been initialized via BeginPlay
-     * before setting
-     */
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void SetAudioEngine(URiveAudioEngine* AudioEngine);
+  /*
+   * This requires that the audio engine has been initialized via BeginPlay
+   * before setting
+   */
+  UFUNCTION(BlueprintCallable, Category = Rive)
+  void SetAudioEngine(URiveAudioEngine* AudioEngine);
 #if WITH_EDITORONLY_DATA
-    void InitializeForDataImport(URiveFile* InRiveFile,
-                                 const FString& Name,
-                                 FRiveCommandBuilder& InCommandBuilder);
+  void InitializeForDataImport(
+      URiveFile* InRiveFile,
+      const FString& Name,
+      FRiveCommandBuilder& InCommandBuilder);
 #endif
-    void Initialize(URiveFile* InRiveFile,
-                    const FArtboardDefinition& InDefinition,
-                    bool InAutoBindViewModel,
-                    FRiveCommandBuilder& InCommandBuilder);
+  void Initialize(
+      URiveFile* InRiveFile,
+      const FArtboardDefinition& InDefinition,
+      bool InAutoBindViewModel,
+      FRiveCommandBuilder& InCommandBuilder);
 
-    void Initialize(URiveFile* InRiveFile,
-                    const FArtboardDefinition& InDefinition,
-                    const FString& InStateMachineName,
-                    bool InAutoBindViewModel,
-                    FRiveCommandBuilder& InCommandBuilder);
+  void Initialize(
+      URiveFile* InRiveFile,
+      const FArtboardDefinition& InDefinition,
+      const FString& InStateMachineName,
+      bool InAutoBindViewModel,
+      FRiveCommandBuilder& InCommandBuilder);
 
-    // Called for every error the command server reports against this
-    // artboard. Logs it, then reacts to the requests it knows about (state
-    // machine creation, default view model lookup).
-    void ErrorReceived(uint64_t RequestId, const FString& Error);
+  // Called for every error the command server reports against this
+  // artboard. Logs it, then reacts to the requests it knows about (state
+  // machine creation, default view model lookup).
+  void ErrorReceived(uint64_t RequestId, const FString& Error);
 
-    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
-    void SetStateMachine(const FString& StateMachineName,
-                         bool InAutoBindViewModel);
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  void SetStateMachine(
+      const FString& StateMachineName,
+      bool InAutoBindViewModel);
 
-    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
-    void SetViewModel(URiveViewModel* RiveViewModelInstance);
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  void SetViewModel(URiveViewModel* RiveViewModelInstance);
 
-    TArray<FString> GetStateMachineNames() const { return StateMachineNames; }
-    FString GetDefaultViewModel() const { return DefaultViewModelName; }
-    FString GetDefaultViewModelInstance() const
+  TArray<FString> GetStateMachineNames() const { return StateMachineNames; }
+  FString GetDefaultViewModel() const { return DefaultViewModelName; }
+  FString GetDefaultViewModelInstance() const
+  {
+    return DefaultViewModelInstanceName;
+  }
+
+  const FString& GetArtboardName() const { return ArtboardDefinition.Name; }
+  rive::ArtboardHandle GetNativeArtboardHandle() const
+  {
+    return NativeArtboardHandle;
+  }
+
+  rive::StateMachineHandle GetStateMachineHandle() const;
+
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  bool PointerDown(
+      const FRiveDescriptor& InDescriptor,
+      const FVector2D& NormalLocationOnSurface,
+      ERivePointerButton Button = ERivePointerButton::Primary)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine->PointerDown(
+        InDescriptor,
+        NormalLocationOnSurface,
+        Button);
+  }
+
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  bool PointerMove(
+      const FRiveDescriptor& InDescriptor,
+      const FVector2D& NormalLocationOnSurface)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine->PointerMove(InDescriptor, NormalLocationOnSurface);
+  }
+
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  bool PointerUp(
+      const FRiveDescriptor& InDescriptor,
+      const FVector2D& NormalLocationOnSurface,
+      ERivePointerButton Button = ERivePointerButton::Primary)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine->PointerUp(
+        InDescriptor,
+        NormalLocationOnSurface,
+        Button);
+  }
+
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  bool PointerExit(
+      const FRiveDescriptor& InDescriptor,
+      const FVector2D& NormalLocationOnSurface)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine->PointerExit(InDescriptor, NormalLocationOnSurface);
+  }
+
+  bool PointerDown(
+      const FGeometry& MyGeometry,
+      const FRiveDescriptor& InDescriptor,
+      const FPointerEvent& MouseEvent,
+      float DPI,
+      ERivePointerButton Button = ERivePointerButton::Primary)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine
+        ->PointerDown(MyGeometry, InDescriptor, MouseEvent, DPI, Button);
+  }
+
+  bool PointerMove(
+      const FGeometry& MyGeometry,
+      const FRiveDescriptor& InDescriptor,
+      const FPointerEvent& MouseEvent,
+      float DPI)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine->PointerMove(MyGeometry, InDescriptor, MouseEvent, DPI);
+  }
+
+  bool PointerUp(
+      const FGeometry& MyGeometry,
+      const FRiveDescriptor& InDescriptor,
+      const FPointerEvent& MouseEvent,
+      float DPI,
+      ERivePointerButton Button = ERivePointerButton::Primary)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine
+        ->PointerUp(MyGeometry, InDescriptor, MouseEvent, DPI, Button);
+  }
+
+  bool PointerExit(
+      const FGeometry& InGeometry,
+      const FRiveDescriptor& InDescriptor,
+      const FPointerEvent& MouseEvent,
+      float DPI)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine->PointerExit(InGeometry, InDescriptor, MouseEvent, DPI);
+  }
+
+  // For a host with no widget to receive keys — a world-space artboard on a
+  // render target. Modifiers come off Slate rather than from seven pins.
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  bool KeyInput(FKey Key, bool bPressed, bool bRepeat)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine->KeyInput(
+        Key,
+        FSlateApplication::IsInitialized()
+            ? FSlateApplication::Get().GetModifierKeys()
+            : FModifierKeysState(),
+        bPressed,
+        bRepeat);
+  }
+
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  bool TextInput(const FString& Text)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine->TextInput(Text);
+  }
+
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  void ClearFocus()
+  {
+    if (StateMachine.IsValid())
     {
-        return DefaultViewModelInstanceName;
+      StateMachine->ClearFocus();
     }
+  }
 
-    const FString& GetArtboardName() const { return ArtboardDefinition.Name; }
-    rive::ArtboardHandle GetNativeArtboardHandle() const
-    {
-        return NativeArtboardHandle;
-    }
+  bool KeyInput(const FKeyEvent& KeyEvent, bool bPressed)
+  {
+    if (!StateMachine.IsValid())
+      return false;
+    return StateMachine->KeyInput(KeyEvent, bPressed);
+  }
 
-    rive::StateMachineHandle GetStateMachineHandle() const;
+  // This is the size of the artboard in the Rive file. It is not the size of
+  // the rendered artboard.
+  UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "RiveFileData")
+  FVector2D ArtboardDefaultSize;
 
-    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
-    bool PointerDown(const FRiveDescriptor& InDescriptor,
-                     const FVector2D& NormalLocationOnSurface,
-                     ERivePointerButton Button = ERivePointerButton::Primary)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->PointerDown(InDescriptor,
-                                         NormalLocationOnSurface,
-                                         Button);
-    }
-
-    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
-    bool PointerMove(const FRiveDescriptor& InDescriptor,
-                     const FVector2D& NormalLocationOnSurface)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->PointerMove(InDescriptor, NormalLocationOnSurface);
-    }
-
-    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
-    bool PointerUp(const FRiveDescriptor& InDescriptor,
-                   const FVector2D& NormalLocationOnSurface,
-                   ERivePointerButton Button = ERivePointerButton::Primary)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->PointerUp(InDescriptor,
-                                       NormalLocationOnSurface,
-                                       Button);
-    }
-
-    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
-    bool PointerExit(const FRiveDescriptor& InDescriptor,
-                     const FVector2D& NormalLocationOnSurface)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->PointerExit(InDescriptor, NormalLocationOnSurface);
-    }
-
-    bool PointerDown(const FGeometry& MyGeometry,
-                     const FRiveDescriptor& InDescriptor,
-                     const FPointerEvent& MouseEvent,
-                     float DPI,
-                     ERivePointerButton Button = ERivePointerButton::Primary)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->PointerDown(MyGeometry,
-                                         InDescriptor,
-                                         MouseEvent,
-                                         DPI,
-                                         Button);
-    }
-
-    bool PointerMove(const FGeometry& MyGeometry,
-                     const FRiveDescriptor& InDescriptor,
-                     const FPointerEvent& MouseEvent,
-                     float DPI)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->PointerMove(MyGeometry,
-                                         InDescriptor,
-                                         MouseEvent,
-                                         DPI);
-    }
-
-    bool PointerUp(const FGeometry& MyGeometry,
-                   const FRiveDescriptor& InDescriptor,
-                   const FPointerEvent& MouseEvent,
-                   float DPI,
-                   ERivePointerButton Button = ERivePointerButton::Primary)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->PointerUp(MyGeometry,
-                                       InDescriptor,
-                                       MouseEvent,
-                                       DPI,
-                                       Button);
-    }
-
-    bool PointerExit(const FGeometry& InGeometry,
-                     const FRiveDescriptor& InDescriptor,
-                     const FPointerEvent& MouseEvent,
-                     float DPI)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->PointerExit(InGeometry,
-                                         InDescriptor,
-                                         MouseEvent,
-                                         DPI);
-    }
-
-    // For a host with no widget to receive keys — a world-space artboard on a
-    // render target. Modifiers come off Slate rather than from seven pins.
-    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
-    bool KeyInput(FKey Key, bool bPressed, bool bRepeat)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->KeyInput(
-            Key,
-            FSlateApplication::IsInitialized()
-                ? FSlateApplication::Get().GetModifierKeys()
-                : FModifierKeysState(),
-            bPressed,
-            bRepeat);
-    }
-
-    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
-    bool TextInput(const FString& Text)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->TextInput(Text);
-    }
-
-    UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
-    void ClearFocus()
-    {
-        if (StateMachine.IsValid())
-        {
-            StateMachine->ClearFocus();
-        }
-    }
-
-    bool KeyInput(const FKeyEvent& KeyEvent, bool bPressed)
-    {
-        if (!StateMachine.IsValid())
-            return false;
-        return StateMachine->KeyInput(KeyEvent, bPressed);
-    }
-
-    // This is the size of the artboard in the Rive file. It is not the size of
-    // the rendered artboard.
-    UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "RiveFileData")
-    FVector2D ArtboardDefaultSize;
-
-    UFUNCTION(BlueprintPure, BlueprintCallable, Category = "Rive")
-    URiveViewModel* GetBoundViewModel() const { return BoundViewModel; }
+  UFUNCTION(BlueprintPure, BlueprintCallable, Category = "Rive")
+  URiveViewModel* GetBoundViewModel() const { return BoundViewModel; }
 
 #if WITH_EDITORONLY_DATA
-    void StateMachinesListed(std::vector<std::string> Names);
-    void DefaultViewModelInfoReceived(std::string ViewModel,
-                                      std::string ViewModelInstance);
+  void StateMachinesListed(std::vector<std::string> Names);
+  void DefaultViewModelInfoReceived(
+      std::string ViewModel,
+      std::string ViewModelInstance);
 
-    bool HasData() const
-    {
-        return bHasStateMachineNames && bHasDefaultViewModelInfo &&
-               bHasDefaultViewModel && bHasDefaultArtboardSize;
-    }
+  bool HasData() const
+  {
+    return bHasStateMachineNames && bHasDefaultViewModelInfo &&
+           bHasDefaultViewModel && bHasDefaultArtboardSize;
+  }
 #else
-    bool HasData() const { return true; }
+  bool HasData() const { return true; }
 #endif
 
 private:
-    void SetupStateMachine(const FString& StateMachineName,
-                           bool InAutoBindViewModel);
-    void SetupStateMachine(FRiveCommandBuilder& Builder,
-                           const FString& StateMachineName,
-                           bool InAutoBindViewModel);
+  void SetupStateMachine(
+      const FString& StateMachineName,
+      bool InAutoBindViewModel);
+  void SetupStateMachine(
+      FRiveCommandBuilder& Builder,
+      const FString& StateMachineName,
+      bool InAutoBindViewModel);
 
-    rive::ArtboardHandle NativeArtboardHandle = RIVE_NULL_HANDLE;
-    TSharedPtr<FRiveStateMachine> StateMachine = nullptr;
+  rive::ArtboardHandle NativeArtboardHandle = RIVE_NULL_HANDLE;
+  TSharedPtr<FRiveStateMachine> StateMachine = nullptr;
 
-    TWeakObjectPtr<URiveFile> RiveFile;
+  TWeakObjectPtr<URiveFile> RiveFile;
 
-    UPROPERTY(Transient,
-              VisibleInstanceOnly,
-              BlueprintReadOnly,
-              Category = Rive,
-              meta = (NoResetToDefault, AllowPrivateAccess))
-    FArtboardDefinition ArtboardDefinition;
+  UPROPERTY(
+      Transient,
+      VisibleInstanceOnly,
+      BlueprintReadOnly,
+      Category = Rive,
+      meta = (NoResetToDefault, AllowPrivateAccess))
+  FArtboardDefinition ArtboardDefinition;
 
-    UPROPERTY(Transient,
-              VisibleInstanceOnly,
-              BlueprintReadOnly,
-              Category = Rive,
-              meta = (NoResetToDefault, AllowPrivateAccess))
-    TArray<FString> StateMachineNames;
+  UPROPERTY(
+      Transient,
+      VisibleInstanceOnly,
+      BlueprintReadOnly,
+      Category = Rive,
+      meta = (NoResetToDefault, AllowPrivateAccess))
+  TArray<FString> StateMachineNames;
 
-    UPROPERTY(Transient,
-              VisibleInstanceOnly,
-              BlueprintReadOnly,
-              Category = Rive,
-              meta = (NoResetToDefault, AllowPrivateAccess))
-    FString DefaultViewModelName;
+  UPROPERTY(
+      Transient,
+      VisibleInstanceOnly,
+      BlueprintReadOnly,
+      Category = Rive,
+      meta = (NoResetToDefault, AllowPrivateAccess))
+  FString DefaultViewModelName;
 
-    UPROPERTY(Transient,
-              VisibleInstanceOnly,
-              BlueprintReadOnly,
-              Category = Rive,
-              meta = (NoResetToDefault, AllowPrivateAccess))
-    FString DefaultViewModelInstanceName;
+  UPROPERTY(
+      Transient,
+      VisibleInstanceOnly,
+      BlueprintReadOnly,
+      Category = Rive,
+      meta = (NoResetToDefault, AllowPrivateAccess))
+  FString DefaultViewModelInstanceName;
 
-    UPROPERTY(Transient)
-    TObjectPtr<URiveViewModel> BoundViewModel;
+  UPROPERTY(Transient)
+  TObjectPtr<URiveViewModel> BoundViewModel;
 
 #if WITH_EDITORONLY_DATA
-    void BroadcastHasDataIfReady()
+  void BroadcastHasDataIfReady()
+  {
+    if (bHasStateMachineNames && bHasDefaultViewModelInfo &&
+        bHasDefaultArtboardSize)
     {
-        if (bHasStateMachineNames && bHasDefaultViewModelInfo &&
-            bHasDefaultArtboardSize)
-        {
-            OnDataReady.Broadcast(this);
-        }
+      OnDataReady.Broadcast(this);
     }
+  }
 
-    bool bHasStateMachineNames = false;
-    bool bHasDefaultViewModelInfo = false;
-    bool bHasDefaultViewModel = false;
-    bool bHasDefaultArtboardSize = false;
+  bool bHasStateMachineNames = false;
+  bool bHasDefaultViewModelInfo = false;
+  bool bHasDefaultViewModel = false;
+  bool bHasDefaultArtboardSize = false;
 
-    uint64_t GetDefaultViewModelRequestId = 0;
+  uint64_t GetDefaultViewModelRequestId = 0;
 #endif
-    uint64_t StateMachineCreateRequestId = 0;
-    /** The Matrix at the time of the last call to Draw for this Artboard **/
-    FMatrix LastDrawTransform = FMatrix::Identity;
+  uint64_t StateMachineCreateRequestId = 0;
+  /** The Matrix at the time of the last call to Draw for this Artboard **/
+  FMatrix LastDrawTransform = FMatrix::Identity;
 
-    // This is for when we don't have a state machine. Consider it legacy
-    // support.
-    std::unique_ptr<rive::LinearAnimationInstance> LinearAnimation;
+  // This is for when we don't have a state machine. Consider it legacy
+  // support.
+  std::unique_ptr<rive::LinearAnimationInstance> LinearAnimation;
 };

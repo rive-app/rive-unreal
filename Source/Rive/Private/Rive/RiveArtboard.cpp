@@ -23,396 +23,405 @@ THIRD_PARTY_INCLUDES_END
 class FRiveArtboardListener final : public rive::CommandQueue::ArtboardListener
 {
 public:
-    FRiveArtboardListener(TWeakObjectPtr<URiveArtboard> ListeningArtboard) :
-        ListeningArtboard(MoveTemp(ListeningArtboard))
-    {}
+  FRiveArtboardListener(TWeakObjectPtr<URiveArtboard> ListeningArtboard)
+      : ListeningArtboard(MoveTemp(ListeningArtboard))
+  {}
 
-    virtual void onArtboardError(const rive::ArtboardHandle Handle,
-                                 uint64_t RequestId,
-                                 std::string Error) override
+  virtual void onArtboardError(
+      const rive::ArtboardHandle Handle,
+      uint64_t RequestId,
+      std::string Error) override
+  {
+    check(IsInGameThread());
+    const FString Message(Error.c_str());
+    if (auto StrongArtboard = ListeningArtboard.Pin(); StrongArtboard.IsValid())
     {
-        check(IsInGameThread());
-        const FString Message(Error.c_str());
-        if (auto StrongArtboard = ListeningArtboard.Pin();
-            StrongArtboard.IsValid())
-        {
-            StrongArtboard->ErrorReceived(RequestId, Message);
-        }
-        else
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("Artboard RequestId: %llu Error: %s"),
-                   RequestId,
-                   *Message);
-        }
+      StrongArtboard->ErrorReceived(RequestId, Message);
     }
-
-    virtual void onDefaultViewModelInfoReceived(
-        const rive::ArtboardHandle Handle,
-        uint64_t RequestId,
-        std::string ViewModelName,
-        std::string InstanceName) override
+    else
     {
-        check(IsInGameThread());
-        if (auto StrongArtboard = ListeningArtboard.Pin();
-            StrongArtboard.IsValid())
-        {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("Artboard RequestId: %llu Error: %s"),
+          RequestId,
+          *Message);
+    }
+  }
+
+  virtual void onDefaultViewModelInfoReceived(
+      const rive::ArtboardHandle Handle,
+      uint64_t RequestId,
+      std::string ViewModelName,
+      std::string InstanceName) override
+  {
+    check(IsInGameThread());
+    if (auto StrongArtboard = ListeningArtboard.Pin(); StrongArtboard.IsValid())
+    {
 #if WITH_EDITORONLY_DATA
-            StrongArtboard->DefaultViewModelInfoReceived(
-                std::move(ViewModelName),
-                std::move(InstanceName));
+      StrongArtboard->DefaultViewModelInfoReceived(
+          std::move(ViewModelName),
+          std::move(InstanceName));
 #endif
-        }
+    }
+  }
+
+  virtual void onArtboardDeleted(
+      const rive::ArtboardHandle Handle,
+      uint64_t RequestId) override
+  {
+    check(IsInGameThread());
+    if (auto StrongArtboard = ListeningArtboard.Pin(); StrongArtboard.IsValid())
+    {
+      UE_LOG(
+          LogRive,
+          Display,
+          TEXT("Rive Artboard Named %s deleted"),
+          *StrongArtboard->GetName());
+    }
+    else
+    {
+      UE_LOG(
+          LogRive,
+          VeryVerbose,
+          TEXT("Rive Artboard Handle %p deleted"),
+          Handle);
     }
 
-    virtual void onArtboardDeleted(const rive::ArtboardHandle Handle,
-                                   uint64_t RequestId) override
-    {
-        check(IsInGameThread());
-        if (auto StrongArtboard = ListeningArtboard.Pin();
-            StrongArtboard.IsValid())
-        {
-            UE_LOG(LogRive,
-                   Display,
-                   TEXT("Rive Artboard Named %s deleted"),
-                   *StrongArtboard->GetName());
-        }
-        else
-        {
-            UE_LOG(LogRive,
-                   VeryVerbose,
-                   TEXT("Rive Artboard Handle %p deleted"),
-                   Handle);
-        }
+    delete this;
+  }
 
-        delete this;
-    }
-
-    virtual void onStateMachinesListed(
-        const rive::ArtboardHandle ArtboardHandle,
-        uint64_t RequestId,
-        std::vector<std::string> StateMachineNames) override
+  virtual void onStateMachinesListed(
+      const rive::ArtboardHandle ArtboardHandle,
+      uint64_t RequestId,
+      std::vector<std::string> StateMachineNames) override
+  {
+    check(IsInGameThread());
+    if (auto StrongArtboard = ListeningArtboard.Pin(); StrongArtboard.IsValid())
     {
-        check(IsInGameThread());
-        if (auto StrongArtboard = ListeningArtboard.Pin();
-            StrongArtboard.IsValid())
-        {
 #if WITH_EDITORONLY_DATA
-            StrongArtboard->StateMachinesListed(std::move(StateMachineNames));
+      StrongArtboard->StateMachinesListed(std::move(StateMachineNames));
 #endif
-        }
     }
+  }
 
 private:
-    TWeakObjectPtr<URiveArtboard> ListeningArtboard;
+  TWeakObjectPtr<URiveArtboard> ListeningArtboard;
 };
 
 void URiveArtboard::BeginDestroy()
 {
-    if (!IsRunningCommandlet() && !HasAnyFlags(RF_ClassDefaultObject) &&
-        NativeArtboardHandle != RIVE_NULL_HANDLE)
-    {
-        auto Renderer = IRiveRendererModule::Get().GetRenderer();
-        check(Renderer);
-        auto& CommandBuilder = Renderer->GetCommandBuilder();
+  if (!IsRunningCommandlet() && !HasAnyFlags(RF_ClassDefaultObject) &&
+      NativeArtboardHandle != RIVE_NULL_HANDLE)
+  {
+    auto Renderer = IRiveRendererModule::Get().GetRenderer();
+    check(Renderer);
+    auto& CommandBuilder = Renderer->GetCommandBuilder();
 
-        if (StateMachine.IsValid())
-            StateMachine->Destroy(CommandBuilder);
+    if (StateMachine.IsValid())
+      StateMachine->Destroy(CommandBuilder);
 
-        CommandBuilder.DestroyArtboard(NativeArtboardHandle);
-    }
+    CommandBuilder.DestroyArtboard(NativeArtboardHandle);
+  }
 
-    Super::BeginDestroy();
+  Super::BeginDestroy();
 }
 
 void URiveArtboard::DrawToRenderTarget(
     FRiveCommandBuilder& CommandBuilder,
     TSharedPtr<FRiveRenderTarget> RenderTarget)
 {
-    CommandBuilder.DrawArtboard(RenderTarget, {NativeArtboardHandle});
+  CommandBuilder.DrawArtboard(RenderTarget, {NativeArtboardHandle});
 }
 
-void URiveArtboard::Initialize(URiveFile* InRiveFile,
-                               const FArtboardDefinition& InDefinition,
-                               bool InAutoBindViewModel,
-                               FRiveCommandBuilder& InCommandBuilder)
+void URiveArtboard::Initialize(
+    URiveFile* InRiveFile,
+    const FArtboardDefinition& InDefinition,
+    bool InAutoBindViewModel,
+    FRiveCommandBuilder& InCommandBuilder)
 {
-    Initialize(InRiveFile,
-               InDefinition,
-               "",
-               InAutoBindViewModel,
-               InCommandBuilder);
+  Initialize(
+      InRiveFile,
+      InDefinition,
+      "",
+      InAutoBindViewModel,
+      InCommandBuilder);
 }
 
-void URiveArtboard::Initialize(URiveFile* InRiveFile,
-                               const FArtboardDefinition& InDefinition,
-                               const FString& InStateMachineName,
-                               bool InAutoBindViewModel,
-                               FRiveCommandBuilder& InCommandBuilder)
+void URiveArtboard::Initialize(
+    URiveFile* InRiveFile,
+    const FArtboardDefinition& InDefinition,
+    const FString& InStateMachineName,
+    bool InAutoBindViewModel,
+    FRiveCommandBuilder& InCommandBuilder)
 {
-    if (!IsValid(InRiveFile))
-    {
-        UE_LOG(LogRive, Error, TEXT("Invalid RiveFile passed to Initialize."));
-        return;
-    }
+  if (!IsValid(InRiveFile))
+  {
+    UE_LOG(LogRive, Error, TEXT("Invalid RiveFile passed to Initialize."));
+    return;
+  }
 
-    RiveFile = InRiveFile;
-    ArtboardDefinition = InDefinition;
-    ArtboardDefaultSize = InDefinition.DefaultArtboardSize;
+  RiveFile = InRiveFile;
+  ArtboardDefinition = InDefinition;
+  ArtboardDefaultSize = InDefinition.DefaultArtboardSize;
 
-    if (ArtboardDefinition.Name.IsEmpty())
-    {
-        NativeArtboardHandle = InCommandBuilder.CreateDefaultArtboard(
-            InRiveFile->GetNativeFileHandle(),
-            new FRiveArtboardListener(this));
-    }
-    else
-    {
-        NativeArtboardHandle =
-            InCommandBuilder.CreateArtboard(InRiveFile->GetNativeFileHandle(),
-                                            InDefinition.Name,
-                                            new FRiveArtboardListener(this));
-    }
+  if (ArtboardDefinition.Name.IsEmpty())
+  {
+    NativeArtboardHandle = InCommandBuilder.CreateDefaultArtboard(
+        InRiveFile->GetNativeFileHandle(),
+        new FRiveArtboardListener(this));
+  }
+  else
+  {
+    NativeArtboardHandle = InCommandBuilder.CreateArtboard(
+        InRiveFile->GetNativeFileHandle(),
+        InDefinition.Name,
+        new FRiveArtboardListener(this));
+  }
 
-    SetupStateMachine(InCommandBuilder,
-                      InStateMachineName,
-                      InAutoBindViewModel);
+  SetupStateMachine(InCommandBuilder, InStateMachineName, InAutoBindViewModel);
 }
 #if WITH_EDITORONLY_DATA
 void URiveArtboard::StateMachinesListed(
     std::vector<std::string> InStateMachineNames)
 {
-    StateMachineNames.Empty();
+  StateMachineNames.Empty();
 
-    for (const auto& StateMachineName : InStateMachineNames)
-    {
-        FUTF8ToTCHAR Conversion(StateMachineName.c_str());
-        StateMachineNames.Add(Conversion.Get());
-    }
-    bHasStateMachineNames = true;
-    BroadcastHasDataIfReady();
+  for (const auto& StateMachineName : InStateMachineNames)
+  {
+    FUTF8ToTCHAR Conversion(StateMachineName.c_str());
+    StateMachineNames.Add(Conversion.Get());
+  }
+  bHasStateMachineNames = true;
+  BroadcastHasDataIfReady();
 }
 
-void URiveArtboard::DefaultViewModelInfoReceived(std::string ViewModel,
-                                                 std::string ViewModelInstance)
+void URiveArtboard::DefaultViewModelInfoReceived(
+    std::string ViewModel,
+    std::string ViewModelInstance)
 {
-    DefaultViewModelName = FString(ViewModel.c_str());
-    DefaultViewModelInstanceName = FString(ViewModelInstance.c_str());
-    bHasDefaultViewModel = true;
-    bHasDefaultViewModelInfo = true;
-    BroadcastHasDataIfReady();
+  DefaultViewModelName = FString(ViewModel.c_str());
+  DefaultViewModelInstanceName = FString(ViewModelInstance.c_str());
+  bHasDefaultViewModel = true;
+  bHasDefaultViewModelInfo = true;
+  BroadcastHasDataIfReady();
 }
 #endif
 
-void URiveArtboard::SetupStateMachine(const FString& StateMachineName,
-                                      bool InAutoBindViewModel)
+void URiveArtboard::SetupStateMachine(
+    const FString& StateMachineName,
+    bool InAutoBindViewModel)
 {
-    auto Renderer = IRiveRendererModule::Get().GetRenderer();
-    check(Renderer);
-    auto& CommandBuilder = Renderer->GetCommandBuilder();
-    SetupStateMachine(CommandBuilder, StateMachineName, InAutoBindViewModel);
+  auto Renderer = IRiveRendererModule::Get().GetRenderer();
+  check(Renderer);
+  auto& CommandBuilder = Renderer->GetCommandBuilder();
+  SetupStateMachine(CommandBuilder, StateMachineName, InAutoBindViewModel);
 }
 
-void URiveArtboard::SetupStateMachine(FRiveCommandBuilder& InCommandBuilder,
-                                      const FString& InStateMachineName,
-                                      bool InAutoBindViewModel)
+void URiveArtboard::SetupStateMachine(
+    FRiveCommandBuilder& InCommandBuilder,
+    const FString& InStateMachineName,
+    bool InAutoBindViewModel)
 {
-    StateMachine = MakeShared<FRiveStateMachine>();
-    StateMachineCreateRequestId = StateMachine->Initialize(InCommandBuilder,
-                                                           NativeArtboardHandle,
-                                                           InStateMachineName);
-    StateMachine->Advance(InCommandBuilder, 0); // Just to setup everything.
+  StateMachine = MakeShared<FRiveStateMachine>();
+  StateMachineCreateRequestId = StateMachine->Initialize(
+      InCommandBuilder,
+      NativeArtboardHandle,
+      InStateMachineName);
+  StateMachine->Advance(InCommandBuilder, 0); // Just to setup everything.
 
-    // Legacy code that make artboards draw without state machines.
-    InCommandBuilder.RunOnce(
-        [ArtboardHandle = NativeArtboardHandle,
-         StateMachineHandle = StateMachine->GetNativeStateMachineHandle()](
-            rive::CommandServer* Server) {
-            // No need if State Machine exists.
-            if (auto StateMachinePtr =
-                    Server->getStateMachineInstance(StateMachineHandle))
-            {
-                return;
-            }
+  // Legacy code that make artboards draw without state machines.
+  InCommandBuilder.RunOnce(
+      [ArtboardHandle = NativeArtboardHandle,
+       StateMachineHandle = StateMachine->GetNativeStateMachineHandle()](
+          rive::CommandServer* Server) {
+        // No need if State Machine exists.
+        if (auto StateMachinePtr = Server->getStateMachineInstance(
+                StateMachineHandle))
+        {
+          return;
+        }
 
-            if (auto ArtboardPtr = Server->getArtboardInstance(ArtboardHandle))
-            {
-                ArtboardPtr->advance(1.f);
-            }
-        });
+        if (auto ArtboardPtr = Server->getArtboardInstance(ArtboardHandle))
+        {
+          ArtboardPtr->advance(1.f);
+        }
+      });
 
-    if (InAutoBindViewModel)
+  if (InAutoBindViewModel)
+  {
+    if (ArtboardDefinition.DefaultViewModel.IsEmpty())
     {
-        if (ArtboardDefinition.DefaultViewModel.IsEmpty())
-        {
-            UE_LOG(
-                LogRive,
-                Error,
-                TEXT(
-                    "Artboard %s does not have a default view model to autobind."),
-                *ArtboardDefinition.Name);
-            return;
-        }
-        auto ViewModel = RiveFile->CreateViewModelByName(
-            RiveFile.Get(),
-            ArtboardDefinition.DefaultViewModel,
-            ArtboardDefinition.DefaultViewModelInstance);
-        if (ViewModel == nullptr)
-        {
-            // CreateViewModelByName has logged why (typically no generated
-            // class for the view model). Leave the artboard unbound rather
-            // than dereferencing null.
-            return;
-        }
-
-        StateMachine->BindViewModel(ViewModel);
-        BoundViewModel = ViewModel;
-        ViewModel->SetOwningArtboard(this);
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("Artboard %s does not have a default view model to autobind."),
+          *ArtboardDefinition.Name);
+      return;
     }
+    auto ViewModel = RiveFile->CreateViewModelByName(
+        RiveFile.Get(),
+        ArtboardDefinition.DefaultViewModel,
+        ArtboardDefinition.DefaultViewModelInstance);
+    if (ViewModel == nullptr)
+    {
+      // CreateViewModelByName has logged why (typically no generated
+      // class for the view model). Leave the artboard unbound rather
+      // than dereferencing null.
+      return;
+    }
+
+    StateMachine->BindViewModel(ViewModel);
+    BoundViewModel = ViewModel;
+    ViewModel->SetOwningArtboard(this);
+  }
 }
 
 void URiveArtboard::ErrorReceived(uint64_t RequestId, const FString& Error)
 {
 #if WITH_EDITORONLY_DATA
-    // An artboard with no default view model answers the default-view-model
-    // request with an error. That is an ordinary outcome during import, not
-    // something to report at Error level on every load of the file.
-    const bool bExpected = RequestId == GetDefaultViewModelRequestId;
+  // An artboard with no default view model answers the default-view-model
+  // request with an error. That is an ordinary outcome during import, not
+  // something to report at Error level on every load of the file.
+  const bool bExpected = RequestId == GetDefaultViewModelRequestId;
 #else
-    const bool bExpected = false;
+  const bool bExpected = false;
 #endif
-    if (bExpected)
-    {
-        UE_LOG(LogRive,
-               Verbose,
-               TEXT("Artboard %s RequestId: %llu: %s"),
-               *ArtboardDefinition.Name,
-               RequestId,
-               *Error);
-    }
-    else
-    {
-        UE_LOG(LogRive,
-               Error,
-               TEXT("Artboard %s RequestId: %llu Error: %s"),
-               *ArtboardDefinition.Name,
-               RequestId,
-               *Error);
-    }
+  if (bExpected)
+  {
+    UE_LOG(
+        LogRive,
+        Verbose,
+        TEXT("Artboard %s RequestId: %llu: %s"),
+        *ArtboardDefinition.Name,
+        RequestId,
+        *Error);
+  }
+  else
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("Artboard %s RequestId: %llu Error: %s"),
+        *ArtboardDefinition.Name,
+        RequestId,
+        *Error);
+  }
 
-    if (StateMachineCreateRequestId == RequestId && StateMachine.IsValid())
-    {
-        StateMachine->SetValid(false);
-        auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-        check(RiveRenderer);
-        auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
-        TWeakObjectPtr<URiveArtboard> WeakThis(this);
-        CommandBuilder.RunOnce([WeakThis](rive::CommandServer* Server) {
-            if (auto Artboard = WeakThis.Pin(); Artboard.IsValid())
-            {
-                if (auto instance = Server->getArtboardInstance(
-                        Artboard->GetNativeArtboardHandle()))
-                {
-                    if (instance->animationCount() > 0)
-                    {
-                        Artboard->LinearAnimation = instance->animationAt(0);
-                    }
-                }
-            }
-        });
-    }
+  if (StateMachineCreateRequestId == RequestId && StateMachine.IsValid())
+  {
+    StateMachine->SetValid(false);
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
+    TWeakObjectPtr<URiveArtboard> WeakThis(this);
+    CommandBuilder.RunOnce([WeakThis](rive::CommandServer* Server) {
+      if (auto Artboard = WeakThis.Pin(); Artboard.IsValid())
+      {
+        if (auto instance = Server->getArtboardInstance(
+                Artboard->GetNativeArtboardHandle()))
+        {
+          if (instance->animationCount() > 0)
+          {
+            Artboard->LinearAnimation = instance->animationAt(0);
+          }
+        }
+      }
+    });
+  }
 #if WITH_EDITORONLY_DATA
-    // There is not a default view model for this artboard.
-    if (RequestId == GetDefaultViewModelRequestId)
-    {
-        bHasDefaultViewModel = false;
-        bHasDefaultViewModelInfo = true;
-        DefaultViewModelName = "";
-        DefaultViewModelInstanceName = "";
-        BroadcastHasDataIfReady();
-    }
+  // There is not a default view model for this artboard.
+  if (RequestId == GetDefaultViewModelRequestId)
+  {
+    bHasDefaultViewModel = false;
+    bHasDefaultViewModelInfo = true;
+    DefaultViewModelName = "";
+    DefaultViewModelInstanceName = "";
+    BroadcastHasDataIfReady();
+  }
 #endif
 }
 
-void URiveArtboard::SetStateMachine(const FString& StateMachineName,
-                                    bool InAutoBindViewModel)
+void URiveArtboard::SetStateMachine(
+    const FString& StateMachineName,
+    bool InAutoBindViewModel)
 {
-    SetupStateMachine(StateMachineName, InAutoBindViewModel);
+  SetupStateMachine(StateMachineName, InAutoBindViewModel);
 }
 
 void URiveArtboard::SetViewModel(URiveViewModel* RiveViewModelInstance)
 {
-    if (!ensure(IsValid(RiveViewModelInstance)))
-    {
-        UE_LOG(
-            LogRive,
-            Error,
-            TEXT("URiveArtboard::SetViewModel Invalid RiveViewModelInstance"));
-        return;
-    }
+  if (!ensure(IsValid(RiveViewModelInstance)))
+  {
+    UE_LOG(
+        LogRive,
+        Error,
+        TEXT("URiveArtboard::SetViewModel Invalid RiveViewModelInstance"));
+    return;
+  }
 
-    RiveViewModelInstance->SetOwningArtboard(this);
+  RiveViewModelInstance->SetOwningArtboard(this);
 
-    if (StateMachine && StateMachine->IsValid())
-    {
-        StateMachine->BindViewModel(RiveViewModelInstance);
-        BoundViewModel = RiveViewModelInstance;
-    }
-    else
-    {
-        UE_LOG(LogRive,
-               Warning,
-               TEXT("URiveArtboard::SetViewModel No State Machine to set view "
-                    "model on."));
-    }
+  if (StateMachine && StateMachine->IsValid())
+  {
+    StateMachine->BindViewModel(RiveViewModelInstance);
+    BoundViewModel = RiveViewModelInstance;
+  }
+  else
+  {
+    UE_LOG(
+        LogRive,
+        Warning,
+        TEXT("URiveArtboard::SetViewModel No State Machine to set view "
+             "model on."));
+  }
 }
 
 rive::StateMachineHandle URiveArtboard::GetStateMachineHandle() const
 {
-    if (StateMachine.IsValid())
-        return StateMachine->GetNativeStateMachineHandle();
-    return RIVE_NULL_HANDLE;
+  if (StateMachine.IsValid())
+    return StateMachine->GetNativeStateMachineHandle();
+  return RIVE_NULL_HANDLE;
 }
 
 void URiveArtboard::SetAudioEngine(URiveAudioEngine* AudioEngine)
 {
-    auto& CommandBuilder =
-        IRiveRendererModule::Get().GetRenderer()->GetCommandBuilder();
+  auto& CommandBuilder = IRiveRendererModule::Get()
+                             .GetRenderer()
+                             ->GetCommandBuilder();
 
-    TStrongObjectPtr<URiveAudioEngine> StrongAudioEngine(AudioEngine);
+  TStrongObjectPtr<URiveAudioEngine> StrongAudioEngine(AudioEngine);
 
-    CommandBuilder.RunOnce(
-        [StrongAudioEngine, NativeArtboardHandle = NativeArtboardHandle](
-            rive::CommandServer* server) {
-            auto NativeArtboardPtr =
-                server->getArtboardInstance(NativeArtboardHandle);
+  CommandBuilder.RunOnce([StrongAudioEngine,
+                          NativeArtboardHandle = NativeArtboardHandle](
+                             rive::CommandServer* server) {
+    auto NativeArtboardPtr = server->getArtboardInstance(NativeArtboardHandle);
 
-            if (NativeArtboardPtr == nullptr)
-            {
-                UE_LOG(LogRive,
-                       Error,
-                       TEXT("URiveArtboard::SetAudioEngine native artboard "
-                            "instance is null"));
-                return;
-            }
+    if (NativeArtboardPtr == nullptr)
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("URiveArtboard::SetAudioEngine native artboard "
+               "instance is null"));
+      return;
+    }
 
-            if (!StrongAudioEngine.IsValid())
-            {
-                rive::rcp<rive::AudioEngine> NativeEngine =
-                    NativeArtboardPtr->audioEngine();
+    if (!StrongAudioEngine.IsValid())
+    {
+      rive::rcp<rive::AudioEngine> NativeEngine = NativeArtboardPtr
+                                                      ->audioEngine();
 
-                if (NativeEngine != nullptr)
-                {
-                    NativeEngine->unref();
-                }
-                NativeArtboardPtr->audioEngine(nullptr);
-                return;
-            }
+      if (NativeEngine != nullptr)
+      {
+        NativeEngine->unref();
+      }
+      NativeArtboardPtr->audioEngine(nullptr);
+      return;
+    }
 
-            NativeArtboardPtr->audioEngine(
-                StrongAudioEngine->GetNativeAudioEngine());
-        });
+    NativeArtboardPtr->audioEngine(StrongAudioEngine->GetNativeAudioEngine());
+  });
 }
 
 #if WITH_EDITORONLY_DATA
@@ -422,127 +431,129 @@ void URiveArtboard::InitializeForDataImport(
     const FString& Name,
     FRiveCommandBuilder& InCommandBuilder)
 {
-    ArtboardDefinition.Name = Name;
+  ArtboardDefinition.Name = Name;
 
-    if (Name.IsEmpty())
+  if (Name.IsEmpty())
+  {
+    NativeArtboardHandle = InCommandBuilder.CreateDefaultArtboard(
+        InRiveFile->GetNativeFileHandle(),
+        new FRiveArtboardListener(this));
+  }
+  else
+  {
+    NativeArtboardHandle = InCommandBuilder.CreateArtboard(
+        InRiveFile->GetNativeFileHandle(),
+        Name,
+        new FRiveArtboardListener(this));
+  }
+
+  InCommandBuilder.RequestStateMachineNames(NativeArtboardHandle);
+  GetDefaultViewModelRequestId = InCommandBuilder.RequestDefaultViewModelInfo(
+      NativeArtboardHandle,
+      InRiveFile->GetNativeFileHandle());
+  // We don't want to get GC'd before this callback. So make a strong
+  // reference first.
+  TStrongObjectPtr<URiveArtboard> StrongThis(this);
+  InCommandBuilder.RunOnce([StrongThis](rive::CommandServer* CommandServer) {
+    auto NativeArtboardPtr = CommandServer->getArtboardInstance(
+        StrongThis->NativeArtboardHandle);
+    if (!NativeArtboardPtr)
     {
-        NativeArtboardHandle = InCommandBuilder.CreateDefaultArtboard(
-            InRiveFile->GetNativeFileHandle(),
-            new FRiveArtboardListener(this));
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("No artboard found when trying to get default size."));
+      return;
     }
-    else
-    {
-        NativeArtboardHandle =
-            InCommandBuilder.CreateArtboard(InRiveFile->GetNativeFileHandle(),
-                                            Name,
-                                            new FRiveArtboardListener(this));
-    }
+    // This is in the render thread, so dispatch back to game thread to
+    // update.
+    float Width = NativeArtboardPtr->originalWidth();
+    float Height = NativeArtboardPtr->originalHeight();
 
-    InCommandBuilder.RequestStateMachineNames(NativeArtboardHandle);
-    GetDefaultViewModelRequestId = InCommandBuilder.RequestDefaultViewModelInfo(
-        NativeArtboardHandle,
-        InRiveFile->GetNativeFileHandle());
-    // We don't want to get GC'd before this callback. So make a strong
-    // reference first.
-    TStrongObjectPtr<URiveArtboard> StrongThis(this);
-    InCommandBuilder.RunOnce([StrongThis](rive::CommandServer* CommandServer) {
-        auto NativeArtboardPtr = CommandServer->getArtboardInstance(
-            StrongThis->NativeArtboardHandle);
-        if (!NativeArtboardPtr)
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("No artboard found when trying to get default size."));
-            return;
-        }
-        // This is in the render thread, so dispatch back to game thread to
-        // update.
-        float Width = NativeArtboardPtr->originalWidth();
-        float Height = NativeArtboardPtr->originalHeight();
-
-        // Get the artboard size.
-        AsyncTask(ENamedThreads::GameThread, [StrongThis, Width, Height]() {
-            StrongThis->ArtboardDefaultSize = FVector2D(Width, Height);
-            StrongThis->bHasDefaultArtboardSize = true;
-            StrongThis->BroadcastHasDataIfReady();
-        });
+    // Get the artboard size.
+    AsyncTask(ENamedThreads::GameThread, [StrongThis, Width, Height]() {
+      StrongThis->ArtboardDefaultSize = FVector2D(Width, Height);
+      StrongThis->bHasDefaultArtboardSize = true;
+      StrongThis->BroadcastHasDataIfReady();
     });
+  });
 }
 #endif
 TStatId URiveArtboard::GetStatId() const
 {
-    RETURN_QUICK_DECLARE_CYCLE_STAT(FArtboardTick, STATGROUP_Rive);
+  RETURN_QUICK_DECLARE_CYCLE_STAT(FArtboardTick, STATGROUP_Rive);
 }
 
 void URiveArtboard::Tick(float InDeltaSeconds)
 {
-    if (NativeArtboardHandle == RIVE_NULL_HANDLE)
-    {
-        return;
-    }
+  if (NativeArtboardHandle == RIVE_NULL_HANDLE)
+  {
+    return;
+  }
 
-    if (StateMachine.IsValid() && StateMachine->IsValid() &&
-        !StateMachine->IsStateMachineSettled())
-    {
-        auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-        check(RiveRenderer);
-        auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
-        StateMachine->Advance(CommandBuilder, InDeltaSeconds);
-    }
-    else if (!StateMachine.IsValid() || !StateMachine->IsValid())
-    {
-        auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-        check(RiveRenderer);
-        auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
-        TWeakObjectPtr<URiveArtboard> WeakThis(this);
-        CommandBuilder.RunOnce([WeakThis,
-                                InDeltaSeconds](rive::CommandServer* Server) {
-            auto StrongThis = WeakThis.Pin();
-            if (!StrongThis)
-                return;
+  if (StateMachine.IsValid() && StateMachine->IsValid() &&
+      !StateMachine->IsStateMachineSettled())
+  {
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
+    StateMachine->Advance(CommandBuilder, InDeltaSeconds);
+  }
+  else if (!StateMachine.IsValid() || !StateMachine->IsValid())
+  {
+    auto RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    check(RiveRenderer);
+    auto& CommandBuilder = RiveRenderer->GetCommandBuilder();
+    TWeakObjectPtr<URiveArtboard> WeakThis(this);
+    CommandBuilder.RunOnce(
+        [WeakThis, InDeltaSeconds](rive::CommandServer* Server) {
+          auto StrongThis = WeakThis.Pin();
+          if (!StrongThis)
+            return;
 
-            if (StrongThis->LinearAnimation)
+          if (StrongThis->LinearAnimation)
+          {
+            StrongThis->LinearAnimation->advanceAndApply(InDeltaSeconds);
+          }
+          else
+          {
+            if (auto artboardInstance = Server->getArtboardInstance(
+                    StrongThis->NativeArtboardHandle))
             {
-                StrongThis->LinearAnimation->advanceAndApply(InDeltaSeconds);
+              artboardInstance->advance(InDeltaSeconds);
             }
-            else
-            {
-                if (auto artboardInstance = Server->getArtboardInstance(
-                        StrongThis->NativeArtboardHandle))
-                {
-                    artboardInstance->advance(InDeltaSeconds);
-                }
-            }
+          }
         });
-    }
+  }
 }
 
-void URiveArtboard::SetNativeArtboardSizeWithScale(float Width,
-                                                   float Height,
-                                                   float Scale)
+void URiveArtboard::SetNativeArtboardSizeWithScale(
+    float Width,
+    float Height,
+    float Scale)
 {
-    auto& Builder = IRiveRendererModule::Get().GetCommandBuilder();
-    Builder.SetArtboardSize(NativeArtboardHandle, Width, Height, Scale);
-    if (StateMachine.IsValid())
-    {
-        StateMachine->Advance(Builder, 0);
-    }
+  auto& Builder = IRiveRendererModule::Get().GetCommandBuilder();
+  Builder.SetArtboardSize(NativeArtboardHandle, Width, Height, Scale);
+  if (StateMachine.IsValid())
+  {
+    StateMachine->Advance(Builder, 0);
+  }
 }
 
 void URiveArtboard::ResetNativeArtboardSize()
 {
-    auto& Builder = IRiveRendererModule::Get().GetCommandBuilder();
-    Builder.ResetArtboardSize(NativeArtboardHandle);
-    if (StateMachine.IsValid())
-    {
-        StateMachine->Advance(Builder, 0);
-    }
+  auto& Builder = IRiveRendererModule::Get().GetCommandBuilder();
+  Builder.ResetArtboardSize(NativeArtboardHandle);
+  if (StateMachine.IsValid())
+  {
+    StateMachine->Advance(Builder, 0);
+  }
 }
 
 void URiveArtboard::UnsettleStateMachine()
 {
-    if (StateMachine.IsValid())
-    {
-        StateMachine->SetStateMachineSettled(false);
-    }
+  if (StateMachine.IsValid())
+  {
+    StateMachine->SetStateMachineSettled(false);
+  }
 }

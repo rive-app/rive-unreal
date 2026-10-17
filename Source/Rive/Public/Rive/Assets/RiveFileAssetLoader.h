@@ -30,33 +30,35 @@ class RIVE_API FRiveFileAssetLoader
     final : public rive::FileAssetLoader
 #endif // WITH_RIVE
 {
-    /**
-     * Structor(s)
-     */
+  /**
+   * Structor(s)
+   */
 
 public:
-    FRiveFileAssetLoader(UObject* InOuter,
-                         TMap<uint32, TObjectPtr<URiveAsset>>& InAssets);
+  FRiveFileAssetLoader(
+      UObject* InOuter,
+      TMap<uint32, TObjectPtr<URiveAsset>>& InAssets);
 
 #if WITH_RIVE
 
-    //~ BEGIN : rive::FileAssetLoader Interface
+  //~ BEGIN : rive::FileAssetLoader Interface
 
 public:
-    virtual bool loadContents(rive::FileAsset& InAsset,
-                              rive::Span<const uint8> InBandBytes,
-                              rive::Factory* InFactory) override;
+  virtual bool loadContents(
+      rive::FileAsset& InAsset,
+      rive::Span<const uint8> InBandBytes,
+      rive::Factory* InFactory) override;
 
-    //~ END : rive::FileAssetLoader Interface
+  //~ END : rive::FileAssetLoader Interface
 
 #endif // WITH_RIVE
 
 public:
-    /**
-     * Attribute(s)
-     */
+  /**
+   * Attribute(s)
+   */
 
 private:
-    TObjectPtr<UObject> Outer;
-    TMap<uint32, TObjectPtr<URiveAsset>>& Assets;
+  TObjectPtr<UObject> Outer;
+  TMap<uint32, TObjectPtr<URiveAsset>>& Assets;
 };

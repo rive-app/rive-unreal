@@ -15,9 +15,10 @@ DECLARE_STATS_GROUP(TEXT("Rive"), STATGROUP_Rive, STATCAT_Advanced);
  * Gpu stats are a little different and can not have their own group, otherwise
  * they would have used this as well
  */
-DECLARE_STATS_GROUP(TEXT("RiveRenderer"),
-                    STATGROUP_RiveRenderer,
-                    STATCAT_Advanced);
+DECLARE_STATS_GROUP(
+    TEXT("RiveRenderer"),
+    STATGROUP_RiveRenderer,
+    STATCAT_Advanced);
 
 /*
  * Stats group for all editor specific rive stats

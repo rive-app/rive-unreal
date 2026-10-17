@@ -17,21 +17,18 @@ struct FRiveCommandBuilder;
 UCLASS(BlueprintType)
 class RIVE_API URiveBlobAsset : public UObject
 {
-    GENERATED_BODY()
+  GENERATED_BODY()
 
 public:
-    virtual void BeginDestroy() override;
+  virtual void BeginDestroy() override;
 
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    static URiveBlobAsset* MakeBlobAsset(const TArray<uint8>& Bytes);
+  UFUNCTION(BlueprintCallable, Category = Rive)
+  static URiveBlobAsset* MakeBlobAsset(const TArray<uint8>& Bytes);
 
-    void Initialize(FRiveCommandBuilder& Builder, const TArray<uint8>& Bytes);
+  void Initialize(FRiveCommandBuilder& Builder, const TArray<uint8>& Bytes);
 
-    rive::BlobAssetHandle GetNativeBlobHandle() const
-    {
-        return NativeBlobHandle;
-    }
+  rive::BlobAssetHandle GetNativeBlobHandle() const { return NativeBlobHandle; }
 
 private:
-    rive::BlobAssetHandle NativeBlobHandle = RIVE_NULL_HANDLE;
+  rive::BlobAssetHandle NativeBlobHandle = RIVE_NULL_HANDLE;
 };

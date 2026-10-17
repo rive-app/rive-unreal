@@ -26,102 +26,105 @@ class URiveFile;
 UCLASS()
 class RIVE_API URiveWidget : public UUserWidget
 {
-    GENERATED_BODY()
+  GENERATED_BODY()
 
-    virtual ~URiveWidget() override;
+  virtual ~URiveWidget() override;
 
 protected:
-    //~ BEGIN : UWidget Interface
+  //~ BEGIN : UWidget Interface
 
 #if WITH_EDITOR
-    virtual const FText GetPaletteCategory() override;
+  virtual const FText GetPaletteCategory() override;
 #endif // WITH_EDITOR
 
-    virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+  virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
-    virtual TSharedRef<SWidget> RebuildWidget() override;
-    virtual FReply NativeOnMouseButtonDown(
-        const FGeometry& InGeometry,
-        const FPointerEvent& InMouseEvent) override;
-    virtual FReply NativeOnMouseButtonUp(
-        const FGeometry& InGeometry,
-        const FPointerEvent& InMouseEvent) override;
-    virtual FReply NativeOnMouseMove(
-        const FGeometry& InGeometry,
-        const FPointerEvent& InMouseEvent) override;
-    virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
-    virtual FReply NativeOnTouchStarted(
-        const FGeometry& InGeometry,
-        const FPointerEvent& InGestureEvent) override;
-    virtual FReply NativeOnTouchMoved(
-        const FGeometry& InGeometry,
-        const FPointerEvent& InGestureEvent) override;
-    virtual FReply NativeOnTouchEnded(
-        const FGeometry& InGeometry,
-        const FPointerEvent& InGestureEvent) override;
+  virtual TSharedRef<SWidget> RebuildWidget() override;
+  virtual FReply NativeOnMouseButtonDown(
+      const FGeometry& InGeometry,
+      const FPointerEvent& InMouseEvent) override;
+  virtual FReply NativeOnMouseButtonUp(
+      const FGeometry& InGeometry,
+      const FPointerEvent& InMouseEvent) override;
+  virtual FReply NativeOnMouseMove(
+      const FGeometry& InGeometry,
+      const FPointerEvent& InMouseEvent) override;
+  virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+  virtual FReply NativeOnTouchStarted(
+      const FGeometry& InGeometry,
+      const FPointerEvent& InGestureEvent) override;
+  virtual FReply NativeOnTouchMoved(
+      const FGeometry& InGeometry,
+      const FPointerEvent& InGestureEvent) override;
+  virtual FReply NativeOnTouchEnded(
+      const FGeometry& InGeometry,
+      const FPointerEvent& InGestureEvent) override;
 
-    // Reached only while this widget holds focus, which it takes when a press
-    // lands on something in the artboard — see NativeOnMouseButtonDown.
-    virtual FReply NativeOnKeyDown(const FGeometry& InGeometry,
-                                   const FKeyEvent& InKeyEvent) override;
-    virtual FReply NativeOnKeyUp(const FGeometry& InGeometry,
-                                 const FKeyEvent& InKeyEvent) override;
-    virtual FReply NativeOnKeyChar(const FGeometry& InGeometry,
-                                   const FCharacterEvent& InCharEvent) override;
-    virtual void NativeOnFocusLost(const FFocusEvent& InFocusEvent) override;
-    //~ END : UWidget Interface
+  // Reached only while this widget holds focus, which it takes when a press
+  // lands on something in the artboard — see NativeOnMouseButtonDown.
+  virtual FReply NativeOnKeyDown(
+      const FGeometry& InGeometry,
+      const FKeyEvent& InKeyEvent) override;
+  virtual FReply NativeOnKeyUp(
+      const FGeometry& InGeometry,
+      const FKeyEvent& InKeyEvent) override;
+  virtual FReply NativeOnKeyChar(
+      const FGeometry& InGeometry,
+      const FCharacterEvent& InCharEvent) override;
+  virtual void NativeOnFocusLost(const FFocusEvent& InFocusEvent) override;
+  //~ END : UWidget Interface
 
-    /**
-     * Implementation(s)
-     */
+  /**
+   * Implementation(s)
+   */
 
 public:
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void SetAudioEngine(URiveAudioEngine* InRiveAudioEngine);
+  UFUNCTION(BlueprintCallable, Category = Rive)
+  void SetAudioEngine(URiveAudioEngine* InRiveAudioEngine);
 
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void SetArtboard(URiveArtboard* InArtboard);
+  UFUNCTION(BlueprintCallable, Category = Rive)
+  void SetArtboard(URiveArtboard* InArtboard);
 
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    URiveArtboard* GetArtboard() const;
+  UFUNCTION(BlueprintCallable, Category = Rive)
+  URiveArtboard* GetArtboard() const;
 
-    /**
-     * Attribute(s)
-     */
+  /**
+   * Attribute(s)
+   */
 
-    UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = Rive)
-    FRiveDescriptor RiveDescriptor;
+  UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = Rive)
+  FRiveDescriptor RiveDescriptor;
 
-    UFUNCTION(BlueprintCallable, Category = Rive)
-    void SetRiveDescriptor(const FRiveDescriptor& newDescriptor);
+  UFUNCTION(BlueprintCallable, Category = Rive)
+  void SetRiveDescriptor(const FRiveDescriptor& newDescriptor);
 
 #if WITH_EDITOR
-    virtual void PostEditChangeChainProperty(
-        FPropertyChangedChainEvent& PropertyChangedEvent) override;
+  virtual void PostEditChangeChainProperty(
+      FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 private:
-    void Setup();
+  void Setup();
 
-    UPROPERTY(Transient)
-    TObjectPtr<URiveArtboard> RiveArtboard;
+  UPROPERTY(Transient)
+  TObjectPtr<URiveArtboard> RiveArtboard;
 
-    UPROPERTY(Transient)
-    TObjectPtr<URiveAudioEngine> RiveAudioEngine;
+  UPROPERTY(Transient)
+  TObjectPtr<URiveAudioEngine> RiveAudioEngine;
 
-    TSharedPtr<SRiveLeafWidget> RiveWidget;
-    FTimerHandle TimerHandle;
+  TSharedPtr<SRiveLeafWidget> RiveWidget;
+  FTimerHandle TimerHandle;
 
-    FVector2f InitialArtboardSize;
-    bool IsChangingFromLayout = false;
+  FVector2f InitialArtboardSize;
+  bool IsChangingFromLayout = false;
 
-    // Non-primary buttons whose press reached the artboard, one bit each.
-    // The release has to follow the press rather than ask again: by then the
-    // cursor may have left the shape that took it, which is a normal gesture.
-    uint8 HeldButtons = 0;
-    TWeakObjectPtr<URiveArtboard> HeldButtonsTarget;
+  // Non-primary buttons whose press reached the artboard, one bit each.
+  // The release has to follow the press rather than ask again: by then the
+  // cursor may have left the shape that took it, which is a normal gesture.
+  uint8 HeldButtons = 0;
+  TWeakObjectPtr<URiveArtboard> HeldButtonsTarget;
 
-    static uint8 ButtonBit(ERivePointerButton Button)
-    {
-        return static_cast<uint8>(1u << static_cast<uint8>(Button));
-    }
+  static uint8 ButtonBit(ERivePointerButton Button)
+  {
+    return static_cast<uint8>(1u << static_cast<uint8>(Button));
+  }
 };

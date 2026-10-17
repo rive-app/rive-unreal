@@ -13,27 +13,27 @@ class URiveFile;
  */
 class RIVEEDITOR_API FRiveWidgetFactory
 {
-    /**
-     * Structor(s)
-     */
+  /**
+   * Structor(s)
+   */
 
 public:
-    FRiveWidgetFactory(URiveFile* InRiveFile);
+  FRiveWidgetFactory(URiveFile* InRiveFile);
 
-    /**
-     * Implementation(s)
-     */
+  /**
+   * Implementation(s)
+   */
 
 public:
-    bool Create();
+  bool Create();
 
 private:
-    UWidgetBlueprint* CreateWidgetBlueprint();
+  UWidgetBlueprint* CreateWidgetBlueprint();
 
-    bool SaveAsset(UWidgetBlueprint* InWidgetBlueprint);
+  bool SaveAsset(UWidgetBlueprint* InWidgetBlueprint);
 
-    bool CreateWidgetStructure(UWidgetBlueprint* InWidgetBlueprint);
+  bool CreateWidgetStructure(UWidgetBlueprint* InWidgetBlueprint);
 
 private:
-    TObjectPtr<URiveFile> RiveFile;
+  TObjectPtr<URiveFile> RiveFile;
 };

@@ -9,11 +9,11 @@ class FRiveRenderer;
 class FRiveRendererModule : public IRiveRendererModule
 {
 public:
-    virtual void StartupModule() override;
-    virtual void ShutdownModule() override;
+  virtual void StartupModule() override;
+  virtual void ShutdownModule() override;
 
-    void StartupRiveRenderer();
+  void StartupRiveRenderer();
 
 private:
-    FDelegateHandle OnBeginFrameHandle;
+  FDelegateHandle OnBeginFrameHandle;
 };

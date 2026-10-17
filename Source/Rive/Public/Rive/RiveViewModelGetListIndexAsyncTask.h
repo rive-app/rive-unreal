@@ -22,25 +22,26 @@ UCLASS()
 class RIVE_API URiveViewModelGetListIndexAsyncTask
     : public UBlueprintAsyncActionBase
 {
-    GENERATED_BODY()
+  GENERATED_BODY()
 public:
-    UPROPERTY(BlueprintAssignable)
-    FRiveViewModelGetListIndexAsyncTaskOutput OnSuccess;
+  UPROPERTY(BlueprintAssignable)
+  FRiveViewModelGetListIndexAsyncTaskOutput OnSuccess;
 
-    UPROPERTY(BlueprintAssignable)
-    FRiveViewModelGetListIndexAsyncTaskOutput OnFailure;
+  UPROPERTY(BlueprintAssignable)
+  FRiveViewModelGetListIndexAsyncTaskOutput OnFailure;
 
-    UFUNCTION(BlueprintCallable,
-              meta = (BlueprintInternalUseOnly = "true"),
-              Category = "AsyncTasks",
-              DisplayName = "GetViewModelListIndex")
-    static URiveViewModelGetListIndexAsyncTask* RunGetListIndexAsyncTaskAsync(
-        URiveViewModel* ViewModel);
+  UFUNCTION(
+      BlueprintCallable,
+      meta = (BlueprintInternalUseOnly = "true"),
+      Category = "AsyncTasks",
+      DisplayName = "GetViewModelListIndex")
+  static URiveViewModelGetListIndexAsyncTask* RunGetListIndexAsyncTaskAsync(
+      URiveViewModel* ViewModel);
 
-    virtual void Activate() override;
+  virtual void Activate() override;
 
 private:
-    // The view model to get the index of.
-    UPROPERTY(Transient)
-    URiveViewModel* ViewModel;
+  // The view model to get the index of.
+  UPROPERTY(Transient)
+  URiveViewModel* ViewModel;
 };

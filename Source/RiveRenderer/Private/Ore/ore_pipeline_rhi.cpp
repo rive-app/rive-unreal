@@ -7,8 +7,8 @@
 namespace rive::ore
 {
 
-OrePipelineRHI::OrePipelineRHI(const PipelineDesc& desc) :
-    lite_rtti_override(desc)
+OrePipelineRHI::OrePipelineRHI(const PipelineDesc& desc)
+    : lite_rtti_override(desc)
 {}
 
 } // namespace rive::ore

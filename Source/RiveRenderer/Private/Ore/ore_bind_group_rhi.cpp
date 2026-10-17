@@ -11,8 +11,8 @@ OreBindGroupLayoutRHI::OreBindGroupLayoutRHI(
     OreContextRHI* Context,
     const rive::ore::BindGroupLayoutDesc& desc)
 {
-    m_groupIndex = desc.groupIndex;
-    m_entries.assign(desc.entries, desc.entries + desc.entryCount);
-    m_context = Context;
+  m_groupIndex = desc.groupIndex;
+  m_entries.assign(desc.entries, desc.entries + desc.entryCount);
+  m_context = Context;
 }
 } // namespace rive::ore

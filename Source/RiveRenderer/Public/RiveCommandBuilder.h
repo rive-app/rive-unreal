@@ -27,26 +27,26 @@ typedef TFunction<
 
 enum EDrawType
 {
-    Artboard,
-    Direct
+  Artboard,
+  Direct
 };
 
 struct FDrawArtboardCommand
 {
-    rive::ArtboardHandle Handle = RIVE_NULL_HANDLE;
-    FBox2f AlignmentBox;
-    ERiveAlignment Alignment;
-    ERiveFitType FitType;
-    float ScaleFactor;
+  rive::ArtboardHandle Handle = RIVE_NULL_HANDLE;
+  FBox2f AlignmentBox;
+  ERiveAlignment Alignment;
+  ERiveFitType FitType;
+  float ScaleFactor;
 };
 
 struct FDrawCommand
 {
-    EDrawType DrawType;
-    // For Direct draw type.
-    DirectDrawCallback DrawCallback = nullptr;
-    // For Artboard draw type.
-    FDrawArtboardCommand ArtboardCommand;
+  EDrawType DrawType;
+  // For Direct draw type.
+  DirectDrawCallback DrawCallback = nullptr;
+  // For Artboard draw type.
+  FDrawArtboardCommand ArtboardCommand;
 };
 
 // Contains all commands for a given render target, all commands held here are
@@ -54,13 +54,13 @@ struct FDrawCommand
 USTRUCT()
 struct FRiveCommandSet
 {
-    GENERATED_BODY();
+  GENERATED_BODY();
 
-    // The unique key for drawing to this render target
-    rive::DrawKey DrawKey = RIVE_NULL_HANDLE;
+  // The unique key for drawing to this render target
+  rive::DrawKey DrawKey = RIVE_NULL_HANDLE;
 
-    // Array of commands to submit specifically for drawing Artboards.
-    TArray<FDrawCommand> DrawCommands;
+  // Array of commands to submit specifically for drawing Artboards.
+  TArray<FDrawCommand> DrawCommands;
 };
 
 /*
@@ -69,734 +69,800 @@ struct FRiveCommandSet
  */
 struct RIVERENDERER_API FRiveCommandBuilder
 {
-    FRiveCommandBuilder() {}
-    FRiveCommandBuilder(rive::rcp<rive::CommandQueue> CommandQueue);
+  FRiveCommandBuilder() {}
+  FRiveCommandBuilder(rive::rcp<rive::CommandQueue> CommandQueue);
 
-    FRiveCommandBuilder(FRiveCommandBuilder&) = delete;
-    void operator=(const FRiveCommandBuilder&) const = delete;
+  FRiveCommandBuilder(FRiveCommandBuilder&) = delete;
+  void operator=(const FRiveCommandBuilder&) const = delete;
 
-    void Reset()
+  void Reset()
+  {
+    Commands.Empty();
+    DrawCommands.Empty();
+  }
+
+  rive::FileHandle LoadFile(
+      std::vector<uint8_t> FileData,
+      rive::CommandQueue::FileListener* FileListener = nullptr,
+      uint64_t* outRequestId = nullptr)
+  {
+    uint64_t RequestId = 0;
+    if (outRequestId)
     {
-        Commands.Empty();
-        DrawCommands.Empty();
+      *outRequestId = ++CurrentRequestId;
+      RequestId = *outRequestId;
     }
-
-    rive::FileHandle LoadFile(
-        std::vector<uint8_t> FileData,
-        rive::CommandQueue::FileListener* FileListener = nullptr,
-        uint64_t* outRequestId = nullptr)
-    {
-        uint64_t RequestId = 0;
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            RequestId = *outRequestId;
-        }
 #ifdef WITH_RIVE_SCRIPTING
-        // Route the file's script (Lua) console/error output to
-        // LogRiveScripting so it is visible in the Unreal log.
-        rive::ScriptingContextFactory ScriptingFactory =
-            MakeScriptingLogContextFactory();
-        return CommandQueue->loadFile(MoveTemp(FileData),
-                                      FileListener,
-                                      RequestId,
-                                      MoveTemp(ScriptingFactory));
+    // Route the file's script (Lua) console/error output to
+    // LogRiveScripting so it is visible in the Unreal log.
+    rive::ScriptingContextFactory
+        ScriptingFactory = MakeScriptingLogContextFactory();
+    return CommandQueue->loadFile(
+        MoveTemp(FileData),
+        FileListener,
+        RequestId,
+        MoveTemp(ScriptingFactory));
 #else
-        return CommandQueue->loadFile(MoveTemp(FileData),
-                                      FileListener,
-                                      RequestId);
+    return CommandQueue->loadFile(MoveTemp(FileData), FileListener, RequestId);
 #endif
-    }
+  }
 
-    uint64_t DestroyFile(rive::FileHandle FileHandle)
+  uint64_t DestroyFile(rive::FileHandle FileHandle)
+  {
+    CommandQueue->deleteFile(FileHandle, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  rive::ArtboardHandle CreateDefaultArtboard(
+      rive::FileHandle File,
+      rive::CommandQueue::ArtboardListener* Listener = nullptr,
+      uint64_t* outRequestId = nullptr)
+  {
+    if (outRequestId)
     {
-        CommandQueue->deleteFile(FileHandle, ++CurrentRequestId);
-        return CurrentRequestId;
+      *outRequestId = ++CurrentRequestId;
+      return CommandQueue->instantiateDefaultArtboard(
+          File,
+          Listener,
+          *outRequestId);
     }
+    return CommandQueue->instantiateDefaultArtboard(File, Listener);
+  }
 
-    rive::ArtboardHandle CreateDefaultArtboard(
-        rive::FileHandle File,
-        rive::CommandQueue::ArtboardListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
+  rive::ArtboardHandle CreateArtboard(
+      rive::FileHandle File,
+      const FString& ArtboardName,
+      rive::CommandQueue::ArtboardListener* Listener = nullptr,
+      uint64_t* outRequestId = nullptr)
+  {
+    FTCHARToUTF8 Convert(*ArtboardName);
+    if (outRequestId)
     {
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->instantiateDefaultArtboard(File,
-                                                            Listener,
-                                                            *outRequestId);
-        }
-        return CommandQueue->instantiateDefaultArtboard(File, Listener);
+      *outRequestId = ++CurrentRequestId;
+      return CommandQueue->instantiateArtboardNamed(
+          File,
+          Convert.Get(),
+          Listener,
+          *outRequestId);
     }
+    return CommandQueue->instantiateArtboardNamed(
+        File,
+        Convert.Get(),
+        Listener);
+  }
 
-    rive::ArtboardHandle CreateArtboard(
-        rive::FileHandle File,
-        const FString& ArtboardName,
-        rive::CommandQueue::ArtboardListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
+  uint64_t SetArtboardSize(
+      rive::ArtboardHandle Handle,
+      float SizeX,
+      float SizeY,
+      float Scale)
+  {
+    CommandQueue
+        ->setArtboardSize(Handle, SizeX, SizeY, Scale, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t ResetArtboardSize(rive::ArtboardHandle Handle)
+  {
+    CommandQueue->resetArtboardSize(Handle, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  rive::ViewModelInstanceHandle CreateViewModel(
+      rive::FileHandle File,
+      const FString& ViewModelName,
+      const FString& ViewModelInstanceName,
+      rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
+      uint64_t* outRequestId = nullptr)
+  {
+    FTCHARToUTF8 ConvertViewModel(*ViewModelName);
+    FTCHARToUTF8 ConvertInstance(*ViewModelInstanceName);
+    if (outRequestId)
     {
-        FTCHARToUTF8 Convert(*ArtboardName);
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->instantiateArtboardNamed(File,
-                                                          Convert.Get(),
-                                                          Listener,
-                                                          *outRequestId);
-        }
-        return CommandQueue->instantiateArtboardNamed(File,
-                                                      Convert.Get(),
-                                                      Listener);
+      *outRequestId = ++CurrentRequestId;
+      return CommandQueue->instantiateViewModelInstanceNamed(
+          File,
+          ConvertViewModel.Get(),
+          ConvertInstance.Get(),
+          Listener,
+          *outRequestId);
     }
+    return CommandQueue->instantiateViewModelInstanceNamed(
+        File,
+        ConvertViewModel.Get(),
+        ConvertInstance.Get(),
+        Listener);
+  }
 
-    uint64_t SetArtboardSize(rive::ArtboardHandle Handle,
-                             float SizeX,
-                             float SizeY,
-                             float Scale)
+  rive::ViewModelInstanceHandle CreateDefaultViewModel(
+      rive::FileHandle File,
+      const FString& ViewModelName,
+      rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
+      uint64_t* outRequestId = nullptr)
+  {
+    FTCHARToUTF8 ConvertViewModel(*ViewModelName);
+    if (outRequestId)
     {
-        CommandQueue->setArtboardSize(Handle,
-                                      SizeX,
-                                      SizeY,
-                                      Scale,
-                                      ++CurrentRequestId);
-        return CurrentRequestId;
+      *outRequestId = ++CurrentRequestId;
+      return CommandQueue->instantiateDefaultViewModelInstance(
+          File,
+          ConvertViewModel.Get(),
+          Listener,
+          *outRequestId);
     }
+    return CommandQueue->instantiateDefaultViewModelInstance(
+        File,
+        ConvertViewModel.Get(),
+        Listener);
+  }
 
-    uint64_t ResetArtboardSize(rive::ArtboardHandle Handle)
+  rive::ViewModelInstanceHandle CreateDefaultViewModelForArtboard(
+      rive::FileHandle File,
+      rive::ArtboardHandle Artboard,
+      rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
+      uint64_t* outRequestId = nullptr)
+  {
+    if (outRequestId)
     {
-        CommandQueue->resetArtboardSize(Handle, ++CurrentRequestId);
-        return CurrentRequestId;
+      *outRequestId = ++CurrentRequestId;
+      return CommandQueue->instantiateDefaultViewModelInstance(
+          File,
+          Artboard,
+          Listener,
+          *outRequestId);
     }
+    return CommandQueue->instantiateDefaultViewModelInstance(
+        File,
+        Artboard,
+        Listener);
+  }
 
-    rive::ViewModelInstanceHandle CreateViewModel(
-        rive::FileHandle File,
-        const FString& ViewModelName,
-        const FString& ViewModelInstanceName,
-        rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
+  rive::ViewModelInstanceHandle CreateBlankViewModel(
+      rive::FileHandle File,
+      const FString& ViewModelName,
+      rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
+      uint64_t* outRequestId = nullptr)
+  {
+    FTCHARToUTF8 ConvertViewModel(*ViewModelName);
+    if (outRequestId)
     {
-        FTCHARToUTF8 ConvertViewModel(*ViewModelName);
-        FTCHARToUTF8 ConvertInstance(*ViewModelInstanceName);
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->instantiateViewModelInstanceNamed(
-                File,
-                ConvertViewModel.Get(),
-                ConvertInstance.Get(),
-                Listener,
-                *outRequestId);
-        }
-        return CommandQueue->instantiateViewModelInstanceNamed(
-            File,
-            ConvertViewModel.Get(),
-            ConvertInstance.Get(),
-            Listener);
+      *outRequestId = ++CurrentRequestId;
+      return CommandQueue->instantiateBlankViewModelInstance(
+          File,
+          ConvertViewModel.Get(),
+          Listener,
+          *outRequestId);
     }
+    return CommandQueue->instantiateBlankViewModelInstance(
+        File,
+        ConvertViewModel.Get(),
+        Listener);
+  }
 
-    rive::ViewModelInstanceHandle CreateDefaultViewModel(
-        rive::FileHandle File,
-        const FString& ViewModelName,
-        rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
+  rive::ViewModelInstanceHandle RefViewModel(
+      rive::ViewModelInstanceHandle RootViewModel,
+      const FString& Path,
+      rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
+      uint64_t* outRequestId = nullptr)
+  {
+    FTCHARToUTF8 ConvertPath(*Path);
+    if (outRequestId)
     {
-        FTCHARToUTF8 ConvertViewModel(*ViewModelName);
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->instantiateDefaultViewModelInstance(
-                File,
-                ConvertViewModel.Get(),
-                Listener,
-                *outRequestId);
-        }
-        return CommandQueue->instantiateDefaultViewModelInstance(
-            File,
-            ConvertViewModel.Get(),
-            Listener);
+      *outRequestId = ++CurrentRequestId;
+      return CommandQueue->referenceNestedViewModelInstance(
+          RootViewModel,
+          ConvertPath.Get(),
+          Listener,
+          *outRequestId);
     }
 
-    rive::ViewModelInstanceHandle CreateDefaultViewModelForArtboard(
-        rive::FileHandle File,
-        rive::ArtboardHandle Artboard,
-        rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
+    return CommandQueue->referenceNestedViewModelInstance(
+        RootViewModel,
+        ConvertPath.Get(),
+        Listener);
+  }
+
+  // Create a render image from a given UTexture. If the image already exists,
+  // the callback is called instantly and -1 is passed as the request id.
+  // Otherwise a value > 0 is returned and the callback happens later on the
+  // game thread with the valid handle.
+  rive::RenderImageHandle CreateRenderImage(
+      UTexture*,
+      uint64_t* outRequestId = nullptr);
+
+  rive::BlobAssetHandle CreateBlobAsset(
+      const TArray<uint8>& Bytes,
+      uint64_t* outRequestId = nullptr)
+  {
+    std::vector<uint8_t> BlobBytes(
+        Bytes.GetData(),
+        Bytes.GetData() + Bytes.Num());
+    if (outRequestId)
     {
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->instantiateDefaultViewModelInstance(
-                File,
-                Artboard,
-                Listener,
-                *outRequestId);
-        }
-        return CommandQueue->instantiateDefaultViewModelInstance(File,
-                                                                 Artboard,
-                                                                 Listener);
+      *outRequestId = ++CurrentRequestId;
+      return CommandQueue->decodeBlob(
+          MoveTemp(BlobBytes),
+          nullptr,
+          *outRequestId);
     }
+    return CommandQueue->decodeBlob(
+        MoveTemp(BlobBytes),
+        nullptr,
+        ++CurrentRequestId);
+  }
 
-    rive::ViewModelInstanceHandle CreateBlankViewModel(
-        rive::FileHandle File,
-        const FString& ViewModelName,
-        rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
+  uint64_t GetPropertyValue(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      rive::DataType Type)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    switch (Type)
     {
-        FTCHARToUTF8 ConvertViewModel(*ViewModelName);
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->instantiateBlankViewModelInstance(
-                File,
-                ConvertViewModel.Get(),
-                Listener,
-                *outRequestId);
-        }
-        return CommandQueue->instantiateBlankViewModelInstance(
-            File,
-            ConvertViewModel.Get(),
-            Listener);
+      case rive::DataType::boolean:
+        CommandQueue->requestViewModelInstanceBool(
+            ViewModel,
+            ConvertName.Get(),
+            ++CurrentRequestId);
+        break;
+      case rive::DataType::string:
+        CommandQueue->requestViewModelInstanceString(
+            ViewModel,
+            ConvertName.Get(),
+            ++CurrentRequestId);
+        break;
+      case rive::DataType::enumType:
+        CommandQueue->requestViewModelInstanceEnum(
+            ViewModel,
+            ConvertName.Get(),
+            ++CurrentRequestId);
+        break;
+      case rive::DataType::number:
+        CommandQueue->requestViewModelInstanceNumber(
+            ViewModel,
+            ConvertName.Get(),
+            ++CurrentRequestId);
+        break;
+      case rive::DataType::color:
+        CommandQueue->requestViewModelInstanceColor(
+            ViewModel,
+            ConvertName.Get(),
+            ++CurrentRequestId);
+        break;
+      case rive::DataType::none:
+      case rive::DataType::list:
+      case rive::DataType::trigger:
+      case rive::DataType::viewModel:
+      case rive::DataType::integer:
+      case rive::DataType::symbolListIndex:
+      case rive::DataType::assetImage:
+      case rive::DataType::assetBlob:
+      case rive::DataType::artboard:
+        return -1;
     }
+    return CurrentRequestId;
+  }
 
-    rive::ViewModelInstanceHandle RefViewModel(
-        rive::ViewModelInstanceHandle RootViewModel,
-        const FString& Path,
-        rive::CommandQueue::ViewModelInstanceListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
+  uint64_t GetPropertyListSize(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->requestViewModelInstanceListSize(
+        ViewModel,
+        ConvertName.Get(),
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SubscribeToProperty(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      rive::DataType Type)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->subscribeToViewModelProperty(
+        ViewModel,
+        ConvertName.Get(),
+        Type,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t UnsubscribeFromProperty(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      rive::DataType Type)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->unsubscribeToViewModelProperty(
+        ViewModel,
+        ConvertName.Get(),
+        Type,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SetViewModelString(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      const FString& Value)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    FTCHARToUTF8 ConvertValue(*Value);
+    CommandQueue->setViewModelInstanceString(
+        ViewModel,
+        ConvertName.Get(),
+        ConvertValue.Get(),
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SetViewModelNumber(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      float Value)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->setViewModelInstanceNumber(
+        ViewModel,
+        ConvertName.Get(),
+        Value,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SetViewModelBool(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      bool Value)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->setViewModelInstanceBool(
+        ViewModel,
+        ConvertName.Get(),
+        Value,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SetViewModelTrigger(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->fireViewModelTrigger(
+        ViewModel,
+        ConvertName.Get(),
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SetViewModelColor(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      FLinearColor Value)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    rive::ColorInt Color = rive::colorARGB(
+        Value.A * 255,
+        Value.R * 255,
+        Value.G * 255,
+        Value.B * 255);
+    CommandQueue->setViewModelInstanceColor(
+        ViewModel,
+        ConvertName.Get(),
+        Color,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SetViewModelEnum(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      const FString& Value)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    FTCHARToUTF8 ConvertValue(*Value);
+    CommandQueue->setViewModelInstanceEnum(
+        ViewModel,
+        ConvertName.Get(),
+        ConvertValue.Get(),
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SetViewModelImage(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      rive::RenderImageHandle Value)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->setViewModelInstanceImage(
+        ViewModel,
+        ConvertName.Get(),
+        Value,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SetViewModelImage(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      UTexture* Value);
+
+  uint64_t SetViewModelBlob(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      rive::BlobAssetHandle Value)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->setViewModelInstanceBlob(
+        ViewModel,
+        ConvertName.Get(),
+        Value,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SetViewModelViewModel(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      rive::ViewModelInstanceHandle Value)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->setViewModelInstanceNestedViewModel(
+        ViewModel,
+        ConvertName.Get(),
+        Value,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t SetViewModelArtboard(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      rive::ArtboardHandle Value)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->setViewModelInstanceArtboard(
+        ViewModel,
+        ConvertName.Get(),
+        Value,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t AppendViewModelList(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Path,
+      rive::ViewModelInstanceHandle ToAppend)
+  {
+    FTCHARToUTF8 ConvertPath(*Path);
+    CommandQueue->appendViewModelInstanceListViewModel(
+        ViewModel,
+        ConvertPath.Get(),
+        ToAppend,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t InsertViewModelList(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Path,
+      rive::ViewModelInstanceHandle ToInsert,
+      int32_t Index)
+  {
+    FTCHARToUTF8 ConvertPath(*Path);
+    CommandQueue->insertViewModelInstanceListViewModel(
+        ViewModel,
+        ConvertPath.Get(),
+        ToInsert,
+        Index,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t RemoveViewModelList(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Path,
+      int32_t Index)
+  {
+    FTCHARToUTF8 ConvertPath(*Path);
+    CommandQueue->removeViewModelInstanceListViewModel(
+        ViewModel,
+        ConvertPath.Get(),
+        Index,
+        nullptr,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t ClearViewModelList(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Path)
+  {
+    FTCHARToUTF8 ConvertPath(*Path);
+    CommandQueue->requestViewModelInstanceListClear(
+        ViewModel,
+        ConvertPath.Get(),
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t RemoveViewModelList(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Path,
+      rive::ViewModelInstanceHandle viewModelToRemove)
+  {
+    FTCHARToUTF8 ConvertPath(*Path);
+    CommandQueue->removeViewModelInstanceListViewModel(
+        ViewModel,
+        ConvertPath.Get(),
+        INDEX_NONE /*= -1*/,
+        viewModelToRemove,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t DestroyArtboard(rive::ArtboardHandle Artboard)
+  {
+    CommandQueue->deleteArtboard(Artboard, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t DestroyViewModel(rive::ViewModelInstanceHandle ViewModel)
+  {
+    CommandQueue->deleteViewModelInstance(ViewModel, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t DestroyBlob(rive::BlobAssetHandle Blob)
+  {
+    CommandQueue->deleteBlob(Blob, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  rive::StateMachineHandle CreateDefaultStateMachine(
+      rive::ArtboardHandle Artboard,
+      rive::CommandQueue::StateMachineListener* Listener = nullptr,
+      uint64_t* outRequestId = nullptr)
+  {
+    if (outRequestId)
     {
-        FTCHARToUTF8 ConvertPath(*Path);
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->referenceNestedViewModelInstance(
-                RootViewModel,
-                ConvertPath.Get(),
-                Listener,
-                *outRequestId);
-        }
-
-        return CommandQueue->referenceNestedViewModelInstance(RootViewModel,
-                                                              ConvertPath.Get(),
-                                                              Listener);
+      *outRequestId = ++CurrentRequestId;
+      return CommandQueue->instantiateDefaultStateMachine(
+          Artboard,
+          Listener,
+          *outRequestId);
     }
+    return CommandQueue->instantiateDefaultStateMachine(Artboard, Listener);
+  }
 
-    // Create a render image from a given UTexture. If the image already exists,
-    // the callback is called instantly and -1 is passed as the request id.
-    // Otherwise a value > 0 is returned and the callback happens later on the
-    // game thread with the valid handle.
-    rive::RenderImageHandle CreateRenderImage(UTexture*,
-                                              uint64_t* outRequestId = nullptr);
-
-    rive::BlobAssetHandle CreateBlobAsset(const TArray<uint8>& Bytes,
-                                          uint64_t* outRequestId = nullptr)
+  rive::StateMachineHandle CreateStateMachine(
+      rive::ArtboardHandle Artboard,
+      const FString& StateMachineName,
+      rive::CommandQueue::StateMachineListener* Listener = nullptr,
+      uint64_t* outRequestId = nullptr)
+  {
+    FTCHARToUTF8 Convert(*StateMachineName);
+    if (outRequestId)
     {
-        std::vector<uint8_t> BlobBytes(Bytes.GetData(),
-                                       Bytes.GetData() + Bytes.Num());
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->decodeBlob(MoveTemp(BlobBytes),
-                                            nullptr,
-                                            *outRequestId);
-        }
-        return CommandQueue->decodeBlob(MoveTemp(BlobBytes),
-                                        nullptr,
-                                        ++CurrentRequestId);
+      *outRequestId = ++CurrentRequestId;
+      return CommandQueue->instantiateStateMachineNamed(
+          Artboard,
+          Convert.Get(),
+          Listener,
+          *outRequestId);
     }
+    return CommandQueue->instantiateStateMachineNamed(
+        Artboard,
+        Convert.Get(),
+        Listener);
+  }
 
-    uint64_t GetPropertyValue(rive::ViewModelInstanceHandle ViewModel,
-                              const FString& Name,
-                              rive::DataType Type)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        switch (Type)
-        {
-            case rive::DataType::boolean:
-                CommandQueue->requestViewModelInstanceBool(ViewModel,
-                                                           ConvertName.Get(),
-                                                           ++CurrentRequestId);
-                break;
-            case rive::DataType::string:
-                CommandQueue->requestViewModelInstanceString(
-                    ViewModel,
-                    ConvertName.Get(),
-                    ++CurrentRequestId);
-                break;
-            case rive::DataType::enumType:
-                CommandQueue->requestViewModelInstanceEnum(ViewModel,
-                                                           ConvertName.Get(),
-                                                           ++CurrentRequestId);
-                break;
-            case rive::DataType::number:
-                CommandQueue->requestViewModelInstanceNumber(
-                    ViewModel,
-                    ConvertName.Get(),
-                    ++CurrentRequestId);
-                break;
-            case rive::DataType::color:
-                CommandQueue->requestViewModelInstanceColor(ViewModel,
-                                                            ConvertName.Get(),
-                                                            ++CurrentRequestId);
-                break;
-            case rive::DataType::none:
-            case rive::DataType::list:
-            case rive::DataType::trigger:
-            case rive::DataType::viewModel:
-            case rive::DataType::integer:
-            case rive::DataType::symbolListIndex:
-            case rive::DataType::assetImage:
-            case rive::DataType::assetBlob:
-            case rive::DataType::artboard:
-                return -1;
-        }
-        return CurrentRequestId;
-    }
+  uint64_t StateMachineMouseMove(
+      rive::StateMachineHandle Handle,
+      rive::CommandQueue::PointerEvent Event)
+  {
+    CommandQueue->pointerMove(Handle, Event, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t GetPropertyListSize(rive::ViewModelInstanceHandle ViewModel,
-                                 const FString& Name)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        CommandQueue->requestViewModelInstanceListSize(ViewModel,
-                                                       ConvertName.Get(),
-                                                       ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t StateMachineMouseDown(
+      rive::StateMachineHandle Handle,
+      rive::CommandQueue::PointerEvent Event)
+  {
+    CommandQueue->pointerDown(Handle, Event, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SubscribeToProperty(rive::ViewModelInstanceHandle ViewModel,
-                                 const FString& Name,
-                                 rive::DataType Type)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        CommandQueue->subscribeToViewModelProperty(ViewModel,
-                                                   ConvertName.Get(),
-                                                   Type,
-                                                   ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t StateMachineMouseOut(
+      rive::StateMachineHandle Handle,
+      rive::CommandQueue::PointerEvent Event)
+  {
+    CommandQueue->pointerExit(Handle, Event, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t UnsubscribeFromProperty(rive::ViewModelInstanceHandle ViewModel,
-                                     const FString& Name,
-                                     rive::DataType Type)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        CommandQueue->unsubscribeToViewModelProperty(ViewModel,
-                                                     ConvertName.Get(),
-                                                     Type,
-                                                     ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t StateMachineMouseUp(
+      rive::StateMachineHandle Handle,
+      rive::CommandQueue::PointerEvent Event)
+  {
+    CommandQueue->pointerUp(Handle, Event, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelString(rive::ViewModelInstanceHandle ViewModel,
-                                const FString& Name,
-                                const FString& Value)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        FTCHARToUTF8 ConvertValue(*Value);
-        CommandQueue->setViewModelInstanceString(ViewModel,
-                                                 ConvertName.Get(),
-                                                 ConvertValue.Get(),
-                                                 ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t StateMachineBindViewModel(
+      rive::StateMachineHandle Handle,
+      rive::ViewModelInstanceHandle ViewModel)
+  {
+    CommandQueue->bindViewModelInstance(Handle, ViewModel, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelNumber(rive::ViewModelInstanceHandle ViewModel,
-                                const FString& Name,
-                                float Value)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        CommandQueue->setViewModelInstanceNumber(ViewModel,
-                                                 ConvertName.Get(),
-                                                 Value,
-                                                 ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t DestroyStateMachine(rive::StateMachineHandle StateMachine)
+  {
+    CommandQueue->deleteStateMachine(StateMachine, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelBool(rive::ViewModelInstanceHandle ViewModel,
-                              const FString& Name,
-                              bool Value)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        CommandQueue->setViewModelInstanceBool(ViewModel,
-                                               ConvertName.Get(),
-                                               Value,
-                                               ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t RequestArtboardNames(rive::FileHandle FileHandle)
+  {
+    CommandQueue->requestArtboardNames(FileHandle, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelTrigger(rive::ViewModelInstanceHandle ViewModel,
-                                 const FString& Name)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        CommandQueue->fireViewModelTrigger(ViewModel,
-                                           ConvertName.Get(),
-                                           ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t RequestViewModelEnums(rive::FileHandle FileHandle)
+  {
+    CommandQueue->requestViewModelEnums(FileHandle, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelColor(rive::ViewModelInstanceHandle ViewModel,
-                               const FString& Name,
-                               FLinearColor Value)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        rive::ColorInt Color = rive::colorARGB(Value.A * 255,
-                                               Value.R * 255,
-                                               Value.G * 255,
-                                               Value.B * 255);
-        CommandQueue->setViewModelInstanceColor(ViewModel,
-                                                ConvertName.Get(),
-                                                Color,
-                                                ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t RequestViewModelNames(rive::FileHandle FileHandle)
+  {
+    CommandQueue->requestViewModelNames(FileHandle, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelEnum(rive::ViewModelInstanceHandle ViewModel,
-                              const FString& Name,
-                              const FString& Value)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        FTCHARToUTF8 ConvertValue(*Value);
-        CommandQueue->setViewModelInstanceEnum(ViewModel,
-                                               ConvertName.Get(),
-                                               ConvertValue.Get(),
-                                               ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t RequestViewModelProperties(
+      rive::FileHandle FileHandle,
+      const FString& ViewModelName)
+  {
+    FTCHARToUTF8 Convert(*ViewModelName);
+    CommandQueue->requestViewModelPropertyDefinitions(
+        FileHandle,
+        Convert.Get(),
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelImage(rive::ViewModelInstanceHandle ViewModel,
-                               const FString& Name,
-                               rive::RenderImageHandle Value)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        CommandQueue->setViewModelInstanceImage(ViewModel,
-                                                ConvertName.Get(),
-                                                Value,
-                                                ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t RequestViewModelProperties(
+      rive::FileHandle FileHandle,
+      const std::string& ViewModelName)
+  {
+    CommandQueue->requestViewModelPropertyDefinitions(
+        FileHandle,
+        ViewModelName,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelImage(rive::ViewModelInstanceHandle ViewModel,
-                               const FString& Name,
-                               UTexture* Value);
+  uint64_t RequestViewModelInstanceNames(
+      rive::FileHandle FileHandle,
+      const FString& ViewModelName)
+  {
+    FTCHARToUTF8 Convert(*ViewModelName);
+    CommandQueue->requestViewModelInstanceNames(
+        FileHandle,
+        Convert.Get(),
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelBlob(rive::ViewModelInstanceHandle ViewModel,
-                              const FString& Name,
-                              rive::BlobAssetHandle Value)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        CommandQueue->setViewModelInstanceBlob(ViewModel,
-                                               ConvertName.Get(),
-                                               Value,
-                                               ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t RequestViewModelInstanceNames(
+      rive::FileHandle FileHandle,
+      const std::string& ViewModelName)
+  {
+    CommandQueue->requestViewModelInstanceNames(
+        FileHandle,
+        ViewModelName,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelViewModel(rive::ViewModelInstanceHandle ViewModel,
-                                   const FString& Name,
-                                   rive::ViewModelInstanceHandle Value)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        CommandQueue->setViewModelInstanceNestedViewModel(ViewModel,
-                                                          ConvertName.Get(),
-                                                          Value,
-                                                          ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t RequestStateMachineNames(rive::ArtboardHandle ArtboardHandle)
+  {
+    CommandQueue->requestStateMachineNames(ArtboardHandle, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t SetViewModelArtboard(rive::ViewModelInstanceHandle ViewModel,
-                                  const FString& Name,
-                                  rive::ArtboardHandle Value)
-    {
-        FTCHARToUTF8 ConvertName(*Name);
-        CommandQueue->setViewModelInstanceArtboard(ViewModel,
-                                                   ConvertName.Get(),
-                                                   Value,
-                                                   ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  uint64_t RequestDefaultViewModelInfo(
+      rive::ArtboardHandle ArtboardHandle,
+      rive::FileHandle FileHandle)
+  {
+    CommandQueue->requestDefaultViewModelInfo(
+        ArtboardHandle,
+        FileHandle,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
 
-    uint64_t AppendViewModelList(rive::ViewModelInstanceHandle ViewModel,
-                                 const FString& Path,
-                                 rive::ViewModelInstanceHandle ToAppend)
-    {
-        FTCHARToUTF8 ConvertPath(*Path);
-        CommandQueue->appendViewModelInstanceListViewModel(ViewModel,
-                                                           ConvertPath.Get(),
-                                                           ToAppend,
-                                                           ++CurrentRequestId);
-        return CurrentRequestId;
-    }
+  // Queues a callback to be called at the end of the frame. This is more
+  // efficient and should be preferred over RunOnceImmediate where possible.
+  void RunOnce(ServerSideCallback Callback);
+  // Immediately sends a callback to the CommandServer to be run. This should
+  // be used when ordering is important.
+  void RunOnceImmediate(ServerSideCallback Callback);
+  // Request for State Machine advance
+  void AdvanceStateMachine(rive::StateMachineHandle, float AdvanceAmount);
+  // Enqueues a draw of the given Artboard.
+  void DrawArtboard(
+      TSharedPtr<FRiveRenderTarget> RenderTarget,
+      FDrawArtboardCommand);
+  // Enqueues a generic draw lambda.
+  void Draw(TSharedPtr<FRiveRenderTarget> RenderTarget, DirectDrawCallback);
 
-    uint64_t InsertViewModelList(rive::ViewModelInstanceHandle ViewModel,
-                                 const FString& Path,
-                                 rive::ViewModelInstanceHandle ToInsert,
-                                 int32_t Index)
-    {
-        FTCHARToUTF8 ConvertPath(*Path);
-        CommandQueue->insertViewModelInstanceListViewModel(ViewModel,
-                                                           ConvertPath.Get(),
-                                                           ToInsert,
-                                                           Index,
-                                                           ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RemoveViewModelList(rive::ViewModelInstanceHandle ViewModel,
-                                 const FString& Path,
-                                 int32_t Index)
-    {
-        FTCHARToUTF8 ConvertPath(*Path);
-        CommandQueue->removeViewModelInstanceListViewModel(ViewModel,
-                                                           ConvertPath.Get(),
-                                                           Index,
-                                                           nullptr,
-                                                           ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t ClearViewModelList(rive::ViewModelInstanceHandle ViewModel,
-                                const FString& Path)
-    {
-        FTCHARToUTF8 ConvertPath(*Path);
-        CommandQueue->requestViewModelInstanceListClear(ViewModel,
-                                                        ConvertPath.Get(),
-                                                        ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RemoveViewModelList(
-        rive::ViewModelInstanceHandle ViewModel,
-        const FString& Path,
-        rive::ViewModelInstanceHandle viewModelToRemove)
-    {
-        FTCHARToUTF8 ConvertPath(*Path);
-        CommandQueue->removeViewModelInstanceListViewModel(ViewModel,
-                                                           ConvertPath.Get(),
-                                                           INDEX_NONE /*= -1*/,
-                                                           viewModelToRemove,
-                                                           ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t DestroyArtboard(rive::ArtboardHandle Artboard)
-    {
-        CommandQueue->deleteArtboard(Artboard, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t DestroyViewModel(rive::ViewModelInstanceHandle ViewModel)
-    {
-        CommandQueue->deleteViewModelInstance(ViewModel, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t DestroyBlob(rive::BlobAssetHandle Blob)
-    {
-        CommandQueue->deleteBlob(Blob, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    rive::StateMachineHandle CreateDefaultStateMachine(
-        rive::ArtboardHandle Artboard,
-        rive::CommandQueue::StateMachineListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
-    {
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->instantiateDefaultStateMachine(Artboard,
-                                                                Listener,
-                                                                *outRequestId);
-        }
-        return CommandQueue->instantiateDefaultStateMachine(Artboard, Listener);
-    }
-
-    rive::StateMachineHandle CreateStateMachine(
-        rive::ArtboardHandle Artboard,
-        const FString& StateMachineName,
-        rive::CommandQueue::StateMachineListener* Listener = nullptr,
-        uint64_t* outRequestId = nullptr)
-    {
-        FTCHARToUTF8 Convert(*StateMachineName);
-        if (outRequestId)
-        {
-            *outRequestId = ++CurrentRequestId;
-            return CommandQueue->instantiateStateMachineNamed(Artboard,
-                                                              Convert.Get(),
-                                                              Listener,
-                                                              *outRequestId);
-        }
-        return CommandQueue->instantiateStateMachineNamed(Artboard,
-                                                          Convert.Get(),
-                                                          Listener);
-    }
-
-    uint64_t StateMachineMouseMove(rive::StateMachineHandle Handle,
-                                   rive::CommandQueue::PointerEvent Event)
-    {
-        CommandQueue->pointerMove(Handle, Event, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t StateMachineMouseDown(rive::StateMachineHandle Handle,
-                                   rive::CommandQueue::PointerEvent Event)
-    {
-        CommandQueue->pointerDown(Handle, Event, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t StateMachineMouseOut(rive::StateMachineHandle Handle,
-                                  rive::CommandQueue::PointerEvent Event)
-    {
-        CommandQueue->pointerExit(Handle, Event, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t StateMachineMouseUp(rive::StateMachineHandle Handle,
-                                 rive::CommandQueue::PointerEvent Event)
-    {
-        CommandQueue->pointerUp(Handle, Event, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t StateMachineBindViewModel(rive::StateMachineHandle Handle,
-                                       rive::ViewModelInstanceHandle ViewModel)
-    {
-        CommandQueue->bindViewModelInstance(Handle,
-                                            ViewModel,
-                                            ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t DestroyStateMachine(rive::StateMachineHandle StateMachine)
-    {
-        CommandQueue->deleteStateMachine(StateMachine, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RequestArtboardNames(rive::FileHandle FileHandle)
-    {
-        CommandQueue->requestArtboardNames(FileHandle, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RequestViewModelEnums(rive::FileHandle FileHandle)
-    {
-        CommandQueue->requestViewModelEnums(FileHandle, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RequestViewModelNames(rive::FileHandle FileHandle)
-    {
-        CommandQueue->requestViewModelNames(FileHandle, ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RequestViewModelProperties(rive::FileHandle FileHandle,
-                                        const FString& ViewModelName)
-    {
-        FTCHARToUTF8 Convert(*ViewModelName);
-        CommandQueue->requestViewModelPropertyDefinitions(FileHandle,
-                                                          Convert.Get(),
-                                                          ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RequestViewModelProperties(rive::FileHandle FileHandle,
-                                        const std::string& ViewModelName)
-    {
-        CommandQueue->requestViewModelPropertyDefinitions(FileHandle,
-                                                          ViewModelName,
-                                                          ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RequestViewModelInstanceNames(rive::FileHandle FileHandle,
-                                           const FString& ViewModelName)
-    {
-        FTCHARToUTF8 Convert(*ViewModelName);
-        CommandQueue->requestViewModelInstanceNames(FileHandle,
-                                                    Convert.Get(),
-                                                    ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RequestViewModelInstanceNames(rive::FileHandle FileHandle,
-                                           const std::string& ViewModelName)
-    {
-        CommandQueue->requestViewModelInstanceNames(FileHandle,
-                                                    ViewModelName,
-                                                    ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RequestStateMachineNames(rive::ArtboardHandle ArtboardHandle)
-    {
-        CommandQueue->requestStateMachineNames(ArtboardHandle,
-                                               ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    uint64_t RequestDefaultViewModelInfo(rive::ArtboardHandle ArtboardHandle,
-                                         rive::FileHandle FileHandle)
-    {
-        CommandQueue->requestDefaultViewModelInfo(ArtboardHandle,
-                                                  FileHandle,
-                                                  ++CurrentRequestId);
-        return CurrentRequestId;
-    }
-
-    // Queues a callback to be called at the end of the frame. This is more
-    // efficient and should be preferred over RunOnceImmediate where possible.
-    void RunOnce(ServerSideCallback Callback);
-    // Immediately sends a callback to the CommandServer to be run. This should
-    // be used when ordering is important.
-    void RunOnceImmediate(ServerSideCallback Callback);
-    // Request for State Machine advance
-    void AdvanceStateMachine(rive::StateMachineHandle, float AdvanceAmount);
-    // Enqueues a draw of the given Artboard.
-    void DrawArtboard(TSharedPtr<FRiveRenderTarget> RenderTarget,
-                      FDrawArtboardCommand);
-    // Enqueues a generic draw lambda.
-    void Draw(TSharedPtr<FRiveRenderTarget> RenderTarget, DirectDrawCallback);
-
-    // Send all command to the render server.
-    void Execute();
+  // Send all command to the render server.
+  void Execute();
 
 private:
-    FRiveCommandSet& FindOrAddDrawCommands(
-        TSharedPtr<FRiveRenderTarget> RenderTarget)
-    {
-        auto& RenderTargetDrawCommands = DrawCommands.FindOrAdd(RenderTarget);
-        if (RenderTargetDrawCommands.DrawKey == RIVE_NULL_HANDLE)
-            RenderTargetDrawCommands.DrawKey = CommandQueue->createDrawKey();
-        return RenderTargetDrawCommands;
-    }
+  FRiveCommandSet& FindOrAddDrawCommands(
+      TSharedPtr<FRiveRenderTarget> RenderTarget)
+  {
+    auto& RenderTargetDrawCommands = DrawCommands.FindOrAdd(RenderTarget);
+    if (RenderTargetDrawCommands.DrawKey == RIVE_NULL_HANDLE)
+      RenderTargetDrawCommands.DrawKey = CommandQueue->createDrawKey();
+    return RenderTargetDrawCommands;
+  }
 
-    static void DrawArtboard(const FDrawArtboardCommand& DrawCommand,
-                             rive::CommandServer*,
-                             rive::Renderer* Renderer);
+  static void DrawArtboard(
+      const FDrawArtboardCommand& DrawCommand,
+      rive::CommandServer*,
+      rive::Renderer* Renderer);
 
-    // Builds the factory that creates a ScriptingContext routing a loaded
-    // file's Lua console/error output to LogRiveScripting. Empty when the
-    // runtime was built without scripting.
-    static rive::ScriptingContextFactory MakeScriptingLogContextFactory();
+  // Builds the factory that creates a ScriptingContext routing a loaded
+  // file's Lua console/error output to LogRiveScripting. Empty when the
+  // runtime was built without scripting.
+  static rive::ScriptingContextFactory MakeScriptingLogContextFactory();
 
-    rive::rcp<rive::CommandQueue> CommandQueue;
-    // Array of commands that have been enqueued that are not draw commands i.e.
-    // they do not need a begin frame / flush.
-    TArray<ServerSideCallback> Commands;
-    // Map containing draw commands per render target. For performance, we may
-    // want to consider std::unordered_map, however this lets us play nicely
-    // with UE's garbage collection
-    TMap<TSharedPtr<FRiveRenderTarget>, FRiveCommandSet> DrawCommands;
+  rive::rcp<rive::CommandQueue> CommandQueue;
+  // Array of commands that have been enqueued that are not draw commands i.e.
+  // they do not need a begin frame / flush.
+  TArray<ServerSideCallback> Commands;
+  // Map containing draw commands per render target. For performance, we may
+  // want to consider std::unordered_map, however this lets us play nicely
+  // with UE's garbage collection
+  TMap<TSharedPtr<FRiveRenderTarget>, FRiveCommandSet> DrawCommands;
 
-    // Used for data binding external UTextures.
-    TMap<TStrongObjectPtr<UTexture>, rive::RenderImageHandle> ExternalImages;
-    // This is used for several requests at the same time for the same image.
-    // This way all callbacks happen eventually
-    TMap<TStrongObjectPtr<UTexture>,
-         TArray<TFunction<void(rive::RenderImageHandle, uint64_t)>>>
-        ExternalImageCallbackQueue;
+  // Used for data binding external UTextures.
+  TMap<TStrongObjectPtr<UTexture>, rive::RenderImageHandle> ExternalImages;
+  // This is used for several requests at the same time for the same image.
+  // This way all callbacks happen eventually
+  TMap<
+      TStrongObjectPtr<UTexture>,
+      TArray<TFunction<void(rive::RenderImageHandle, uint64_t)>>>
+      ExternalImageCallbackQueue;
 
-    uint64_t CurrentRequestId = 0;
+  uint64_t CurrentRequestId = 0;
 };

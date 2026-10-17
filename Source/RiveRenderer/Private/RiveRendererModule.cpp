@@ -19,61 +19,61 @@
 
 struct FRiveCommandBuilder& IRiveRendererModule::GetCommandBuilder()
 {
-    FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-    check(RiveRenderer);
-    return RiveRenderer->GetCommandBuilder();
+  FRiveRenderer* RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+  check(RiveRenderer);
+  return RiveRenderer->GetCommandBuilder();
 }
 
 void FRiveRendererModule::StartupModule()
 {
-    RIVE_DEBUG_FUNCTION_INDENT;
-    check(GDynamicRHI);
+  RIVE_DEBUG_FUNCTION_INDENT;
+  check(GDynamicRHI);
 
-    RiveRenderer = nullptr;
-    StartupRiveRenderer();
+  RiveRenderer = nullptr;
+  StartupRiveRenderer();
 }
 
 void FRiveRendererModule::ShutdownModule()
 {
-    if (RiveRenderer)
-    {
-        RiveRenderer.Reset();
-    }
+  if (RiveRenderer)
+  {
+    RiveRenderer.Reset();
+  }
 }
 
 void FRiveRendererModule::StartupRiveRenderer()
 {
-    if (GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Null)
-    {
-        return;
-    }
+  if (GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Null)
+  {
+    return;
+  }
 
-    // When the running platform binds resources bindlessly (e.g. Metal's Shader
-    // Converter), the Ore shaders were cooked with UE's bindless rewrite, so
-    // their textures/SRVs/samplers must be bound through the bindless parameter
-    // setters at their reflected root-constant offsets rather than by register
-    // slot. ERHIBindlessConfiguration::All matches the cook-time condition
-    // (ShouldCompileWithBindlessEnabled) for our non-ray-tracing global
-    // shaders. See OrePlatformRHI.h and RiveOreShaderHandler's register-strip.
+  // When the running platform binds resources bindlessly (e.g. Metal's Shader
+  // Converter), the Ore shaders were cooked with UE's bindless rewrite, so
+  // their textures/SRVs/samplers must be bound through the bindless parameter
+  // setters at their reflected root-constant offsets rather than by register
+  // slot. ERHIBindlessConfiguration::All matches the cook-time condition
+  // (ShouldCompileWithBindlessEnabled) for our non-ray-tracing global
+  // shaders. See OrePlatformRHI.h and RiveOreShaderHandler's register-strip.
 #if ENGINE_MAJOR_VERSION > 5 ||                                                \
     (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
-    if (FShaderPlatformConfig::GetBindlessConfiguration(
-            GMaxRHIShaderPlatform) == ERHIBindlessConfiguration::All)
+  if (FShaderPlatformConfig::GetBindlessConfiguration(GMaxRHIShaderPlatform) ==
+      ERHIBindlessConfiguration::All)
 #elif ENGINE_MAJOR_VERSION > 5 ||                                              \
     (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7)
-    if (RHIGetRuntimeBindlessConfiguration(GMaxRHIShaderPlatform) ==
-        ERHIBindlessConfiguration::All)
+  if (RHIGetRuntimeBindlessConfiguration(GMaxRHIShaderPlatform) ==
+      ERHIBindlessConfiguration::All)
 #else
-    if (RHIGetRuntimeBindlessResourcesConfiguration(GMaxRHIShaderPlatform) ==
-        ERHIBindlessConfiguration::AllShaders)
+  if (RHIGetRuntimeBindlessResourcesConfiguration(GMaxRHIShaderPlatform) ==
+      ERHIBindlessConfiguration::AllShaders)
 #endif
-    {
-        GRHIOreNeedsReflectionSlotRemap = true;
-        GRHIOreNeedsBindlessParameters = true;
-    }
+  {
+    GRHIOreNeedsReflectionSlotRemap = true;
+    GRHIOreNeedsBindlessParameters = true;
+  }
 
-    UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI."));
-    RiveRenderer = MakeUnique<FRiveRenderer>();
+  UE_LOG(LogRiveRenderer, Display, TEXT("Rive running on RHI."));
+  RiveRenderer = MakeUnique<FRiveRenderer>();
 }
 
 #undef LOCTEXT_NAMESPACE

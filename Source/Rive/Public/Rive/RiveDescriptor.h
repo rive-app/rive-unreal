@@ -15,48 +15,48 @@ USTRUCT(BlueprintType)
 struct FRiveDescriptor
 {
 public:
-    GENERATED_BODY()
+  GENERATED_BODY()
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    TObjectPtr<URiveFile> RiveFile;
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+  TObjectPtr<URiveFile> RiveFile;
 
-    // Artboard Name is used if specified, otherwise ArtboardIndex will always
-    // be used
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    FString ArtboardName;
+  // Artboard Name is used if specified, otherwise ArtboardIndex will always
+  // be used
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+  FString ArtboardName;
 
-    // StateMachine name to pass into our default artboard instance
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    FString StateMachineName;
+  // StateMachine name to pass into our default artboard instance
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+  FString StateMachineName;
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    bool bAutoBindDefaultViewModel = true;
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+  bool bAutoBindDefaultViewModel = true;
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    ERiveFitType FitType = ERiveFitType::Contain;
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+  ERiveFitType FitType = ERiveFitType::Contain;
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    ERiveAlignment Alignment = ERiveAlignment::Center;
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+  ERiveAlignment Alignment = ERiveAlignment::Center;
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    float ScaleFactor = 1.0f;
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+  float ScaleFactor = 1.0f;
 
-    // If true, use a combination of ScaleFactor * DPI when set to Layout Fit
-    // Type.
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
-    bool bScaleLayoutByDPI = false;
+  // If true, use a combination of ScaleFactor * DPI when set to Layout Fit
+  // Type.
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Rive)
+  bool bScaleLayoutByDPI = false;
 
-    friend FArchive& operator<<(FArchive& Ar, FRiveDescriptor& Struct)
-    {
-        Ar << Struct.RiveFile;
-        Ar << Struct.ArtboardName;
-        Ar << Struct.StateMachineName;
-        Ar << Struct.bAutoBindDefaultViewModel;
-        Ar << Struct.FitType;
-        Ar << Struct.Alignment;
-        Ar << Struct.ScaleFactor;
-        Ar << Struct.bScaleLayoutByDPI;
+  friend FArchive& operator<<(FArchive& Ar, FRiveDescriptor& Struct)
+  {
+    Ar << Struct.RiveFile;
+    Ar << Struct.ArtboardName;
+    Ar << Struct.StateMachineName;
+    Ar << Struct.bAutoBindDefaultViewModel;
+    Ar << Struct.FitType;
+    Ar << Struct.Alignment;
+    Ar << Struct.ScaleFactor;
+    Ar << Struct.bScaleLayoutByDPI;
 
-        return Ar;
-    }
+    return Ar;
+  }
 };

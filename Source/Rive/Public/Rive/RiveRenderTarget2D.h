@@ -16,58 +16,60 @@ class FRiveRenderTarget;
 UCLASS()
 class RIVE_API URiveRenderTarget2D : public UTextureRenderTarget2D
 {
-    GENERATED_BODY()
+  GENERATED_BODY()
 public:
-    UPROPERTY(EditAnywhere,
-              BlueprintReadOnly,
-              Category = Rive,
-              AssetRegistrySearchable)
-    FRiveDescriptor RiveDescriptor;
+  UPROPERTY(
+      EditAnywhere,
+      BlueprintReadOnly,
+      Category = Rive,
+      AssetRegistrySearchable)
+  FRiveDescriptor RiveDescriptor;
 
-    UPROPERTY(EditAnywhere,
-              BlueprintReadOnly,
-              Category = Rive,
-              AssetRegistrySearchable)
-    bool bShouldClear = true;
+  UPROPERTY(
+      EditAnywhere,
+      BlueprintReadOnly,
+      Category = Rive,
+      AssetRegistrySearchable)
+  bool bShouldClear = true;
 
-    virtual void PostLoad() override;
+  virtual void PostLoad() override;
 
-    UFUNCTION(BlueprintCallable, Category = "Rive|Testing")
-    void DrawTestClear();
+  UFUNCTION(BlueprintCallable, Category = "Rive|Testing")
+  void DrawTestClear();
 
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Rive")
-    URiveArtboard* GetArtboard() const { return RiveArtboard; }
+  UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Rive")
+  URiveArtboard* GetArtboard() const { return RiveArtboard; }
 
-    URiveRenderTarget2D();
+  URiveRenderTarget2D();
 
-    void InitRiveRenderTarget2D();
+  void InitRiveRenderTarget2D();
 
-    // Draws the artboard selected by RiveDescriptor
-    UFUNCTION(BlueprintCallable, Category = "Rive | RenderTarget")
-    void Draw();
+  // Draws the artboard selected by RiveDescriptor
+  UFUNCTION(BlueprintCallable, Category = "Rive | RenderTarget")
+  void Draw();
 
-    void Draw(DirectDrawCallback);
+  void Draw(DirectDrawCallback);
 
-    virtual uint32 CalcTextureMemorySizeEnum(
-        ETextureMipCount Enum) const override;
-    virtual ETextureRenderTargetSampleCount GetSampleCount() const override;
+  virtual uint32 CalcTextureMemorySizeEnum(
+      ETextureMipCount Enum) const override;
+  virtual ETextureRenderTargetSampleCount GetSampleCount() const override;
 
 #if WITH_EDITOR
-    virtual void PostEditChangeProperty(
-        FPropertyChangedEvent& PropertyChangedEvent) override;
+  virtual void PostEditChangeProperty(
+      FPropertyChangedEvent& PropertyChangedEvent) override;
 
-    virtual bool CanEditChange(const FProperty* InProperty) const override;
+  virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif // WITH_EDITOR
 
-    void EnforceLinearColorSpace();
+  void EnforceLinearColorSpace();
 
 private:
-    void UpdateArtboardSize();
-    // Draw the given Artboard using Descriptor for fit and alignment
-    void Draw(URiveArtboard* InArtboard, FRiveDescriptor InDescriptor);
+  void UpdateArtboardSize();
+  // Draw the given Artboard using Descriptor for fit and alignment
+  void Draw(URiveArtboard* InArtboard, FRiveDescriptor InDescriptor);
 
-    UPROPERTY(Transient)
-    TObjectPtr<URiveArtboard> RiveArtboard = nullptr;
-    // Internal render target to rive
-    TSharedPtr<FRiveRenderTarget> RenderTarget;
+  UPROPERTY(Transient)
+  TObjectPtr<URiveArtboard> RiveArtboard = nullptr;
+  // Internal render target to rive
+  TSharedPtr<FRiveRenderTarget> RenderTarget;
 };

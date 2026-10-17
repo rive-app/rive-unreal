@@ -11,33 +11,35 @@
 // Sets default values for this component's properties
 URiveRenderTargetUpdater::URiveRenderTargetUpdater()
 {
-    // Set this component to be initialized when the game starts, and to be
-    // ticked every frame.  You can turn these features off to improve
-    // performance if you don't need them.
-    PrimaryComponentTick.bCanEverTick = true;
+  // Set this component to be initialized when the game starts, and to be
+  // ticked every frame.  You can turn these features off to improve
+  // performance if you don't need them.
+  PrimaryComponentTick.bCanEverTick = true;
 }
 
 // Called when the game starts
 void URiveRenderTargetUpdater::BeginPlay()
 {
-    Super::BeginPlay();
-    if (bEnableMouseEvents)
-    {
-        auto PlayerController =
-            UGameplayStatics::GetPlayerController(this, PlayerIndex);
+  Super::BeginPlay();
+  if (bEnableMouseEvents)
+  {
+    auto PlayerController = UGameplayStatics::GetPlayerController(
+        this,
+        PlayerIndex);
 
-        GetOwner()->OnBeginCursorOver.AddDynamic(
-            this,
-            &URiveRenderTargetUpdater::OnMouseEnter);
-        GetOwner()->OnEndCursorOver.AddDynamic(
-            this,
-            &URiveRenderTargetUpdater::OnMouseLeave);
-        GetOwner()->OnClicked.AddDynamic(
-            this,
-            &URiveRenderTargetUpdater::OnMouseDown);
-        GetOwner()->OnReleased.AddDynamic(this,
-                                          &URiveRenderTargetUpdater::OnMouseUp);
-    }
+    GetOwner()->OnBeginCursorOver.AddDynamic(
+        this,
+        &URiveRenderTargetUpdater::OnMouseEnter);
+    GetOwner()->OnEndCursorOver.AddDynamic(
+        this,
+        &URiveRenderTargetUpdater::OnMouseLeave);
+    GetOwner()->OnClicked.AddDynamic(
+        this,
+        &URiveRenderTargetUpdater::OnMouseDown);
+    GetOwner()->OnReleased.AddDynamic(
+        this,
+        &URiveRenderTargetUpdater::OnMouseUp);
+  }
 }
 
 // Called every frame
@@ -46,125 +48,123 @@ void URiveRenderTargetUpdater::TickComponent(
     ELevelTick TickType,
     FActorComponentTickFunction* ThisTickFunction)
 {
-    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+  Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    if (IsValid(RenderTargetToUpdate))
+  if (IsValid(RenderTargetToUpdate))
+  {
+    if (bAutoDrawRenderTarget)
     {
-        if (bAutoDrawRenderTarget)
-        {
-            RenderTargetToUpdate->Draw();
-        }
-
-        if (bEnableMouseEvents && bIsMouseWithinView)
-        {
-            FVector2D UV;
-            if (LineTraceWithUVResult(UV))
-            {
-                auto Artboard = RenderTargetToUpdate->GetArtboard();
-                Artboard->PointerMove(RenderTargetToUpdate->RiveDescriptor, UV);
-            }
-        }
+      RenderTargetToUpdate->Draw();
     }
+
+    if (bEnableMouseEvents && bIsMouseWithinView)
+    {
+      FVector2D UV;
+      if (LineTraceWithUVResult(UV))
+      {
+        auto Artboard = RenderTargetToUpdate->GetArtboard();
+        Artboard->PointerMove(RenderTargetToUpdate->RiveDescriptor, UV);
+      }
+    }
+  }
 }
 
 void URiveRenderTargetUpdater::OnMouseEnter(AActor* TouchedActor)
 {
-    bIsMouseWithinView = true;
+  bIsMouseWithinView = true;
 }
 
 void URiveRenderTargetUpdater::OnMouseLeave(AActor* TouchedActor)
 {
-    if (bIsMouseWithinView)
+  if (bIsMouseWithinView)
+  {
+    FVector2D UV;
+    if (LineTraceWithUVResult(UV))
     {
-        FVector2D UV;
-        if (LineTraceWithUVResult(UV))
-        {
-            auto Artboard = RenderTargetToUpdate->GetArtboard();
-            Artboard->PointerExit(RenderTargetToUpdate->RiveDescriptor, UV);
-        }
+      auto Artboard = RenderTargetToUpdate->GetArtboard();
+      Artboard->PointerExit(RenderTargetToUpdate->RiveDescriptor, UV);
     }
-    bIsMouseWithinView = false;
+  }
+  bIsMouseWithinView = false;
 }
 
-void URiveRenderTargetUpdater::OnMouseUp(AActor* TouchedActor,
-                                         FKey ButtonPressed)
+void URiveRenderTargetUpdater::OnMouseUp(
+    AActor* TouchedActor,
+    FKey ButtonPressed)
 {
-    ERivePointerButton Button = ERivePointerButton::Primary;
-    if (RiveKeyToPointerButton(ButtonPressed, Button))
+  ERivePointerButton Button = ERivePointerButton::Primary;
+  if (RiveKeyToPointerButton(ButtonPressed, Button))
+  {
+    FVector2D UV;
+    if (LineTraceWithUVResult(UV))
     {
-        FVector2D UV;
-        if (LineTraceWithUVResult(UV))
-        {
-            auto Artboard = RenderTargetToUpdate->GetArtboard();
-            Artboard->PointerUp(RenderTargetToUpdate->RiveDescriptor,
-                                UV,
-                                Button);
-        }
+      auto Artboard = RenderTargetToUpdate->GetArtboard();
+      Artboard->PointerUp(RenderTargetToUpdate->RiveDescriptor, UV, Button);
     }
+  }
 }
 
-void URiveRenderTargetUpdater::OnMouseDown(AActor* TouchedActor,
-                                           FKey ButtonPressed)
+void URiveRenderTargetUpdater::OnMouseDown(
+    AActor* TouchedActor,
+    FKey ButtonPressed)
 {
-    // Which keys arrive here is set by the project's click-event bindings;
-    // by default only the left button is bound.
-    ERivePointerButton Button = ERivePointerButton::Primary;
-    if (RiveKeyToPointerButton(ButtonPressed, Button))
+  // Which keys arrive here is set by the project's click-event bindings;
+  // by default only the left button is bound.
+  ERivePointerButton Button = ERivePointerButton::Primary;
+  if (RiveKeyToPointerButton(ButtonPressed, Button))
+  {
+    FVector2D UV;
+    if (LineTraceWithUVResult(UV))
     {
-        FVector2D UV;
-        if (LineTraceWithUVResult(UV))
-        {
-            auto Artboard = RenderTargetToUpdate->GetArtboard();
-            Artboard->PointerDown(RenderTargetToUpdate->RiveDescriptor,
-                                  UV,
-                                  Button);
-        }
+      auto Artboard = RenderTargetToUpdate->GetArtboard();
+      Artboard->PointerDown(RenderTargetToUpdate->RiveDescriptor, UV, Button);
     }
+  }
 }
 
 bool URiveRenderTargetUpdater::LineTraceWithUVResult(FVector2D& OutUVHit)
 {
-    auto PlayerController =
-        UGameplayStatics::GetPlayerController(this, PlayerIndex);
-    if (IsValid(PlayerController))
+  auto PlayerController = UGameplayStatics::GetPlayerController(
+      this,
+      PlayerIndex);
+  if (IsValid(PlayerController))
+  {
+    FVector WorldLocation;
+    FVector WorldDirection;
+    if (PlayerController->DeprojectMousePositionToWorld(
+            WorldLocation,
+            WorldDirection))
     {
-        FVector WorldLocation;
-        FVector WorldDirection;
-        if (PlayerController->DeprojectMousePositionToWorld(WorldLocation,
-                                                            WorldDirection))
+      FHitResult HitResult;
+      FCollisionQueryParams Params(
+          FName(TEXT("Rive.URiveRenderTargetUpdater.LineTraceWithUVResult")));
+      Params.bTraceComplex = true;
+      Params.bReturnFaceIndex = true;
+      if (GetWorld()->LineTraceSingleByChannel(
+              HitResult,
+              WorldLocation,
+              WorldLocation + WorldDirection * LineTraceDistance,
+              ECC_Visibility,
+              Params))
+      {
+        if (HitResult.IsValidBlockingHit() &&
+            UGameplayStatics::FindCollisionUV(HitResult, UVChannel, OutUVHit))
         {
-            FHitResult HitResult;
-            FCollisionQueryParams Params(FName(
-                TEXT("Rive.URiveRenderTargetUpdater.LineTraceWithUVResult")));
-            Params.bTraceComplex = true;
-            Params.bReturnFaceIndex = true;
-            if (GetWorld()->LineTraceSingleByChannel(
-                    HitResult,
-                    WorldLocation,
-                    WorldLocation + WorldDirection * LineTraceDistance,
-                    ECC_Visibility,
-                    Params))
-            {
-                if (HitResult.IsValidBlockingHit() &&
-                    UGameplayStatics::FindCollisionUV(HitResult,
-                                                      UVChannel,
-                                                      OutUVHit))
-                {
-                    if (bInvertUVX)
-                    {
-                        OutUVHit.X = 1.0 - OutUVHit.X;
-                    }
+          if (bInvertUVX)
+          {
+            OutUVHit.X = 1.0 - OutUVHit.X;
+          }
 
-                    if (bInvertUVY)
-                    {
-                        OutUVHit.Y = 1.0 - OutUVHit.Y;
-                    }
+          if (bInvertUVY)
+          {
+            OutUVHit.Y = 1.0 - OutUVHit.Y;
+          }
 
-                    return true;
-                }
-            }
+          return true;
         }
+      }
     }
+  }
 
-    return false;
+  return false;
 }

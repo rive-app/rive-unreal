@@ -39,66 +39,70 @@ class RIVERENDERER_API FRiveRenderTarget
     : public TSharedFromThis<FRiveRenderTarget>
 {
 public:
-    FRiveRenderTarget(FRiveRenderer* Renderer,
-                      const FString& InRiveName,
-                      UTexture2DDynamic* InRenderTarget);
-    FRiveRenderTarget(FRiveRenderer* Renderer,
-                      const FString& InRiveName,
-                      UTextureRenderTarget2D* InRenderTarget);
-    FRiveRenderTarget(FRiveRenderer* Renderer,
-                      const FString& InRiveName,
-                      FRenderTarget* InRenderTarget);
-    FRiveRenderTarget(FRiveRenderer* Renderer,
-                      const FString& InRiveName,
-                      FRDGTextureRef InRenderTarget);
-    virtual ~FRiveRenderTarget();
+  FRiveRenderTarget(
+      FRiveRenderer* Renderer,
+      const FString& InRiveName,
+      UTexture2DDynamic* InRenderTarget);
+  FRiveRenderTarget(
+      FRiveRenderer* Renderer,
+      const FString& InRiveName,
+      UTextureRenderTarget2D* InRenderTarget);
+  FRiveRenderTarget(
+      FRiveRenderer* Renderer,
+      const FString& InRiveName,
+      FRenderTarget* InRenderTarget);
+  FRiveRenderTarget(
+      FRiveRenderer* Renderer,
+      const FString& InRiveName,
+      FRDGTextureRef InRenderTarget);
+  virtual ~FRiveRenderTarget();
 
-    virtual void Initialize();
+  virtual void Initialize();
 
-    virtual void UpdateTargetTexture(UTexture2DDynamic* InRenderTarget);
-    virtual void UpdateTargetTexture(FRDGTextureRef InRenderTarget);
-    virtual void UpdateTargetTexture(FRenderTarget* InRenderTarget);
-    virtual void UpdateRHIResorourceDirect(FTextureRHIRef InRenderTarget);
+  virtual void UpdateTargetTexture(UTexture2DDynamic* InRenderTarget);
+  virtual void UpdateTargetTexture(FRDGTextureRef InRenderTarget);
+  virtual void UpdateTargetTexture(FRenderTarget* InRenderTarget);
+  virtual void UpdateRHIResorourceDirect(FTextureRHIRef InRenderTarget);
 
-    virtual void CacheTextureTarget_RenderThread(
-        FRHICommandListImmediate& RHICmdList,
-        const FTextureRHIRef& InRHIResource)
-    {
-        RHIResource = InRHIResource;
-    }
+  virtual void CacheTextureTarget_RenderThread(
+      FRHICommandListImmediate& RHICmdList,
+      const FTextureRHIRef& InRHIResource)
+  {
+    RHIResource = InRHIResource;
+  }
 
-    // bPreserve loads over a clear, for script GPU work already in the target.
-    TUniquePtr<rive::Renderer> BeginRenderFrame(
-        rive::gpu::RenderContext* RenderContextPtr,
-        bool bPreserve = false);
-    virtual void EndRenderFrame(rive::gpu::RenderContext* RenderContextPtr);
+  // bPreserve loads over a clear, for script GPU work already in the target.
+  TUniquePtr<rive::Renderer> BeginRenderFrame(
+      rive::gpu::RenderContext* RenderContextPtr,
+      bool bPreserve = false);
+  virtual void EndRenderFrame(rive::gpu::RenderContext* RenderContextPtr);
 
-    uint32 GetWidth() const;
-    uint32 GetHeight() const;
+  uint32 GetWidth() const;
+  uint32 GetHeight() const;
 
-    void SetClearRenderTarget(bool InClearRenderTarget)
-    {
-        bClearRenderTarget = InClearRenderTarget;
-    }
+  void SetClearRenderTarget(bool InClearRenderTarget)
+  {
+    bClearRenderTarget = InClearRenderTarget;
+  }
 
-    virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const = 0;
+  virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const = 0;
 
 protected:
-    FName RiveName;
-    FTextureRHIRef RHIResource;
-    FRiveRenderer* RiveRenderer = nullptr;
+  FName RiveName;
+  FTextureRHIRef RHIResource;
+  FRiveRenderer* RiveRenderer = nullptr;
 
-    // Generic Render target used for UTextures
-    TWeakObjectPtr<UTexture2DDynamic> RenderTarget;
+  // Generic Render target used for UTextures
+  TWeakObjectPtr<UTexture2DDynamic> RenderTarget;
 
-    // Used for custom render to textures
-    TWeakObjectPtr<UTextureRenderTarget2D> RenderToTextureTarget;
+  // Used for custom render to textures
+  TWeakObjectPtr<UTextureRenderTarget2D> RenderToTextureTarget;
 
-    // Used for thumbnail renderer
-    FRenderTarget* ThumbnailRenderTarget = nullptr;
+  // Used for thumbnail renderer
+  FRenderTarget* ThumbnailRenderTarget = nullptr;
 
-    // Used for rendering to UMG directly
-    FRDGTextureRef RenderTargetRDG = nullptr;
+  // Used for rendering to UMG directly
+  FRDGTextureRef RenderTargetRDG = nullptr;
 
-    bool bClearRenderTarget = false;
+  bool bClearRenderTarget = false;
 };

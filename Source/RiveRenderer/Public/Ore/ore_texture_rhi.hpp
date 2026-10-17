@@ -18,22 +18,22 @@ namespace rive::ore
 class OreTextureRHI : public LITE_RTTI_OVERRIDE(Texture, OreTextureRHI)
 {
 public:
-    OreTextureRHI(const TextureDesc& desc);
-    virtual ~OreTextureRHI() = default;
+  OreTextureRHI(const TextureDesc& desc);
+  virtual ~OreTextureRHI() = default;
 
-    virtual void uploadImpl(const TextureDataDesc& data) override;
+  virtual void uploadImpl(const TextureDataDesc& data) override;
 
-    FTextureRHIRef m_texture;
+  FTextureRHIRef m_texture;
 };
 
 class OreTextureViewRHI
     : public LITE_RTTI_OVERRIDE(TextureView, OreTextureViewRHI)
 {
 public:
-    OreTextureViewRHI(rcp<Texture> texture, const TextureViewDesc& desc);
-    virtual ~OreTextureViewRHI() = default;
+  OreTextureViewRHI(rcp<Texture> texture, const TextureViewDesc& desc);
+  virtual ~OreTextureViewRHI() = default;
 
-    FShaderResourceViewRHIRef m_srv;
+  FShaderResourceViewRHIRef m_srv;
 };
 
 } // namespace rive::ore

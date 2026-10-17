@@ -36,380 +36,386 @@
 
 #include <IRenderCaptureProvider.h>
 
-DECLARE_GPU_STAT_NAMED(FRiveRendererDrawElementDraw,
-                       TEXT("FRiveRendererDrawElement::Draw_RenderThread"));
+DECLARE_GPU_STAT_NAMED(
+    FRiveRendererDrawElementDraw,
+    TEXT("FRiveRendererDrawElement::Draw_RenderThread"));
 
 FORCEINLINE rive::AABB AABBForSlateRect(const FSlateRect& Rect)
 {
-    return rive::AABB(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom);
+  return rive::AABB(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom);
 }
 
 class FRiveRendererDrawElement : public ICustomSlateElement
 {
 public:
-    FRiveRendererDrawElement()
+  FRiveRendererDrawElement()
+  {
+    RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    if (!ensure(RiveRenderer))
     {
-        RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-        if (!ensure(RiveRenderer))
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("FRiveRendererDrawElement() "
-                        "RiveRenderer is Null"));
-            return;
-        }
-
-        CommandServer = RiveRenderer->GetCommandServerUnsafe();
-        if (!ensure(CommandServer))
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("FRiveRendererDrawElement() "
-                        "CommandServer is Null"));
-            return;
-        }
-    }
-    FRiveRendererDrawElement(TWeakObjectPtr<URiveArtboard> RiveArtboard) :
-        RiveArtboard(MoveTemp(RiveArtboard))
-    {
-        RiveRenderer = IRiveRendererModule::Get().GetRenderer();
-        if (!ensure(RiveRenderer))
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("FRiveRendererDrawElement() "
-                        "RiveRenderer is Null"));
-            return;
-        }
-
-        CommandServer = RiveRenderer->GetCommandServerUnsafe();
-        if (!ensure(CommandServer))
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("FRiveRendererDrawElement() "
-                        "CommandServer is Null"));
-            return;
-        }
-    }
-    /*
-     * We have to bypass the command queue here because it's already on the
-     * render thread. This will be thread safe but we should find a way to not
-     * have to bypass it
-     */
-    virtual void Draw_RenderThread(FRDGBuilder& GraphBuilder,
-                                   const FDrawPassInputs& Inputs) override
-    {
-        check(RiveRenderer);
-        check(CommandServer);
-
-        if (Inputs.OutputTexture == nullptr)
-            return;
-
-        SCOPED_NAMED_EVENT_TEXT(
-            TEXT("FRiveRendererDrawElement::Draw_RenderThread"),
-            FColor::White);
-
-        DECLARE_SCOPE_CYCLE_COUNTER(
-            TEXT("FRiveRendererDrawElement::Draw_RenderThread"),
-            STAT_RIVE_RENDER_ELEMENT_DRAW,
-            STATGROUP_Rive);
-
-        auto RiveArtboardLocal = RiveArtboard.Pin();
-        auto RenderBoundsLocal = RenderBounds;
-
-        const float TotalScale = Scale * DPIScale;
-
-        if (!RiveArtboardLocal.IsValid())
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("FRiveRendererDrawElement::Draw_RenderThread Artboard "
-                        "not set"));
-            return;
-        }
-        // TODO: Find a way to create just one render target for the screen
-        // texture rather than one per widget (these all end up with the same
-        // target texture)
-        if (RenderTarget.Get() == nullptr)
-        {
-            RenderTarget = RiveRenderer->CreateRenderTarget(
-                GraphBuilder,
-                "FRiveRendererDrawElement::Draw_RenderThread",
-                Inputs.OutputTexture);
-        }
-
-        auto renderTarget = RenderTarget->GetRenderTarget();
-        if (renderTarget->width() != Inputs.OutputTexture->Desc.Extent.X ||
-            renderTarget->height() != Inputs.OutputTexture->Desc.Extent.Y)
-        {
-            RenderTarget = RiveRenderer->CreateRenderTarget(
-                GraphBuilder,
-                "FRiveRendererDrawElement::Draw_RenderThread",
-                Inputs.OutputTexture);
-            renderTarget = RenderTarget->GetRenderTarget();
-        }
-
-        RenderTarget->UpdateTargetTexture(Inputs.OutputTexture);
-
-        if (!ensure(RenderTarget))
-        {
-            UE_LOG(LogRive,
-                   Error,
-                   TEXT("FRiveRendererDrawElement::Draw_RenderThread RDG "
-                        "RenderTarget not supported on this platform"));
-            return;
-        }
-
-        if (!ensure(renderTarget))
-        {
-            UE_LOG(
-                LogRive,
-                Error,
-                TEXT("FRiveRendererDrawElement::Draw_RenderThread RDG "
-                     "rive::gpu::RenderTarget not supported on this platform"));
-            return;
-        }
-
-        auto ArtboardHandle = RiveArtboardLocal->GetNativeArtboardHandle();
-        if (ArtboardHandle == RIVE_NULL_HANDLE)
-        {
-            UE_LOG(LogRive,
-                   Warning,
-                   TEXT("FRiveRendererDrawElement::Draw_RenderThread "
-                        "ArtboardHandle is invalid"));
-            return;
-        }
-
-        auto ArtboardInstance =
-            CommandServer->getArtboardInstance(ArtboardHandle);
-        if (ArtboardInstance == nullptr)
-        {
-            UE_LOG(LogRive,
-                   Warning,
-                   TEXT("FRiveRendererDrawElement::Draw_RenderThread "
-                        "ArtboardInstance is invalid"));
-            return;
-        }
-
-        auto Context = RiveRenderer->GetRenderContext();
-
-        // The clip is recorded alongside the artboard's draws, so its path
-        // has to come from the session too; replay rebuilds both against the
-        // real context.
-        rive::RawPath ClipPath;
-        ClipPath.addRect(AABBForSlateRect(ClipRect));
-        auto ClipRenderPath =
-            RiveRenderer->GetDeferredSession()->makeRenderPath(
-                ClipPath,
-                rive::FillRule::nonZero);
-
-        auto* Renderer = RiveRenderer->BeginDeferredFrame();
-        Renderer->save();
-        Renderer->clipPath(ClipRenderPath.get());
-        Renderer->align(Fit,
-                        Alignment,
-                        AABBForSlateRect(RenderBoundsLocal),
-                        ArtboardInstance->bounds(),
-                        TotalScale);
-        if (bDirty)
-        {
-            bDirty = false;
-            if (Fit == rive::Fit::layout)
-            {
-                ArtboardInstance->width(RenderBoundsLocal.GetSize().X /
-                                        TotalScale);
-                ArtboardInstance->height(RenderBoundsLocal.GetSize().Y /
-                                         TotalScale);
-            }
-            else if (PreviousFit == rive::Fit::layout)
-            {
-                ArtboardInstance->resetSize();
-            }
-
-            // If we updated the size we need to advance for it to be applied
-            if (auto NativeStateMachineHandle =
-                    RiveArtboardLocal->GetStateMachineHandle();
-                NativeStateMachineHandle != RIVE_NULL_HANDLE)
-            {
-                if (auto StateMachine = CommandServer->getStateMachineInstance(
-                        NativeStateMachineHandle))
-                {
-                    StateMachine->advanceAndApply(0);
-                }
-            }
-        }
-
-        // Normal drawing. Must be done in this order !
-        ArtboardInstance->draw(Renderer);
-        Renderer->restore();
-
-        // This is left as a comment because it could be useful later,
-        // This had the abililty to capture a frame of only rive but its very
-        // slow to leave in
-
-        // if (IRenderCaptureProvider::IsAvailable())
-        //{
-        //     GraphBuilder.AddPass(RDG_EVENT_NAME("End Frame Capture"),
-        //                          ERDGPassFlags::NeverCull,
-        //                          [](FRHICommandListImmediate& RHICmdList) {
-        //                              IRenderCaptureProvider::Get().BeginCapture(
-        //                                  &RHICmdList,
-        //                                  0,
-        //                                  FString());
-        //                          });
-        //
-        //     Context->flush({.renderTarget = renderTarget.get(),
-        //                     .externalCommandBuffer = &GraphBuilder});
-        //
-        //     GraphBuilder.AddPass(
-        //         RDG_EVENT_NAME("Begin Frame Capture"),
-        //                         ERDGPassFlags::NeverCull,
-        //                         [](FRHICommandListImmediate& RHICmdList) {
-        //                             IRenderCaptureProvider::Get().EndCapture(
-        //                                 &RHICmdList);
-        //                         });
-        // }
-        //  else
-        {
-            const FIntVector OutputSize = Inputs.OutputTexture->Desc.GetSize();
-            const bool bWireFrame = Inputs.bWireFrame;
-            FRiveRenderer* const RiveRendererLocal = RiveRenderer;
-            RiveRenderer->ReplayDeferredFrame(
-                GraphBuilder,
-                [Context, OutputSize, bWireFrame, RiveRendererLocal](
-                    bool) -> TUniquePtr<rive::Renderer> {
-                    rive::gpu::RenderContext::FrameDescriptor FrameDescriptor{
-                        .renderTargetWidth =
-                            static_cast<uint32_t>(OutputSize.X),
-                        .renderTargetHeight =
-                            static_cast<uint32_t>(OutputSize.Y),
-                        .loadAction =
-                            rive::gpu::LoadAction::preserveRenderTarget,
-                        .wireframe = bWireFrame,
-                    };
-                    RiveRendererLocal->ApplyFrameOverrides(FrameDescriptor);
-                    Context->beginFrame(FrameDescriptor);
-                    return MakeUnique<rive::RiveRenderer>(Context);
-                },
-                [Context, &renderTarget, &GraphBuilder] {
-                    Context->flush({.renderTarget = renderTarget.get(),
-                                    .externalCommandBuffer = &GraphBuilder});
-                });
-        }
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("FRiveRendererDrawElement() "
+               "RiveRenderer is Null"));
+      return;
     }
 
-    void SetArtboard(TWeakObjectPtr<URiveArtboard> InRiveArtboard)
+    CommandServer = RiveRenderer->GetCommandServerUnsafe();
+    if (!ensure(CommandServer))
     {
-        RiveArtboard = InRiveArtboard;
-        bDirty = true;
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("FRiveRendererDrawElement() "
+               "CommandServer is Null"));
+      return;
+    }
+  }
+  FRiveRendererDrawElement(TWeakObjectPtr<URiveArtboard> RiveArtboard)
+      : RiveArtboard(MoveTemp(RiveArtboard))
+  {
+    RiveRenderer = IRiveRendererModule::Get().GetRenderer();
+    if (!ensure(RiveRenderer))
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("FRiveRendererDrawElement() "
+               "RiveRenderer is Null"));
+      return;
     }
 
-    void SetFromDescriptor(const FRiveDescriptor& InRiveDescriptor)
+    CommandServer = RiveRenderer->GetCommandServerUnsafe();
+    if (!ensure(CommandServer))
     {
-        PreviousFit = Fit;
-        Alignment = RiveAlignementToAlignment(InRiveDescriptor.Alignment);
-        Fit = RiveFitTypeToFit(InRiveDescriptor.FitType);
-        Scale = InRiveDescriptor.ScaleFactor;
-        bDirty = true;
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("FRiveRendererDrawElement() "
+               "CommandServer is Null"));
+      return;
+    }
+  }
+  /*
+   * We have to bypass the command queue here because it's already on the
+   * render thread. This will be thread safe but we should find a way to not
+   * have to bypass it
+   */
+  virtual void Draw_RenderThread(
+      FRDGBuilder& GraphBuilder,
+      const FDrawPassInputs& Inputs) override
+  {
+    check(RiveRenderer);
+    check(CommandServer);
+
+    if (Inputs.OutputTexture == nullptr)
+      return;
+
+    SCOPED_NAMED_EVENT_TEXT(
+        TEXT("FRiveRendererDrawElement::Draw_RenderThread"),
+        FColor::White);
+
+    DECLARE_SCOPE_CYCLE_COUNTER(
+        TEXT("FRiveRendererDrawElement::Draw_RenderThread"),
+        STAT_RIVE_RENDER_ELEMENT_DRAW,
+        STATGROUP_Rive);
+
+    auto RiveArtboardLocal = RiveArtboard.Pin();
+    auto RenderBoundsLocal = RenderBounds;
+
+    const float TotalScale = Scale * DPIScale;
+
+    if (!RiveArtboardLocal.IsValid())
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("FRiveRendererDrawElement::Draw_RenderThread Artboard "
+               "not set"));
+      return;
+    }
+    // TODO: Find a way to create just one render target for the screen
+    // texture rather than one per widget (these all end up with the same
+    // target texture)
+    if (RenderTarget.Get() == nullptr)
+    {
+      RenderTarget = RiveRenderer->CreateRenderTarget(
+          GraphBuilder,
+          "FRiveRendererDrawElement::Draw_RenderThread",
+          Inputs.OutputTexture);
     }
 
-    void SetDPIScale(float InDPIScale) { DPIScale = InDPIScale; }
-
-    void SetRenderingBounds(const FSlateRect& InRenderBounds)
+    auto renderTarget = RenderTarget->GetRenderTarget();
+    if (renderTarget->width() != Inputs.OutputTexture->Desc.Extent.X ||
+        renderTarget->height() != Inputs.OutputTexture->Desc.Extent.Y)
     {
-        bDirty |= RenderBounds != InRenderBounds;
-        RenderBounds = InRenderBounds;
+      RenderTarget = RiveRenderer->CreateRenderTarget(
+          GraphBuilder,
+          "FRiveRendererDrawElement::Draw_RenderThread",
+          Inputs.OutputTexture);
+      renderTarget = RenderTarget->GetRenderTarget();
     }
 
-    void SetClipRect(const FSlateRect& InClipRect) { ClipRect = InClipRect; }
+    RenderTarget->UpdateTargetTexture(Inputs.OutputTexture);
+
+    if (!ensure(RenderTarget))
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("FRiveRendererDrawElement::Draw_RenderThread RDG "
+               "RenderTarget not supported on this platform"));
+      return;
+    }
+
+    if (!ensure(renderTarget))
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("FRiveRendererDrawElement::Draw_RenderThread RDG "
+               "rive::gpu::RenderTarget not supported on this platform"));
+      return;
+    }
+
+    auto ArtboardHandle = RiveArtboardLocal->GetNativeArtboardHandle();
+    if (ArtboardHandle == RIVE_NULL_HANDLE)
+    {
+      UE_LOG(
+          LogRive,
+          Warning,
+          TEXT("FRiveRendererDrawElement::Draw_RenderThread "
+               "ArtboardHandle is invalid"));
+      return;
+    }
+
+    auto ArtboardInstance = CommandServer->getArtboardInstance(ArtboardHandle);
+    if (ArtboardInstance == nullptr)
+    {
+      UE_LOG(
+          LogRive,
+          Warning,
+          TEXT("FRiveRendererDrawElement::Draw_RenderThread "
+               "ArtboardInstance is invalid"));
+      return;
+    }
+
+    auto Context = RiveRenderer->GetRenderContext();
+
+    // The clip is recorded alongside the artboard's draws, so its path
+    // has to come from the session too; replay rebuilds both against the
+    // real context.
+    rive::RawPath ClipPath;
+    ClipPath.addRect(AABBForSlateRect(ClipRect));
+    auto ClipRenderPath = RiveRenderer->GetDeferredSession()->makeRenderPath(
+        ClipPath,
+        rive::FillRule::nonZero);
+
+    auto* Renderer = RiveRenderer->BeginDeferredFrame();
+    Renderer->save();
+    Renderer->clipPath(ClipRenderPath.get());
+    Renderer->align(
+        Fit,
+        Alignment,
+        AABBForSlateRect(RenderBoundsLocal),
+        ArtboardInstance->bounds(),
+        TotalScale);
+    if (bDirty)
+    {
+      bDirty = false;
+      if (Fit == rive::Fit::layout)
+      {
+        ArtboardInstance->width(RenderBoundsLocal.GetSize().X / TotalScale);
+        ArtboardInstance->height(RenderBoundsLocal.GetSize().Y / TotalScale);
+      }
+      else if (PreviousFit == rive::Fit::layout)
+      {
+        ArtboardInstance->resetSize();
+      }
+
+      // If we updated the size we need to advance for it to be applied
+      if (auto NativeStateMachineHandle = RiveArtboardLocal
+                                              ->GetStateMachineHandle();
+          NativeStateMachineHandle != RIVE_NULL_HANDLE)
+      {
+        if (auto StateMachine = CommandServer->getStateMachineInstance(
+                NativeStateMachineHandle))
+        {
+          StateMachine->advanceAndApply(0);
+        }
+      }
+    }
+
+    // Normal drawing. Must be done in this order !
+    ArtboardInstance->draw(Renderer);
+    Renderer->restore();
+
+    // This is left as a comment because it could be useful later,
+    // This had the abililty to capture a frame of only rive but its very
+    // slow to leave in
+
+    // if (IRenderCaptureProvider::IsAvailable())
+    //{
+    //     GraphBuilder.AddPass(RDG_EVENT_NAME("End Frame Capture"),
+    //                          ERDGPassFlags::NeverCull,
+    //                          [](FRHICommandListImmediate& RHICmdList) {
+    //                              IRenderCaptureProvider::Get().BeginCapture(
+    //                                  &RHICmdList,
+    //                                  0,
+    //                                  FString());
+    //                          });
+    //
+    //     Context->flush({.renderTarget = renderTarget.get(),
+    //                     .externalCommandBuffer = &GraphBuilder});
+    //
+    //     GraphBuilder.AddPass(
+    //         RDG_EVENT_NAME("Begin Frame Capture"),
+    //                         ERDGPassFlags::NeverCull,
+    //                         [](FRHICommandListImmediate& RHICmdList) {
+    //                             IRenderCaptureProvider::Get().EndCapture(
+    //                                 &RHICmdList);
+    //                         });
+    // }
+    //  else
+    {
+      const FIntVector OutputSize = Inputs.OutputTexture->Desc.GetSize();
+      const bool bWireFrame = Inputs.bWireFrame;
+      FRiveRenderer* const RiveRendererLocal = RiveRenderer;
+      RiveRenderer->ReplayDeferredFrame(
+          GraphBuilder,
+          [Context, OutputSize, bWireFrame, RiveRendererLocal](
+              bool) -> TUniquePtr<rive::Renderer> {
+            rive::gpu::RenderContext::FrameDescriptor FrameDescriptor{
+                .renderTargetWidth = static_cast<uint32_t>(OutputSize.X),
+                .renderTargetHeight = static_cast<uint32_t>(OutputSize.Y),
+                .loadAction = rive::gpu::LoadAction::preserveRenderTarget,
+                .wireframe = bWireFrame,
+            };
+            RiveRendererLocal->ApplyFrameOverrides(FrameDescriptor);
+            Context->beginFrame(FrameDescriptor);
+            return MakeUnique<rive::RiveRenderer>(Context);
+          },
+          [Context, &renderTarget, &GraphBuilder] {
+            Context->flush(
+                {.renderTarget = renderTarget.get(),
+                 .externalCommandBuffer = &GraphBuilder});
+          });
+    }
+  }
+
+  void SetArtboard(TWeakObjectPtr<URiveArtboard> InRiveArtboard)
+  {
+    RiveArtboard = InRiveArtboard;
+    bDirty = true;
+  }
+
+  void SetFromDescriptor(const FRiveDescriptor& InRiveDescriptor)
+  {
+    PreviousFit = Fit;
+    Alignment = RiveAlignementToAlignment(InRiveDescriptor.Alignment);
+    Fit = RiveFitTypeToFit(InRiveDescriptor.FitType);
+    Scale = InRiveDescriptor.ScaleFactor;
+    bDirty = true;
+  }
+
+  void SetDPIScale(float InDPIScale) { DPIScale = InDPIScale; }
+
+  void SetRenderingBounds(const FSlateRect& InRenderBounds)
+  {
+    bDirty |= RenderBounds != InRenderBounds;
+    RenderBounds = InRenderBounds;
+  }
+
+  void SetClipRect(const FSlateRect& InClipRect) { ClipRect = InClipRect; }
 
 private:
-    FRiveRenderer* RiveRenderer = nullptr;
-    rive::CommandServer* CommandServer = nullptr;
-    TSharedPtr<FRiveRenderTarget> RenderTarget;
-    TWeakObjectPtr<URiveArtboard> RiveArtboard;
-    // Locally copy of descriptor so we can pass it to the renderer
-    rive::Alignment Alignment;
-    rive::Fit PreviousFit = rive::Fit::none;
-    rive::Fit Fit = rive::Fit::none;
-    float Scale = 1;
-    float DPIScale = 1;
-    FSlateRect RenderBounds;
-    FSlateRect ClipRect;
-    bool bDirty = true;
+  FRiveRenderer* RiveRenderer = nullptr;
+  rive::CommandServer* CommandServer = nullptr;
+  TSharedPtr<FRiveRenderTarget> RenderTarget;
+  TWeakObjectPtr<URiveArtboard> RiveArtboard;
+  // Locally copy of descriptor so we can pass it to the renderer
+  rive::Alignment Alignment;
+  rive::Fit PreviousFit = rive::Fit::none;
+  rive::Fit Fit = rive::Fit::none;
+  float Scale = 1;
+  float DPIScale = 1;
+  FSlateRect RenderBounds;
+  FSlateRect ClipRect;
+  bool bDirty = true;
 };
 
 void SRiveLeafWidget::SetRiveDescriptor(const FRiveDescriptor& InDescriptor)
 {
-    RiveRendererDrawElement->SetFromDescriptor(InDescriptor);
-    bScaleByDPI = InDescriptor.bScaleLayoutByDPI;
+  RiveRendererDrawElement->SetFromDescriptor(InDescriptor);
+  bScaleByDPI = InDescriptor.bScaleLayoutByDPI;
 }
 
 void SRiveLeafWidget::SetArtboard(TWeakObjectPtr<URiveArtboard> InArtboard)
 {
-    Artboard = InArtboard;
-    RiveRendererDrawElement->SetArtboard(InArtboard);
+  Artboard = InArtboard;
+  RiveRendererDrawElement->SetArtboard(InArtboard);
 }
 
 void SRiveLeafWidget::Construct(const FArguments& InArgs)
 {
-    FRiveDescriptor Descriptor;
-    if (InArgs._OwningWidget.IsSet())
-        OwningWidget = InArgs._OwningWidget.Get();
-    if (InArgs._Artboard.IsSet())
-        Artboard = InArgs._Artboard.Get();
-    if (InArgs._Descriptor.IsSet())
-        Descriptor = InArgs._Descriptor.Get();
+  FRiveDescriptor Descriptor;
+  if (InArgs._OwningWidget.IsSet())
+    OwningWidget = InArgs._OwningWidget.Get();
+  if (InArgs._Artboard.IsSet())
+    Artboard = InArgs._Artboard.Get();
+  if (InArgs._Descriptor.IsSet())
+    Descriptor = InArgs._Descriptor.Get();
 
-    RiveRendererDrawElement = MakeShared<FRiveRendererDrawElement>(Artboard);
-    RiveRendererDrawElement->SetFromDescriptor(Descriptor);
+  RiveRendererDrawElement = MakeShared<FRiveRendererDrawElement>(Artboard);
+  RiveRendererDrawElement->SetFromDescriptor(Descriptor);
 }
 
-int32 SRiveLeafWidget::OnPaint(const FPaintArgs& Args,
-                               const FGeometry& AllottedGeometry,
-                               const FSlateRect& MyCullingRect,
-                               FSlateWindowElementList& OutDrawElements,
-                               int32 LayerId,
-                               const FWidgetStyle& InWidgetStyle,
-                               bool bParentEnabled) const
+int32 SRiveLeafWidget::OnPaint(
+    const FPaintArgs& Args,
+    const FGeometry& AllottedGeometry,
+    const FSlateRect& MyCullingRect,
+    FSlateWindowElementList& OutDrawElements,
+    int32 LayerId,
+    const FWidgetStyle& InWidgetStyle,
+    bool bParentEnabled) const
 {
-    if (!bParentEnabled)
-        return LayerId;
-
-    // Don't try to draw if we don't have an artboard.
-    if (!Artboard.IsValid())
-        return LayerId;
-
-    if (bScaleByDPI && IsValid(OwningWidget))
-    {
-        const float Scale =
-            UWidgetLayoutLibrary::GetViewportScale(OwningWidget);
-        RiveRendererDrawElement->SetDPIScale(Scale);
-    }
-    else
-    {
-        RiveRendererDrawElement->SetDPIScale(1.0f);
-    }
-
-    RiveRendererDrawElement->SetRenderingBounds(
-        AllottedGeometry.GetRenderBoundingRect());
-    RiveRendererDrawElement->SetClipRect(MyCullingRect);
-    FSlateDrawElement::MakeCustom(OutDrawElements,
-                                  LayerId,
-                                  RiveRendererDrawElement);
+  if (!bParentEnabled)
     return LayerId;
+
+  // Don't try to draw if we don't have an artboard.
+  if (!Artboard.IsValid())
+    return LayerId;
+
+  if (bScaleByDPI && IsValid(OwningWidget))
+  {
+    const float Scale = UWidgetLayoutLibrary::GetViewportScale(OwningWidget);
+    RiveRendererDrawElement->SetDPIScale(Scale);
+  }
+  else
+  {
+    RiveRendererDrawElement->SetDPIScale(1.0f);
+  }
+
+  RiveRendererDrawElement->SetRenderingBounds(
+      AllottedGeometry.GetRenderBoundingRect());
+  RiveRendererDrawElement->SetClipRect(MyCullingRect);
+  FSlateDrawElement::MakeCustom(
+      OutDrawElements,
+      LayerId,
+      RiveRendererDrawElement);
+  return LayerId;
 }
 
 FVector2D SRiveLeafWidget::ComputeDesiredSize(float) const
 {
-    if (auto StrArtboard = Artboard.Pin())
+  if (auto StrArtboard = Artboard.Pin())
+  {
+    if (StrArtboard->HasData())
     {
-        if (StrArtboard->HasData())
-        {
-            return StrArtboard->ArtboardDefaultSize;
-        }
+      return StrArtboard->ArtboardDefaultSize;
     }
+  }
 
-    return FVector2D(256, 256);
+  return FVector2D(256, 256);
 }

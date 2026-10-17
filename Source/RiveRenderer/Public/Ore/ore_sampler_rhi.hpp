@@ -18,10 +18,10 @@ namespace rive::ore
 class OreSamplerRHI : public LITE_RTTI_OVERRIDE(Sampler, OreSamplerRHI)
 {
 public:
-    OreSamplerRHI();
-    virtual ~OreSamplerRHI() = default;
+  OreSamplerRHI();
+  virtual ~OreSamplerRHI() = default;
 
-    FSamplerStateRHIRef m_sampler;
+  FSamplerStateRHIRef m_sampler;
 };
 
 } // namespace rive::ore

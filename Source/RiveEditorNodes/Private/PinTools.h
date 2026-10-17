@@ -13,54 +13,54 @@
 UCLASS()
 class RIVEEDITORNODES_API UPinTools : public UObject
 {
-    GENERATED_BODY()
+  GENERATED_BODY()
 
 public:
-    FORCEINLINE static void MovePinLinksOrCopyDefaults(
-        FKismetCompilerContext& CompilerContext,
-        UEdGraphPin* Source,
-        UEdGraphPin* Dest)
+  FORCEINLINE static void MovePinLinksOrCopyDefaults(
+      FKismetCompilerContext& CompilerContext,
+      UEdGraphPin* Source,
+      UEdGraphPin* Dest)
+  {
+    if (Source->LinkedTo.Num() > 0)
     {
-        if (Source->LinkedTo.Num() > 0)
-        {
-            CompilerContext.MovePinLinksToIntermediate(*Source, *Dest);
-        }
-        else
-        {
-            Dest->DefaultObject = Source->DefaultObject;
-            Dest->DefaultValue = Source->DefaultValue;
-            Dest->DefaultTextValue = Source->DefaultTextValue;
-        }
+      CompilerContext.MovePinLinksToIntermediate(*Source, *Dest);
+    }
+    else
+    {
+      Dest->DefaultObject = Source->DefaultObject;
+      Dest->DefaultValue = Source->DefaultValue;
+      Dest->DefaultTextValue = Source->DefaultTextValue;
+    }
+  }
+
+  FORCEINLINE static FString GetPinStringValue(UEdGraphPin* Pin)
+  {
+    check(Pin);
+    if (Pin->HasAnyConnections())
+    {
+      for (auto ConnectedPin : Pin->LinkedTo)
+      {
+        if (ConnectedPin->DefaultObject)
+          return ConnectedPin->GetDefaultAsString();
+      }
     }
 
-    FORCEINLINE static FString GetPinStringValue(UEdGraphPin* Pin)
-    {
-        check(Pin);
-        if (Pin->HasAnyConnections())
-        {
-            for (auto ConnectedPin : Pin->LinkedTo)
-            {
-                if (ConnectedPin->DefaultObject)
-                    return ConnectedPin->GetDefaultAsString();
-            }
-        }
+    return Pin->GetDefaultAsString();
+  }
 
-        return Pin->GetDefaultAsString();
+  template <typename ReturnType>
+  static TObjectPtr<ReturnType> GetPinObjectValue(UEdGraphPin* Pin)
+  {
+    check(Pin);
+    if (Pin->HasAnyConnections())
+    {
+      for (auto ConnectedPin : Pin->LinkedTo)
+      {
+        if (ConnectedPin->DefaultObject)
+          return Cast<ReturnType>(ConnectedPin->DefaultObject);
+      }
     }
 
-    template <typename ReturnType>
-    static TObjectPtr<ReturnType> GetPinObjectValue(UEdGraphPin* Pin)
-    {
-        check(Pin);
-        if (Pin->HasAnyConnections())
-        {
-            for (auto ConnectedPin : Pin->LinkedTo)
-            {
-                if (ConnectedPin->DefaultObject)
-                    return Cast<ReturnType>(ConnectedPin->DefaultObject);
-            }
-        }
-
-        return Cast<ReturnType>(Pin->DefaultObject);
-    }
+    return Cast<ReturnType>(Pin->DefaultObject);
+  }
 };

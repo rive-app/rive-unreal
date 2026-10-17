@@ -9,11 +9,11 @@
 class FRiveOreShader : public FGlobalShader
 {
 public:
-    DECLARE_EXPORTED_GLOBAL_SHADER(FRiveOreShader, RIVESHADERS_API);
+  DECLARE_EXPORTED_GLOBAL_SHADER(FRiveOreShader, RIVESHADERS_API);
 
-    using FPermutationDomain = FShaderPermutationNone;
-    RIVESHADERS_API static void ModifyCompilationEnvironment(
-        const FShaderPermutationParameters&,
-        FShaderCompilerEnvironment&);
+  using FPermutationDomain = FShaderPermutationNone;
+  RIVESHADERS_API static void ModifyCompilationEnvironment(
+      const FShaderPermutationParameters&,
+      FShaderCompilerEnvironment&);
 };
 #endif // WITH_EDITOR

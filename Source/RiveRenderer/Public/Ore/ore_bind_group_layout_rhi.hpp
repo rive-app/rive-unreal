@@ -20,9 +20,10 @@ class OreBindGroupLayoutRHI
     : public LITE_RTTI_OVERRIDE(BindGroupLayout, OreBindGroupLayoutRHI)
 {
 public:
-    OreBindGroupLayoutRHI(OreContextRHI* Context,
-                          const rive::ore::BindGroupLayoutDesc& desc);
-    virtual ~OreBindGroupLayoutRHI() = default;
+  OreBindGroupLayoutRHI(
+      OreContextRHI* Context,
+      const rive::ore::BindGroupLayoutDesc& desc);
+  virtual ~OreBindGroupLayoutRHI() = default;
 };
 
 } // namespace rive::ore

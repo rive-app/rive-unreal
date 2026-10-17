@@ -9,40 +9,44 @@ class FRiveRenderer;
 class RIVERENDERER_API FRiveRenderTargetRHI final : public FRiveRenderTarget
 {
 public:
-    FRiveRenderTargetRHI(FRiveRenderer* Renderer,
-                         const FString& InRiveName,
-                         UTexture2DDynamic* InRenderTarget);
+  FRiveRenderTargetRHI(
+      FRiveRenderer* Renderer,
+      const FString& InRiveName,
+      UTexture2DDynamic* InRenderTarget);
 
-    FRiveRenderTargetRHI(FRiveRenderer* Renderer,
-                         const FString& InRiveName,
-                         UTextureRenderTarget2D* InRenderTarget);
+  FRiveRenderTargetRHI(
+      FRiveRenderer* Renderer,
+      const FString& InRiveName,
+      UTextureRenderTarget2D* InRenderTarget);
 
-    FRiveRenderTargetRHI(FRiveRenderer* Renderer,
-                         const FString& InRiveName,
-                         FRenderTarget* InRenderTarget);
+  FRiveRenderTargetRHI(
+      FRiveRenderer* Renderer,
+      const FString& InRiveName,
+      FRenderTarget* InRenderTarget);
 
-    FRiveRenderTargetRHI(FRDGBuilder& GraphBuilder,
-                         FRiveRenderer* Renderer,
-                         const FString& InRiveName,
-                         FRDGTextureRef InRenderTarget);
+  FRiveRenderTargetRHI(
+      FRDGBuilder& GraphBuilder,
+      FRiveRenderer* Renderer,
+      const FString& InRiveName,
+      FRDGTextureRef InRenderTarget);
 
-    virtual ~FRiveRenderTargetRHI() override;
+  virtual ~FRiveRenderTargetRHI() override;
 
-    virtual void Initialize() override;
+  virtual void Initialize() override;
 
-    virtual void CacheTextureTarget_RenderThread(
-        FRHICommandListImmediate& RHICmdList,
-        const FTextureRHIRef& InRHIResource) override;
+  virtual void CacheTextureTarget_RenderThread(
+      FRHICommandListImmediate& RHICmdList,
+      const FTextureRHIRef& InRHIResource) override;
 
-    virtual void UpdateTargetTexture(FRDGTextureRef InRenderTarget) override;
-    virtual void UpdateTargetTexture(FRenderTarget* InRenderTarget) override;
-    virtual void UpdateRHIResorourceDirect(
-        FTextureRHIRef InRenderTarget) override;
-    virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const override
-    {
-        return CachedRenderTarget;
-    };
+  virtual void UpdateTargetTexture(FRDGTextureRef InRenderTarget) override;
+  virtual void UpdateTargetTexture(FRenderTarget* InRenderTarget) override;
+  virtual void UpdateRHIResorourceDirect(
+      FTextureRHIRef InRenderTarget) override;
+  virtual rive::rcp<rive::gpu::RenderTarget> GetRenderTarget() const override
+  {
+    return CachedRenderTarget;
+  };
 
 private:
-    rive::rcp<RenderTargetRHI> CachedRenderTarget;
+  rive::rcp<RenderTargetRHI> CachedRenderTarget;
 };

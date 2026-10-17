@@ -24,564 +24,576 @@ class UTexture2D;
 
 struct RHICapabilities
 {
-    RHICapabilities();
+  RHICapabilities();
 
-    bool bSupportsPixelShaderUAVs = true;
-    bool bSupportsTypedUAVLoads = false;
-    bool bSupportsRasterOrderViews = false;
+  bool bSupportsPixelShaderUAVs = true;
+  bool bSupportsTypedUAVLoads = false;
+  bool bSupportsRasterOrderViews = false;
 
-    FString AsString() const;
+  FString AsString() const;
 };
 
 class RIVERENDERER_API RenderTargetRHI : public rive::gpu::RenderTarget
 {
 public:
-    RenderTargetRHI(FRHICommandList& RHICmdList,
-                    const RHICapabilities& Capabilities,
-                    const FTextureRHIRef& InTextureTarget);
+  RenderTargetRHI(
+      FRHICommandList& RHICmdList,
+      const RHICapabilities& Capabilities,
+      const FTextureRHIRef& InTextureTarget);
 
-    RenderTargetRHI(FRHICommandList& RHICmdList,
-                    const RHICapabilities& Capabilities,
-                    FRenderTarget* InTextureTarget);
+  RenderTargetRHI(
+      FRHICommandList& RHICmdList,
+      const RHICapabilities& Capabilities,
+      FRenderTarget* InTextureTarget);
 
-    RenderTargetRHI(const RHICapabilities& Capabilities,
-                    FRDGTextureRef InTextureTarget);
+  RenderTargetRHI(
+      const RHICapabilities& Capabilities,
+      FRDGTextureRef InTextureTarget);
 
-    virtual ~RenderTargetRHI() override {}
+  virtual ~RenderTargetRHI() override {}
 
-    // we don't want to re-create the backing textures to this every frame, so
-    // instead just add the ability to update the target texture instead and
-    // only update the backing texture if the sizes change
-    void updateTargetTexture(FRDGTextureRef InTextureTarget)
-    {
-        check(InTextureTarget->Desc.Extent.X == width() &&
-              InTextureTarget->Desc.Extent.Y == height());
-        m_rdgTextureTarget = InTextureTarget;
-        m_targetTextureSupportsUAV = static_cast<bool>(
-            m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::UAV);
+  // we don't want to re-create the backing textures to this every frame, so
+  // instead just add the ability to update the target texture instead and
+  // only update the backing texture if the sizes change
+  void updateTargetTexture(FRDGTextureRef InTextureTarget)
+  {
+    check(
+        InTextureTarget->Desc.Extent.X == width() &&
+        InTextureTarget->Desc.Extent.Y == height());
+    m_rdgTextureTarget = InTextureTarget;
+    m_targetTextureSupportsUAV = static_cast<bool>(
+        m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::UAV);
 
-        m_targetTextureSupportsRenderTarget =
-            static_cast<bool>(m_rdgTextureTarget->Desc.Flags &
-                              ETextureCreateFlags::RenderTargetable);
+    m_targetTextureSupportsRenderTarget = static_cast<bool>(
+        m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::RenderTargetable);
 
-        m_targetTextureSupportsResolveTarget =
-            static_cast<bool>(m_rdgTextureTarget->Desc.Flags &
-                              ETextureCreateFlags::ResolveTargetable);
+    m_targetTextureSupportsResolveTarget = static_cast<bool>(
+        m_rdgTextureTarget->Desc.Flags &
+        ETextureCreateFlags::ResolveTargetable);
 
-        m_targetTextureIsSRGB = static_cast<bool>(
-            m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::SRGB);
-    }
+    m_targetTextureIsSRGB = static_cast<bool>(
+        m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::SRGB);
+  }
 
-    void updateTargetTexture(FRenderTarget* InTextureTarget)
-    {
-        check(InTextureTarget->GetSizeXY().X == width() &&
-              InTextureTarget->GetSizeXY().Y == height());
-        m_renderTarget = InTextureTarget;
-        const auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
-        m_targetTextureSupportsUAV = static_cast<bool>(
-            rhiTexture->GetDesc().Flags & ETextureCreateFlags::UAV);
+  void updateTargetTexture(FRenderTarget* InTextureTarget)
+  {
+    check(
+        InTextureTarget->GetSizeXY().X == width() &&
+        InTextureTarget->GetSizeXY().Y == height());
+    m_renderTarget = InTextureTarget;
+    const auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
+    m_targetTextureSupportsUAV = static_cast<bool>(
+        rhiTexture->GetDesc().Flags & ETextureCreateFlags::UAV);
 
-        m_targetTextureSupportsRenderTarget =
-            static_cast<bool>(rhiTexture->GetDesc().Flags &
-                              ETextureCreateFlags::RenderTargetable);
+    m_targetTextureSupportsRenderTarget = static_cast<bool>(
+        rhiTexture->GetDesc().Flags & ETextureCreateFlags::RenderTargetable);
 
-        m_targetTextureSupportsResolveTarget =
-            static_cast<bool>(rhiTexture->GetDesc().Flags &
-                              ETextureCreateFlags::ResolveTargetable);
+    m_targetTextureSupportsResolveTarget = static_cast<bool>(
+        rhiTexture->GetDesc().Flags & ETextureCreateFlags::ResolveTargetable);
 
-        m_targetTextureIsSRGB = static_cast<bool>(rhiTexture->GetDesc().Flags &
-                                                  ETextureCreateFlags::SRGB);
-    }
+    m_targetTextureIsSRGB = static_cast<bool>(
+        rhiTexture->GetDesc().Flags & ETextureCreateFlags::SRGB);
+  }
 
-    // RDG Interface, RDG objects can not be cached so register the RHI textures
-    // as "external resources" instead and return that per logic flush / Graph
-    // Builder instance
+  // RDG Interface, RDG objects can not be cached so register the RHI textures
+  // as "external resources" instead and return that per logic flush / Graph
+  // Builder instance
 
-    FRDGTextureRef targetTexture(FRDGBuilder& Builder);
+  FRDGTextureRef targetTexture(FRDGBuilder& Builder);
 
-    // Used when the target texture does not support UAVs
-    FRDGTextureRef backBufferTexture(FRDGBuilder& Builder,
-                                     const FLinearColor& ClearColor,
-                                     const rive::gpu::FlushDescriptor& desc);
+  // Used when the target texture does not support UAVs
+  FRDGTextureRef backBufferTexture(
+      FRDGBuilder& Builder,
+      const FLinearColor& ClearColor,
+      const rive::gpu::FlushDescriptor& desc);
 
-    FRDGTextureRef clipTexture(FRDGBuilder& Builder);
+  FRDGTextureRef clipTexture(FRDGBuilder& Builder);
 #if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
-    FRDGBufferRef coverageBuffer(FRDGBuilder& Builder);
+  FRDGBufferRef coverageBuffer(FRDGBuilder& Builder);
 #endif
-    FRDGTextureRef coverageTexture(FRDGBuilder& Builder);
+  FRDGTextureRef coverageTexture(FRDGBuilder& Builder);
 
-    FRDGTextureRef msaaColorTexture(FRDGBuilder& Builder,
-                                    const FLinearColor& ClearColor,
-                                    uint32 SampleCount);
+  FRDGTextureRef msaaColorTexture(
+      FRDGBuilder& Builder,
+      const FLinearColor& ClearColor,
+      uint32 SampleCount);
 
-    FRDGTextureRef msaaStencilTexture(FRDGBuilder& Builder,
-                                      float DepthClear,
-                                      uint32 StencilClear,
-                                      uint32 SampleCount);
+  FRDGTextureRef msaaStencilTexture(
+      FRDGBuilder& Builder,
+      float DepthClear,
+      uint32 StencilClear,
+      uint32 SampleCount);
 
-    bool TargetTextureSupportsUAV() const { return m_targetTextureSupportsUAV; }
-    bool TargetTextureSupportsRenderTarget() const
-    {
-        return m_targetTextureSupportsRenderTarget;
-    }
-    bool TargetTextureSupportsResolveTarget() const
-    {
-        return m_targetTextureSupportsResolveTarget;
-    }
-    bool TargetTextureIsSRGB() const { return m_targetTextureIsSRGB; }
+  bool TargetTextureSupportsUAV() const { return m_targetTextureSupportsUAV; }
+  bool TargetTextureSupportsRenderTarget() const
+  {
+    return m_targetTextureSupportsRenderTarget;
+  }
+  bool TargetTextureSupportsResolveTarget() const
+  {
+    return m_targetTextureSupportsResolveTarget;
+  }
+  bool TargetTextureIsSRGB() const { return m_targetTextureIsSRGB; }
 
-    FTextureRHIRef texture() const { return m_textureTarget; }
+  FTextureRHIRef texture() const { return m_textureTarget; }
 
 private:
-    FRenderTarget* m_renderTarget = nullptr;
-    FRDGTextureRef m_rdgTextureTarget = nullptr;
-    FTextureRHIRef m_textureTarget = nullptr;
+  FRenderTarget* m_renderTarget = nullptr;
+  FRDGTextureRef m_rdgTextureTarget = nullptr;
+  FTextureRHIRef m_textureTarget = nullptr;
 
-    bool m_targetTextureSupportsUAV;
-    bool m_targetTextureSupportsRenderTarget;
-    bool m_targetTextureSupportsResolveTarget;
-    bool m_targetTextureIsSRGB;
-    // Reference held for convenience. May be better to just DI it everywhere.
-    const RHICapabilities& m_capabilities;
+  bool m_targetTextureSupportsUAV;
+  bool m_targetTextureSupportsRenderTarget;
+  bool m_targetTextureSupportsResolveTarget;
+  bool m_targetTextureIsSRGB;
+  // Reference held for convenience. May be better to just DI it everywhere.
+  const RHICapabilities& m_capabilities;
 };
 
 // TODO: Make this use staging buffer
 class BufferRingRHIImpl final : public rive::gpu::BufferRing
 {
 public:
-    BufferRingRHIImpl(EBufferUsageFlags flags,
-                      size_t InSizeInBytes,
-                      size_t stride);
+  BufferRingRHIImpl(
+      EBufferUsageFlags flags,
+      size_t InSizeInBytes,
+      size_t stride);
 
-    FBufferRHIRef Sync(FRHICommandList& commandList,
-                       size_t offsetInBytes = 0) const;
-    FRDGBufferRef Sync(FRDGBuilder& RDGBuilder, size_t offsetInBytes = 0) const;
+  FBufferRHIRef Sync(FRHICommandList& commandList, size_t offsetInBytes = 0)
+      const;
+  FRDGBufferRef Sync(FRDGBuilder& RDGBuilder, size_t offsetInBytes = 0) const;
 
 protected:
-    virtual void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override;
-    virtual void onUnmapAndSubmitBuffer(int bufferIdx,
-                                        size_t mapSizeInBytes) override;
+  virtual void* onMapBuffer(int bufferIdx, size_t mapSizeInBytes) override;
+  virtual void onUnmapAndSubmitBuffer(int bufferIdx, size_t mapSizeInBytes)
+      override;
 
 private:
-    EBufferUsageFlags m_flags;
-    size_t m_stride;
+  EBufferUsageFlags m_flags;
+  size_t m_stride;
 
-    mutable bool m_bContentsDirty = true;
-    mutable FBufferRHIRef m_syncedBuffer;
-    mutable size_t m_syncedOffset = ~static_cast<size_t>(0);
+  mutable bool m_bContentsDirty = true;
+  mutable FBufferRHIRef m_syncedBuffer;
+  mutable size_t m_syncedOffset = ~static_cast<size_t>(0);
 };
 
 template <typename CPUUniformBufferType, typename GPUUniformBufferType>
 class UniformBufferRHIImpl
 {
 public:
-    UniformBufferRHIImpl(size_t InSizeInBytes) : m_sizeInBytes(InSizeInBytes)
-    {
-        m_data.SetNumUninitialized(InSizeInBytes / m_cpuStride);
-    }
+  UniformBufferRHIImpl(size_t InSizeInBytes) : m_sizeInBytes(InSizeInBytes)
+  {
+    m_data.SetNumUninitialized(InSizeInBytes / m_cpuStride);
+  }
 
-    FORCENOINLINE TRDGUniformBufferRef<GPUUniformBufferType> Sync(
-        FRDGBuilder& Builder,
-        size_t offset)
-    {
-        // there should be no remander
-        check(offset % m_cpuStride == 0);
-        GPUUniformBufferType* Buffer =
-            Builder.AllocParameters<GPUUniformBufferType>();
-        memcpy(Buffer, &m_data[offset / m_cpuStride], m_gpuStride);
-        return Builder.CreateUniformBuffer<GPUUniformBufferType>(Buffer);
-    }
+  FORCENOINLINE TRDGUniformBufferRef<GPUUniformBufferType> Sync(
+      FRDGBuilder& Builder,
+      size_t offset)
+  {
+    // there should be no remander
+    check(offset % m_cpuStride == 0);
+    GPUUniformBufferType* Buffer = Builder
+                                       .AllocParameters<GPUUniformBufferType>();
+    memcpy(Buffer, &m_data[offset / m_cpuStride], m_gpuStride);
+    return Builder.CreateUniformBuffer<GPUUniformBufferType>(Buffer);
+  }
 
-    void* mapBuffer(size_t mapSizeInBytes)
-    {
-        // we cant be 0 size
-        check(m_sizeInBytes);
-        // our map size must be less than or equal to our actual size
-        check(mapSizeInBytes <= m_sizeInBytes);
-        return m_data.GetData();
-    }
+  void* mapBuffer(size_t mapSizeInBytes)
+  {
+    // we cant be 0 size
+    check(m_sizeInBytes);
+    // our map size must be less than or equal to our actual size
+    check(mapSizeInBytes <= m_sizeInBytes);
+    return m_data.GetData();
+  }
 
 private:
-    size_t m_sizeInBytes;
-    TResourceArray<CPUUniformBufferType> m_data;
-    static constexpr size_t m_cpuStride = sizeof(CPUUniformBufferType);
-    static constexpr size_t m_gpuStride = sizeof(GPUUniformBufferType);
+  size_t m_sizeInBytes;
+  TResourceArray<CPUUniformBufferType> m_data;
+  static constexpr size_t m_cpuStride = sizeof(CPUUniformBufferType);
+  static constexpr size_t m_gpuStride = sizeof(GPUUniformBufferType);
 };
 
 class RenderBufferRHIImpl final
     : public rive::LITE_RTTI_OVERRIDE(rive::RenderBuffer, RenderBufferRHIImpl)
 {
 public:
-    RenderBufferRHIImpl(rive::RenderBufferType inType,
-                        rive::RenderBufferFlags inFlags,
-                        size_t inSizeInBytes,
-                        size_t stride);
-    FBufferRHIRef Sync(FRHICommandList&) const;
+  RenderBufferRHIImpl(
+      rive::RenderBufferType inType,
+      rive::RenderBufferFlags inFlags,
+      size_t inSizeInBytes,
+      size_t stride);
+  FBufferRHIRef Sync(FRHICommandList&) const;
 
 protected:
-    virtual void* onMap() override;
-    virtual void onUnmap() override;
+  virtual void* onMap() override;
+  virtual void onUnmap() override;
 
 private:
-    BufferRingRHIImpl m_buffer;
-    void* m_mappedBuffer;
+  BufferRingRHIImpl m_buffer;
+  void* m_mappedBuffer;
 };
 
 template <typename HighLevelStruct> class StructuredBufferRHIImpl final
 {
 public:
-    StructuredBufferRHIImpl(EBufferUsageFlags flags, const TCHAR* name) :
-        m_flags(flags),
-        m_sizeInBytes(0),
-        m_lastMapSizeInBytes(0),
-        m_data(true),
-        m_name(name)
-    {}
+  StructuredBufferRHIImpl(EBufferUsageFlags flags, const TCHAR* name)
+      : m_flags(flags)
+      , m_sizeInBytes(0)
+      , m_lastMapSizeInBytes(0)
+      , m_data(true)
+      , m_name(name)
+  {}
 
-    StructuredBufferRHIImpl(const TCHAR* name) :
-        m_flags(EBufferUsageFlags::ShaderResource),
-        m_sizeInBytes(0),
-        m_lastMapSizeInBytes(0),
-        m_data(true),
-        m_name(name)
-    {}
+  StructuredBufferRHIImpl(const TCHAR* name)
+      : m_flags(EBufferUsageFlags::ShaderResource)
+      , m_sizeInBytes(0)
+      , m_lastMapSizeInBytes(0)
+      , m_data(true)
+      , m_name(name)
+  {}
 
-    void Resize(size_t newSizeInBytes, size_t gpuStride)
+  void Resize(size_t newSizeInBytes, size_t gpuStride)
+  {
+    check(m_gpuStride == gpuStride);
+    m_data.SetNumUninitialized(newSizeInBytes / m_cpuStride);
+    if (newSizeInBytes)
     {
-        check(m_gpuStride == gpuStride);
-        m_data.SetNumUninitialized(newSizeInBytes / m_cpuStride);
-        if (newSizeInBytes)
-        {
-            FMemory::Memset(&m_data[0], 0, newSizeInBytes);
-        }
-        m_sizeInBytes = newSizeInBytes;
+      FMemory::Memset(&m_data[0], 0, newSizeInBytes);
     }
+    m_sizeInBytes = newSizeInBytes;
+  }
 
-    FRDGBufferSRVRef SyncSRV(FRDGBuilder& Builder,
-                             size_t elementOffset,
-                             size_t elementCount)
-    {
-        if (m_sizeInBytes == 0)
-            return nullptr;
+  FRDGBufferSRVRef SyncSRV(
+      FRDGBuilder& Builder,
+      size_t elementOffset,
+      size_t elementCount)
+  {
+    if (m_sizeInBytes == 0)
+      return nullptr;
 
-        auto buffer = Builder.CreateBuffer(
-            FRDGBufferDesc::CreateStructuredDesc(
-                m_gpuStride,
-                elementCount * (m_cpuStride / m_gpuStride)),
-            m_name);
+    auto buffer = Builder.CreateBuffer(
+        FRDGBufferDesc::CreateStructuredDesc(
+            m_gpuStride,
+            elementCount * (m_cpuStride / m_gpuStride)),
+        m_name);
 
-        Builder.QueueBufferUpload(buffer,
-                                  &m_data[elementOffset],
-                                  m_cpuStride * elementCount,
-                                  ERDGInitialDataFlags::None);
+    Builder.QueueBufferUpload(
+        buffer,
+        &m_data[elementOffset],
+        m_cpuStride * elementCount,
+        ERDGInitialDataFlags::None);
 
-        return Builder.CreateSRV(FRDGBufferSRVDesc(buffer));
-    }
+    return Builder.CreateSRV(FRDGBufferSRVDesc(buffer));
+  }
 
-    void* Map(size_t mapSizeInBytes)
-    {
-        // we cant be 0 size
-        check(m_sizeInBytes);
-        // our map size must be less than or equal to our actual size
-        check(mapSizeInBytes <= m_sizeInBytes);
-        // our stride must be a factor of our map size
-        check(mapSizeInBytes % m_gpuStride == 0);
-        m_lastMapSizeInBytes = mapSizeInBytes;
-        return m_data.GetData();
-    }
+  void* Map(size_t mapSizeInBytes)
+  {
+    // we cant be 0 size
+    check(m_sizeInBytes);
+    // our map size must be less than or equal to our actual size
+    check(mapSizeInBytes <= m_sizeInBytes);
+    // our stride must be a factor of our map size
+    check(mapSizeInBytes % m_gpuStride == 0);
+    m_lastMapSizeInBytes = mapSizeInBytes;
+    return m_data.GetData();
+  }
 
-    size_t GPUSize() const { return m_sizeInBytes / m_gpuStride; }
+  size_t GPUSize() const { return m_sizeInBytes / m_gpuStride; }
 
 private:
-    EBufferUsageFlags m_flags;
-    size_t m_sizeInBytes;
-    size_t m_lastMapSizeInBytes;
-    TResourceArray<HighLevelStruct> m_data;
+  EBufferUsageFlags m_flags;
+  size_t m_sizeInBytes;
+  size_t m_lastMapSizeInBytes;
+  TResourceArray<HighLevelStruct> m_data;
 
-    static constexpr size_t m_cpuStride = sizeof(HighLevelStruct);
-    static constexpr size_t m_gpuStride =
-        rive::gpu::StorageBufferElementSizeInBytes(
-            HighLevelStruct::kBufferStructure);
-    const TCHAR* m_name;
+  static constexpr size_t m_cpuStride = sizeof(HighLevelStruct);
+  static constexpr size_t
+      m_gpuStride = rive::gpu::StorageBufferElementSizeInBytes(
+          HighLevelStruct::kBufferStructure);
+  const TCHAR* m_name;
 };
 
 class DelayLoadedTexture
 {
 public:
-    DelayLoadedTexture() {}
-    void UpdateTexture(const FRDGTextureDesc& inDesc,
-                       FString DebugName,
-                       bool inNeedsSRV = false);
+  DelayLoadedTexture() {}
+  void UpdateTexture(
+      const FRDGTextureDesc& inDesc,
+      FString DebugName,
+      bool inNeedsSRV = false);
 
-    // We don't hold a reference to the RDGTexture because it must be created
-    // each frame so instead we provide a function that returns via params
-    // outTexture will always be set but outSRV will only be set if something
-    // other than null is passed
-    void Sync(FRDGBuilder& RDGBuilder,
-              FRDGTextureRef* outTexture,
-              FRDGTextureSRVRef* outSRV = nullptr) const;
+  // We don't hold a reference to the RDGTexture because it must be created
+  // each frame so instead we provide a function that returns via params
+  // outTexture will always be set but outSRV will only be set if something
+  // other than null is passed
+  void Sync(
+      FRDGBuilder& RDGBuilder,
+      FRDGTextureRef* outTexture,
+      FRDGTextureSRVRef* outSRV = nullptr) const;
 
 private:
-    // used for render graph interface
-    FRDGTextureDesc m_rdgDesc;
-    FString m_debugName;
+  // used for render graph interface
+  FRDGTextureDesc m_rdgDesc;
+  FString m_debugName;
 };
 
 enum class EVertexDeclarations : int32
 {
-    Tessellation,
-    Gradient,
-    Paths,
-    InteriorTriangles,
-    ImageRect,
-    ImageMesh,
-    Resolve,
-    Atlas,
-    NumVertexDeclarations
+  Tessellation,
+  Gradient,
+  Paths,
+  InteriorTriangles,
+  ImageRect,
+  ImageMesh,
+  Resolve,
+  Atlas,
+  NumVertexDeclarations
 };
 
 enum class ERiveInterlockOverride
 {
-    None,
-    Atomics,
-    Raster,
-    MSAA,
-    CWMSAA1,
-    CWIB,
+  None,
+  Atomics,
+  Raster,
+  MSAA,
+  CWMSAA1,
+  CWIB,
 };
 
 inline ERiveInterlockOverride ParseRiveInterlockOverride(const FString& Name)
 {
-    const FString Lower = Name.ToLower();
-    if (Lower == TEXT("atomics"))
-    {
-        return ERiveInterlockOverride::Atomics;
-    }
-    if (Lower == TEXT("raster"))
-    {
-        return ERiveInterlockOverride::Raster;
-    }
-    if (Lower == TEXT("msaa"))
-    {
-        return ERiveInterlockOverride::MSAA;
-    }
-    if (Lower == TEXT("cwmsaa1"))
-    {
-        return ERiveInterlockOverride::CWMSAA1;
-    }
-    if (Lower == TEXT("cwib") || Lower == TEXT("inkbleed"))
-    {
-        return ERiveInterlockOverride::CWIB;
-    }
-    return ERiveInterlockOverride::None;
+  const FString Lower = Name.ToLower();
+  if (Lower == TEXT("atomics"))
+  {
+    return ERiveInterlockOverride::Atomics;
+  }
+  if (Lower == TEXT("raster"))
+  {
+    return ERiveInterlockOverride::Raster;
+  }
+  if (Lower == TEXT("msaa"))
+  {
+    return ERiveInterlockOverride::MSAA;
+  }
+  if (Lower == TEXT("cwmsaa1"))
+  {
+    return ERiveInterlockOverride::CWMSAA1;
+  }
+  if (Lower == TEXT("cwib") || Lower == TEXT("inkbleed"))
+  {
+    return ERiveInterlockOverride::CWIB;
+  }
+  return ERiveInterlockOverride::None;
 }
 
 class RIVERENDERER_API RenderContextRHIImpl
     : public rive::gpu::RenderContextImpl
 {
 public:
-    struct RHICapabilitiesOverrides
-    {
-        bool bSupportsPixelShaderUAVs = true;
+  struct RHICapabilitiesOverrides
+  {
+    bool bSupportsPixelShaderUAVs = true;
 #if PLATFORM_APPLE
-        bool bSupportsRasterOrderViews = true;
+    bool bSupportsRasterOrderViews = true;
 #else
-        bool bSupportsRasterOrderViews = false;
+    bool bSupportsRasterOrderViews = false;
 #endif
-    };
+  };
 
-    static std::unique_ptr<rive::gpu::RenderContext> MakeContext(
-        FRHICommandListImmediate& CommandListImmediate,
-        const RHICapabilitiesOverrides& Overrides);
+  static std::unique_ptr<rive::gpu::RenderContext> MakeContext(
+      FRHICommandListImmediate& CommandListImmediate,
+      const RHICapabilitiesOverrides& Overrides);
 
-    // This must use the same GraphBuilder as Flush. Currently only used for GM
-    // testing.
-    static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
-        FRDGBuilder& Builder,
-        FRDGTextureRef InTargetTexture);
+  // This must use the same GraphBuilder as Flush. Currently only used for GM
+  // testing.
+  static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
+      FRDGBuilder& Builder,
+      FRDGTextureRef InTargetTexture);
 
-    static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
-        const FTextureRHIRef& InTargetTexture);
+  static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
+      const FTextureRHIRef& InTargetTexture);
 
-    static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
-        UTexture* InTargetTexture);
+  static rive::rcp<rive::RenderImage> MakeExternalRenderImage(
+      UTexture* InTargetTexture);
 
-    RenderContextRHIImpl(FRHICommandListImmediate& CommandListImmediate,
-                         const RHICapabilitiesOverrides& Overrides);
+  RenderContextRHIImpl(
+      FRHICommandListImmediate& CommandListImmediate,
+      const RHICapabilitiesOverrides& Overrides);
 #if WITH_EDITOR
-    void updateFromInterlockOverride(ERiveInterlockOverride Override);
+  void updateFromInterlockOverride(ERiveInterlockOverride Override);
 #endif
-    rive::rcp<RenderTargetRHI> makeRenderTarget(
-        FRHICommandListImmediate& RHICmdList,
-        const FTextureRHIRef& InTargetTexture);
+  rive::rcp<RenderTargetRHI> makeRenderTarget(
+      FRHICommandListImmediate& RHICmdList,
+      const FTextureRHIRef& InTargetTexture);
 
-    rive::rcp<RenderTargetRHI> makeRenderTarget(
-        FRHICommandListImmediate& RHICmdList,
-        FRenderTarget* InTargetTexture);
+  rive::rcp<RenderTargetRHI> makeRenderTarget(
+      FRHICommandListImmediate& RHICmdList,
+      FRenderTarget* InTargetTexture);
 
-    rive::rcp<RenderTargetRHI> makeRenderTarget(FRDGTextureRef InTargetTexture);
+  rive::rcp<RenderTargetRHI> makeRenderTarget(FRDGTextureRef InTargetTexture);
 
-    virtual double secondsNow() const override
+  virtual double secondsNow() const override
+  {
+    auto elapsed = std::chrono::steady_clock::now() - m_localEpoch;
+    return std::chrono::duration<double>(elapsed).count();
+  }
+
+  virtual rive::rcp<rive::gpu::Texture> platformDecodeImageTexture(
+      rive::Span<const uint8_t> encodedBytes) override;
+
+  // Allocates a canvas's texture and render target on this device.
+  virtual void ensureCanvasBacking(rive::gpu::RenderCanvas* canvas) override;
+
+  // If canvas is enabled then the backend Impl MUST implement this.
+  virtual std::unique_ptr<rive::ore::Context> makeOreContext() override;
+
+  virtual rive::rcp<rive::gpu::Texture> makeImageTexture(
+      uint32_t width,
+      uint32_t height,
+      uint32_t mipLevelCount,
+      rive::GPUTextureFormat format,
+      const uint8_t imageDataRGBA[],
+      uint8_t blockWidth = 1,
+      uint8_t blockHeight = 1,
+      bool srgb = false,
+      bool generateRemainingMips = false) override;
+
+  virtual void resizeFlushUniformBuffer(size_t sizeInBytes) override;
+  virtual void resizePathBuffer(
+      size_t sizeInBytes,
+      rive::gpu::StorageBufferStructure) override;
+  virtual void resizePaintBuffer(
+      size_t sizeInBytes,
+      rive::gpu::StorageBufferStructure) override;
+  virtual void resizePaintAuxBuffer(
+      size_t sizeInBytes,
+      rive::gpu::StorageBufferStructure) override;
+  virtual void resizeContourBuffer(
+      size_t sizeInBytes,
+      rive::gpu::StorageBufferStructure) override;
+  virtual void resizeGradSpanBuffer(size_t sizeInBytes) override;
+  virtual void resizeTessVertexSpanBuffer(size_t sizeInBytes) override;
+  virtual void resizeTriangleVertexBuffer(size_t sizeInBytes) override;
+  virtual void resizeImageRectInstanceBuffer(size_t sizeInBytes) override;
+  virtual void resizeImageMeshInstanceBuffer(size_t sizeInBytes) override;
+
+  virtual void* mapFlushUniformBuffer(size_t mapSizeInBytes) override;
+  virtual void* mapPathBuffer(size_t mapSizeInBytes) override;
+  virtual void* mapPaintBuffer(size_t mapSizeInBytes) override;
+  virtual void* mapPaintAuxBuffer(size_t mapSizeInBytes) override;
+  virtual void* mapContourBuffer(size_t mapSizeInBytes) override;
+  virtual void* mapGradSpanBuffer(size_t mapSizeInBytes) override;
+  virtual void* mapTessVertexSpanBuffer(size_t mapSizeInBytes) override;
+  virtual void* mapTriangleVertexBuffer(size_t mapSizeInBytes) override;
+  virtual void* mapImageRectInstanceBuffer(size_t mapSizeInBytes) override;
+  virtual void* mapImageMeshInstanceBuffer(size_t mapSizeInBytes) override;
+
+  virtual void unmapFlushUniformBuffer(size_t unmapSizeInBytes) override;
+  virtual void unmapPathBuffer(size_t unmapSizeInBytes) override;
+  virtual void unmapPaintBuffer(size_t unmapSizeInBytes) override;
+  virtual void unmapPaintAuxBuffer(size_t unmapSizeInBytes) override;
+  virtual void unmapContourBuffer(size_t unmapSizeInBytes) override;
+  virtual void unmapGradSpanBuffer(size_t unmapSizeInBytes) override;
+  virtual void unmapTessVertexSpanBuffer(size_t unmapSizeInBytes) override;
+  virtual void unmapTriangleVertexBuffer(size_t unmapSizeInBytes) override;
+  virtual void unmapImageRectInstanceBuffer(size_t unmapSizeInBytes) override;
+  virtual void unmapImageMeshInstanceBuffer(size_t unmapSizeInBytes) override;
+
+  virtual rive::rcp<rive::RenderBuffer> makeRenderBuffer(
+      rive::RenderBufferType,
+      rive::RenderBufferFlags,
+      size_t) override;
+  virtual void resizeGradientTexture(uint32_t width, uint32_t height) override;
+  virtual void resizeTessellationTexture(uint32_t width, uint32_t height)
+      override;
+  virtual void resizeFeatherAtlasTexture(uint32_t width, uint32_t height)
+      override;
+
+  virtual void flush(const rive::gpu::FlushDescriptor&) override;
+
+  virtual void* makeCommandBuffer() override;
+
+  // Builder the backend hands out as an external command buffer, which is
+  // what a canvas pass flushes into. Scoped because it is only live while
+  // the frame that owns the builder renders.
+  class FScopedExternalBuilder
+  {
+  public:
+    explicit FScopedExternalBuilder(FRDGBuilder& Builder)
+        : Previous(TestBuilder)
     {
-        auto elapsed = std::chrono::steady_clock::now() - m_localEpoch;
-        return std::chrono::duration<double>(elapsed).count();
+      TestBuilder = &Builder;
     }
+    ~FScopedExternalBuilder() { TestBuilder = Previous; }
 
-    virtual rive::rcp<rive::gpu::Texture> platformDecodeImageTexture(
-        rive::Span<const uint8_t> encodedBytes) override;
+    FScopedExternalBuilder(const FScopedExternalBuilder&) = delete;
+    FScopedExternalBuilder& operator=(const FScopedExternalBuilder&) = delete;
 
-    // Allocates a canvas's texture and render target on this device.
-    virtual void ensureCanvasBacking(rive::gpu::RenderCanvas* canvas) override;
-
-    // If canvas is enabled then the backend Impl MUST implement this.
-    virtual std::unique_ptr<rive::ore::Context> makeOreContext() override;
-
-    virtual rive::rcp<rive::gpu::Texture> makeImageTexture(
-        uint32_t width,
-        uint32_t height,
-        uint32_t mipLevelCount,
-        rive::GPUTextureFormat format,
-        const uint8_t imageDataRGBA[],
-        uint8_t blockWidth = 1,
-        uint8_t blockHeight = 1,
-        bool srgb = false,
-        bool generateRemainingMips = false) override;
-
-    virtual void resizeFlushUniformBuffer(size_t sizeInBytes) override;
-    virtual void resizePathBuffer(size_t sizeInBytes,
-                                  rive::gpu::StorageBufferStructure) override;
-    virtual void resizePaintBuffer(size_t sizeInBytes,
-                                   rive::gpu::StorageBufferStructure) override;
-    virtual void resizePaintAuxBuffer(
-        size_t sizeInBytes,
-        rive::gpu::StorageBufferStructure) override;
-    virtual void resizeContourBuffer(
-        size_t sizeInBytes,
-        rive::gpu::StorageBufferStructure) override;
-    virtual void resizeGradSpanBuffer(size_t sizeInBytes) override;
-    virtual void resizeTessVertexSpanBuffer(size_t sizeInBytes) override;
-    virtual void resizeTriangleVertexBuffer(size_t sizeInBytes) override;
-    virtual void resizeImageRectInstanceBuffer(size_t sizeInBytes) override;
-    virtual void resizeImageMeshInstanceBuffer(size_t sizeInBytes) override;
-
-    virtual void* mapFlushUniformBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapPathBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapPaintBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapPaintAuxBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapContourBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapGradSpanBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapTessVertexSpanBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapTriangleVertexBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapImageRectInstanceBuffer(size_t mapSizeInBytes) override;
-    virtual void* mapImageMeshInstanceBuffer(size_t mapSizeInBytes) override;
-
-    virtual void unmapFlushUniformBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapPathBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapPaintBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapPaintAuxBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapContourBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapGradSpanBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapTessVertexSpanBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapTriangleVertexBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapImageRectInstanceBuffer(size_t unmapSizeInBytes) override;
-    virtual void unmapImageMeshInstanceBuffer(size_t unmapSizeInBytes) override;
-
-    virtual rive::rcp<rive::RenderBuffer> makeRenderBuffer(
-        rive::RenderBufferType,
-        rive::RenderBufferFlags,
-        size_t) override;
-    virtual void resizeGradientTexture(uint32_t width,
-                                       uint32_t height) override;
-    virtual void resizeTessellationTexture(uint32_t width,
-                                           uint32_t height) override;
-    virtual void resizeFeatherAtlasTexture(uint32_t width,
-                                           uint32_t height) override;
-
-    virtual void flush(const rive::gpu::FlushDescriptor&) override;
-
-    virtual void* makeCommandBuffer() override;
-
-    // Builder the backend hands out as an external command buffer, which is
-    // what a canvas pass flushes into. Scoped because it is only live while
-    // the frame that owns the builder renders.
-    class FScopedExternalBuilder
-    {
-    public:
-        explicit FScopedExternalBuilder(FRDGBuilder& Builder) :
-            Previous(TestBuilder)
-        {
-            TestBuilder = &Builder;
-        }
-        ~FScopedExternalBuilder() { TestBuilder = Previous; }
-
-        FScopedExternalBuilder(const FScopedExternalBuilder&) = delete;
-        FScopedExternalBuilder& operator=(const FScopedExternalBuilder&) =
-            delete;
-
-    private:
-        FRDGBuilder* const Previous;
-    };
+  private:
+    FRDGBuilder* const Previous;
+  };
 
 private:
-    DelayLoadedTexture m_gradientTexture;
-    DelayLoadedTexture m_tesselationTexture;
-    DelayLoadedTexture m_featherAtlasTexture;
+  DelayLoadedTexture m_gradientTexture;
+  DelayLoadedTexture m_tesselationTexture;
+  DelayLoadedTexture m_featherAtlasTexture;
 
-    // This is used for unused bindings in Render Graph because it doesn't allow
-    // read inputs that aren't written to beforehand.
-    FTextureRHIRef m_placeholderTexture;
-    // gaussian integral texture gets created and uploaded once on construction,
-    // so we make it an external texture
-    FTextureRHIRef m_gaussianIntegralTexture;
+  // This is used for unused bindings in Render Graph because it doesn't allow
+  // read inputs that aren't written to beforehand.
+  FTextureRHIRef m_placeholderTexture;
+  // gaussian integral texture gets created and uploaded once on construction,
+  // so we make it an external texture
+  FTextureRHIRef m_gaussianIntegralTexture;
 
-    FBufferRHIRef m_patchVertexBuffer;
-    FBufferRHIRef m_patchIndexBuffer;
-    FBufferRHIRef m_dsMidpointFanFillIndexBuffer;
-    FBufferRHIRef m_dsOuterCubicFillIndexBuffer;
-    FBufferRHIRef m_dsStrokeIndexBuffer;
-    FBufferRHIRef m_dsAAStrokeIndexBuffer;
-    FBufferRHIRef m_imageRectVertexBuffer;
-    FBufferRHIRef m_imageRectIndexBuffer;
-    FBufferRHIRef m_tessSpanIndexBuffer;
+  FBufferRHIRef m_patchVertexBuffer;
+  FBufferRHIRef m_patchIndexBuffer;
+  FBufferRHIRef m_dsMidpointFanFillIndexBuffer;
+  FBufferRHIRef m_dsOuterCubicFillIndexBuffer;
+  FBufferRHIRef m_dsStrokeIndexBuffer;
+  FBufferRHIRef m_dsAAStrokeIndexBuffer;
+  FBufferRHIRef m_imageRectVertexBuffer;
+  FBufferRHIRef m_imageRectIndexBuffer;
+  FBufferRHIRef m_tessSpanIndexBuffer;
 
-    FSamplerStateRHIRef
-        m_imageSamplers[rive::ImageSampler::MAX_SAMPLER_PERMUTATIONS];
-    FSamplerStateRHIRef m_gradSampler;
-    FSamplerStateRHIRef m_featherAtlasSampler;
-    FSamplerStateRHIRef m_gaussianIntegralSampler;
+  FSamplerStateRHIRef
+      m_imageSamplers[rive::ImageSampler::MAX_SAMPLER_PERMUTATIONS];
+  FSamplerStateRHIRef m_gradSampler;
+  FSamplerStateRHIRef m_featherAtlasSampler;
+  FSamplerStateRHIRef m_gaussianIntegralSampler;
 
-    FVertexDeclarationRHIRef VertexDeclarations[static_cast<int32>(
-        EVertexDeclarations::NumVertexDeclarations)];
+  FVertexDeclarationRHIRef VertexDeclarations[static_cast<int32>(
+      EVertexDeclarations::NumVertexDeclarations)];
 
-    std::unique_ptr<
-        UniformBufferRHIImpl<rive::gpu::FlushUniforms, FFlushUniforms>>
-        m_flushUniformBuffer;
-    StructuredBufferRHIImpl<rive::gpu::PathData> m_pathBuffer;
-    StructuredBufferRHIImpl<rive::gpu::PaintData> m_paintBuffer;
-    StructuredBufferRHIImpl<rive::gpu::PaintAuxData> m_paintAuxBuffer;
-    StructuredBufferRHIImpl<rive::gpu::ContourData> m_contourBuffer;
-    std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
-    std::unique_ptr<BufferRingRHIImpl> m_tessSpanBuffer;
-    std::unique_ptr<BufferRingRHIImpl> m_triangleBuffer;
-    std::unique_ptr<BufferRingRHIImpl> m_imageRectInstanceBuffer;
-    std::unique_ptr<BufferRingRHIImpl> m_imageMeshInstanceBuffer;
+  std::unique_ptr<
+      UniformBufferRHIImpl<rive::gpu::FlushUniforms, FFlushUniforms>>
+      m_flushUniformBuffer;
+  StructuredBufferRHIImpl<rive::gpu::PathData> m_pathBuffer;
+  StructuredBufferRHIImpl<rive::gpu::PaintData> m_paintBuffer;
+  StructuredBufferRHIImpl<rive::gpu::PaintAuxData> m_paintAuxBuffer;
+  StructuredBufferRHIImpl<rive::gpu::ContourData> m_contourBuffer;
+  std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
+  std::unique_ptr<BufferRingRHIImpl> m_tessSpanBuffer;
+  std::unique_ptr<BufferRingRHIImpl> m_triangleBuffer;
+  std::unique_ptr<BufferRingRHIImpl> m_imageRectInstanceBuffer;
+  std::unique_ptr<BufferRingRHIImpl> m_imageMeshInstanceBuffer;
 
-    std::chrono::steady_clock::time_point m_localEpoch =
-        std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point
+      m_localEpoch = std::chrono::steady_clock::now();
 
-    RHICapabilities m_capabilities;
+  RHICapabilities m_capabilities;
 #if WITH_EDITOR
-    rive::gpu::PlatformFeatures m_originalPlatformFeatures;
+  rive::gpu::PlatformFeatures m_originalPlatformFeatures;
 #endif
 
-    static FRDGBuilder* TestBuilder;
+  static FRDGBuilder* TestBuilder;
 
 public:
-    // Bumped once per flush. Used to cache per flush rdg registrations without
-    // keying on the FRDGBuilder pointer, which the gm harness reallocates at
-    // the same address every frame.
-    static uint64 FlushSerial;
+  // Bumped once per flush. Used to cache per flush rdg registrations without
+  // keying on the FRDGBuilder pointer, which the gm harness reallocates at
+  // the same address every frame.
+  static uint64 FlushSerial;
 
 private:
-    friend class UnrealTestingWindow;
+  friend class UnrealTestingWindow;
 };

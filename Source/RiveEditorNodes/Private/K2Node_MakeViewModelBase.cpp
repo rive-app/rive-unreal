@@ -14,552 +14,566 @@
 #include "VisualizeTexture.h"
 
 FName UK2Node_MakeViewModelBase::PN_File = TEXT("FileInput");
-FName UK2Node_MakeViewModelBase::PN_ViewModelSource =
-    TEXT("ViewModelSourceInput");
-FName UK2Node_MakeViewModelBase::PN_ViewModelInstance =
-    TEXT("ViewModelInstanceInput");
+FName UK2Node_MakeViewModelBase::PN_ViewModelSource = TEXT(
+    "ViewModelSourceInput");
+FName UK2Node_MakeViewModelBase::PN_ViewModelInstance = TEXT(
+    "ViewModelInstanceInput");
 
 FText UK2Node_MakeViewModelBase::GetMenuCategory() const
 {
-    return FText::FromString("Rive");
+  return FText::FromString("Rive");
 }
 
 void UK2Node_MakeViewModelBase::BeginDestroy()
 {
-    if (IsValid(SelectedRiveFile))
-    {
-        SelectedRiveFile->OnDataReady.RemoveAll(this);
-    }
-    Super::BeginDestroy();
+  if (IsValid(SelectedRiveFile))
+  {
+    SelectedRiveFile->OnDataReady.RemoveAll(this);
+  }
+  Super::BeginDestroy();
 }
 
 int UK2Node_MakeViewModelBase::GetIndexFromSelection(const FString& Selection)
 {
-    return INDEX_NONE;
+  return INDEX_NONE;
 }
 
 void UK2Node_MakeViewModelBase::GetMenuActions(
     FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-    Super::GetMenuActions(ActionRegistrar);
+  Super::GetMenuActions(ActionRegistrar);
 
-    UClass* ActionKey = GetClass();
-    if (ActionRegistrar.IsOpenForRegistration(ActionKey))
-    {
-        UBlueprintNodeSpawner* NodeSpawner =
-            UBlueprintNodeSpawner::Create(GetClass());
-        check(NodeSpawner);
+  UClass* ActionKey = GetClass();
+  if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+  {
+    UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(
+        GetClass());
+    check(NodeSpawner);
 
-        ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
-    }
+    ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+  }
 }
 
 UEdGraphPin* UK2Node_MakeViewModelBase::GetReturnPin() const
 {
-    UEdGraphPin* Pin = FindPin(UEdGraphSchema_K2::PN_ReturnValue);
-    check(Pin != nullptr && Pin->Direction == EGPD_Output);
-    return Pin;
+  UEdGraphPin* Pin = FindPin(UEdGraphSchema_K2::PN_ReturnValue);
+  check(Pin != nullptr && Pin->Direction == EGPD_Output);
+  return Pin;
 }
 
 void UK2Node_MakeViewModelBase::AllocateDefaultPins()
 {
-    Super::AllocateDefaultPins();
+  Super::AllocateDefaultPins();
 
-    // Input exec pin
-    CreatePin(EGPD_Input,
-              UEdGraphSchema_K2::PC_Exec,
-              UEdGraphSchema_K2::PN_Execute);
+  // Input exec pin
+  CreatePin(
+      EGPD_Input,
+      UEdGraphSchema_K2::PC_Exec,
+      UEdGraphSchema_K2::PN_Execute);
 
-    // Output exec pin
-    CreatePin(EGPD_Output,
-              UEdGraphSchema_K2::PC_Exec,
-              UEdGraphSchema_K2::PN_Then);
+  // Output exec pin
+  CreatePin(
+      EGPD_Output,
+      UEdGraphSchema_K2::PC_Exec,
+      UEdGraphSchema_K2::PN_Then);
 
-    auto FilePin = CreatePin(EGPD_Input,
-                             UEdGraphSchema_K2::PC_Object,
-                             URiveFile::StaticClass(),
-                             PN_File);
-    FilePin->PinFriendlyName = FText::FromString(TEXT("Rive File Selection"));
-    FilePin->PinToolTip =
-        TEXT("File to create view model from, connections are not allowed on "
-             "this pin.\nSelect your desired file from the dropdown.");
-    FilePin->bNotConnectable = true;
+  auto FilePin = CreatePin(
+      EGPD_Input,
+      UEdGraphSchema_K2::PC_Object,
+      URiveFile::StaticClass(),
+      PN_File);
+  FilePin->PinFriendlyName = FText::FromString(TEXT("Rive File Selection"));
+  FilePin->PinToolTip = TEXT(
+      "File to create view model from, connections are not allowed on "
+      "this pin.\nSelect your desired file from the dropdown.");
+  FilePin->bNotConnectable = true;
 
-    auto OutputPin = CreatePin(EGPD_Output,
-                               UEdGraphSchema_K2::PC_Object,
-                               URiveViewModel::StaticClass(),
-                               UEdGraphSchema_K2::PN_ReturnValue);
-    OutputPin->PinToolTip = TEXT("Created View Model");
-    OutputPin->bHidden = true;
+  auto OutputPin = CreatePin(
+      EGPD_Output,
+      UEdGraphSchema_K2::PC_Object,
+      URiveViewModel::StaticClass(),
+      UEdGraphSchema_K2::PN_ReturnValue);
+  OutputPin->PinToolTip = TEXT("Created View Model");
+  OutputPin->bHidden = true;
 }
 
 void UK2Node_MakeViewModelBase::PinDefaultValueChanged(UEdGraphPin* Pin)
 {
-    Super::PinDefaultValueChanged(Pin);
-    UpdatePins(Pin);
-    if (Pin == GetViewModelSourcePin())
+  Super::PinDefaultValueChanged(Pin);
+  UpdatePins(Pin);
+  if (Pin == GetViewModelSourcePin())
+  {
+    check(SelectedRiveFile);
+    check(SelectedIndex != INDEX_NONE);
+
+    auto SelectedViewModel = GetViewModelDefinitionFromIndex(SelectedIndex);
+    check(SelectedViewModel);
+    ViewModelClass = SelectedRiveFile->GetGeneratedClassForViewModel(
+        *SelectedViewModel->Name);
+    // Make sure we have the correct "type" of class as a bunch of
+    // intermediates get created
+    if (ensure(ViewModelClass))
     {
-        check(SelectedRiveFile);
-        check(SelectedIndex != INDEX_NONE);
-
-        auto SelectedViewModel = GetViewModelDefinitionFromIndex(SelectedIndex);
-        check(SelectedViewModel);
-        ViewModelClass = SelectedRiveFile->GetGeneratedClassForViewModel(
-            *SelectedViewModel->Name);
-        // Make sure we have the correct "type" of class as a bunch of
-        // intermediates get created
-        if (ensure(ViewModelClass))
-        {
-            ViewModelClass = ViewModelClass->GetAuthoritativeClass();
-        }
-        else
-        {
-            UE_LOG(LogRiveNode,
-                   Warning,
-                   TEXT("View model class not loaded, using default instead."));
-            ViewModelClass = URiveViewModel::StaticClass();
-        }
-
-        UEdGraphPin* RetPin = GetReturnPin();
-        check(RetPin);
-        if (RetPin->PinType.PinSubCategoryObject != ViewModelClass)
-        {
-            RetPin->PinType.PinSubCategoryObject = ViewModelClass;
-            RetPin->PinToolTip = FString::Format(TEXT("Created {0} View Model"),
-                                                 {ViewModelClass->GetName()});
-            RetPin->bHidden = false;
-            GetGraph()->NotifyNodeChanged(this);
-        }
+      ViewModelClass = ViewModelClass->GetAuthoritativeClass();
     }
+    else
+    {
+      UE_LOG(
+          LogRiveNode,
+          Warning,
+          TEXT("View model class not loaded, using default instead."));
+      ViewModelClass = URiveViewModel::StaticClass();
+    }
+
+    UEdGraphPin* RetPin = GetReturnPin();
+    check(RetPin);
+    if (RetPin->PinType.PinSubCategoryObject != ViewModelClass)
+    {
+      RetPin->PinType.PinSubCategoryObject = ViewModelClass;
+      RetPin->PinToolTip = FString::Format(
+          TEXT("Created {0} View Model"),
+          {ViewModelClass->GetName()});
+      RetPin->bHidden = false;
+      GetGraph()->NotifyNodeChanged(this);
+    }
+  }
 }
 
 void UK2Node_MakeViewModelBase::ReallocatePinsDuringReconstruction(
     TArray<UEdGraphPin*>& OldPins)
 {
-    Super::ReallocatePinsDuringReconstruction(OldPins);
+  Super::ReallocatePinsDuringReconstruction(OldPins);
 
-    UEdGraphPin* OldFilePin = nullptr;
-    UEdGraphPin* OldViewModelSourcePin = nullptr;
-    UEdGraphPin* OldViewModelInstancePin = nullptr;
-    UEdGraphPin* OldReturnPin = nullptr;
+  UEdGraphPin* OldFilePin = nullptr;
+  UEdGraphPin* OldViewModelSourcePin = nullptr;
+  UEdGraphPin* OldViewModelInstancePin = nullptr;
+  UEdGraphPin* OldReturnPin = nullptr;
 
-    for (auto Pin : OldPins)
+  for (auto Pin : OldPins)
+  {
+    if (Pin->PinName == PN_File)
     {
-        if (Pin->PinName == PN_File)
-        {
-            OldFilePin = Pin;
-        }
-        if (Pin->PinName == PN_ViewModelSource)
-        {
-            OldViewModelSourcePin = Pin;
-        }
-        if (Pin->PinName == PN_ViewModelInstance)
-        {
-            OldViewModelInstancePin = Pin;
-        }
-        if (Pin->PinName == UEdGraphSchema_K2::PN_ReturnValue)
-        {
-            OldReturnPin = Pin;
-        }
+      OldFilePin = Pin;
     }
+    if (Pin->PinName == PN_ViewModelSource)
+    {
+      OldViewModelSourcePin = Pin;
+    }
+    if (Pin->PinName == PN_ViewModelInstance)
+    {
+      OldViewModelInstancePin = Pin;
+    }
+    if (Pin->PinName == UEdGraphSchema_K2::PN_ReturnValue)
+    {
+      OldReturnPin = Pin;
+    }
+  }
 
-    if (OldFilePin)
+  if (OldFilePin)
+  {
+    SelectedRiveFile = UPinTools::GetPinObjectValue<URiveFile>(OldFilePin);
+    if (IsValid(SelectedRiveFile) && !SelectedRiveFile->GetHasData() &&
+        !IsRunningCommandlet())
     {
-        SelectedRiveFile = UPinTools::GetPinObjectValue<URiveFile>(OldFilePin);
-        if (IsValid(SelectedRiveFile) && !SelectedRiveFile->GetHasData() &&
-            !IsRunningCommandlet())
-        {
-            SelectedRiveFile->Initialize();
-        }
+      SelectedRiveFile->Initialize();
     }
-    if (OldViewModelSourcePin)
+  }
+  if (OldViewModelSourcePin)
+  {
+    auto Object = OldViewModelSourcePin->PinType.PinSubCategoryObject.Get();
+    auto NewPin = CreatePin(
+        EGPD_Input,
+        UEdGraphSchema_K2::PC_Byte,
+        Object,
+        PN_ViewModelSource);
+    NewPin->CopyPersistentDataFromOldPin(*OldViewModelSourcePin);
+  }
+  if (OldViewModelInstancePin)
+  {
+    auto Object = OldViewModelInstancePin->PinType.PinSubCategoryObject.Get();
+    auto NewPin = CreatePin(
+        EGPD_Input,
+        UEdGraphSchema_K2::PC_Byte,
+        Object,
+        PN_ViewModelInstance);
+    NewPin->CopyPersistentDataFromOldPin(*OldViewModelInstancePin);
+  }
+  if (OldReturnPin && !OldReturnPin->bHidden)
+  {
+    ViewModelClass = Cast<UClass>(
+        OldReturnPin->PinType.PinSubCategoryObject.Get());
+    if (ViewModelClass)
     {
-        auto Object = OldViewModelSourcePin->PinType.PinSubCategoryObject.Get();
-        auto NewPin = CreatePin(EGPD_Input,
-                                UEdGraphSchema_K2::PC_Byte,
-                                Object,
-                                PN_ViewModelSource);
-        NewPin->CopyPersistentDataFromOldPin(*OldViewModelSourcePin);
+      ViewModelClass = ViewModelClass->GetAuthoritativeClass();
     }
-    if (OldViewModelInstancePin)
+    if (!ViewModelClass)
     {
-        auto Object =
-            OldViewModelInstancePin->PinType.PinSubCategoryObject.Get();
-        auto NewPin = CreatePin(EGPD_Input,
-                                UEdGraphSchema_K2::PC_Byte,
-                                Object,
-                                PN_ViewModelInstance);
-        NewPin->CopyPersistentDataFromOldPin(*OldViewModelInstancePin);
+      ViewModelClass = URiveViewModel::StaticClass();
     }
-    if (OldReturnPin && !OldReturnPin->bHidden)
-    {
-        ViewModelClass =
-            Cast<UClass>(OldReturnPin->PinType.PinSubCategoryObject.Get());
-        if (ViewModelClass)
-        {
-            ViewModelClass = ViewModelClass->GetAuthoritativeClass();
-        }
-        if (!ViewModelClass)
-        {
-            ViewModelClass = URiveViewModel::StaticClass();
-        }
-        UEdGraphPin* RetPin = GetReturnPin();
-        RetPin->PinType.PinSubCategoryObject = ViewModelClass;
-        RetPin->PinToolTip = FString::Format(TEXT("Created {0} View Model"),
-                                             {ViewModelClass->GetName()});
-        RetPin->bHidden = false;
-    }
+    UEdGraphPin* RetPin = GetReturnPin();
+    RetPin->PinType.PinSubCategoryObject = ViewModelClass;
+    RetPin->PinToolTip = FString::Format(
+        TEXT("Created {0} View Model"),
+        {ViewModelClass->GetName()});
+    RetPin->bHidden = false;
+  }
 
-    if (SelectedRiveFile && OldViewModelSourcePin)
+  if (SelectedRiveFile && OldViewModelSourcePin)
+  {
+    if (SelectedRiveFile->GetHasData())
     {
-        if (SelectedRiveFile->GetHasData())
-        {
-            SelectedIndex = GetIndexFromSelection(
-                UPinTools::GetPinStringValue(OldViewModelSourcePin));
-        }
-        else
-        {
-            const auto Selection =
-                UPinTools::GetPinStringValue(OldViewModelSourcePin);
-            auto handle = SelectedRiveFile->OnDataReady.AddLambda(
-                [this, Selection](URiveFile*) {
-                    SelectedRiveFile->OnDataReady.RemoveAll(this);
-                    SelectedIndex = GetIndexFromSelection(Selection);
-                });
-        }
+      SelectedIndex = GetIndexFromSelection(
+          UPinTools::GetPinStringValue(OldViewModelSourcePin));
     }
+    else
+    {
+      const auto Selection = UPinTools::GetPinStringValue(
+          OldViewModelSourcePin);
+      auto handle = SelectedRiveFile->OnDataReady.AddLambda(
+          [this, Selection](URiveFile*) {
+            SelectedRiveFile->OnDataReady.RemoveAll(this);
+            SelectedIndex = GetIndexFromSelection(Selection);
+          });
+    }
+  }
 }
 
 void UK2Node_MakeViewModelBase::ExpandNode(
     FKismetCompilerContext& CompilerContext,
     UEdGraph* SourceGraph)
 {
-    Super::ExpandNode(CompilerContext, SourceGraph);
+  Super::ExpandNode(CompilerContext, SourceGraph);
 
-    if (CheckForErrors(CompilerContext))
+  if (CheckForErrors(CompilerContext))
+  {
+    return;
+  }
+
+  auto Node_CallFunction = CompilerContext
+                               .SpawnIntermediateNode<UK2Node_CallFunction>(
+                                   this,
+                                   SourceGraph);
+  SetFunctionOnIntermediateNode(Node_CallFunction);
+  Node_CallFunction->AllocateDefaultPins();
+
+  auto MyExecPin = GetExecPin();
+  if (MyExecPin->HasAnyConnections())
+  {
+    auto NodeExecPin = Node_CallFunction->GetExecPin();
+    UPinTools::MovePinLinksOrCopyDefaults(
+        CompilerContext,
+        MyExecPin,
+        NodeExecPin);
+  }
+
+  auto MyThenPin = GetThenPin();
+  if (MyThenPin->HasAnyConnections())
+  {
+    auto NodeThenPin = Node_CallFunction->GetThenPin();
+    UPinTools::MovePinLinksOrCopyDefaults(
+        CompilerContext,
+        MyThenPin,
+        NodeThenPin);
+  }
+
+  if (auto FilePin = GetFilePin())
+  {
+    auto TargetPin = Node_CallFunction->FindPin(TEXT("InputFile"));
+    UPinTools::MovePinLinksOrCopyDefaults(CompilerContext, FilePin, TargetPin);
+  }
+
+  if (auto ViewModelPin = GetViewModelSourcePin())
+  {
+    auto TargetPin = GetTargetPinForViewModelSource(Node_CallFunction);
+    check(TargetPin);
+    UPinTools::MovePinLinksOrCopyDefaults(
+        CompilerContext,
+        ViewModelPin,
+        TargetPin);
+  }
+
+  if (auto ViewModelInstacePin = GetViewModelInstancePin())
+  {
+    auto TargetPin = Node_CallFunction->FindPin(TEXT("InstanceName"));
+    UPinTools::MovePinLinksOrCopyDefaults(
+        CompilerContext,
+        ViewModelInstacePin,
+        TargetPin);
+  }
+
+  if (auto ReturnPin = GetReturnPin())
+  {
+    auto TargetPin = Node_CallFunction->GetReturnValuePin();
+    // Taken from K2Node_GenericConstructObject.cpp:134 in case this ever
+    // changes or needs to.
+    if (TargetPin && ReturnPin)
     {
-        return;
+      TargetPin->PinType = ReturnPin->PinType;
     }
+    CompilerContext.MovePinLinksToIntermediate(*ReturnPin, *TargetPin);
+  }
 
-    auto Node_CallFunction =
-        CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(
-            this,
-            SourceGraph);
-    SetFunctionOnIntermediateNode(Node_CallFunction);
-    Node_CallFunction->AllocateDefaultPins();
-
-    auto MyExecPin = GetExecPin();
-    if (MyExecPin->HasAnyConnections())
-    {
-        auto NodeExecPin = Node_CallFunction->GetExecPin();
-        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
-                                              MyExecPin,
-                                              NodeExecPin);
-    }
-
-    auto MyThenPin = GetThenPin();
-    if (MyThenPin->HasAnyConnections())
-    {
-        auto NodeThenPin = Node_CallFunction->GetThenPin();
-        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
-                                              MyThenPin,
-                                              NodeThenPin);
-    }
-
-    if (auto FilePin = GetFilePin())
-    {
-        auto TargetPin = Node_CallFunction->FindPin(TEXT("InputFile"));
-        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
-                                              FilePin,
-                                              TargetPin);
-    }
-
-    if (auto ViewModelPin = GetViewModelSourcePin())
-    {
-        auto TargetPin = GetTargetPinForViewModelSource(Node_CallFunction);
-        check(TargetPin);
-        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
-                                              ViewModelPin,
-                                              TargetPin);
-    }
-
-    if (auto ViewModelInstacePin = GetViewModelInstancePin())
-    {
-        auto TargetPin = Node_CallFunction->FindPin(TEXT("InstanceName"));
-        UPinTools::MovePinLinksOrCopyDefaults(CompilerContext,
-                                              ViewModelInstacePin,
-                                              TargetPin);
-    }
-
-    if (auto ReturnPin = GetReturnPin())
-    {
-        auto TargetPin = Node_CallFunction->GetReturnValuePin();
-        // Taken from K2Node_GenericConstructObject.cpp:134 in case this ever
-        // changes or needs to.
-        if (TargetPin && ReturnPin)
-        {
-            TargetPin->PinType = ReturnPin->PinType;
-        }
-        CompilerContext.MovePinLinksToIntermediate(*ReturnPin, *TargetPin);
-    }
-
-    BreakAllNodeLinks();
+  BreakAllNodeLinks();
 }
 
 bool UK2Node_MakeViewModelBase::CheckForErrors(
     FKismetCompilerContext& CompilerContext)
 {
-    if (!GetFilePin())
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(TEXT("Node %s requires a file selection."),
-                             *GetName()),
-            this);
-        return true;
-    }
-    auto RiveFile = UPinTools::GetPinObjectValue<URiveFile>(GetFilePin());
+  if (!GetFilePin())
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(
+            TEXT("Node %s requires a file selection."),
+            *GetName()),
+        this);
+    return true;
+  }
+  auto RiveFile = UPinTools::GetPinObjectValue<URiveFile>(GetFilePin());
 
-    if (!RiveFile)
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(TEXT("Node %s requires a file."), *GetName()),
-            this);
-        return true;
-    }
+  if (!RiveFile)
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(TEXT("Node %s requires a file."), *GetName()),
+        this);
+    return true;
+  }
 
-    if (!IsValid(RiveFile))
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(TEXT("Node %s selected rive file is invalid."),
-                             *GetName()),
-            this);
-        return true;
-    }
+  if (!IsValid(RiveFile))
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(
+            TEXT("Node %s selected rive file is invalid."),
+            *GetName()),
+        this);
+    return true;
+  }
 
-    // Unfortunately, on startup the file is not fully loaded, so we can't do
-    // check properly in that situation.
-    if (!RiveFile->GetHasData())
-    {
-        // Because of this ^ do a warning log instead of a compile error.
-        UE_LOG(LogRiveNode, Warning, TEXT("Rive file is not loaded yet."));
-        return false;
-    }
-
-    if (!GetViewModelSourcePin())
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(
-                TEXT("Node %s requires a view model source selection."),
-                *GetName()),
-            this);
-        return true;
-    }
-
-    if (!GetViewModelInstancePin())
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(
-                TEXT("Node %s requires a view model instance selection."),
-                *GetName()),
-            this);
-        return true;
-    }
-
-    const auto SelectedValue = GetViewModelSourcePin()->GetDefaultAsString();
-
-    if (SelectedValue.IsEmpty())
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(TEXT("Node %s requires a view model selection."),
-                             *GetName()),
-            this);
-        return true;
-    }
-
-    const auto SelectedViewModelInstace =
-        GetViewModelInstancePin()->GetDefaultAsString();
-
-    if (SelectedViewModelInstace.IsEmpty())
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(
-                TEXT("Node %s requires a view model instance selection."),
-                *GetName()),
-            this);
-        return true;
-    }
-
-    const auto ViewModel = GetViewModelSourceValueFromSelection(SelectedValue);
-    if (ViewModel.IsEmpty())
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(TEXT("Node %s, file %s has no artboard named %s."),
-                             *GetName(),
-                             *SelectedRiveFile->GetName(),
-                             *SelectedValue),
-            this);
-        return true;
-    }
-
-    const auto InstanceEnum =
-        SelectedRiveFile->GetViewModelInstanceEnum(ViewModel);
-
-    if (!InstanceEnum)
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(
-                TEXT(
-                    "Node %s, file %s has no instance enum for view model %s."),
-                *GetName(),
-                *SelectedRiveFile->GetName(),
-                *ViewModel),
-            this);
-        return true;
-    }
-
-    const auto Value =
-        InstanceEnum->GetValueByNameString(SelectedViewModelInstace,
-                                           EGetByNameFlags::CaseSensitive);
-    if (Value == INDEX_NONE)
-    {
-        CompilerContext.MessageLog.Error(
-            *FString::Printf(
-                TEXT(
-                    "Node %s has view model instance %s is not available for view model %s."),
-                *GetName(),
-                *SelectedViewModelInstace,
-                *ViewModel),
-            this);
-        return true;
-    }
-
+  // Unfortunately, on startup the file is not fully loaded, so we can't do
+  // check properly in that situation.
+  if (!RiveFile->GetHasData())
+  {
+    // Because of this ^ do a warning log instead of a compile error.
+    UE_LOG(LogRiveNode, Warning, TEXT("Rive file is not loaded yet."));
     return false;
+  }
+
+  if (!GetViewModelSourcePin())
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(
+            TEXT("Node %s requires a view model source selection."),
+            *GetName()),
+        this);
+    return true;
+  }
+
+  if (!GetViewModelInstancePin())
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(
+            TEXT("Node %s requires a view model instance selection."),
+            *GetName()),
+        this);
+    return true;
+  }
+
+  const auto SelectedValue = GetViewModelSourcePin()->GetDefaultAsString();
+
+  if (SelectedValue.IsEmpty())
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(
+            TEXT("Node %s requires a view model selection."),
+            *GetName()),
+        this);
+    return true;
+  }
+
+  const auto SelectedViewModelInstace = GetViewModelInstancePin()
+                                            ->GetDefaultAsString();
+
+  if (SelectedViewModelInstace.IsEmpty())
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(
+            TEXT("Node %s requires a view model instance selection."),
+            *GetName()),
+        this);
+    return true;
+  }
+
+  const auto ViewModel = GetViewModelSourceValueFromSelection(SelectedValue);
+  if (ViewModel.IsEmpty())
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(
+            TEXT("Node %s, file %s has no artboard named %s."),
+            *GetName(),
+            *SelectedRiveFile->GetName(),
+            *SelectedValue),
+        this);
+    return true;
+  }
+
+  const auto InstanceEnum = SelectedRiveFile->GetViewModelInstanceEnum(
+      ViewModel);
+
+  if (!InstanceEnum)
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(
+            TEXT("Node %s, file %s has no instance enum for view model %s."),
+            *GetName(),
+            *SelectedRiveFile->GetName(),
+            *ViewModel),
+        this);
+    return true;
+  }
+
+  const auto Value = InstanceEnum->GetValueByNameString(
+      SelectedViewModelInstace,
+      EGetByNameFlags::CaseSensitive);
+  if (Value == INDEX_NONE)
+  {
+    CompilerContext.MessageLog.Error(
+        *FString::Printf(
+            TEXT(
+                "Node %s has view model instance %s is not available for view model %s."),
+            *GetName(),
+            *SelectedViewModelInstace,
+            *ViewModel),
+        this);
+    return true;
+  }
+
+  return false;
 }
 
 void UK2Node_MakeViewModelBase::UpdatePins(UEdGraphPin* UpdatedPin)
 {
-    UEdGraphPin* InputFilePin = FindPin(PN_File);
+  UEdGraphPin* InputFilePin = FindPin(PN_File);
 
-    SelectedIndex = INDEX_NONE;
+  SelectedIndex = INDEX_NONE;
 
-    auto RiveFile = UPinTools::GetPinObjectValue<URiveFile>(InputFilePin);
-    bool bNeedsEnumPins = RiveFile != nullptr;
+  auto RiveFile = UPinTools::GetPinObjectValue<URiveFile>(InputFilePin);
+  bool bNeedsEnumPins = RiveFile != nullptr;
 
-    if ((bNeedsEnumPins && GetViewModelSourcePin() == nullptr) ||
-        (SelectedRiveFile != RiveFile && IsValid(RiveFile)))
+  if ((bNeedsEnumPins && GetViewModelSourcePin() == nullptr) ||
+      (SelectedRiveFile != RiveFile && IsValid(RiveFile)))
+  {
+    SelectedRiveFile = RiveFile;
+    GenerateViewModelSourcePin(RiveFile);
+  }
+  else if (!bNeedsEnumPins && GetViewModelSourcePin())
+  {
+    if (auto VPin = GetViewModelSourcePin())
+      RemovePin(VPin);
+    if (auto VPin = GetViewModelInstancePin())
+      RemovePin(VPin);
+  }
+
+  auto ViewModelPin = GetViewModelSourcePin();
+  auto ViewModelInstancePin = GetViewModelInstancePin();
+
+  if (ViewModelPin &&
+      (!ViewModelInstancePin || ViewModelInstancePin != UpdatedPin))
+  {
+    check(SelectedRiveFile != nullptr);
+    auto Value = UPinTools::GetPinStringValue(ViewModelPin);
+    SelectedIndex = GetIndexFromSelection(Value);
+    if (SelectedIndex != INDEX_NONE)
     {
-        SelectedRiveFile = RiveFile;
-        GenerateViewModelSourcePin(RiveFile);
+      auto ViewModelDefinition = GetViewModelDefinitionFromIndex(SelectedIndex);
+      if (ensure(ViewModelDefinition != nullptr))
+        GenerateViewModelInstanceEnumPin(*ViewModelDefinition);
     }
-    else if (!bNeedsEnumPins && GetViewModelSourcePin())
-    {
-        if (auto VPin = GetViewModelSourcePin())
-            RemovePin(VPin);
-        if (auto VPin = GetViewModelInstancePin())
-            RemovePin(VPin);
-    }
+  }
 
-    auto ViewModelPin = GetViewModelSourcePin();
-    auto ViewModelInstancePin = GetViewModelInstancePin();
-
-    if (ViewModelPin &&
-        (!ViewModelInstancePin || ViewModelInstancePin != UpdatedPin))
-    {
-        check(SelectedRiveFile != nullptr);
-        auto Value = UPinTools::GetPinStringValue(ViewModelPin);
-        SelectedIndex = GetIndexFromSelection(Value);
-        if (SelectedIndex != INDEX_NONE)
-        {
-            auto ViewModelDefinition =
-                GetViewModelDefinitionFromIndex(SelectedIndex);
-            if (ensure(ViewModelDefinition != nullptr))
-                GenerateViewModelInstanceEnumPin(*ViewModelDefinition);
-        }
-    }
-
-    GetGraph()->NotifyNodeChanged(this);
+  GetGraph()->NotifyNodeChanged(this);
 }
 
 void UK2Node_MakeViewModelBase::GenerateViewModelSourcePin(
     TObjectPtr<URiveFile> RiveFile)
 {
-    // We never want more than one View Model Pin, So always remove if we have
-    // one.
-    if (auto Pin = GetViewModelSourcePin())
-    {
-        // Remove pin if we need to update it
-        RemovePin(Pin);
-    }
+  // We never want more than one View Model Pin, So always remove if we have
+  // one.
+  if (auto Pin = GetViewModelSourcePin())
+  {
+    // Remove pin if we need to update it
+    RemovePin(Pin);
+  }
 
-    if (auto Pin = GetViewModelInstancePin())
-    {
-        RemovePin(Pin);
-    }
+  if (auto Pin = GetViewModelInstancePin())
+  {
+    RemovePin(Pin);
+  }
 
-    auto Lamda = [this](TObjectPtr<URiveFile> RiveFile) {
-        UEnum* Enum = GenerateViewModelSourceEnum(RiveFile);
+  auto Lamda = [this](TObjectPtr<URiveFile> RiveFile) {
+    UEnum* Enum = GenerateViewModelSourceEnum(RiveFile);
 
-        auto Pin = CreatePin(EGPD_Input,
-                             UEdGraphSchema_K2::PC_Byte,
-                             Enum,
-                             PN_ViewModelSource);
-        Pin->PinFriendlyName = GetViewModelInputName();
-        Pin->PinToolTip =
-            TEXT("Select the desired view model from the drop down.\nThis "
-                 "represents the type of View Model to make.\nThis pin does "
-                 "not allow connections.");
-        Pin->bNotConnectable = true;
+    auto Pin = CreatePin(
+        EGPD_Input,
+        UEdGraphSchema_K2::PC_Byte,
+        Enum,
+        PN_ViewModelSource);
+    Pin->PinFriendlyName = GetViewModelInputName();
+    Pin->PinToolTip = TEXT(
+        "Select the desired view model from the drop down.\nThis "
+        "represents the type of View Model to make.\nThis pin does "
+        "not allow connections.");
+    Pin->bNotConnectable = true;
 
-        auto Graph = GetGraph();
-        Graph->NotifyNodeChanged(this);
-    };
+    auto Graph = GetGraph();
+    Graph->NotifyNodeChanged(this);
+  };
 
-    if (RiveFile->GetHasData())
-    {
-        Lamda(RiveFile);
-    }
-    else
-    {
-        RiveFile->OnDataReady.AddLambda(Lamda);
-    }
+  if (RiveFile->GetHasData())
+  {
+    Lamda(RiveFile);
+  }
+  else
+  {
+    RiveFile->OnDataReady.AddLambda(Lamda);
+  }
 }
 
 void UK2Node_MakeViewModelBase::GenerateViewModelInstanceEnumPin(
     const FViewModelDefinition& SelectedViewModel)
 {
-    // If the user was able to select a view model it means the data is already
-    // loaded, and we don't need to check again here. We never want more then
-    // one view model instance pin, so always remove if we have one.
-    if (auto OldPin = GetViewModelInstancePin())
-    {
-        // Remove pin if we need to update it
-        RemovePin(OldPin);
-    }
+  // If the user was able to select a view model it means the data is already
+  // loaded, and we don't need to check again here. We never want more then
+  // one view model instance pin, so always remove if we have one.
+  if (auto OldPin = GetViewModelInstancePin())
+  {
+    // Remove pin if we need to update it
+    RemovePin(OldPin);
+  }
 
-    auto Enum = SelectedRiveFile->GetViewModelInstanceEnum(SelectedViewModel);
-    check(Enum);
-    auto Pin = CreatePin(EGPD_Input,
-                         UEdGraphSchema_K2::PC_Byte,
-                         Enum,
-                         PN_ViewModelInstance);
-    Pin->PinFriendlyName = GetViewModelInstanceInputName();
-    Pin->PinToolTip =
-        TEXT("Select the desired view model instance from the drop down.\nThis "
-             "only affects the default values of this View Model.\nThis pin "
-             "does not allow connections.");
-    Pin->bNotConnectable = true;
-    if (SelectedViewModel.InstanceNames.Num() &&
-        !SelectedViewModel.InstanceNames[0].IsEmpty())
-    {
-        Pin->DefaultValue = SelectedViewModel.InstanceNames[0];
-    }
-    else
-    {
-        Pin->DefaultValue = GViewModelInstanceDefaultName.ToString();
-    }
+  auto Enum = SelectedRiveFile->GetViewModelInstanceEnum(SelectedViewModel);
+  check(Enum);
+  auto Pin = CreatePin(
+      EGPD_Input,
+      UEdGraphSchema_K2::PC_Byte,
+      Enum,
+      PN_ViewModelInstance);
+  Pin->PinFriendlyName = GetViewModelInstanceInputName();
+  Pin->PinToolTip = TEXT(
+      "Select the desired view model instance from the drop down.\nThis "
+      "only affects the default values of this View Model.\nThis pin "
+      "does not allow connections.");
+  Pin->bNotConnectable = true;
+  if (SelectedViewModel.InstanceNames.Num() &&
+      !SelectedViewModel.InstanceNames[0].IsEmpty())
+  {
+    Pin->DefaultValue = SelectedViewModel.InstanceNames[0];
+  }
+  else
+  {
+    Pin->DefaultValue = GViewModelInstanceDefaultName.ToString();
+  }
 
-    GetReturnPin()->bHidden = false;
+  GetReturnPin()->bHidden = false;
 
-    auto Graph = GetGraph();
-    Graph->NotifyNodeChanged(this);
+  auto Graph = GetGraph();
+  Graph->NotifyNodeChanged(this);
 }

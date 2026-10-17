@@ -15,15 +15,15 @@
 static FRiveFrameOverrides FrameOverridesForInterlock(
     ERiveInterlockOverride Override)
 {
-    FRiveFrameOverrides Result;
-    if (Override == ERiveInterlockOverride::CWMSAA1 ||
-        Override == ERiveInterlockOverride::CWIB)
-    {
-        Result.MSAASampleCount = 1;
-        Result.bClockwiseFill = true;
-        Result.bInkbleed = Override == ERiveInterlockOverride::CWIB;
-    }
-    return Result;
+  FRiveFrameOverrides Result;
+  if (Override == ERiveInterlockOverride::CWMSAA1 ||
+      Override == ERiveInterlockOverride::CWIB)
+  {
+    Result.MSAASampleCount = 1;
+    Result.bClockwiseFill = true;
+    Result.bInkbleed = Override == ERiveInterlockOverride::CWIB;
+  }
+  return Result;
 }
 
 // Replays a recorded frame against the real render context. The host opens
@@ -32,43 +32,43 @@ static FRiveFrameOverrides FrameOverridesForInterlock(
 class FRiveHostFrameSink final : public rive::cmd::HostFrameSink
 {
 public:
-    FRiveHostFrameSink(
-        rive::gpu::RenderContext* InRenderContext,
-        TFunctionRef<TUniquePtr<rive::Renderer>(bool)> InBeginScreen,
-        bool bInClear,
-        uint32 InClearColor,
-        bool bInReplayOre,
-        rive::gpu::RenderTarget* InOreTarget) :
-        HostFrameSink(bInClear, InClearColor, /*target=*/0, bInReplayOre),
-        RenderContextPtr(InRenderContext),
-        BeginScreen(InBeginScreen),
-        OreTarget(InOreTarget)
-    {
-        // One session serves every render target this context drives, and a
-        // draw records and replays before the next one starts, so they all
-        // share target 0.
-        m_acceptAnyScreenTarget = true;
-    }
+  FRiveHostFrameSink(
+      rive::gpu::RenderContext* InRenderContext,
+      TFunctionRef<TUniquePtr<rive::Renderer>(bool)> InBeginScreen,
+      bool bInClear,
+      uint32 InClearColor,
+      bool bInReplayOre,
+      rive::gpu::RenderTarget* InOreTarget)
+      : HostFrameSink(bInClear, InClearColor, /*target=*/0, bInReplayOre)
+      , RenderContextPtr(InRenderContext)
+      , BeginScreen(InBeginScreen)
+      , OreTarget(InOreTarget)
+  {
+    // One session serves every render target this context drives, and a
+    // draw records and replays before the next one starts, so they all
+    // share target 0.
+    m_acceptAnyScreenTarget = true;
+  }
 
-    rive::gpu::RenderContext* renderContext() override
-    {
-        return RenderContextPtr;
-    }
+  rive::gpu::RenderContext* renderContext() override
+  {
+    return RenderContextPtr;
+  }
 
-    rive::gpu::RenderTarget* targetRenderTarget() override { return OreTarget; }
+  rive::gpu::RenderTarget* targetRenderTarget() override { return OreTarget; }
 
-    rive::Renderer* beginScreen(uint64_t, bool bClear, uint32_t) override
-    {
-        // We always record with clear, so only a preserved target turns it off.
-        ScreenRenderer = BeginScreen(!bClear);
-        return ScreenRenderer.Get();
-    }
+  rive::Renderer* beginScreen(uint64_t, bool bClear, uint32_t) override
+  {
+    // We always record with clear, so only a preserved target turns it off.
+    ScreenRenderer = BeginScreen(!bClear);
+    return ScreenRenderer.Get();
+  }
 
 private:
-    rive::gpu::RenderContext* const RenderContextPtr;
-    TFunctionRef<TUniquePtr<rive::Renderer>(bool)> BeginScreen;
-    rive::gpu::RenderTarget* const OreTarget;
-    TUniquePtr<rive::Renderer> ScreenRenderer;
+  rive::gpu::RenderContext* const RenderContextPtr;
+  TFunctionRef<TUniquePtr<rive::Renderer>(bool)> BeginScreen;
+  rive::gpu::RenderTarget* const OreTarget;
+  TUniquePtr<rive::Renderer> ScreenRenderer;
 };
 
 // Ore wraps only a plain RHI texture in a format we map, so anything else
@@ -76,263 +76,273 @@ private:
 static rive::ore::Context::TargetDesc OreTargetDesc(
     rive::gpu::RenderTarget* Target)
 {
-    auto* RHITarget = static_cast<RenderTargetRHI*>(Target);
-    if (RHITarget == nullptr || !RHITarget->texture().IsValid() ||
-        RHITarget->texture()->GetFormat() != PF_R8G8B8A8)
-    {
-        return {};
-    }
-    return {RHITarget->width(),
-            RHITarget->height(),
-            rive::ore::TextureFormat::rgba8unorm,
-            1};
+  auto* RHITarget = static_cast<RenderTargetRHI*>(Target);
+  if (RHITarget == nullptr || !RHITarget->texture().IsValid() ||
+      RHITarget->texture()->GetFormat() != PF_R8G8B8A8)
+  {
+    return {};
+  }
+  return {
+      RHITarget->width(),
+      RHITarget->height(),
+      rive::ore::TextureFormat::rgba8unorm,
+      1};
 }
 
-static const FString RiveRenderOverrideDescription =
-    TEXT("Forces a specific rendering interlock mode for rive renderer.\n"
-         "\tatomics: Forces atomic interlock mode\n"
-         "\traster: Forces raster ordered interlock mode\n"
-         "\tmsaa: Forces msaa interlock mode\n");
+static const FString RiveRenderOverrideDescription = TEXT(
+    "Forces a specific rendering interlock mode for rive renderer.\n"
+    "\tatomics: Forces atomic interlock mode\n"
+    "\traster: Forces raster ordered interlock mode\n"
+    "\tmsaa: Forces msaa interlock mode\n");
 
-FRiveRenderer::FRiveRenderer() :
-    CommandQueue(rive::make_rcp<rive::CommandQueue>()),
-    CommandBuilder(CommandQueue)
+FRiveRenderer::FRiveRenderer()
+    : CommandQueue(rive::make_rcp<rive::CommandQueue>())
+    , CommandBuilder(CommandQueue)
 {
-    FCommandLine::RegisterArgument(TEXT("riveRenderOverride"),
-                                   ECommandLineArgumentFlags::GameContexts |
-                                       ECommandLineArgumentFlags::EditorContext,
-                                   RiveRenderOverrideDescription);
+  FCommandLine::RegisterArgument(
+      TEXT("riveRenderOverride"),
+      ECommandLineArgumentFlags::GameContexts |
+          ECommandLineArgumentFlags::EditorContext,
+      RiveRenderOverrideDescription);
 
-    RIVE_DEBUG_FUNCTION_INDENT;
+  RIVE_DEBUG_FUNCTION_INDENT;
 
-    OnBeingFrameGameThreadHandle = FCoreDelegates::OnBeginFrame.AddRaw(
+  OnBeingFrameGameThreadHandle = FCoreDelegates::OnBeginFrame.AddRaw(
+      this,
+      &FRiveRenderer::BeginFrameGameThread);
+  OnEndFrameGameThreadHandle = FCoreDelegates::OnEndFrame.AddRaw(
+      this,
+      &FRiveRenderer::EndFrameGameThread);
+
+  ENQUEUE_RENDER_COMMAND(FRiveRenderer_Initialize)
+  ([this](FRHICommandListImmediate& RHICmdList) {
+    CreateRenderContext(RHICmdList);
+    check(RenderContext);
+    // Caps only, so recording never reaches for the device; the sink
+    // hands the real ore context back at replay. Without one, 2D still
+    // defers and only gpu canvas passes are lost.
+    auto* Ore = RenderContext->ore();
+    DeferredSession = MakeUnique<rive::cmd::DeferredSession>(
+        Ore != nullptr ? rive::ore::ReplayCaps::from(*Ore)
+                       : rive::ore::ReplayCaps{});
+    // Scripts imported through the session talk to the device directly
+    // while their canvas work records, so it has to be the real context.
+    DeferredSession->bindRenderContext(RenderContext.get());
+    InlineHost.bindSession(DeferredSession.Get());
+    CommandServer = MakeUnique<rive::CommandServer>(
+        CommandQueue,
+        DeferredSession.Get(),
+        GRiveOreShaderHandler);
+    OnBeingFrameRenderThreadHandle = FCoreDelegates::OnBeginFrameRT.AddRaw(
         this,
-        &FRiveRenderer::BeginFrameGameThread);
-    OnEndFrameGameThreadHandle =
-        FCoreDelegates::OnEndFrame.AddRaw(this,
-                                          &FRiveRenderer::EndFrameGameThread);
-
-    ENQUEUE_RENDER_COMMAND(FRiveRenderer_Initialize)
-    ([this](FRHICommandListImmediate& RHICmdList) {
-        CreateRenderContext(RHICmdList);
-        check(RenderContext);
-        // Caps only, so recording never reaches for the device; the sink
-        // hands the real ore context back at replay. Without one, 2D still
-        // defers and only gpu canvas passes are lost.
-        auto* Ore = RenderContext->ore();
-        DeferredSession = MakeUnique<rive::cmd::DeferredSession>(
-            Ore != nullptr ? rive::ore::ReplayCaps::from(*Ore)
-                           : rive::ore::ReplayCaps{});
-        // Scripts imported through the session talk to the device directly
-        // while their canvas work records, so it has to be the real context.
-        DeferredSession->bindRenderContext(RenderContext.get());
-        InlineHost.bindSession(DeferredSession.Get());
-        CommandServer = MakeUnique<rive::CommandServer>(CommandQueue,
-                                                        DeferredSession.Get(),
-                                                        GRiveOreShaderHandler);
-        OnBeingFrameRenderThreadHandle = FCoreDelegates::OnBeginFrameRT.AddRaw(
-            this,
-            &FRiveRenderer::BeginFrameRenderThread);
-    });
+        &FRiveRenderer::BeginFrameRenderThread);
+  });
 }
 FRiveRenderer::~FRiveRenderer()
 {
-    RIVE_DEBUG_FUNCTION_INDENT;
+  RIVE_DEBUG_FUNCTION_INDENT;
 
-    if (!IsRunningCommandlet())
+  if (!IsRunningCommandlet())
+  {
+    if (RenderContext)
     {
-        if (RenderContext)
-        {
-            RenderContext->releaseResources();
-        }
+      RenderContext->releaseResources();
     }
+  }
 
-    CommandQueue->disconnect();
+  CommandQueue->disconnect();
 
-    FlushRenderingCommands();
+  FlushRenderingCommands();
 
-    // Files outlive the server briefly, which the recorder registry no-ops by
-    // design. Replay side resources are the real context's, so they go while
-    // it is still alive.
-    CommandServer.Reset();
-    InlineHost.replayer().reset();
-    InlineHost.bindSession(nullptr);
-    DeferredSession.Reset();
+  // Files outlive the server briefly, which the recorder registry no-ops by
+  // design. Replay side resources are the real context's, so they go while
+  // it is still alive.
+  CommandServer.Reset();
+  InlineHost.replayer().reset();
+  InlineHost.bindSession(nullptr);
+  DeferredSession.Reset();
 
-    FCoreDelegates::OnBeginFrame.Remove(OnBeingFrameGameThreadHandle);
-    FCoreDelegates::OnEndFrame.Remove(OnEndFrameGameThreadHandle);
-    FCoreDelegates::OnBeginFrameRT.Remove(OnBeingFrameRenderThreadHandle);
+  FCoreDelegates::OnBeginFrame.Remove(OnBeingFrameGameThreadHandle);
+  FCoreDelegates::OnEndFrame.Remove(OnEndFrameGameThreadHandle);
+  FCoreDelegates::OnBeginFrameRT.Remove(OnBeingFrameRenderThreadHandle);
 }
 
-DECLARE_GPU_STAT_NAMED(BeingFrameRenderThread,
-                       TEXT("FRiveRenderer::BeingFrameRenderThread"));
+DECLARE_GPU_STAT_NAMED(
+    BeingFrameRenderThread,
+    TEXT("FRiveRenderer::BeingFrameRenderThread"));
 void FRiveRenderer::BeginFrameRenderThread()
 {
-    RHI_BREADCRUMB_EVENT_STAT(GRHICommandList.GetImmediateCommandList(),
-                              BeingFrameRenderThread,
-                              "BeingFrameRenderThread");
+  RHI_BREADCRUMB_EVENT_STAT(
+      GRHICommandList.GetImmediateCommandList(),
+      BeingFrameRenderThread,
+      "BeingFrameRenderThread");
 
-    check(IsInRenderingThread());
-    check(CommandServer);
+  check(IsInRenderingThread());
+  check(CommandServer);
 
-    SCOPED_NAMED_EVENT_TEXT(TEXT("CommandServer->processCommands"),
-                            FColor::White);
-    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("CommandServer->processCommands"),
-                                STAT_COMMANDSERVER_PROCESSCOMMANDS,
-                                STATGROUP_Rive);
+  SCOPED_NAMED_EVENT_TEXT(
+      TEXT("CommandServer->processCommands"),
+      FColor::White);
+  DECLARE_SCOPE_CYCLE_COUNTER(
+      TEXT("CommandServer->processCommands"),
+      STAT_COMMANDSERVER_PROCESSCOMMANDS,
+      STATGROUP_Rive);
 
-    CommandServer->processCommands();
+  CommandServer->processCommands();
 }
 
 void FRiveRenderer::BeginFrameGameThread()
 {
-    check(IsInGameThread());
-    check(CommandQueue);
+  check(IsInGameThread());
+  check(CommandQueue);
 
 #if WITH_EDITOR
-    static const auto CVarInterlock =
-        IConsoleManager::Get().FindConsoleVariable(TEXT("r.rive.interlock"));
-    static FString LastCVar = TEXT("default");
-    FString CVar = CVarInterlock->GetString();
-    if (LastCVar != CVar)
-    {
-        LastCVar = CVar;
-        const ERiveInterlockOverride Override =
-            ParseRiveInterlockOverride(CVar);
-        ENQUEUE_RENDER_COMMAND(FRiveApplyInterlockOverride)
-        ([this, Override](FRHICommandListImmediate& RHICmdList) {
-            if (auto impl =
-                    RenderContext->static_impl_cast<RenderContextRHIImpl>())
-            {
-                impl->updateFromInterlockOverride(Override);
-            }
+  static const auto CVarInterlock = IConsoleManager::Get().FindConsoleVariable(
+      TEXT("r.rive.interlock"));
+  static FString LastCVar = TEXT("default");
+  FString CVar = CVarInterlock->GetString();
+  if (LastCVar != CVar)
+  {
+    LastCVar = CVar;
+    const ERiveInterlockOverride Override = ParseRiveInterlockOverride(CVar);
+    ENQUEUE_RENDER_COMMAND(FRiveApplyInterlockOverride)
+    ([this, Override](FRHICommandListImmediate& RHICmdList) {
+      if (auto impl = RenderContext->static_impl_cast<RenderContextRHIImpl>())
+      {
+        impl->updateFromInterlockOverride(Override);
+      }
 
-            SetFrameOverrides(FrameOverridesForInterlock(Override));
-        });
-    }
+      SetFrameOverrides(FrameOverridesForInterlock(Override));
+    });
+  }
 #endif
 
-    SCOPED_NAMED_EVENT_TEXT(TEXT("CommandQueue->processMessages"),
-                            FColor::White);
-    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("CommandQueue->processMessages"),
-                                STAT_COMMANDQUEUE_PROCESSMESSAGES,
-                                STATGROUP_Rive);
+  SCOPED_NAMED_EVENT_TEXT(TEXT("CommandQueue->processMessages"), FColor::White);
+  DECLARE_SCOPE_CYCLE_COUNTER(
+      TEXT("CommandQueue->processMessages"),
+      STAT_COMMANDQUEUE_PROCESSMESSAGES,
+      STATGROUP_Rive);
 
-    CommandBuilder.Reset();
-    CommandQueue->processMessages();
+  CommandBuilder.Reset();
+  CommandQueue->processMessages();
 }
 
 void FRiveRenderer::EndFrameGameThread()
 {
-    check(IsInGameThread());
-    check(CommandQueue);
+  check(IsInGameThread());
+  check(CommandQueue);
 
-    SCOPED_NAMED_EVENT_TEXT(TEXT("CommandBuilder.Execute"), FColor::White);
-    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("CommandBuilder.Execute"),
-                                STAT_RIVECOMMANDBUILDER_EXECUTE,
-                                STATGROUP_Rive);
+  SCOPED_NAMED_EVENT_TEXT(TEXT("CommandBuilder.Execute"), FColor::White);
+  DECLARE_SCOPE_CYCLE_COUNTER(
+      TEXT("CommandBuilder.Execute"),
+      STAT_RIVECOMMANDBUILDER_EXECUTE,
+      STATGROUP_Rive);
 
-    CommandBuilder.Execute();
+  CommandBuilder.Execute();
 }
 
 rive::gpu::RenderContext* FRiveRenderer::GetRenderContext()
 {
-    check(IsInRenderingThread());
-    check(RenderContext);
-    return RenderContext.get();
+  check(IsInRenderingThread());
+  check(RenderContext);
+  return RenderContext.get();
 }
 
 rive::Renderer* FRiveRenderer::BeginDeferredFrame(
     rive::gpu::RenderTarget* Target)
 {
-    check(IsInRenderingThread());
-    check(DeferredSession);
+  check(IsInRenderingThread());
+  check(DeferredSession);
 
-    // Every screen frame carries its own clear policy from the target it
-    // opens, so the recording's is never read back.
-    InlineHost.beginRecord(true, 0, OreTargetDesc(Target));
-    return InlineHost.screenRenderer();
+  // Every screen frame carries its own clear policy from the target it
+  // opens, so the recording's is never read back.
+  InlineHost.beginRecord(true, 0, OreTargetDesc(Target));
+  return InlineHost.screenRenderer();
 }
 
-DECLARE_GPU_STAT_NAMED(ReplayDeferredFrame,
-                       TEXT("FRiveRenderer::ReplayDeferredFrame"));
+DECLARE_GPU_STAT_NAMED(
+    ReplayDeferredFrame,
+    TEXT("FRiveRenderer::ReplayDeferredFrame"));
 void FRiveRenderer::ReplayDeferredFrame(
     FRDGBuilder& GraphBuilder,
     TFunctionRef<TUniquePtr<rive::Renderer>(bool)> BeginScreen,
     TFunctionRef<void()> Present,
     rive::gpu::RenderTarget* OreTarget)
 {
-    check(IsInRenderingThread());
-    check(RenderContext);
-    check(DeferredSession);
+  check(IsInRenderingThread());
+  check(RenderContext);
+  check(DeferredSession);
 
 #if ENGINE_MAJOR_VERSION > 5 ||                                                \
     (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
-    RHI_BREADCRUMB_EVENT_STAT(GraphBuilder.RHICmdList,
-                              ReplayDeferredFrame,
-                              "ReplayDeferredFrame");
+  RHI_BREADCRUMB_EVENT_STAT(
+      GraphBuilder.RHICmdList,
+      ReplayDeferredFrame,
+      "ReplayDeferredFrame");
 #else
-    SCOPED_GPU_STAT(GraphBuilder.RHICmdList, ReplayDeferredFrame);
+  SCOPED_GPU_STAT(GraphBuilder.RHICmdList, ReplayDeferredFrame);
 #endif
 
-    FRiveHostFrameSink Sink(RenderContext.get(),
-                            BeginScreen,
-                            InlineHost.doClear(),
-                            InlineHost.clearColor(),
-                            InlineHost.replayOre(),
-                            OreTarget);
+  FRiveHostFrameSink Sink(
+      RenderContext.get(),
+      BeginScreen,
+      InlineHost.doClear(),
+      InlineHost.clearColor(),
+      InlineHost.replayOre(),
+      OreTarget);
 
-    // Canvas passes flush as replay reaches them, so they render into this
-    // frame's builder rather than reaching for the one immediate mode Lua
-    // canvases are given.
-    RenderContextRHIImpl::FScopedExternalBuilder BuilderScope(GraphBuilder);
+  // Canvas passes flush as replay reaches them, so they render into this
+  // frame's builder rather than reaching for the one immediate mode Lua
+  // canvases are given.
+  RenderContextRHIImpl::FScopedExternalBuilder BuilderScope(GraphBuilder);
 
-    InlineHost.replayInline(Sink, [&Present] { Present(); });
+  InlineHost.replayInline(Sink, [&Present] { Present(); });
 }
 
 void FRiveRenderer::ReplayDeferredFrame(
     const TSharedPtr<FRiveRenderTarget>& RenderTarget)
 {
-    check(IsInRenderingThread());
-    check(RenderTarget);
+  check(IsInRenderingThread());
+  check(RenderTarget);
 
-    FRDGBuilder GraphBuilder(GRHICommandList.GetImmediateCommandList());
-    ReplayDeferredFrame(
-        GraphBuilder,
-        [this, &RenderTarget](bool bTargetPreserved) {
-            return RenderTarget->BeginRenderFrame(RenderContext.get(),
-                                                  bTargetPreserved);
-        },
-        [this, &RenderTarget, &GraphBuilder] {
-            RenderContext->flush(
-                {RenderTarget->GetRenderTarget().get(), &GraphBuilder});
-        },
-        RenderTarget->GetRenderTarget().get());
-    GraphBuilder.Execute();
+  FRDGBuilder GraphBuilder(GRHICommandList.GetImmediateCommandList());
+  ReplayDeferredFrame(
+      GraphBuilder,
+      [this, &RenderTarget](bool bTargetPreserved) {
+        return RenderTarget->BeginRenderFrame(
+            RenderContext.get(),
+            bTargetPreserved);
+      },
+      [this, &RenderTarget, &GraphBuilder] {
+        RenderContext->flush(
+            {RenderTarget->GetRenderTarget().get(), &GraphBuilder});
+      },
+      RenderTarget->GetRenderTarget().get());
+  GraphBuilder.Execute();
 }
 
 TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
     const FString& InRiveName,
     UTexture2DDynamic* InRenderTarget)
 {
-    check(IsInGameThread());
+  check(IsInGameThread());
 
-    const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget =
-        MakeShared<FRiveRenderTargetRHI>(this, InRiveName, InRenderTarget);
+  const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget = MakeShared<
+      FRiveRenderTargetRHI>(this, InRiveName, InRenderTarget);
 
-    return RiveRenderTarget;
+  return RiveRenderTarget;
 }
 
 TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
     const FString& InRiveName,
     UTextureRenderTarget2D* InRenderTarget)
 {
-    check(IsInGameThread());
+  check(IsInGameThread());
 
-    const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget =
-        MakeShared<FRiveRenderTargetRHI>(this, InRiveName, InRenderTarget);
+  const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget = MakeShared<
+      FRiveRenderTargetRHI>(this, InRiveName, InRenderTarget);
 
-    return RiveRenderTarget;
+  return RiveRenderTarget;
 }
 
 TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
@@ -340,84 +350,88 @@ TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
     const FString& InRiveName,
     FRDGTextureRef InRenderTarget)
 {
-    return MakeShared<FRiveRenderTargetRHI>(GraphBuilder,
-                                            this,
-                                            InRiveName,
-                                            InRenderTarget);
-    ;
+  return MakeShared<FRiveRenderTargetRHI>(
+      GraphBuilder,
+      this,
+      InRiveName,
+      InRenderTarget);
+  ;
 }
 
 TSharedPtr<FRiveRenderTarget> FRiveRenderer::CreateRenderTarget(
     const FString& InRiveName,
     FRenderTarget* RenderTarget)
 {
-    const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget =
-        MakeShared<FRiveRenderTargetRHI>(this, InRiveName, RenderTarget);
+  const TSharedPtr<FRiveRenderTargetRHI> RiveRenderTarget = MakeShared<
+      FRiveRenderTargetRHI>(this, InRiveName, RenderTarget);
 
-    RiveRenderTarget->Initialize();
+  RiveRenderTarget->Initialize();
 
-    return RiveRenderTarget;
+  return RiveRenderTarget;
 }
 
-DECLARE_GPU_STAT_NAMED(CreateRenderContext,
-                       TEXT("FRiveRendererRHI::CreateRenderContext"));
+DECLARE_GPU_STAT_NAMED(
+    CreateRenderContext,
+    TEXT("FRiveRendererRHI::CreateRenderContext"));
 void FRiveRenderer::CreateRenderContext(FRHICommandListImmediate& RHICmdList)
 {
-    check(IsInRenderingThread());
-    check(GDynamicRHI);
+  check(IsInRenderingThread());
+  check(GDynamicRHI);
 
-    RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
-                              CreateRenderContext,
-                              "CreateRenderContext");
+  RHI_BREADCRUMB_EVENT_STAT(
+      RHICmdList,
+      CreateRenderContext,
+      "CreateRenderContext");
 
-    if (GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Null)
+  if (GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Null)
+  {
+    return;
+  }
+
+  RenderContextRHIImpl::RHICapabilitiesOverrides Overrides;
+
+  FString renderOverrides;
+  if (FParse::Value(
+          FCommandLine::Get(),
+          TEXT("riveRenderOverride="),
+          renderOverrides))
+  {
+    const ERiveInterlockOverride Override = ParseRiveInterlockOverride(
+        renderOverrides);
+    switch (Override)
     {
-        return;
+      case ERiveInterlockOverride::Atomics:
+        Overrides.bSupportsPixelShaderUAVs = true;
+        Overrides.bSupportsRasterOrderViews = false;
+        break;
+      case ERiveInterlockOverride::Raster:
+        Overrides.bSupportsPixelShaderUAVs = false;
+        Overrides.bSupportsRasterOrderViews = true;
+        break;
+      case ERiveInterlockOverride::MSAA:
+        Overrides.bSupportsPixelShaderUAVs = false;
+        Overrides.bSupportsRasterOrderViews = false;
+        break;
+      case ERiveInterlockOverride::CWMSAA1:
+      case ERiveInterlockOverride::CWIB:
+      case ERiveInterlockOverride::None:
+        break;
     }
+    SetFrameOverrides(FrameOverridesForInterlock(Override));
+  }
 
-    RenderContextRHIImpl::RHICapabilitiesOverrides Overrides;
-
-    FString renderOverrides;
-    if (FParse::Value(FCommandLine::Get(),
-                      TEXT("riveRenderOverride="),
-                      renderOverrides))
-    {
-        const ERiveInterlockOverride Override =
-            ParseRiveInterlockOverride(renderOverrides);
-        switch (Override)
-        {
-            case ERiveInterlockOverride::Atomics:
-                Overrides.bSupportsPixelShaderUAVs = true;
-                Overrides.bSupportsRasterOrderViews = false;
-                break;
-            case ERiveInterlockOverride::Raster:
-                Overrides.bSupportsPixelShaderUAVs = false;
-                Overrides.bSupportsRasterOrderViews = true;
-                break;
-            case ERiveInterlockOverride::MSAA:
-                Overrides.bSupportsPixelShaderUAVs = false;
-                Overrides.bSupportsRasterOrderViews = false;
-                break;
-            case ERiveInterlockOverride::CWMSAA1:
-            case ERiveInterlockOverride::CWIB:
-            case ERiveInterlockOverride::None:
-                break;
-        }
-        SetFrameOverrides(FrameOverridesForInterlock(Override));
-    }
-
-    RenderContext = RenderContextRHIImpl::MakeContext(RHICmdList, Overrides);
+  RenderContext = RenderContextRHIImpl::MakeContext(RHICmdList, Overrides);
 }
 
 void FRiveRenderer::ApplyFrameOverrides(
     rive::gpu::RenderContext::FrameDescriptor& Desc) const
 {
-    if (!FrameOverrides.IsSet())
-    {
-        return;
-    }
+  if (!FrameOverrides.IsSet())
+  {
+    return;
+  }
 
-    Desc.msaaSampleCount = FrameOverrides.MSAASampleCount;
-    Desc.clockwiseFillOverride = FrameOverrides.bClockwiseFill;
-    Desc.inkbleedOverride = FrameOverrides.bInkbleed;
+  Desc.msaaSampleCount = FrameOverrides.MSAASampleCount;
+  Desc.clockwiseFillOverride = FrameOverrides.bClockwiseFill;
+  Desc.inkbleedOverride = FrameOverrides.bInkbleed;
 }

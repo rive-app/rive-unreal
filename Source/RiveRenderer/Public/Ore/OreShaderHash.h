@@ -34,13 +34,13 @@ using FOreShaderHash = FSHAHash;
 inline void SerializeOreShaderHash(FArchive& Ar, FOreShaderHash& Hash)
 {
 #if RIVE_ORE_SHADER_HASH_IS_XXHASH64
-    uint64 HashValue = Hash.Hash;
-    Ar << HashValue;
-    if (Ar.IsLoading())
-    {
-        Hash = FXxHash64{HashValue};
-    }
+  uint64 HashValue = Hash.Hash;
+  Ar << HashValue;
+  if (Ar.IsLoading())
+  {
+    Hash = FXxHash64{HashValue};
+  }
 #else
-    Ar << Hash;
+  Ar << Hash;
 #endif
 }

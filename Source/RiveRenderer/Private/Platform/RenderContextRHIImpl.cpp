@@ -70,204 +70,205 @@ THIRD_PARTY_INCLUDES_END
 // The two depthStencil fill index patterns keep separate RHI index buffers.
 static bool IsOuterCubicFillDrawType(rive::gpu::DrawType DrawType)
 {
-    switch (DrawType)
-    {
-        case rive::gpu::DrawType::stencilOuterCubicBorrowedCoverage:
-        case rive::gpu::DrawType::stencilOuterCubics:
-        case rive::gpu::DrawType::stencilOuterCubicReset:
-        case rive::gpu::DrawType::stencilDynamicOuterCubics:
-        case rive::gpu::DrawType::stencilOuterCubicWinding:
-        case rive::gpu::DrawType::stencilOuterCubicCover:
-            return true;
-        default:
-            return false;
-    }
+  switch (DrawType)
+  {
+    case rive::gpu::DrawType::stencilOuterCubicBorrowedCoverage:
+    case rive::gpu::DrawType::stencilOuterCubics:
+    case rive::gpu::DrawType::stencilOuterCubicReset:
+    case rive::gpu::DrawType::stencilDynamicOuterCubics:
+    case rive::gpu::DrawType::stencilOuterCubicWinding:
+    case rive::gpu::DrawType::stencilOuterCubicCover:
+      return true;
+    default:
+      return false;
+  }
 }
 
 static const FString NameForDrawType(rive::gpu::DrawType InDrawType)
 {
-    switch (InDrawType)
-    {
-        case rive::gpu::DrawType::midpointFanPatches:
-            return TEXT("midpointFanPatches");
-        case rive::gpu::DrawType::midpointFanCenterAAPatches:
-            return TEXT("midpointFanCenterAAPatches");
-        case rive::gpu::DrawType::outerCurvePatches:
-            return TEXT("outerCurvePatches");
-        case rive::gpu::DrawType::stencilOuterCubics:
-            return TEXT("stencilOuterCubics");
-        case rive::gpu::DrawType::stencilOuterCubicBorrowedCoverage:
-            return TEXT("stencilOuterCubicBorrowedCoverage");
-        case rive::gpu::DrawType::stencilDynamicOuterCubics:
-            return TEXT("stencilDynamicOuterCubics");
-        case rive::gpu::DrawType::stencilOuterCubicReset:
-            return TEXT("stencilOuterCubicReset");
-        case rive::gpu::DrawType::stencilOuterCubicWinding:
-            return TEXT("stencilOuterCubicWinding");
-        case rive::gpu::DrawType::stencilOuterCubicCover:
-            return TEXT("stencilOuterCubicCover");
-        case rive::gpu::DrawType::stencilMidpointFanBorrowedCoverage:
-            return TEXT("stencilMidpointFanBorrowedCoverage");
-        case rive::gpu::DrawType::stencilDynamicMidpointFans:
-            return TEXT("stencilDynamicMidpointFans");
-        case rive::gpu::DrawType::stencilMidpointFans:
-            return TEXT("stencilMidpointFans");
-        case rive::gpu::DrawType::stencilMidpointFanReset:
-            return TEXT("stencilMidpointFanReset");
-        case rive::gpu::DrawType::stencilMidpointFanWinding:
-            return TEXT("stencilMidpointFanWinding");
-        case rive::gpu::DrawType::stencilMidpointFanCover:
-            return TEXT("stencilMidpointFanCover");
-        case rive::gpu::DrawType::depthStrokes:
-            return TEXT("depthStrokes");
-        case rive::gpu::DrawType::depthAAStrokes:
-            return TEXT("depthAAStrokes");
-        case rive::gpu::DrawType::depthAAOuterHairline:
-            return TEXT("depthAAOuterHairline");
-        case rive::gpu::DrawType::interiorTriangulation:
-            return TEXT("interiorTriangulation");
-        case rive::gpu::DrawType::clipReset:
-            return TEXT("clipReset");
-        case rive::gpu::DrawType::featherAtlasBlit:
-            return TEXT("featherAtlasBlit");
-        case rive::gpu::DrawType::imageRect:
-            return TEXT("imageRect");
-        case rive::gpu::DrawType::imageMesh:
-            return TEXT("imageMesh");
-        case rive::gpu::DrawType::renderPassInitialize:
-            return TEXT("renderPassInitialize");
-        case rive::gpu::DrawType::renderPassResolve:
-            return TEXT("renderPassResolve");
-    };
+  switch (InDrawType)
+  {
+    case rive::gpu::DrawType::midpointFanPatches:
+      return TEXT("midpointFanPatches");
+    case rive::gpu::DrawType::midpointFanCenterAAPatches:
+      return TEXT("midpointFanCenterAAPatches");
+    case rive::gpu::DrawType::outerCurvePatches:
+      return TEXT("outerCurvePatches");
+    case rive::gpu::DrawType::stencilOuterCubics:
+      return TEXT("stencilOuterCubics");
+    case rive::gpu::DrawType::stencilOuterCubicBorrowedCoverage:
+      return TEXT("stencilOuterCubicBorrowedCoverage");
+    case rive::gpu::DrawType::stencilDynamicOuterCubics:
+      return TEXT("stencilDynamicOuterCubics");
+    case rive::gpu::DrawType::stencilOuterCubicReset:
+      return TEXT("stencilOuterCubicReset");
+    case rive::gpu::DrawType::stencilOuterCubicWinding:
+      return TEXT("stencilOuterCubicWinding");
+    case rive::gpu::DrawType::stencilOuterCubicCover:
+      return TEXT("stencilOuterCubicCover");
+    case rive::gpu::DrawType::stencilMidpointFanBorrowedCoverage:
+      return TEXT("stencilMidpointFanBorrowedCoverage");
+    case rive::gpu::DrawType::stencilDynamicMidpointFans:
+      return TEXT("stencilDynamicMidpointFans");
+    case rive::gpu::DrawType::stencilMidpointFans:
+      return TEXT("stencilMidpointFans");
+    case rive::gpu::DrawType::stencilMidpointFanReset:
+      return TEXT("stencilMidpointFanReset");
+    case rive::gpu::DrawType::stencilMidpointFanWinding:
+      return TEXT("stencilMidpointFanWinding");
+    case rive::gpu::DrawType::stencilMidpointFanCover:
+      return TEXT("stencilMidpointFanCover");
+    case rive::gpu::DrawType::depthStrokes:
+      return TEXT("depthStrokes");
+    case rive::gpu::DrawType::depthAAStrokes:
+      return TEXT("depthAAStrokes");
+    case rive::gpu::DrawType::depthAAOuterHairline:
+      return TEXT("depthAAOuterHairline");
+    case rive::gpu::DrawType::interiorTriangulation:
+      return TEXT("interiorTriangulation");
+    case rive::gpu::DrawType::clipReset:
+      return TEXT("clipReset");
+    case rive::gpu::DrawType::featherAtlasBlit:
+      return TEXT("featherAtlasBlit");
+    case rive::gpu::DrawType::imageRect:
+      return TEXT("imageRect");
+    case rive::gpu::DrawType::imageMesh:
+      return TEXT("imageMesh");
+    case rive::gpu::DrawType::renderPassInitialize:
+      return TEXT("renderPassInitialize");
+    case rive::gpu::DrawType::renderPassResolve:
+      return TEXT("renderPassResolve");
+  };
 
-    return TEXT("Unkown");
+  return TEXT("Unkown");
 }
 
 static const EPixelFormat PixelFormatForGPUTextureFormat(
     rive::GPUTextureFormat Format)
 {
-    // Unreal supports
-    // BC Version:
-    // PF_BC4, PF_BC5, PF_BC6H and PF_BC7
-    // ASTC Versions:
-    // PF_ASTC_4x4, PF_ASTC_6x6, PF_ASTC_8x8, PF_ASTC_10x10, PF_ASTC_12x12,
-    // ETC2 Versions:
-    // PF_ETC2_RGB, PF_ETC2_RGBA
-    switch (Format)
-    {
-        case rive::GPUTextureFormat::bc1:
-        case rive::GPUTextureFormat::bc2:
-        case rive::GPUTextureFormat::bc3:
-        case rive::GPUTextureFormat::bc7:
-            return EPixelFormat::PF_BC7;
-        case rive::GPUTextureFormat::astc:
-            return EPixelFormat::PF_ASTC_6x6;
-        case rive::GPUTextureFormat::etc2:
-            return EPixelFormat::PF_ETC2_RGBA;
-        case rive::GPUTextureFormat::rgba32:
-        default:
-            return EPixelFormat::PF_R8G8B8A8;
-    }
+  // Unreal supports
+  // BC Version:
+  // PF_BC4, PF_BC5, PF_BC6H and PF_BC7
+  // ASTC Versions:
+  // PF_ASTC_4x4, PF_ASTC_6x6, PF_ASTC_8x8, PF_ASTC_10x10, PF_ASTC_12x12,
+  // ETC2 Versions:
+  // PF_ETC2_RGB, PF_ETC2_RGBA
+  switch (Format)
+  {
+    case rive::GPUTextureFormat::bc1:
+    case rive::GPUTextureFormat::bc2:
+    case rive::GPUTextureFormat::bc3:
+    case rive::GPUTextureFormat::bc7:
+      return EPixelFormat::PF_BC7;
+    case rive::GPUTextureFormat::astc:
+      return EPixelFormat::PF_ASTC_6x6;
+    case rive::GPUTextureFormat::etc2:
+      return EPixelFormat::PF_ETC2_RGBA;
+    case rive::GPUTextureFormat::rgba32:
+    default:
+      return EPixelFormat::PF_R8G8B8A8;
+  }
 }
 
 template <typename DataType, size_t size>
 struct TStaticResourceData : public FResourceArrayInterface
 {
-    DataType Data[size];
+  DataType Data[size];
 
 public:
-    TStaticResourceData() {}
+  TStaticResourceData() {}
 
-    DataType* operator*() { return Data; }
-    /**
-     * @return A pointer to the resource data.
-     */
-    virtual const void* GetResourceData() const override { return Data; }
+  DataType* operator*() { return Data; }
+  /**
+   * @return A pointer to the resource data.
+   */
+  virtual const void* GetResourceData() const override { return Data; }
 
-    /**
-     * @return size of resource data allocation (in bytes)
-     */
-    virtual uint32 GetResourceDataSize() const override
-    {
-        return size * sizeof(DataType);
-    };
+  /**
+   * @return size of resource data allocation (in bytes)
+   */
+  virtual uint32 GetResourceDataSize() const override
+  {
+    return size * sizeof(DataType);
+  };
 
-    /** Do nothing on discard because this is static const CPU data */
-    virtual void Discard() override {}
+  /** Do nothing on discard because this is static const CPU data */
+  virtual void Discard() override {}
 
-    virtual bool IsStatic() const override { return true; }
+  virtual bool IsStatic() const override { return true; }
 
-    /**
-     * @return true if the resource keeps a copy of its resource data after the
-     * RHI resource has been created
-     */
-    virtual bool GetAllowCPUAccess() const override { return true; }
+  /**
+   * @return true if the resource keeps a copy of its resource data after the
+   * RHI resource has been created
+   */
+  virtual bool GetAllowCPUAccess() const override { return true; }
 
-    /**
-     * Sets whether the resource array will be accessed by CPU.
-     */
-    virtual void SetAllowCPUAccess(bool bInNeedsCPUAccess) override {}
+  /**
+   * Sets whether the resource array will be accessed by CPU.
+   */
+  virtual void SetAllowCPUAccess(bool bInNeedsCPUAccess) override {}
 };
 
 template <typename DataType, size_t size>
 struct TStaticExternalResourceData : public FResourceArrayInterface
 {
-    const DataType (&Data)[size];
+  const DataType (&Data)[size];
 
 public:
-    TStaticExternalResourceData(const DataType (&Data)[size]) : Data(Data) {}
+  TStaticExternalResourceData(const DataType (&Data)[size]) : Data(Data) {}
 
-    /**
-     * @return A pointer to the resource data.
-     */
-    virtual const void* GetResourceData() const override { return Data; };
+  /**
+   * @return A pointer to the resource data.
+   */
+  virtual const void* GetResourceData() const override { return Data; };
 
-    /**
-     * @return size of resource data allocation (in bytes)
-     */
-    virtual uint32 GetResourceDataSize() const override
-    {
-        return size * sizeof(DataType);
-    };
+  /**
+   * @return size of resource data allocation (in bytes)
+   */
+  virtual uint32 GetResourceDataSize() const override
+  {
+    return size * sizeof(DataType);
+  };
 
-    /** Do nothing on discard because this is static const CPU data */
-    virtual void Discard() override {}
+  /** Do nothing on discard because this is static const CPU data */
+  virtual void Discard() override {}
 
-    virtual bool IsStatic() const override { return true; }
+  virtual bool IsStatic() const override { return true; }
 
-    /**
-     * @return true if the resource keeps a copy of its resource data after the
-     * RHI resource has been created
-     */
-    virtual bool GetAllowCPUAccess() const override { return true; }
+  /**
+   * @return true if the resource keeps a copy of its resource data after the
+   * RHI resource has been created
+   */
+  virtual bool GetAllowCPUAccess() const override { return true; }
 
-    /**
-     * Sets whether the resource array will be accessed by CPU.
-     */
-    virtual void SetAllowCPUAccess(bool bInNeedsCPUAccess) override {}
+  /**
+   * Sets whether the resource array will be accessed by CPU.
+   */
+  virtual void SetAllowCPUAccess(bool bInNeedsCPUAccess) override {}
 };
 
 struct FStaticResourceDataView : public FResourceArrayInterface
 {
-    const void* Data;
-    uint32 SizeInBytes;
+  const void* Data;
+  uint32 SizeInBytes;
 
 public:
-    FStaticResourceDataView(const void* Data, uint32 SizeInBytes) :
-        Data(Data), SizeInBytes(SizeInBytes)
-    {}
+  FStaticResourceDataView(const void* Data, uint32 SizeInBytes)
+      : Data(Data)
+      , SizeInBytes(SizeInBytes)
+  {}
 
-    virtual const void* GetResourceData() const override { return Data; }
+  virtual const void* GetResourceData() const override { return Data; }
 
-    virtual uint32 GetResourceDataSize() const override { return SizeInBytes; }
+  virtual uint32 GetResourceDataSize() const override { return SizeInBytes; }
 
-    virtual void Discard() override {}
+  virtual void Discard() override {}
 
-    virtual bool IsStatic() const override { return true; }
+  virtual bool IsStatic() const override { return true; }
 
-    virtual bool GetAllowCPUAccess() const override { return true; }
+  virtual bool GetAllowCPUAccess() const override { return true; }
 
-    virtual void SetAllowCPUAccess(bool bInNeedsCPUAccess) override {}
+  virtual void SetAllowCPUAccess(bool bInNeedsCPUAccess) override {}
 };
 
 #include <optional>
@@ -278,93 +279,94 @@ using namespace rive::gpu;
 // Narrow the render pass scissor to a batch's clip bounds. Rive tightens draw
 // bounds when supportsClipScissor is set, so the batch rect has to be applied
 // or clipped content rasterizes outside its clip.
-static FUintRect RiveBatchScissor(const FUintRect& PassScissor,
-                                  const std::optional<AABBu16>& BatchScissor)
+static FUintRect RiveBatchScissor(
+    const FUintRect& PassScissor,
+    const std::optional<AABBu16>& BatchScissor)
 {
-    if (!BatchScissor.has_value())
-    {
-        return PassScissor;
-    }
+  if (!BatchScissor.has_value())
+  {
+    return PassScissor;
+  }
 
-    const AABBu16& Rect = BatchScissor.value();
-    const uint32 Left = FMath::Max<uint32>(PassScissor.Min.X, Rect.left);
-    const uint32 Top = FMath::Max<uint32>(PassScissor.Min.Y, Rect.top);
-    const uint32 Right = FMath::Min<uint32>(PassScissor.Max.X, Rect.right);
-    const uint32 Bottom = FMath::Min<uint32>(PassScissor.Max.Y, Rect.bottom);
+  const AABBu16& Rect = BatchScissor.value();
+  const uint32 Left = FMath::Max<uint32>(PassScissor.Min.X, Rect.left);
+  const uint32 Top = FMath::Max<uint32>(PassScissor.Min.Y, Rect.top);
+  const uint32 Right = FMath::Min<uint32>(PassScissor.Max.X, Rect.right);
+  const uint32 Bottom = FMath::Min<uint32>(PassScissor.Max.Y, Rect.bottom);
 
-    if (Right <= Left || Bottom <= Top)
-    {
-        return FUintRect(0, 0, 0, 0);
-    }
+  if (Right <= Left || Bottom <= Top)
+  {
+    return FUintRect(0, 0, 0, 0);
+  }
 
-    return FUintRect(Left, Top, Right, Bottom);
+  return FUintRect(Left, Top, Right, Bottom);
 }
 
 class CopyDrawList : public BlockAllocatedLinkedList<DrawBatch>
 {
 public:
-    CopyDrawList(const FlushDescriptor& desc) :
-        m_allocator(desc.drawList->count() * sizeof(DrawBatch))
-    {
-        const DrawBatch** NextRenderPass = nullptr;
-        const DrawBatch* OriginalNextRenderPass = desc.firstDstBlendBarrier;
+  CopyDrawList(const FlushDescriptor& desc)
+      : m_allocator(desc.drawList->count() * sizeof(DrawBatch))
+  {
+    const DrawBatch** NextRenderPass = nullptr;
+    const DrawBatch* OriginalNextRenderPass = desc.firstDstBlendBarrier;
 
-        for (auto& Value : *desc.drawList)
-        {
-            if (Value.imageTexture)
-                Value.imageTexture->ref();
-            if (Value.drawType == DrawType::imageMesh)
-            {
-                if (Value.vertexBuffer)
-                    Value.vertexBuffer->ref();
-                if (Value.uvBuffer)
-                    Value.uvBuffer->ref();
-                if (Value.indexBuffer)
-                    Value.indexBuffer->ref();
-            }
-            auto Batch = emplace_back(m_allocator, Value);
-            // The copy inherits a barrier that points into the original list,
-            // which the render pass loop can never terminate on. Only the
-            // barriers rebuilt below are valid for this list.
-            Batch->nextDstBlendBarrier = nullptr;
-            if (NextRenderPass == nullptr)
-            {
-                NextRenderPass = &Batch->nextDstBlendBarrier;
-            }
-            if (OriginalNextRenderPass == &Value)
-            {
-                // The first batch being the barrier would point head at
-                // itself, so leave it and let it start the first pass.
-                if (NextRenderPass != &Batch->nextDstBlendBarrier)
-                {
-                    *NextRenderPass = Batch;
-                }
-                NextRenderPass = &Batch->nextDstBlendBarrier;
-                OriginalNextRenderPass = Value.nextDstBlendBarrier;
-            }
-        }
-    }
-
-    ~CopyDrawList()
+    for (auto& Value : *desc.drawList)
     {
-        for (const DrawBatch* Value = head(); Value; Value = Value->next)
+      if (Value.imageTexture)
+        Value.imageTexture->ref();
+      if (Value.drawType == DrawType::imageMesh)
+      {
+        if (Value.vertexBuffer)
+          Value.vertexBuffer->ref();
+        if (Value.uvBuffer)
+          Value.uvBuffer->ref();
+        if (Value.indexBuffer)
+          Value.indexBuffer->ref();
+      }
+      auto Batch = emplace_back(m_allocator, Value);
+      // The copy inherits a barrier that points into the original list,
+      // which the render pass loop can never terminate on. Only the
+      // barriers rebuilt below are valid for this list.
+      Batch->nextDstBlendBarrier = nullptr;
+      if (NextRenderPass == nullptr)
+      {
+        NextRenderPass = &Batch->nextDstBlendBarrier;
+      }
+      if (OriginalNextRenderPass == &Value)
+      {
+        // The first batch being the barrier would point head at
+        // itself, so leave it and let it start the first pass.
+        if (NextRenderPass != &Batch->nextDstBlendBarrier)
         {
-            if (Value->imageTexture)
-                Value->imageTexture->unref();
-            if (Value->drawType == DrawType::imageMesh)
-            {
-                if (Value->vertexBuffer)
-                    Value->vertexBuffer->unref();
-                if (Value->uvBuffer)
-                    Value->uvBuffer->unref();
-                if (Value->indexBuffer)
-                    Value->indexBuffer->unref();
-            }
+          *NextRenderPass = Batch;
         }
+        NextRenderPass = &Batch->nextDstBlendBarrier;
+        OriginalNextRenderPass = Value.nextDstBlendBarrier;
+      }
     }
+  }
+
+  ~CopyDrawList()
+  {
+    for (const DrawBatch* Value = head(); Value; Value = Value->next)
+    {
+      if (Value->imageTexture)
+        Value->imageTexture->unref();
+      if (Value->drawType == DrawType::imageMesh)
+      {
+        if (Value->vertexBuffer)
+          Value->vertexBuffer->unref();
+        if (Value->uvBuffer)
+          Value->uvBuffer->unref();
+        if (Value->indexBuffer)
+          Value->indexBuffer->unref();
+      }
+    }
+  }
 
 private:
-    TrivialBlockAllocator m_allocator;
+  TrivialBlockAllocator m_allocator;
 };
 
 TStaticExternalResourceData GImageRectIndices(kImageRectIndices);
@@ -377,34 +379,34 @@ TStaticResourceData<uint16_t, kPatchIndexBufferCount> GPatchIndices;
 // The index patterns for depthStencil fills get their own buffers so their
 // draws can start from index 0. Reaching them with StartIndex instead costs
 // 26% of total framerate on Adreno.
-static_assert(DSMidpointFanFillBaseIndex >=
-              kOuterCurvePatchBaseIndex + kOuterCurvePatchIndexCount);
-FStaticResourceDataView GPathPatchIndices(*GPatchIndices,
-                                          DSMidpointFanFillBaseIndex *
-                                              sizeof(uint16_t));
-constexpr static uint32_t kDSMidpointFanFillIndexCount =
-    DSMidpointFanFillPatchMaxReps * DSMidpointFanFillPatchIndexCount;
-constexpr static uint32_t kDSOuterCubicFillIndexCount =
-    DSOuterCubicFillPatchMaxReps * DSOuterCubicFillPatchIndexCount;
+static_assert(
+    DSMidpointFanFillBaseIndex >=
+    kOuterCurvePatchBaseIndex + kOuterCurvePatchIndexCount);
+FStaticResourceDataView GPathPatchIndices(
+    *GPatchIndices,
+    DSMidpointFanFillBaseIndex * sizeof(uint16_t));
+constexpr static uint32_t
+    kDSMidpointFanFillIndexCount = DSMidpointFanFillPatchMaxReps *
+                                   DSMidpointFanFillPatchIndexCount;
+constexpr static uint32_t
+    kDSOuterCubicFillIndexCount = DSOuterCubicFillPatchMaxReps *
+                                  DSOuterCubicFillPatchIndexCount;
 FStaticResourceDataView GDSMidpointFanFillIndices(
     *GPatchIndices + DSMidpointFanFillBaseIndex,
     kDSMidpointFanFillIndexCount * sizeof(uint16_t));
-FStaticResourceDataView GDSOuterCubicFillIndices(*GPatchIndices +
-                                                     DSOuterCubicFillBaseIndex,
-                                                 kDSOuterCubicFillIndexCount *
-                                                     sizeof(uint16_t));
-constexpr static uint32_t kDSStrokeIndexCount =
-    DSStrokePatchMaxReps * DSStrokePatchIndexCount;
-constexpr static uint32_t kDSAAStrokeIndexCount =
-    DSAAStrokePatchMaxReps * DSAAStrokePatchIndexCount;
-FStaticResourceDataView GDSStrokeIndices(*GPatchIndices +
-                                             DSStrokePatchBaseIndex,
-                                         kDSStrokeIndexCount *
-                                             sizeof(uint16_t));
-FStaticResourceDataView GDSAAStrokeIndices(*GPatchIndices +
-                                               DSAAStrokePatchBaseIndex,
-                                           kDSAAStrokeIndexCount *
-                                               sizeof(uint16_t));
+FStaticResourceDataView GDSOuterCubicFillIndices(
+    *GPatchIndices + DSOuterCubicFillBaseIndex,
+    kDSOuterCubicFillIndexCount * sizeof(uint16_t));
+constexpr static uint32_t kDSStrokeIndexCount = DSStrokePatchMaxReps *
+                                                DSStrokePatchIndexCount;
+constexpr static uint32_t kDSAAStrokeIndexCount = DSAAStrokePatchMaxReps *
+                                                  DSAAStrokePatchIndexCount;
+FStaticResourceDataView GDSStrokeIndices(
+    *GPatchIndices + DSStrokePatchBaseIndex,
+    kDSStrokeIndexCount * sizeof(uint16_t));
+FStaticResourceDataView GDSAAStrokeIndices(
+    *GPatchIndices + DSAAStrokePatchBaseIndex,
+    kDSAAStrokeIndexCount * sizeof(uint16_t));
 // clang format does weird things to this so turn it off
 // clang-format off
 static TAutoConsoleVariable<int32> CVarUseSubpassLoad(
@@ -468,439 +470,473 @@ void GetPermutationForFeatures(
     AtomicPixelPermutationDomain& PixelPermutationDomain,
     AtomicVertexPermutationDomain& VertexPermutationDomain)
 {
-    VertexPermutationDomain.Set<FEnableClip>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIPPING));
-    VertexPermutationDomain.Set<FEnableClipRect>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIP_RECT));
-    VertexPermutationDomain.Set<FEnableAdvanceBlend>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_ADVANCED_BLEND));
-    VertexPermutationDomain.Set<FEnableFeather>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_FEATHER));
-    VertexPermutationDomain.Set<FEnableModulatedImage>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_MODULATED_IMAGE));
+  VertexPermutationDomain.Set<FEnableClip>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIPPING));
+  VertexPermutationDomain.Set<FEnableClipRect>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIP_RECT));
+  VertexPermutationDomain.Set<FEnableAdvanceBlend>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_ADVANCED_BLEND));
+  VertexPermutationDomain.Set<FEnableFeather>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_FEATHER));
+  VertexPermutationDomain.Set<FEnableModulatedImage>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_MODULATED_IMAGE));
 
-    PixelPermutationDomain.Set<FEnableClip>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIPPING));
-    PixelPermutationDomain.Set<FEnableClipRect>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIP_RECT));
-    PixelPermutationDomain.Set<FEnableNestedClip>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_NESTED_CLIPPING));
-    PixelPermutationDomain.Set<FEnableAdvanceBlend>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_ADVANCED_BLEND));
-    PixelPermutationDomain.Set<FEnableFixedFunctionColorOutput>(
-        enums::is_flag_set(miscFlags,
-                           ShaderMiscFlags::fixedFunctionColorOutput));
-    PixelPermutationDomain.Set<FEnableEvenOdd>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_EVEN_ODD));
-    PixelPermutationDomain.Set<FEnableHSLBlendMode>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_HSL_BLEND_MODES));
-    PixelPermutationDomain.Set<FEnableFeather>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_FEATHER));
-    PixelPermutationDomain.Set<FEnableClockwiseFill>(
-        enums::is_flag_set(miscFlags, ShaderMiscFlags::clockwiseFill));
-    PixelPermutationDomain.Set<FCoalescedPlsResolveAndTransfer>(needsCoalesce);
-    PixelPermutationDomain.Set<FEnableModulatedImage>(
-        enums::is_flag_set(features, ShaderFeatures::ENABLE_MODULATED_IMAGE));
+  PixelPermutationDomain.Set<FEnableClip>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIPPING));
+  PixelPermutationDomain.Set<FEnableClipRect>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_CLIP_RECT));
+  PixelPermutationDomain.Set<FEnableNestedClip>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_NESTED_CLIPPING));
+  PixelPermutationDomain.Set<FEnableAdvanceBlend>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_ADVANCED_BLEND));
+  PixelPermutationDomain.Set<FEnableFixedFunctionColorOutput>(
+      enums::is_flag_set(miscFlags, ShaderMiscFlags::fixedFunctionColorOutput));
+  PixelPermutationDomain.Set<FEnableEvenOdd>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_EVEN_ODD));
+  PixelPermutationDomain.Set<FEnableHSLBlendMode>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_HSL_BLEND_MODES));
+  PixelPermutationDomain.Set<FEnableFeather>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_FEATHER));
+  PixelPermutationDomain.Set<FEnableClockwiseFill>(
+      enums::is_flag_set(miscFlags, ShaderMiscFlags::clockwiseFill));
+  PixelPermutationDomain.Set<FCoalescedPlsResolveAndTransfer>(needsCoalesce);
+  PixelPermutationDomain.Set<FEnableModulatedImage>(
+      enums::is_flag_set(features, ShaderFeatures::ENABLE_MODULATED_IMAGE));
 }
 
 /*
  * Convenience function for adding a PF_R32 Texture visualization pass, used for
  * debuging
  */
-void AddBltU32ToF4Pass(FRDGBuilder& GraphBuilder,
-                       FRDGTextureRef SourceTexture,
-                       FRDGTextureRef DestTexture,
-                       FIntPoint Size)
+void AddBltU32ToF4Pass(
+    FRDGBuilder& GraphBuilder,
+    FRDGTextureRef SourceTexture,
+    FRDGTextureRef DestTexture,
+    FIntPoint Size)
 {
-    // DEBUG STUFF
-    auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+  // DEBUG STUFF
+  auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
-    TShaderMapRef<FRiveRDGBltU32AsF4PixelShader> PixelShader(ShaderMap);
+  TShaderMapRef<FRiveRDGBltU32AsF4PixelShader> PixelShader(ShaderMap);
 
-    FRiveRDGBltU32AsF4PixelShader::FParameters* BltU32ToF4Parameters =
-        GraphBuilder
-            .AllocParameters<FRiveRDGBltU32AsF4PixelShader::FParameters>();
+  FRiveRDGBltU32AsF4PixelShader::FParameters*
+      BltU32ToF4Parameters = GraphBuilder.AllocParameters<
+          FRiveRDGBltU32AsF4PixelShader::FParameters>();
 
-    BltU32ToF4Parameters->SourceTexture = SourceTexture;
-    BltU32ToF4Parameters->RenderTargets[0] =
-        FRenderTargetBinding(DestTexture, ERenderTargetLoadAction::EClear);
+  BltU32ToF4Parameters->SourceTexture = SourceTexture;
+  BltU32ToF4Parameters->RenderTargets[0] = FRenderTargetBinding(
+      DestTexture,
+      ERenderTargetLoadAction::EClear);
 
-    FPixelShaderUtils::AddFullscreenPass(GraphBuilder,
-                                         ShaderMap,
-                                         RDG_EVENT_NAME("riv.U32ToF4"),
-                                         PixelShader,
-                                         BltU32ToF4Parameters,
-                                         FIntRect(0, 0, Size.X, Size.Y));
+  FPixelShaderUtils::AddFullscreenPass(
+      GraphBuilder,
+      ShaderMap,
+      RDG_EVENT_NAME("riv.U32ToF4"),
+      PixelShader,
+      BltU32ToF4Parameters,
+      FIntRect(0, 0, Size.X, Size.Y));
 }
 
 /*
  * Convenience function for adding a PF_R32G32B32A32_UINT Texture visualization
  * pass, used for debuging
  */
-void AddBltU324ToF4Pass(FRDGBuilder& GraphBuilder,
-                        FRDGTextureRef SourceTexture,
-                        FRDGTextureRef DestTexture,
-                        FIntRect Viewport)
+void AddBltU324ToF4Pass(
+    FRDGBuilder& GraphBuilder,
+    FRDGTextureRef SourceTexture,
+    FRDGTextureRef DestTexture,
+    FIntRect Viewport)
 {
-    auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+  auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
-    TShaderMapRef<FRiveRDGBltU324AsF4PixelShader> PixelShader(ShaderMap);
+  TShaderMapRef<FRiveRDGBltU324AsF4PixelShader> PixelShader(ShaderMap);
 
-    FRiveRDGBltU324AsF4PixelShader::FParameters* BltU324ToF4Parameters =
-        GraphBuilder
-            .AllocParameters<FRiveRDGBltU324AsF4PixelShader::FParameters>();
+  FRiveRDGBltU324AsF4PixelShader::FParameters*
+      BltU324ToF4Parameters = GraphBuilder.AllocParameters<
+          FRiveRDGBltU324AsF4PixelShader::FParameters>();
 
-    BltU324ToF4Parameters->SourceTexture = SourceTexture;
-    BltU324ToF4Parameters->RenderTargets[0] =
-        FRenderTargetBinding(DestTexture, ERenderTargetLoadAction::EClear);
+  BltU324ToF4Parameters->SourceTexture = SourceTexture;
+  BltU324ToF4Parameters->RenderTargets[0] = FRenderTargetBinding(
+      DestTexture,
+      ERenderTargetLoadAction::EClear);
 
-    FPixelShaderUtils::AddFullscreenPass(GraphBuilder,
-                                         ShaderMap,
-                                         RDG_EVENT_NAME("riv.U324ToF4"),
-                                         PixelShader,
-                                         BltU324ToF4Parameters,
-                                         Viewport);
+  FPixelShaderUtils::AddFullscreenPass(
+      GraphBuilder,
+      ShaderMap,
+      RDG_EVENT_NAME("riv.U324ToF4"),
+      PixelShader,
+      BltU324ToF4Parameters,
+      Viewport);
 }
 
-void AddBltF16ToF4Pass(FRDGBuilder& GraphBuilder,
-                       FRDGTextureRef SourceTexture,
-                       FRDGTextureRef DestTexture,
-                       FIntRect Viewport)
+void AddBltF16ToF4Pass(
+    FRDGBuilder& GraphBuilder,
+    FRDGTextureRef SourceTexture,
+    FRDGTextureRef DestTexture,
+    FIntRect Viewport)
 {
-    auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+  auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
-    TShaderMapRef<FRiveRDGBltR16FAsF4PixelShader> PixelShader(ShaderMap);
+  TShaderMapRef<FRiveRDGBltR16FAsF4PixelShader> PixelShader(ShaderMap);
 
-    FRiveRDGBltR16FAsF4PixelShader::FParameters* BltU324ToF4Parameters =
-        GraphBuilder
-            .AllocParameters<FRiveRDGBltR16FAsF4PixelShader::FParameters>();
+  FRiveRDGBltR16FAsF4PixelShader::FParameters*
+      BltU324ToF4Parameters = GraphBuilder.AllocParameters<
+          FRiveRDGBltR16FAsF4PixelShader::FParameters>();
 
-    BltU324ToF4Parameters->SourceSampler =
-        TStaticSamplerState<SF_Bilinear>::GetRHI();
-    BltU324ToF4Parameters->SourceTexture = SourceTexture;
-    BltU324ToF4Parameters->ViewSize =
-        FUintVector2(Viewport.Width(), Viewport.Height());
-    BltU324ToF4Parameters->RenderTargets[0] =
-        FRenderTargetBinding(DestTexture, ERenderTargetLoadAction::EClear);
+  BltU324ToF4Parameters
+      ->SourceSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+  BltU324ToF4Parameters->SourceTexture = SourceTexture;
+  BltU324ToF4Parameters->ViewSize = FUintVector2(
+      Viewport.Width(),
+      Viewport.Height());
+  BltU324ToF4Parameters->RenderTargets[0] = FRenderTargetBinding(
+      DestTexture,
+      ERenderTargetLoadAction::EClear);
 
-    FPixelShaderUtils::AddFullscreenPass(GraphBuilder,
-                                         ShaderMap,
-                                         RDG_EVENT_NAME("riv.F16ToF4"),
-                                         PixelShader,
-                                         BltU324ToF4Parameters,
-                                         Viewport);
+  FPixelShaderUtils::AddFullscreenPass(
+      GraphBuilder,
+      ShaderMap,
+      RDG_EVENT_NAME("riv.F16ToF4"),
+      PixelShader,
+      BltU324ToF4Parameters,
+      Viewport);
 }
 
 /*
  * Convenience function for adding a PF_R32G32_UINT Buffer visualization pass,
  * used for debuging
  */
-void AddVisualizeBufferPass(FRDGBuilder& GraphBuilder,
-                            int32 BufferSize,
-                            FRDGBufferSRVRef SourceBuffer,
-                            FRDGTextureRef DestTexture,
-                            FIntPoint Size)
+void AddVisualizeBufferPass(
+    FRDGBuilder& GraphBuilder,
+    int32 BufferSize,
+    FRDGBufferSRVRef SourceBuffer,
+    FRDGTextureRef DestTexture,
+    FIntPoint Size)
 {
-    auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+  auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
-    TShaderMapRef<FRiveRDGVisualizeBufferPixelShader> PixelShader(ShaderMap);
-    FRiveRDGVisualizeBufferPixelShader::FParameters* VisBufferParameters =
-        GraphBuilder
-            .AllocParameters<FRiveRDGVisualizeBufferPixelShader::FParameters>();
-    VisBufferParameters->ViewSize = FUintVector2(Size.X, Size.Y);
-    VisBufferParameters->BufferSize = BufferSize;
+  TShaderMapRef<FRiveRDGVisualizeBufferPixelShader> PixelShader(ShaderMap);
+  FRiveRDGVisualizeBufferPixelShader::FParameters*
+      VisBufferParameters = GraphBuilder.AllocParameters<
+          FRiveRDGVisualizeBufferPixelShader::FParameters>();
+  VisBufferParameters->ViewSize = FUintVector2(Size.X, Size.Y);
+  VisBufferParameters->BufferSize = BufferSize;
 
-    VisBufferParameters->SourceBuffer = SourceBuffer;
-    VisBufferParameters->RenderTargets[0] =
-        FRenderTargetBinding(DestTexture, ERenderTargetLoadAction::EClear);
+  VisBufferParameters->SourceBuffer = SourceBuffer;
+  VisBufferParameters->RenderTargets[0] = FRenderTargetBinding(
+      DestTexture,
+      ERenderTargetLoadAction::EClear);
 
-    FPixelShaderUtils::AddFullscreenPass(GraphBuilder,
-                                         ShaderMap,
-                                         RDG_EVENT_NAME("riv.VisBuffer"),
-                                         PixelShader,
-                                         VisBufferParameters,
-                                         FIntRect(0, 0, Size.X, Size.Y));
+  FPixelShaderUtils::AddFullscreenPass(
+      GraphBuilder,
+      ShaderMap,
+      RDG_EVENT_NAME("riv.VisBuffer"),
+      PixelShader,
+      VisBufferParameters,
+      FIntRect(0, 0, Size.X, Size.Y));
 }
 
 RHICapabilities::RHICapabilities()
 {
-    bSupportsPixelShaderUAVs = GRHISupportsPixelShaderUAVs;
-    // right now this is required to run rhi.
-    check(bSupportsPixelShaderUAVs);
-    check(UE::PixelFormat::HasCapabilities(PF_R8G8B8A8,
-                                           EPixelFormatCapabilities::UAV));
-    check(UE::PixelFormat::HasCapabilities(PF_B8G8R8A8,
-                                           EPixelFormatCapabilities::UAV));
+  bSupportsPixelShaderUAVs = GRHISupportsPixelShaderUAVs;
+  // right now this is required to run rhi.
+  check(bSupportsPixelShaderUAVs);
+  check(UE::PixelFormat::HasCapabilities(
+      PF_R8G8B8A8,
+      EPixelFormatCapabilities::UAV));
+  check(UE::PixelFormat::HasCapabilities(
+      PF_B8G8R8A8,
+      EPixelFormatCapabilities::UAV));
 #if UE_VERSION_OLDER_THAN(5, 4, 0)
-    // for now just force metal as the only raster order support until there is
-    // a better version in 5.3
-    bSupportsRasterOrderViews =
-        GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Metal;
+  // for now just force metal as the only raster order support until there is
+  // a better version in 5.3
+  bSupportsRasterOrderViews = GDynamicRHI->GetInterfaceType() ==
+                              ERHIInterfaceType::Metal;
 #else
 #if PLATFORM_APPLE
-    bSupportsRasterOrderViews = false;
+  bSupportsRasterOrderViews = false;
 #else
-    bSupportsRasterOrderViews =
-        FDataDrivenShaderPlatformInfo::GetSupportsROV(GMaxRHIShaderPlatform);
+  bSupportsRasterOrderViews = FDataDrivenShaderPlatformInfo::GetSupportsROV(
+      GMaxRHIShaderPlatform);
 #endif
 #endif
-    // Typed is the default everywhere modern unreal supports.
-    bSupportsTypedUAVLoads = true;
+  // Typed is the default everywhere modern unreal supports.
+  bSupportsTypedUAVLoads = true;
 }
 
 template <typename DataType>
-FBufferRHIRef makeSimpleImmutableBuffer(FRHICommandList& RHICmdList,
-                                        const TCHAR* DebugName,
-                                        EBufferUsageFlags bindFlags,
-                                        FResourceArrayInterface& ResourceArray)
+FBufferRHIRef makeSimpleImmutableBuffer(
+    FRHICommandList& RHICmdList,
+    const TCHAR* DebugName,
+    EBufferUsageFlags bindFlags,
+    FResourceArrayInterface& ResourceArray)
 {
-    const size_t Size = ResourceArray.GetResourceDataSize();
+  const size_t Size = ResourceArray.GetResourceDataSize();
 
-    FRHIBufferCreateDesc CreateDesc =
-        FRHIBufferCreateDesc::Create(DebugName,
-                                     Size,
-                                     sizeof(DataType),
-                                     EBufferUsageFlags::Static | bindFlags)
-            .SetGPUMask(FRHIGPUMask::All())
-            .SetInitialState(ERHIAccess::VertexOrIndexBuffer)
-            .SetClassName(NAME_None)
-            .SetOwnerName(NAME_None)
-            .SetInitActionResourceArray(&ResourceArray);
+  FRHIBufferCreateDesc CreateDesc = FRHIBufferCreateDesc::Create(
+                                        DebugName,
+                                        Size,
+                                        sizeof(DataType),
+                                        EBufferUsageFlags::Static | bindFlags)
+                                        .SetGPUMask(FRHIGPUMask::All())
+                                        .SetInitialState(
+                                            ERHIAccess::VertexOrIndexBuffer)
+                                        .SetClassName(NAME_None)
+                                        .SetOwnerName(NAME_None)
+                                        .SetInitActionResourceArray(
+                                            &ResourceArray);
 
-    return RHICmdList.CreateBuffer(CreateDesc);
+  return RHICmdList.CreateBuffer(CreateDesc);
 }
 
 ESamplerFilter SamplerFilterFromImageFilterOption(const ImageFilter option)
 {
-    switch (option)
-    {
-        default:
-        case ImageFilter::bilinear:
-            return ESamplerFilter::SF_Bilinear;
-        case ImageFilter::nearest:
-            return ESamplerFilter::SF_Point;
-    }
+  switch (option)
+  {
+    default:
+    case ImageFilter::bilinear:
+      return ESamplerFilter::SF_Bilinear;
+    case ImageFilter::nearest:
+      return ESamplerFilter::SF_Point;
+  }
 }
 
 ESamplerAddressMode AddressModeFromImageWrapOption(const ImageWrap option)
 {
-    switch (option)
-    {
-        default:
-        case ImageWrap::clamp:
-            return ESamplerAddressMode::AM_Clamp;
-        case ImageWrap::repeat:
-            return ESamplerAddressMode::AM_Wrap;
-        case ImageWrap::mirror:
-            return ESamplerAddressMode::AM_Mirror;
-    }
+  switch (option)
+  {
+    default:
+    case ImageWrap::clamp:
+      return ESamplerAddressMode::AM_Clamp;
+    case ImageWrap::repeat:
+      return ESamplerAddressMode::AM_Wrap;
+    case ImageWrap::mirror:
+      return ESamplerAddressMode::AM_Mirror;
+  }
 }
 
-BufferRingRHIImpl::BufferRingRHIImpl(EBufferUsageFlags flags,
-                                     size_t inSizeInBytes,
-                                     size_t stride) :
-    BufferRing(inSizeInBytes), m_flags(flags), m_stride(stride)
+BufferRingRHIImpl::BufferRingRHIImpl(
+    EBufferUsageFlags flags,
+    size_t inSizeInBytes,
+    size_t stride)
+    : BufferRing(inSizeInBytes)
+    , m_flags(flags)
+    , m_stride(stride)
 {}
 
-FBufferRHIRef BufferRingRHIImpl::Sync(FRHICommandList& commandList,
-                                      size_t offsetInBytes) const
+FBufferRHIRef BufferRingRHIImpl::Sync(
+    FRHICommandList& commandList,
+    size_t offsetInBytes) const
 {
-    if (!m_bContentsDirty && m_syncedBuffer.IsValid() &&
-        m_syncedOffset == offsetInBytes)
-    {
-        return m_syncedBuffer;
-    }
+  if (!m_bContentsDirty && m_syncedBuffer.IsValid() &&
+      m_syncedOffset == offsetInBytes)
+  {
+    return m_syncedBuffer;
+  }
 
-    const size_t size = capacityInBytes() - offsetInBytes;
-    FRHIBufferCreateDesc CreateDesc =
-        FRHIBufferCreateDesc::Create(TEXT("rive.BufferRingRHIImpl_"),
-                                     size,
-                                     m_stride,
-                                     m_flags)
-            .SetGPUMask(FRHIGPUMask::All())
-            .SetInitialState(ERHIAccess::WriteOnlyMask)
-            .SetClassName(NAME_None)
-            .SetOwnerName(NAME_None);
+  const size_t size = capacityInBytes() - offsetInBytes;
+  FRHIBufferCreateDesc CreateDesc = FRHIBufferCreateDesc::Create(
+                                        TEXT("rive.BufferRingRHIImpl_"),
+                                        size,
+                                        m_stride,
+                                        m_flags)
+                                        .SetGPUMask(FRHIGPUMask::All())
+                                        .SetInitialState(
+                                            ERHIAccess::WriteOnlyMask)
+                                        .SetClassName(NAME_None)
+                                        .SetOwnerName(NAME_None);
 
-    auto buffer = commandList.CreateBuffer(CreateDesc);
-    // for DX12 we should use RLM_WriteOnly_NoOverwrite but RLM_WriteOnly works
-    // everywhere so we use it for now
-    auto map = commandList.LockBuffer(buffer, 0, size, RLM_WriteOnly);
-    memcpy(map, shadowBuffer() + offsetInBytes, size);
-    commandList.UnlockBuffer(buffer);
+  auto buffer = commandList.CreateBuffer(CreateDesc);
+  // for DX12 we should use RLM_WriteOnly_NoOverwrite but RLM_WriteOnly works
+  // everywhere so we use it for now
+  auto map = commandList.LockBuffer(buffer, 0, size, RLM_WriteOnly);
+  memcpy(map, shadowBuffer() + offsetInBytes, size);
+  commandList.UnlockBuffer(buffer);
 
-    m_syncedBuffer = buffer;
-    m_syncedOffset = offsetInBytes;
-    m_bContentsDirty = false;
+  m_syncedBuffer = buffer;
+  m_syncedOffset = offsetInBytes;
+  m_bContentsDirty = false;
 
-    return buffer;
+  return buffer;
 }
 
-FRDGBufferRef BufferRingRHIImpl::Sync(FRDGBuilder& RDGBuilder,
-                                      size_t offsetInBytes) const
+FRDGBufferRef BufferRingRHIImpl::Sync(
+    FRDGBuilder& RDGBuilder,
+    size_t offsetInBytes) const
 {
-    const size_t size = capacityInBytes() - offsetInBytes;
-    // clang was trying to do a copy constructor here for some crazy reason on
-    // mac. This prevents that
-    FRDGBufferDesc Desc{static_cast<uint32>(m_stride),
-                        static_cast<uint32>(size / m_stride),
-                        m_flags | EBufferUsageFlags::Volatile};
-    auto buffer = RDGBuilder.CreateBuffer(Desc,
-                                          TEXT("rive.BufferRingRHIImpl_"),
-                                          ERDGBufferFlags::None);
-    RDGBuilder.QueueBufferUpload(buffer,
-                                 shadowBuffer() + offsetInBytes,
-                                 size,
-                                 ERDGInitialDataFlags::NoCopy);
-    return buffer;
+  const size_t size = capacityInBytes() - offsetInBytes;
+  // clang was trying to do a copy constructor here for some crazy reason on
+  // mac. This prevents that
+  FRDGBufferDesc Desc{
+      static_cast<uint32>(m_stride),
+      static_cast<uint32>(size / m_stride),
+      m_flags | EBufferUsageFlags::Volatile};
+  auto buffer = RDGBuilder.CreateBuffer(
+      Desc,
+      TEXT("rive.BufferRingRHIImpl_"),
+      ERDGBufferFlags::None);
+  RDGBuilder.QueueBufferUpload(
+      buffer,
+      shadowBuffer() + offsetInBytes,
+      size,
+      ERDGInitialDataFlags::NoCopy);
+  return buffer;
 }
 
 void* BufferRingRHIImpl::onMapBuffer(int bufferIdx, size_t mapSizeInBytes)
 {
-    return shadowBuffer();
+  return shadowBuffer();
 }
 
-void BufferRingRHIImpl::onUnmapAndSubmitBuffer(int bufferIdx,
-                                               size_t mapSizeInBytes)
+void BufferRingRHIImpl::onUnmapAndSubmitBuffer(
+    int bufferIdx,
+    size_t mapSizeInBytes)
 {
-    m_bContentsDirty = true;
+  m_bContentsDirty = true;
 }
 
-RenderBufferRHIImpl::RenderBufferRHIImpl(RenderBufferType inType,
-                                         RenderBufferFlags inFlags,
-                                         size_t inSizeInBytes,
-                                         size_t stride) :
-    lite_rtti_override(inType, inFlags, inSizeInBytes),
-    m_buffer(inType == RenderBufferType::vertex
-                 ? EBufferUsageFlags::VertexBuffer
-                 : EBufferUsageFlags::IndexBuffer,
-             inSizeInBytes,
-             stride),
-    m_mappedBuffer(nullptr)
+RenderBufferRHIImpl::RenderBufferRHIImpl(
+    RenderBufferType inType,
+    RenderBufferFlags inFlags,
+    size_t inSizeInBytes,
+    size_t stride)
+    : lite_rtti_override(inType, inFlags, inSizeInBytes)
+    , m_buffer(
+          inType == RenderBufferType::vertex ? EBufferUsageFlags::VertexBuffer
+                                             : EBufferUsageFlags::IndexBuffer,
+          inSizeInBytes,
+          stride)
+    , m_mappedBuffer(nullptr)
 {
-    if (enums::is_flag_set(inFlags,
-                           RenderBufferFlags::mappedOnceAtInitialization))
-    {
-        m_mappedBuffer = m_buffer.mapBuffer(inSizeInBytes);
-    }
+  if (enums::is_flag_set(
+          inFlags,
+          RenderBufferFlags::mappedOnceAtInitialization))
+  {
+    m_mappedBuffer = m_buffer.mapBuffer(inSizeInBytes);
+  }
 }
 
 FBufferRHIRef RenderBufferRHIImpl::Sync(FRHICommandList& commandList) const
 {
-    return m_buffer.Sync(commandList);
+  return m_buffer.Sync(commandList);
 }
 
 void* RenderBufferRHIImpl::onMap()
 {
-    if (enums::is_flag_set(flags(),
-                           RenderBufferFlags::mappedOnceAtInitialization))
-    {
-        check(m_mappedBuffer);
-        return m_mappedBuffer;
-    }
-    return m_buffer.mapBuffer(sizeInBytes());
+  if (enums::is_flag_set(
+          flags(),
+          RenderBufferFlags::mappedOnceAtInitialization))
+  {
+    check(m_mappedBuffer);
+    return m_mappedBuffer;
+  }
+  return m_buffer.mapBuffer(sizeInBytes());
 }
 
 void RenderBufferRHIImpl::onUnmap() { m_buffer.unmapAndSubmitBuffer(); }
 
 FString RHICapabilities::AsString() const
 {
-    return FString::Printf(TEXT("{ bSupportsPixelShaderUAVs %i,"
-                                " bSupportsTypedUAVLoads %i, "
-                                "bSupportsRasterOrderViews %i}"),
-                           bSupportsPixelShaderUAVs,
-                           bSupportsTypedUAVLoads,
-                           bSupportsRasterOrderViews);
+  return FString::Printf(
+      TEXT("{ bSupportsPixelShaderUAVs %i,"
+           " bSupportsTypedUAVLoads %i, "
+           "bSupportsRasterOrderViews %i}"),
+      bSupportsPixelShaderUAVs,
+      bSupportsTypedUAVLoads,
+      bSupportsRasterOrderViews);
 }
 
-RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
-                                 const RHICapabilities& Capabilities,
-                                 const FTextureRHIRef& InTextureTarget) :
-    RenderTarget(InTextureTarget->GetSizeX(), InTextureTarget->GetSizeY()),
-    m_textureTarget(InTextureTarget),
-    m_capabilities(Capabilities)
+RenderTargetRHI::RenderTargetRHI(
+    FRHICommandList& RHICmdList,
+    const RHICapabilities& Capabilities,
+    const FTextureRHIRef& InTextureTarget)
+    : RenderTarget(InTextureTarget->GetSizeX(), InTextureTarget->GetSizeY())
+    , m_textureTarget(InTextureTarget)
+    , m_capabilities(Capabilities)
 {
-    m_targetTextureSupportsUAV = static_cast<bool>(
-        m_textureTarget->GetDesc().Flags & ETextureCreateFlags::UAV);
+  m_targetTextureSupportsUAV = static_cast<bool>(
+      m_textureTarget->GetDesc().Flags & ETextureCreateFlags::UAV);
 
-    m_targetTextureSupportsRenderTarget =
-        static_cast<bool>(m_textureTarget->GetDesc().Flags &
-                          ETextureCreateFlags::RenderTargetable);
+  m_targetTextureSupportsRenderTarget = static_cast<bool>(
+      m_textureTarget->GetDesc().Flags & ETextureCreateFlags::RenderTargetable);
 
-    m_targetTextureSupportsResolveTarget =
-        static_cast<bool>(m_textureTarget->GetDesc().Flags &
-                          ETextureCreateFlags::ResolveTargetable);
+  m_targetTextureSupportsResolveTarget = static_cast<bool>(
+      m_textureTarget->GetDesc().Flags &
+      ETextureCreateFlags::ResolveTargetable);
 
-    m_targetTextureIsSRGB = static_cast<bool>(m_textureTarget->GetDesc().Flags &
-                                              ETextureCreateFlags::SRGB);
+  m_targetTextureIsSRGB = static_cast<bool>(
+      m_textureTarget->GetDesc().Flags & ETextureCreateFlags::SRGB);
 
-    // Rive is not currently supported without UAVs.
-    check(Capabilities.bSupportsPixelShaderUAVs);
+  // Rive is not currently supported without UAVs.
+  check(Capabilities.bSupportsPixelShaderUAVs);
 }
 
-RenderTargetRHI::RenderTargetRHI(FRHICommandList& RHICmdList,
-                                 const RHICapabilities& Capabilities,
-                                 FRenderTarget* InTextureTarget) :
-    RenderTarget(InTextureTarget->GetSizeXY().X,
-                 InTextureTarget->GetSizeXY().Y),
-    m_renderTarget(InTextureTarget),
-    m_capabilities(Capabilities)
+RenderTargetRHI::RenderTargetRHI(
+    FRHICommandList& RHICmdList,
+    const RHICapabilities& Capabilities,
+    FRenderTarget* InTextureTarget)
+    : RenderTarget(
+          InTextureTarget->GetSizeXY().X,
+          InTextureTarget->GetSizeXY().Y)
+    , m_renderTarget(InTextureTarget)
+    , m_capabilities(Capabilities)
 {
-    const auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
+  const auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
 
-    m_targetTextureSupportsUAV = static_cast<bool>(rhiTexture->GetDesc().Flags &
-                                                   ETextureCreateFlags::UAV);
+  m_targetTextureSupportsUAV = static_cast<bool>(
+      rhiTexture->GetDesc().Flags & ETextureCreateFlags::UAV);
 
-    m_targetTextureSupportsRenderTarget = static_cast<bool>(
-        rhiTexture->GetDesc().Flags & ETextureCreateFlags::RenderTargetable);
+  m_targetTextureSupportsRenderTarget = static_cast<bool>(
+      rhiTexture->GetDesc().Flags & ETextureCreateFlags::RenderTargetable);
 
-    m_targetTextureSupportsResolveTarget = static_cast<bool>(
-        rhiTexture->GetDesc().Flags & ETextureCreateFlags::ResolveTargetable);
+  m_targetTextureSupportsResolveTarget = static_cast<bool>(
+      rhiTexture->GetDesc().Flags & ETextureCreateFlags::ResolveTargetable);
 
-    m_targetTextureIsSRGB = static_cast<bool>(rhiTexture->GetDesc().Flags &
-                                              ETextureCreateFlags::SRGB);
+  m_targetTextureIsSRGB = static_cast<bool>(
+      rhiTexture->GetDesc().Flags & ETextureCreateFlags::SRGB);
 
-    // Rive is not currently supported without UAVs.
-    check(Capabilities.bSupportsPixelShaderUAVs);
+  // Rive is not currently supported without UAVs.
+  check(Capabilities.bSupportsPixelShaderUAVs);
 }
 
-RenderTargetRHI::RenderTargetRHI(const RHICapabilities& Capabilities,
-                                 FRDGTextureRef InTextureTarget) :
-    RenderTarget(InTextureTarget->Desc.GetSize().X,
-                 InTextureTarget->Desc.GetSize().Y),
-    m_rdgTextureTarget(InTextureTarget),
-    m_capabilities(Capabilities)
+RenderTargetRHI::RenderTargetRHI(
+    const RHICapabilities& Capabilities,
+    FRDGTextureRef InTextureTarget)
+    : RenderTarget(
+          InTextureTarget->Desc.GetSize().X,
+          InTextureTarget->Desc.GetSize().Y)
+    , m_rdgTextureTarget(InTextureTarget)
+    , m_capabilities(Capabilities)
 {
-    m_targetTextureSupportsUAV = static_cast<bool>(
-        m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::UAV);
+  m_targetTextureSupportsUAV = static_cast<bool>(
+      m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::UAV);
 
-    m_targetTextureSupportsRenderTarget = static_cast<bool>(
-        m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::RenderTargetable);
+  m_targetTextureSupportsRenderTarget = static_cast<bool>(
+      m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::RenderTargetable);
 
-    m_targetTextureSupportsResolveTarget =
-        static_cast<bool>(m_rdgTextureTarget->Desc.Flags &
-                          ETextureCreateFlags::ResolveTargetable);
+  m_targetTextureSupportsResolveTarget = static_cast<bool>(
+      m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::ResolveTargetable);
 
-    m_targetTextureIsSRGB = static_cast<bool>(m_rdgTextureTarget->Desc.Flags &
-                                              ETextureCreateFlags::SRGB);
+  m_targetTextureIsSRGB = static_cast<bool>(
+      m_rdgTextureTarget->Desc.Flags & ETextureCreateFlags::SRGB);
 
-    // Rive is not currently supported without UAVs.
-    check(Capabilities.bSupportsPixelShaderUAVs);
+  // Rive is not currently supported without UAVs.
+  check(Capabilities.bSupportsPixelShaderUAVs);
 }
 
 FRDGTextureRef RenderTargetRHI::targetTexture(FRDGBuilder& Builder)
 {
-    if (m_rdgTextureTarget)
-        return m_rdgTextureTarget;
+  if (m_rdgTextureTarget)
+    return m_rdgTextureTarget;
 
-    if (m_renderTarget)
-    {
-        return m_renderTarget->GetRenderTargetTexture(Builder);
-    }
+  if (m_renderTarget)
+  {
+    return m_renderTarget->GetRenderTargetTexture(Builder);
+  }
 
-    return Builder.RegisterExternalTexture(
-        CreateRenderTarget(m_textureTarget, TEXT("rive.TargetTexture")),
-        ERDGTextureFlags::MultiFrame);
+  return Builder.RegisterExternalTexture(
+      CreateRenderTarget(m_textureTarget, TEXT("rive.TargetTexture")),
+      ERDGTextureFlags::MultiFrame);
 }
 
 FRDGTextureRef RenderTargetRHI::backBufferTexture(
@@ -908,258 +944,263 @@ FRDGTextureRef RenderTargetRHI::backBufferTexture(
     const FLinearColor& ClearColor,
     const rive::gpu::FlushDescriptor& Desc)
 {
-    check(m_rdgTextureTarget || m_textureTarget || m_renderTarget);
+  check(m_rdgTextureTarget || m_textureTarget || m_renderTarget);
 
-    FIntPoint Extent;
-    EPixelFormat Format;
-    bool bTargetIsSRGB = false;
+  FIntPoint Extent;
+  EPixelFormat Format;
+  bool bTargetIsSRGB = false;
 
-    if (m_rdgTextureTarget)
-    {
-        const FRDGTextureDesc& targetDesc = m_rdgTextureTarget->Desc;
-        Extent = targetDesc.Extent;
-        Format = targetDesc.Format;
-        bTargetIsSRGB =
-            static_cast<bool>(targetDesc.Flags & ETextureCreateFlags::SRGB);
-    }
-    else if (m_renderTarget)
-    {
-        auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
-        const FRHITextureDesc& targetDesc = rhiTexture->GetDesc();
-        Extent = targetDesc.Extent;
-        Format = targetDesc.Format;
-        bTargetIsSRGB =
-            static_cast<bool>(targetDesc.Flags & ETextureCreateFlags::SRGB);
-    }
-    else
-    {
-        const FRHITextureDesc& targetDesc = m_textureTarget->GetDesc();
-        Extent = targetDesc.Extent;
-        Format = targetDesc.Format;
-        bTargetIsSRGB =
-            static_cast<bool>(targetDesc.Flags & ETextureCreateFlags::SRGB);
-    }
+  if (m_rdgTextureTarget)
+  {
+    const FRDGTextureDesc& targetDesc = m_rdgTextureTarget->Desc;
+    Extent = targetDesc.Extent;
+    Format = targetDesc.Format;
+    bTargetIsSRGB = static_cast<bool>(
+        targetDesc.Flags & ETextureCreateFlags::SRGB);
+  }
+  else if (m_renderTarget)
+  {
+    auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
+    const FRHITextureDesc& targetDesc = rhiTexture->GetDesc();
+    Extent = targetDesc.Extent;
+    Format = targetDesc.Format;
+    bTargetIsSRGB = static_cast<bool>(
+        targetDesc.Flags & ETextureCreateFlags::SRGB);
+  }
+  else
+  {
+    const FRHITextureDesc& targetDesc = m_textureTarget->GetDesc();
+    Extent = targetDesc.Extent;
+    Format = targetDesc.Format;
+    bTargetIsSRGB = static_cast<bool>(
+        targetDesc.Flags & ETextureCreateFlags::SRGB);
+  }
 
-    ETextureCreateFlags CreateFlags = ETextureCreateFlags::None;
-    EPixelFormat UAVFormat = PF_Unknown;
-    if (Desc.interlockMode == InterlockMode::depthStencil &&
-        Desc.msaaSampleCount > 1)
+  ETextureCreateFlags CreateFlags = ETextureCreateFlags::None;
+  EPixelFormat UAVFormat = PF_Unknown;
+  if (Desc.interlockMode == InterlockMode::depthStencil &&
+      Desc.msaaSampleCount > 1)
+  {
+    // ShaderResource because the final copy samples this back buffer.
+    // RenderTargetable is deliberately absent, it asserts alongside
+    // ResolveTargetable in D3D12Texture.cpp.
+    CreateFlags |= ETextureCreateFlags::ResolveTargetable |
+                   ETextureCreateFlags::ShaderResource;
+  }
+  else if (Desc.interlockMode == InterlockMode::depthStencil)
+  {
+    // A single sample resolves nothing, so the flush draws straight into
+    // this texture, and advanced blend composites into it as a UAV.
+    CreateFlags |= ETextureCreateFlags::RenderTargetable |
+                   ETextureCreateFlags::ShaderResource;
+    if (!Desc.fixedFunctionColorOutput)
     {
-        // ShaderResource because the final copy samples this back buffer.
-        // RenderTargetable is deliberately absent, it asserts alongside
-        // ResolveTargetable in D3D12Texture.cpp.
-        CreateFlags |= ETextureCreateFlags::ResolveTargetable |
-                       ETextureCreateFlags::ShaderResource;
+      CreateFlags |= ETextureCreateFlags::UAV;
     }
-    else if (Desc.interlockMode == InterlockMode::depthStencil)
-    {
-        // A single sample resolves nothing, so the flush draws straight into
-        // this texture, and advanced blend composites into it as a UAV.
-        CreateFlags |= ETextureCreateFlags::RenderTargetable |
-                       ETextureCreateFlags::ShaderResource;
-        if (!Desc.fixedFunctionColorOutput)
-        {
-            CreateFlags |= ETextureCreateFlags::UAV;
-        }
-    }
-    else if (Desc.fixedFunctionColorOutput)
-        CreateFlags |= ETextureCreateFlags::RenderTargetable;
-    else
-        CreateFlags |=
-            ETextureCreateFlags::UAV | ETextureCreateFlags::ShaderResource;
+  }
+  else if (Desc.fixedFunctionColorOutput)
+    CreateFlags |= ETextureCreateFlags::RenderTargetable;
+  else
+    CreateFlags |= ETextureCreateFlags::UAV |
+                   ETextureCreateFlags::ShaderResource;
 
-    if (bTargetIsSRGB &&
-        !static_cast<bool>(CreateFlags & ETextureCreateFlags::UAV))
-    {
-        CreateFlags |= ETextureCreateFlags::SRGB;
-    }
+  if (bTargetIsSRGB &&
+      !static_cast<bool>(CreateFlags & ETextureCreateFlags::UAV))
+  {
+    CreateFlags |= ETextureCreateFlags::SRGB;
+  }
 
-    FRDGTextureDesc CreateDesc =
-        FRDGTextureDesc::Create2D(Extent,
-                                  Format,
-                                  FClearValueBinding(ClearColor),
-                                  CreateFlags);
-    CreateDesc.UAVFormat = UAVFormat;
+  FRDGTextureDesc CreateDesc = FRDGTextureDesc::Create2D(
+      Extent,
+      Format,
+      FClearValueBinding(ClearColor),
+      CreateFlags);
+  CreateDesc.UAVFormat = UAVFormat;
 
-    return Builder.CreateTexture(CreateDesc, TEXT("rive.BackBuffer"));
+  return Builder.CreateTexture(CreateDesc, TEXT("rive.BackBuffer"));
 }
 
 FRDGTextureRef RenderTargetRHI::clipTexture(FRDGBuilder& Builder)
 {
-    FRDGTextureDesc clipDesc = FRDGTextureDesc::Create2D(
-        {static_cast<int>(width()), static_cast<int>(height())},
-        PF_R32_UINT,
-        FClearValueBinding::Black,
-        ETextureCreateFlags::UAV | ETextureCreateFlags::AtomicCompatible);
+  FRDGTextureDesc clipDesc = FRDGTextureDesc::Create2D(
+      {static_cast<int>(width()), static_cast<int>(height())},
+      PF_R32_UINT,
+      FClearValueBinding::Black,
+      ETextureCreateFlags::UAV | ETextureCreateFlags::AtomicCompatible);
 
-    return Builder.CreateTexture(clipDesc, TEXT("rive.Clip"));
+  return Builder.CreateTexture(clipDesc, TEXT("rive.Clip"));
 }
 #if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
 FRDGBufferRef RenderTargetRHI::coverageBuffer(FRDGBuilder& Builder)
 {
-    auto BufferDesc =
-        FRDGBufferDesc::CreateBufferDesc(sizeof(uint32_t), width() * height());
-    return Builder.CreateBuffer(BufferDesc, TEXT("rive.AtomicCoverage"));
+  auto BufferDesc = FRDGBufferDesc::CreateBufferDesc(
+      sizeof(uint32_t),
+      width() * height());
+  return Builder.CreateBuffer(BufferDesc, TEXT("rive.AtomicCoverage"));
 }
 #endif
 FRDGTextureRef RenderTargetRHI::coverageTexture(FRDGBuilder& Builder)
 {
-    FRDGTextureDesc coverageDesc = FRDGTextureDesc::Create2D(
-        {static_cast<int>(width()), static_cast<int>(height())},
-        PF_R32_UINT,
-        FClearValueBinding::Black,
-        ETextureCreateFlags::UAV | ETextureCreateFlags::AtomicCompatible);
+  FRDGTextureDesc coverageDesc = FRDGTextureDesc::Create2D(
+      {static_cast<int>(width()), static_cast<int>(height())},
+      PF_R32_UINT,
+      FClearValueBinding::Black,
+      ETextureCreateFlags::UAV | ETextureCreateFlags::AtomicCompatible);
 
-    return Builder.CreateTexture(coverageDesc, TEXT("rive.AtomicCoverage"));
+  return Builder.CreateTexture(coverageDesc, TEXT("rive.AtomicCoverage"));
 }
 
-FRDGTextureRef RenderTargetRHI::msaaColorTexture(FRDGBuilder& Builder,
-                                                 const FLinearColor& ClearColor,
-                                                 uint32 SampleCount)
+FRDGTextureRef RenderTargetRHI::msaaColorTexture(
+    FRDGBuilder& Builder,
+    const FLinearColor& ClearColor,
+    uint32 SampleCount)
 {
-    check(m_rdgTextureTarget || m_textureTarget || m_renderTarget);
+  check(m_rdgTextureTarget || m_textureTarget || m_renderTarget);
 
-    FIntPoint Extent;
-    EPixelFormat Format = PF_R8G8B8A8;
-    bool bTargetIsSRGB = false;
+  FIntPoint Extent;
+  EPixelFormat Format = PF_R8G8B8A8;
+  bool bTargetIsSRGB = false;
 
-    if (m_rdgTextureTarget)
-    {
-        const FRDGTextureDesc& targetDesc = m_rdgTextureTarget->Desc;
-        Extent = targetDesc.Extent;
-        Format = targetDesc.Format;
-        bTargetIsSRGB =
-            static_cast<bool>(targetDesc.Flags & ETextureCreateFlags::SRGB);
-    }
-    else if (m_renderTarget)
-    {
-        auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
-        const FRHITextureDesc& targetDesc = rhiTexture->GetDesc();
-        Extent = targetDesc.Extent;
-        Format = targetDesc.Format;
-        bTargetIsSRGB =
-            static_cast<bool>(targetDesc.Flags & ETextureCreateFlags::SRGB);
-    }
-    else
-    {
-        const FRHITextureDesc& targetDesc = m_textureTarget->GetDesc();
-        Extent = targetDesc.Extent;
-        Format = targetDesc.Format;
-        bTargetIsSRGB =
-            static_cast<bool>(targetDesc.Flags & ETextureCreateFlags::SRGB);
-    }
+  if (m_rdgTextureTarget)
+  {
+    const FRDGTextureDesc& targetDesc = m_rdgTextureTarget->Desc;
+    Extent = targetDesc.Extent;
+    Format = targetDesc.Format;
+    bTargetIsSRGB = static_cast<bool>(
+        targetDesc.Flags & ETextureCreateFlags::SRGB);
+  }
+  else if (m_renderTarget)
+  {
+    auto rhiTexture = m_renderTarget->GetRenderTargetTexture();
+    const FRHITextureDesc& targetDesc = rhiTexture->GetDesc();
+    Extent = targetDesc.Extent;
+    Format = targetDesc.Format;
+    bTargetIsSRGB = static_cast<bool>(
+        targetDesc.Flags & ETextureCreateFlags::SRGB);
+  }
+  else
+  {
+    const FRHITextureDesc& targetDesc = m_textureTarget->GetDesc();
+    Extent = targetDesc.Extent;
+    Format = targetDesc.Format;
+    bTargetIsSRGB = static_cast<bool>(
+        targetDesc.Flags & ETextureCreateFlags::SRGB);
+  }
 
-    ETextureCreateFlags CreateFlags = ETextureCreateFlags::RenderTargetable |
-                                      ETextureCreateFlags::InputAttachmentRead |
-                                      ETextureCreateFlags::ShaderResource;
-    if (bTargetIsSRGB)
-    {
-        CreateFlags |= ETextureCreateFlags::SRGB;
-    }
+  ETextureCreateFlags CreateFlags = ETextureCreateFlags::RenderTargetable |
+                                    ETextureCreateFlags::InputAttachmentRead |
+                                    ETextureCreateFlags::ShaderResource;
+  if (bTargetIsSRGB)
+  {
+    CreateFlags |= ETextureCreateFlags::SRGB;
+  }
 
-    const FRDGTextureDesc desc =
-        FRDGTextureDesc::Create2D(Extent,
-                                  Format,
-                                  FClearValueBinding(ClearColor),
-                                  CreateFlags,
-                                  1,
-                                  SampleCount);
-    return Builder.CreateTexture(desc, TEXT("rive.MSAAColor"));
+  const FRDGTextureDesc desc = FRDGTextureDesc::Create2D(
+      Extent,
+      Format,
+      FClearValueBinding(ClearColor),
+      CreateFlags,
+      1,
+      SampleCount);
+  return Builder.CreateTexture(desc, TEXT("rive.MSAAColor"));
 }
 
-FRDGTextureRef RenderTargetRHI::msaaStencilTexture(FRDGBuilder& Builder,
-                                                   float DepthClear,
-                                                   uint32 StencilClear,
-                                                   uint32 SampleCount)
+FRDGTextureRef RenderTargetRHI::msaaStencilTexture(
+    FRDGBuilder& Builder,
+    float DepthClear,
+    uint32 StencilClear,
+    uint32 SampleCount)
 {
-    FIntPoint Extent{static_cast<int32>(width()), static_cast<int32>(height())};
+  FIntPoint Extent{static_cast<int32>(width()), static_cast<int32>(height())};
 
-    const FRDGTextureDesc desc =
-        FRDGTextureDesc::Create2D(Extent,
-                                  PF_DepthStencil,
-                                  FClearValueBinding(DepthClear, StencilClear),
-                                  ETextureCreateFlags::DepthStencilTargetable,
-                                  1,
-                                  SampleCount);
+  const FRDGTextureDesc desc = FRDGTextureDesc::Create2D(
+      Extent,
+      PF_DepthStencil,
+      FClearValueBinding(DepthClear, StencilClear),
+      ETextureCreateFlags::DepthStencilTargetable,
+      1,
+      SampleCount);
 
-    return Builder.CreateTexture(desc, TEXT("rive.MSAADepthStencil"));
+  return Builder.CreateTexture(desc, TEXT("rive.MSAADepthStencil"));
 }
 
-void DelayLoadedTexture::UpdateTexture(const FRDGTextureDesc& inDesc,
-                                       FString DebugName,
-                                       bool inNeedsSRV)
+void DelayLoadedTexture::UpdateTexture(
+    const FRDGTextureDesc& inDesc,
+    FString DebugName,
+    bool inNeedsSRV)
 {
-    m_rdgDesc = inDesc;
-    m_debugName = DebugName;
+  m_rdgDesc = inDesc;
+  m_debugName = DebugName;
 }
 
-void DelayLoadedTexture::Sync(FRDGBuilder& RDGBuilder,
-                              FRDGTextureRef* outTexture,
-                              FRDGTextureSRVRef* outSRV) const
+void DelayLoadedTexture::Sync(
+    FRDGBuilder& RDGBuilder,
+    FRDGTextureRef* outTexture,
+    FRDGTextureSRVRef* outSRV) const
 {
-    check(outTexture);
+  check(outTexture);
 
-    *outTexture = RDGBuilder.CreateTexture(m_rdgDesc, *m_debugName);
+  *outTexture = RDGBuilder.CreateTexture(m_rdgDesc, *m_debugName);
 
-    if (outSRV)
-    {
-        FRDGTextureSRVDesc Desc = FRDGTextureSRVDesc::Create(*outTexture);
-        *outSRV = RDGBuilder.CreateSRV(Desc);
-    }
+  if (outSRV)
+  {
+    FRDGTextureSRVDesc Desc = FRDGTextureSRVDesc::Create(*outTexture);
+    *outSRV = RDGBuilder.CreateSRV(Desc);
+  }
 }
 
 std::unique_ptr<RenderContext> RenderContextRHIImpl::MakeContext(
     FRHICommandListImmediate& CommandListImmediate,
     const RHICapabilitiesOverrides& Overrides)
 {
-    auto plsContextImpl =
-        std::make_unique<RenderContextRHIImpl>(CommandListImmediate, Overrides);
-    return std::make_unique<RenderContext>(std::move(plsContextImpl));
+  auto plsContextImpl = std::make_unique<RenderContextRHIImpl>(
+      CommandListImmediate,
+      Overrides);
+  return std::make_unique<RenderContext>(std::move(plsContextImpl));
 }
 
 rive::rcp<rive::RenderImage> RenderContextRHIImpl::MakeExternalRenderImage(
     FRDGBuilder& Builder,
     FRDGTextureRef InTargetTexture)
 {
-    // Pin the texture out of the transient allocator and keep its rhi texture,
-    // which is what the msaa path binds (see FRiveMSAAPixelDrawUniforms).
-    const TRefCountPtr<IPooledRenderTarget>& PooledTexture =
-        Builder.ConvertToExternalTexture(InTargetTexture);
+  // Pin the texture out of the transient allocator and keep its rhi texture,
+  // which is what the msaa path binds (see FRiveMSAAPixelDrawUniforms).
+  const TRefCountPtr<IPooledRenderTarget>&
+      PooledTexture = Builder.ConvertToExternalTexture(InTargetTexture);
 
-    return make_rcp<RiveRenderImage>(
-        make_rcp<TextureRHIImpl>(InTargetTexture, PooledTexture->GetRHI()));
+  return make_rcp<RiveRenderImage>(
+      make_rcp<TextureRHIImpl>(InTargetTexture, PooledTexture->GetRHI()));
 }
 
 rive::rcp<rive::RenderImage> RenderContextRHIImpl::MakeExternalRenderImage(
     const FTextureRHIRef& InTargetTexture)
 {
-    return make_rcp<RiveRenderImage>(make_rcp<TextureRHIImpl>(InTargetTexture));
+  return make_rcp<RiveRenderImage>(make_rcp<TextureRHIImpl>(InTargetTexture));
 }
 
 rive::rcp<rive::RenderImage> RenderContextRHIImpl::MakeExternalRenderImage(
     UTexture* InTargetTexture)
 {
-    if (auto Texture = Cast<UTexture2D>(InTargetTexture))
-    {
-        return make_rcp<RiveRenderImage>(make_rcp<TextureRHIImpl>(Texture));
-    }
-    if (auto TextureRenderTarget =
-            Cast<UTextureRenderTarget2D>(InTargetTexture))
-    {
-        return make_rcp<RiveRenderImage>(
-            make_rcp<TextureRHIImpl>(TextureRenderTarget));
-    }
+  if (auto Texture = Cast<UTexture2D>(InTargetTexture))
+  {
+    return make_rcp<RiveRenderImage>(make_rcp<TextureRHIImpl>(Texture));
+  }
+  if (auto TextureRenderTarget = Cast<UTextureRenderTarget2D>(InTargetTexture))
+  {
+    return make_rcp<RiveRenderImage>(
+        make_rcp<TextureRHIImpl>(TextureRenderTarget));
+  }
 
-    return nullptr;
+  return nullptr;
 }
 
 void* RenderContextRHIImpl::makeCommandBuffer()
 {
-    checkf(
-        TestBuilder,
-        TEXT(
-            "RenderContextRHIImpl::makeCommandBuffer called without TestBuilder set. Provide an external FRDGBuilder (externalCommandBuffer) or set RenderContextRHIImpl::TestBuilder before Lua Canvas:endFrame() is used."));
-    return TestBuilder;
+  checkf(
+      TestBuilder,
+      TEXT(
+          "RenderContextRHIImpl::makeCommandBuffer called without TestBuilder set. Provide an external FRDGBuilder (externalCommandBuffer) or set RenderContextRHIImpl::TestBuilder before Lua Canvas:endFrame() is used."));
+  return TestBuilder;
 }
 
 FRDGBuilder* RenderContextRHIImpl::TestBuilder = nullptr;
@@ -1167,546 +1208,570 @@ uint64 RenderContextRHIImpl::FlushSerial = 0;
 
 inline auto getNativeVertexElementFormat(VertexElementFormat format)
 {
-    switch (format)
-    {
-        case VertexElementFormat::float1:
-            return VET_Float1;
-        case VertexElementFormat::float2:
-            return VET_Float2;
-        case VertexElementFormat::float3:
-            return VET_Float3;
-        case VertexElementFormat::float4:
-            return VET_Float4;
-        case VertexElementFormat::float16x2:
-            return VET_Half2;
-        case VertexElementFormat::float16x4:
-            return VET_Half4;
-        case VertexElementFormat::uint8x4:
-            return VET_UByte4;
-        case VertexElementFormat::unorm8x4:
-            return VET_UByte4N;
-        case VertexElementFormat::snorm8x4:
-            return VET_PackedNormal;
-        case VertexElementFormat::uint16x2:
-            return VET_UShort2;
-        case VertexElementFormat::uint16x4:
-            return VET_UShort4;
-        case VertexElementFormat::unorm16x2:
-            return VET_UShort2N;
-        case VertexElementFormat::sint8x4:
-            return VET_UByte4;
-        case VertexElementFormat::sint16x2:
-            return VET_Short2;
-        case VertexElementFormat::sint16x4:
-            return VET_Short4;
-        case VertexElementFormat::snorm16x2:
-            return VET_Short2N;
-        case VertexElementFormat::uint32:
-            return VET_UInt;
-    }
+  switch (format)
+  {
+    case VertexElementFormat::float1:
+      return VET_Float1;
+    case VertexElementFormat::float2:
+      return VET_Float2;
+    case VertexElementFormat::float3:
+      return VET_Float3;
+    case VertexElementFormat::float4:
+      return VET_Float4;
+    case VertexElementFormat::float16x2:
+      return VET_Half2;
+    case VertexElementFormat::float16x4:
+      return VET_Half4;
+    case VertexElementFormat::uint8x4:
+      return VET_UByte4;
+    case VertexElementFormat::unorm8x4:
+      return VET_UByte4N;
+    case VertexElementFormat::snorm8x4:
+      return VET_PackedNormal;
+    case VertexElementFormat::uint16x2:
+      return VET_UShort2;
+    case VertexElementFormat::uint16x4:
+      return VET_UShort4;
+    case VertexElementFormat::unorm16x2:
+      return VET_UShort2N;
+    case VertexElementFormat::sint8x4:
+      return VET_UByte4;
+    case VertexElementFormat::sint16x2:
+      return VET_Short2;
+    case VertexElementFormat::sint16x4:
+      return VET_Short4;
+    case VertexElementFormat::snorm16x2:
+      return VET_Short2N;
+    case VertexElementFormat::uint32:
+      return VET_UInt;
+  }
 
-    RIVE_UNREACHABLE();
+  RIVE_UNREACHABLE();
 }
 
 template <typename ImageDrawInstance>
-void inline addImageDrawInstanceAttribs(FVertexDeclarationElementList& list,
-                                        uint8 streamIndex)
+void inline addImageDrawInstanceAttribs(
+    FVertexDeclarationElementList& list,
+    uint8 streamIndex)
 {
-    for (auto& attr : ImageDrawInstance::getAttributes())
-    {
-        list.Add(FVertexElement(streamIndex,
-                                uint8(attr.byteOffset),
-                                getNativeVertexElementFormat(attr.format),
-                                uint8(attr.attributeIndex),
-                                sizeof(ImageDrawInstance),
-                                true));
-    }
+  for (auto& attr : ImageDrawInstance::getAttributes())
+  {
+    list.Add(FVertexElement(
+        streamIndex,
+        uint8(attr.byteOffset),
+        getNativeVertexElementFormat(attr.format),
+        uint8(attr.attributeIndex),
+        sizeof(ImageDrawInstance),
+        true));
+  }
 }
 
 RenderContextRHIImpl::RenderContextRHIImpl(
     FRHICommandListImmediate& CommandListImmediate,
-    const RHICapabilitiesOverrides& Overrides) :
-    m_pathBuffer(TEXT("rive.PathBuffer")),
-    m_paintBuffer(TEXT("rive.PaintBuffer")),
-    m_paintAuxBuffer(TEXT("rive.PaintAuxBuffer")),
-    m_contourBuffer(TEXT("rive.ContourBuffer"))
+    const RHICapabilitiesOverrides& Overrides)
+    : m_pathBuffer(TEXT("rive.PathBuffer"))
+    , m_paintBuffer(TEXT("rive.PaintBuffer"))
+    , m_paintAuxBuffer(TEXT("rive.PaintAuxBuffer"))
+    , m_contourBuffer(TEXT("rive.ContourBuffer"))
 {
-    auto CapabilityString = m_capabilities.AsString();
-    UE_LOG(LogRiveRenderer,
-           Display,
-           TEXT("Running RHI with %s Capabilities"),
-           *CapabilityString);
-    m_platformFeatures.alwaysFeatherToAtlas = RHI_ATLAS_ONLY_FEATHER;
+  auto CapabilityString = m_capabilities.AsString();
+  UE_LOG(
+      LogRiveRenderer,
+      Display,
+      TEXT("Running RHI with %s Capabilities"),
+      *CapabilityString);
+  m_platformFeatures.alwaysFeatherToAtlas = RHI_ATLAS_ONLY_FEATHER;
 #if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
-    m_platformFeatures.supportsPipelineDynamicState = true;
+  m_platformFeatures.supportsPipelineDynamicState = true;
 #else
-    m_platformFeatures.supportsPipelineDynamicState =
-        !IsVulkanPlatform(GMaxRHIShaderPlatform);
+  m_platformFeatures.supportsPipelineDynamicState = !IsVulkanPlatform(
+      GMaxRHIShaderPlatform);
 #endif
 #if RIVE_FORCE_RASTER_ORDER
-    m_platformFeatures.supportsAtomicMode = false;
-    m_platformFeatures.supportsClipPlanes = true;
-    m_platformFeatures.supportsRasterOrderingMode = true;
+  m_platformFeatures.supportsAtomicMode = false;
+  m_platformFeatures.supportsClipPlanes = true;
+  m_platformFeatures.supportsRasterOrderingMode = true;
 
 #elif RIVE_FORCE_MSAA
-    m_platformFeatures.supportsAtomicMode = false;
-    m_platformFeatures.supportsClipPlanes = true;
-    m_platformFeatures.supportsRasterOrderingMode = false;
+  m_platformFeatures.supportsAtomicMode = false;
+  m_platformFeatures.supportsClipPlanes = true;
+  m_platformFeatures.supportsRasterOrderingMode = false;
 #else
-    m_platformFeatures.supportsAtomicMode =
-        m_capabilities.bSupportsPixelShaderUAVs &&
-        Overrides.bSupportsPixelShaderUAVs;
-    m_platformFeatures.supportsClipPlanes =
-        FDataDrivenShaderPlatformInfo::GetSupportsClipDistance(
-            GMaxRHIShaderPlatform);
-    m_platformFeatures.supportsRasterOrderingMode =
-        m_capabilities.bSupportsRasterOrderViews &&
-        Overrides.bSupportsRasterOrderViews;
+  m_platformFeatures.supportsAtomicMode = m_capabilities
+                                              .bSupportsPixelShaderUAVs &&
+                                          Overrides.bSupportsPixelShaderUAVs;
+  m_platformFeatures.supportsClipPlanes = FDataDrivenShaderPlatformInfo::
+      GetSupportsClipDistance(GMaxRHIShaderPlatform);
+  m_platformFeatures
+      .supportsRasterOrderingMode = m_capabilities.bSupportsRasterOrderViews &&
+                                    Overrides.bSupportsRasterOrderViews;
 
-    m_platformFeatures.clipSpaceBottomUp = true;
-    m_platformFeatures.framebufferBottomUp = false;
-    m_platformFeatures.maxTextureSize = GMaxTextureDimensions;
-    m_platformFeatures.supportsClipScissor =
-        CVarUseClipScissor.GetValueOnAnyThread() != 0;
-    m_platformFeatures.supportsTextureCompressionBC = false;
-    m_platformFeatures.supportsTextureCompressionASTC = false;
-    m_platformFeatures.supportsTextureCompressionETC2 =
-        UE::PixelFormat::HasCapabilities(PF_ETC2_RGB,
-                                         EPixelFormatCapabilities::Texture2D) &&
-        UE::PixelFormat::HasCapabilities(PF_ETC2_RGBA,
-                                         EPixelFormatCapabilities::Texture2D);
+  m_platformFeatures.clipSpaceBottomUp = true;
+  m_platformFeatures.framebufferBottomUp = false;
+  m_platformFeatures.maxTextureSize = GMaxTextureDimensions;
+  m_platformFeatures.supportsClipScissor = CVarUseClipScissor
+                                               .GetValueOnAnyThread() != 0;
+  m_platformFeatures.supportsTextureCompressionBC = false;
+  m_platformFeatures.supportsTextureCompressionASTC = false;
+  m_platformFeatures
+      .supportsTextureCompressionETC2 = UE::PixelFormat::HasCapabilities(
+                                            PF_ETC2_RGB,
+                                            EPixelFormatCapabilities::
+                                                Texture2D) &&
+                                        UE::PixelFormat::HasCapabilities(
+                                            PF_ETC2_RGBA,
+                                            EPixelFormatCapabilities::
+                                                Texture2D);
 #if PLATFORM_ANDROID
-    m_platformFeatures.pathIDGranularity = 2;
-    m_platformFeatures.supportsAtomicMode = false;
+  m_platformFeatures.pathIDGranularity = 2;
+  m_platformFeatures.supportsAtomicMode = false;
 #endif
 #endif
 
 #if WITH_EDITOR
-    m_originalPlatformFeatures = m_platformFeatures;
+  m_originalPlatformFeatures = m_platformFeatures;
 #endif
 
-    auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+  auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
-    VertexDeclarations[static_cast<int32>(EVertexDeclarations::Resolve)] =
-        GEmptyVertexDeclaration.VertexDeclarationRHI;
+  VertexDeclarations[static_cast<int32>(
+      EVertexDeclarations::Resolve)] = GEmptyVertexDeclaration
+                                           .VertexDeclarationRHI;
 
-    FVertexDeclarationElementList pathElementList;
-    pathElementList.Add(FVertexElement(
-        FVertexElement(0, 0, VET_Float4, 0, sizeof(PatchVertex), false)));
-    pathElementList.Add(FVertexElement(FVertexElement(0,
-                                                      sizeof(float4),
-                                                      VET_Float4,
-                                                      1,
-                                                      sizeof(PatchVertex),
-                                                      false)));
-    VertexDeclarations[static_cast<int32>(EVertexDeclarations::Paths)] =
-        PipelineStateCache::GetOrCreateVertexDeclaration(pathElementList);
+  FVertexDeclarationElementList pathElementList;
+  pathElementList.Add(FVertexElement(
+      FVertexElement(0, 0, VET_Float4, 0, sizeof(PatchVertex), false)));
+  pathElementList.Add(FVertexElement(FVertexElement(
+      0,
+      sizeof(float4),
+      VET_Float4,
+      1,
+      sizeof(PatchVertex),
+      false)));
+  VertexDeclarations[static_cast<int32>(
+      EVertexDeclarations::Paths)] = PipelineStateCache::
+      GetOrCreateVertexDeclaration(pathElementList);
 
-    FVertexDeclarationElementList trianglesElementList;
-    trianglesElementList.Add(
-        FVertexElement(0, 0, VET_Float3, 0, sizeof(TriangleVertex), false));
-    VertexDeclarations[static_cast<int32>(
-        EVertexDeclarations::InteriorTriangles)] =
-        PipelineStateCache::GetOrCreateVertexDeclaration(trianglesElementList);
+  FVertexDeclarationElementList trianglesElementList;
+  trianglesElementList.Add(
+      FVertexElement(0, 0, VET_Float3, 0, sizeof(TriangleVertex), false));
+  VertexDeclarations[static_cast<int32>(
+      EVertexDeclarations::InteriorTriangles)] = PipelineStateCache::
+      GetOrCreateVertexDeclaration(trianglesElementList);
 
-    FVertexDeclarationElementList ImageMeshElementList;
-    ImageMeshElementList.Add(
-        FVertexElement(0, 0, VET_Float2, 0, sizeof(Vec2D), false));
-    ImageMeshElementList.Add(
-        FVertexElement(1, 0, VET_Float2, 1, sizeof(Vec2D), false));
-    addImageDrawInstanceAttribs<ImageMeshInstance>(ImageMeshElementList, 2);
-    VertexDeclarations[static_cast<int32>(EVertexDeclarations::ImageMesh)] =
-        PipelineStateCache::GetOrCreateVertexDeclaration(ImageMeshElementList);
+  FVertexDeclarationElementList ImageMeshElementList;
+  ImageMeshElementList.Add(
+      FVertexElement(0, 0, VET_Float2, 0, sizeof(Vec2D), false));
+  ImageMeshElementList.Add(
+      FVertexElement(1, 0, VET_Float2, 1, sizeof(Vec2D), false));
+  addImageDrawInstanceAttribs<ImageMeshInstance>(ImageMeshElementList, 2);
+  VertexDeclarations[static_cast<int32>(
+      EVertexDeclarations::ImageMesh)] = PipelineStateCache::
+      GetOrCreateVertexDeclaration(ImageMeshElementList);
 
-    FVertexDeclarationElementList SpanElementList;
-    SpanElementList.Add(
-        FVertexElement(0, 0, VET_UInt, 0, sizeof(GradientSpan), true));
-    SpanElementList.Add(
-        FVertexElement(0, 4, VET_UInt, 1, sizeof(GradientSpan), true));
-    SpanElementList.Add(
-        FVertexElement(0, 8, VET_UInt, 2, sizeof(GradientSpan), true));
-    SpanElementList.Add(
-        FVertexElement(0, 12, VET_UInt, 3, sizeof(GradientSpan), true));
-    VertexDeclarations[static_cast<int32>(EVertexDeclarations::Gradient)] =
-        PipelineStateCache::GetOrCreateVertexDeclaration(SpanElementList);
+  FVertexDeclarationElementList SpanElementList;
+  SpanElementList.Add(
+      FVertexElement(0, 0, VET_UInt, 0, sizeof(GradientSpan), true));
+  SpanElementList.Add(
+      FVertexElement(0, 4, VET_UInt, 1, sizeof(GradientSpan), true));
+  SpanElementList.Add(
+      FVertexElement(0, 8, VET_UInt, 2, sizeof(GradientSpan), true));
+  SpanElementList.Add(
+      FVertexElement(0, 12, VET_UInt, 3, sizeof(GradientSpan), true));
+  VertexDeclarations[static_cast<int32>(
+      EVertexDeclarations::Gradient)] = PipelineStateCache::
+      GetOrCreateVertexDeclaration(SpanElementList);
 
-    FVertexDeclarationElementList TessElementList;
-    size_t tessOffset = 0;
-    size_t tessStride = sizeof(TessVertexSpan);
-    TessElementList.Add(
-        FVertexElement(0, tessOffset, VET_Float4, 0, tessStride, true));
-    tessOffset += 4 * sizeof(float);
-    TessElementList.Add(
-        FVertexElement(0, tessOffset, VET_Float4, 1, tessStride, true));
-    tessOffset += 4 * sizeof(float);
-    TessElementList.Add(
-        FVertexElement(0, tessOffset, VET_Float4, 2, tessStride, true));
-    tessOffset += 4 * sizeof(float);
-    TessElementList.Add(
-        FVertexElement(0, tessOffset, VET_UInt, 3, tessStride, true));
-    tessOffset += 4;
-    TessElementList.Add(
-        FVertexElement(0, tessOffset, VET_UInt, 4, tessStride, true));
-    tessOffset += 4;
-    TessElementList.Add(
-        FVertexElement(0, tessOffset, VET_UInt, 5, tessStride, true));
-    tessOffset += 4;
-    TessElementList.Add(
-        FVertexElement(0, tessOffset, VET_UInt, 6, tessStride, true));
-    check(tessOffset + 4 == sizeof(TessVertexSpan));
+  FVertexDeclarationElementList TessElementList;
+  size_t tessOffset = 0;
+  size_t tessStride = sizeof(TessVertexSpan);
+  TessElementList.Add(
+      FVertexElement(0, tessOffset, VET_Float4, 0, tessStride, true));
+  tessOffset += 4 * sizeof(float);
+  TessElementList.Add(
+      FVertexElement(0, tessOffset, VET_Float4, 1, tessStride, true));
+  tessOffset += 4 * sizeof(float);
+  TessElementList.Add(
+      FVertexElement(0, tessOffset, VET_Float4, 2, tessStride, true));
+  tessOffset += 4 * sizeof(float);
+  TessElementList.Add(
+      FVertexElement(0, tessOffset, VET_UInt, 3, tessStride, true));
+  tessOffset += 4;
+  TessElementList.Add(
+      FVertexElement(0, tessOffset, VET_UInt, 4, tessStride, true));
+  tessOffset += 4;
+  TessElementList.Add(
+      FVertexElement(0, tessOffset, VET_UInt, 5, tessStride, true));
+  tessOffset += 4;
+  TessElementList.Add(
+      FVertexElement(0, tessOffset, VET_UInt, 6, tessStride, true));
+  check(tessOffset + 4 == sizeof(TessVertexSpan));
 
-    VertexDeclarations[static_cast<int32>(EVertexDeclarations::Tessellation)] =
-        PipelineStateCache::GetOrCreateVertexDeclaration(TessElementList);
+  VertexDeclarations[static_cast<int32>(
+      EVertexDeclarations::Tessellation)] = PipelineStateCache::
+      GetOrCreateVertexDeclaration(TessElementList);
 
-    FVertexDeclarationElementList ImageRectVertexElementList;
-    ImageRectVertexElementList.Add(
-        FVertexElement(0, 0, VET_Float4, 0, sizeof(ImageRectVertex), false));
-    addImageDrawInstanceAttribs<ImageRectInstance>(ImageRectVertexElementList,
-                                                   1);
+  FVertexDeclarationElementList ImageRectVertexElementList;
+  ImageRectVertexElementList.Add(
+      FVertexElement(0, 0, VET_Float4, 0, sizeof(ImageRectVertex), false));
+  addImageDrawInstanceAttribs<ImageRectInstance>(ImageRectVertexElementList, 1);
 
-    auto ImageRectDecleration =
-        PipelineStateCache::GetOrCreateVertexDeclaration(
-            ImageRectVertexElementList);
-    VertexDeclarations[static_cast<int32>(EVertexDeclarations::ImageRect)] =
-        ImageRectDecleration;
+  auto ImageRectDecleration = PipelineStateCache::GetOrCreateVertexDeclaration(
+      ImageRectVertexElementList);
+  VertexDeclarations[static_cast<int32>(
+      EVertexDeclarations::ImageRect)] = ImageRectDecleration;
 
-    FVertexDeclarationElementList AtlasVertexElementList;
-    AtlasVertexElementList.Add(FVertexElement(
-        FVertexElement(0, 0, VET_Float4, 0, sizeof(PatchVertex), false)));
-    AtlasVertexElementList.Add(
-        FVertexElement(FVertexElement(0,
-                                      sizeof(float4),
-                                      VET_Float4,
-                                      1,
-                                      sizeof(PatchVertex),
-                                      false)));
-    auto AtlasDecleration = PipelineStateCache::GetOrCreateVertexDeclaration(
-        AtlasVertexElementList);
-    VertexDeclarations[static_cast<int32>(EVertexDeclarations::Atlas)] =
-        AtlasDecleration;
+  FVertexDeclarationElementList AtlasVertexElementList;
+  AtlasVertexElementList.Add(FVertexElement(
+      FVertexElement(0, 0, VET_Float4, 0, sizeof(PatchVertex), false)));
+  AtlasVertexElementList.Add(FVertexElement(FVertexElement(
+      0,
+      sizeof(float4),
+      VET_Float4,
+      1,
+      sizeof(PatchVertex),
+      false)));
+  auto AtlasDecleration = PipelineStateCache::GetOrCreateVertexDeclaration(
+      AtlasVertexElementList);
+  VertexDeclarations[static_cast<int32>(
+      EVertexDeclarations::Atlas)] = AtlasDecleration;
 
-    GeneratePatchBufferData(*GPatchVertices, *GPatchIndices);
+  GeneratePatchBufferData(*GPatchVertices, *GPatchIndices);
 
-    m_patchVertexBuffer =
-        makeSimpleImmutableBuffer<PatchVertex>(CommandListImmediate,
-                                               TEXT("rive.PatchVertexBuffer"),
-                                               EBufferUsageFlags::VertexBuffer,
-                                               GPatchVertices);
-    m_patchIndexBuffer =
-        makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
-                                            TEXT("rive.PatchIndexBuffer"),
-                                            EBufferUsageFlags::IndexBuffer,
-                                            GPathPatchIndices);
-    m_dsMidpointFanFillIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(
-        CommandListImmediate,
-        TEXT("rive.DSMidpointFanFillIndexBuffer"),
-        EBufferUsageFlags::IndexBuffer,
-        GDSMidpointFanFillIndices);
-    m_dsOuterCubicFillIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(
-        CommandListImmediate,
-        TEXT("rive.DSOuterCubicFillIndexBuffer"),
-        EBufferUsageFlags::IndexBuffer,
-        GDSOuterCubicFillIndices);
-    m_dsStrokeIndexBuffer =
-        makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
-                                            TEXT("rive.DSStrokeIndexBuffer"),
-                                            EBufferUsageFlags::IndexBuffer,
-                                            GDSStrokeIndices);
-    m_dsAAStrokeIndexBuffer =
-        makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
-                                            TEXT("rive.DSAAStrokeIndexBuffer"),
-                                            EBufferUsageFlags::IndexBuffer,
-                                            GDSAAStrokeIndices);
+  m_patchVertexBuffer = makeSimpleImmutableBuffer<PatchVertex>(
+      CommandListImmediate,
+      TEXT("rive.PatchVertexBuffer"),
+      EBufferUsageFlags::VertexBuffer,
+      GPatchVertices);
+  m_patchIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(
+      CommandListImmediate,
+      TEXT("rive.PatchIndexBuffer"),
+      EBufferUsageFlags::IndexBuffer,
+      GPathPatchIndices);
+  m_dsMidpointFanFillIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(
+      CommandListImmediate,
+      TEXT("rive.DSMidpointFanFillIndexBuffer"),
+      EBufferUsageFlags::IndexBuffer,
+      GDSMidpointFanFillIndices);
+  m_dsOuterCubicFillIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(
+      CommandListImmediate,
+      TEXT("rive.DSOuterCubicFillIndexBuffer"),
+      EBufferUsageFlags::IndexBuffer,
+      GDSOuterCubicFillIndices);
+  m_dsStrokeIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(
+      CommandListImmediate,
+      TEXT("rive.DSStrokeIndexBuffer"),
+      EBufferUsageFlags::IndexBuffer,
+      GDSStrokeIndices);
+  m_dsAAStrokeIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(
+      CommandListImmediate,
+      TEXT("rive.DSAAStrokeIndexBuffer"),
+      EBufferUsageFlags::IndexBuffer,
+      GDSAAStrokeIndices);
 
-    m_tessSpanIndexBuffer =
-        makeSimpleImmutableBuffer<uint16_t>(CommandListImmediate,
-                                            TEXT("rive.TessIndexBuffer"),
-                                            EBufferUsageFlags::IndexBuffer,
-                                            GTessSpanIndices);
+  m_tessSpanIndexBuffer = makeSimpleImmutableBuffer<uint16_t>(
+      CommandListImmediate,
+      TEXT("rive.TessIndexBuffer"),
+      EBufferUsageFlags::IndexBuffer,
+      GTessSpanIndices);
 
-    m_imageRectVertexBuffer = makeSimpleImmutableBuffer<ImageRectVertex>(
-        CommandListImmediate,
-        TEXT("rive.ImageRectVertexBuffer"),
-        EBufferUsageFlags::VertexBuffer,
-        GImageRectVertices);
+  m_imageRectVertexBuffer = makeSimpleImmutableBuffer<ImageRectVertex>(
+      CommandListImmediate,
+      TEXT("rive.ImageRectVertexBuffer"),
+      EBufferUsageFlags::VertexBuffer,
+      GImageRectVertices);
 
-    m_imageRectIndexBuffer =
-        makeSimpleImmutableBuffer<uint16>(CommandListImmediate,
-                                          TEXT("rive.ImageRectIndexBuffer"),
-                                          EBufferUsageFlags::IndexBuffer,
-                                          GImageRectIndices);
+  m_imageRectIndexBuffer = makeSimpleImmutableBuffer<uint16>(
+      CommandListImmediate,
+      TEXT("rive.ImageRectIndexBuffer"),
+      EBufferUsageFlags::IndexBuffer,
+      GImageRectIndices);
 
-    m_featherAtlasSampler = TStaticSamplerState<SF_Bilinear,
-                                                AM_Clamp,
-                                                AM_Clamp,
-                                                AM_Clamp,
-                                                0,
-                                                1,
-                                                0,
-                                                SCF_Never>::GetRHI();
-    m_gaussianIntegralSampler = TStaticSamplerState<SF_Bilinear,
-                                                    AM_Clamp,
-                                                    AM_Clamp,
-                                                    AM_Clamp,
-                                                    0,
-                                                    1,
-                                                    0,
-                                                    SCF_Never>::GetRHI();
-    m_gradSampler = TStaticSamplerState<SF_Bilinear,
-                                        AM_Wrap,
-                                        AM_Wrap,
-                                        AM_Clamp,
-                                        0,
-                                        1,
-                                        0,
-                                        SCF_Never>::GetRHI();
+  m_featherAtlasSampler = TStaticSamplerState<
+      SF_Bilinear,
+      AM_Clamp,
+      AM_Clamp,
+      AM_Clamp,
+      0,
+      1,
+      0,
+      SCF_Never>::GetRHI();
+  m_gaussianIntegralSampler = TStaticSamplerState<
+      SF_Bilinear,
+      AM_Clamp,
+      AM_Clamp,
+      AM_Clamp,
+      0,
+      1,
+      0,
+      SCF_Never>::GetRHI();
+  m_gradSampler = TStaticSamplerState<
+      SF_Bilinear,
+      AM_Wrap,
+      AM_Wrap,
+      AM_Clamp,
+      0,
+      1,
+      0,
+      SCF_Never>::GetRHI();
 
-    for (size_t i = 0; i < rive::ImageSampler::MAX_SAMPLER_PERMUTATIONS; i++)
-    {
-        auto filter = SamplerFilterFromImageFilterOption(
-            rive::ImageSampler::GetFilterOptionFromKey(i));
-        auto wrapX = AddressModeFromImageWrapOption(
-            rive::ImageSampler::GetWrapXOptionFromKey(i));
-        auto wrapY = AddressModeFromImageWrapOption(
-            rive::ImageSampler::GetWrapYOptionFromKey(i));
+  for (size_t i = 0; i < rive::ImageSampler::MAX_SAMPLER_PERMUTATIONS; i++)
+  {
+    auto filter = SamplerFilterFromImageFilterOption(
+        rive::ImageSampler::GetFilterOptionFromKey(i));
+    auto wrapX = AddressModeFromImageWrapOption(
+        rive::ImageSampler::GetWrapXOptionFromKey(i));
+    auto wrapY = AddressModeFromImageWrapOption(
+        rive::ImageSampler::GetWrapYOptionFromKey(i));
 
-        m_imageSamplers[i] = RHICreateSamplerState(
-            FSamplerStateInitializerRHI(filter, wrapX, wrapY));
-    }
+    m_imageSamplers[i] = RHICreateSamplerState(
+        FSamplerStateInitializerRHI(filter, wrapX, wrapY));
+  }
 
-    auto PlaceholderDesc =
-        FRHITextureCreateDesc::Create2D(TEXT("rive.Placeholder"),
-                                        FIntPoint(1, 1),
-                                        PF_R8G8B8A8);
-    PlaceholderDesc.AddFlags(ETextureCreateFlags::ShaderResource |
-                             ETextureCreateFlags::UAV);
-    m_placeholderTexture =
-        CREATE_TEXTURE(CommandListImmediate, PlaceholderDesc);
+  auto PlaceholderDesc = FRHITextureCreateDesc::Create2D(
+      TEXT("rive.Placeholder"),
+      FIntPoint(1, 1),
+      PF_R8G8B8A8);
+  PlaceholderDesc.AddFlags(
+      ETextureCreateFlags::ShaderResource | ETextureCreateFlags::UAV);
+  m_placeholderTexture = CREATE_TEXTURE(CommandListImmediate, PlaceholderDesc);
 
-    auto gaussianIntegralTextureDesc =
-        FRHITextureCreateDesc::Create2DArray(
-            TEXT("rive.GaussianIntegralTexture"),
-            {gpu::GAUSSIAN_TABLE_SIZE, 1},
-            GAUSSIAN_INTEGRAL_TEXTURE_1D_ARRAY_LENGTH,
-            PF_R16F)
-            .AddFlags(ETextureCreateFlags::ShaderResource);
-    m_gaussianIntegralTexture =
-        CREATE_TEXTURE(CommandListImmediate, gaussianIntegralTextureDesc);
-    // update the texture to contain feather data
-    uint32 stride;
-    void* data = CommandListImmediate.LockTexture2DArray(
-        m_gaussianIntegralTexture,
-        FEATHER_FUNCTION_ARRAY_INDEX,
-        0,
-        EResourceLockMode::RLM_WriteOnly,
-        stride,
-        false);
-    memcpy(data,
-           gpu::g_gaussianIntegralTableF16,
-           sizeof(gpu::g_gaussianIntegralTableF16));
-    CommandListImmediate.UnlockTexture2DArray(m_gaussianIntegralTexture,
-                                              FEATHER_FUNCTION_ARRAY_INDEX,
-                                              0,
-                                              false);
+  auto gaussianIntegralTextureDesc =
+      FRHITextureCreateDesc::Create2DArray(
+          TEXT("rive.GaussianIntegralTexture"),
+          {gpu::GAUSSIAN_TABLE_SIZE, 1},
+          GAUSSIAN_INTEGRAL_TEXTURE_1D_ARRAY_LENGTH,
+          PF_R16F)
+          .AddFlags(ETextureCreateFlags::ShaderResource);
+  m_gaussianIntegralTexture = CREATE_TEXTURE(
+      CommandListImmediate,
+      gaussianIntegralTextureDesc);
+  // update the texture to contain feather data
+  uint32 stride;
+  void* data = CommandListImmediate.LockTexture2DArray(
+      m_gaussianIntegralTexture,
+      FEATHER_FUNCTION_ARRAY_INDEX,
+      0,
+      EResourceLockMode::RLM_WriteOnly,
+      stride,
+      false);
+  memcpy(
+      data,
+      gpu::g_gaussianIntegralTableF16,
+      sizeof(gpu::g_gaussianIntegralTableF16));
+  CommandListImmediate.UnlockTexture2DArray(
+      m_gaussianIntegralTexture,
+      FEATHER_FUNCTION_ARRAY_INDEX,
+      0,
+      false);
 
-    data = CommandListImmediate.LockTexture2DArray(
-        m_gaussianIntegralTexture,
-        FEATHER_INVERSE_FUNCTION_ARRAY_INDEX,
-        0,
-        EResourceLockMode::RLM_WriteOnly,
-        stride,
-        false);
-    memcpy(data,
-           gpu::g_inverseGaussianIntegralTableF16,
-           sizeof(gpu::g_inverseGaussianIntegralTableF16));
-    CommandListImmediate.UnlockTexture2DArray(
-        m_gaussianIntegralTexture,
-        FEATHER_INVERSE_FUNCTION_ARRAY_INDEX,
-        0,
-        false);
+  data = CommandListImmediate.LockTexture2DArray(
+      m_gaussianIntegralTexture,
+      FEATHER_INVERSE_FUNCTION_ARRAY_INDEX,
+      0,
+      EResourceLockMode::RLM_WriteOnly,
+      stride,
+      false);
+  memcpy(
+      data,
+      gpu::g_inverseGaussianIntegralTableF16,
+      sizeof(gpu::g_inverseGaussianIntegralTableF16));
+  CommandListImmediate.UnlockTexture2DArray(
+      m_gaussianIntegralTexture,
+      FEATHER_INVERSE_FUNCTION_ARRAY_INDEX,
+      0,
+      false);
 }
 #if WITH_EDITOR
 void RenderContextRHIImpl::updateFromInterlockOverride(
     ERiveInterlockOverride Override)
 {
-    switch (Override)
-    {
-        default:
-        case ERiveInterlockOverride::None:
-        case ERiveInterlockOverride::CWMSAA1:
-        case ERiveInterlockOverride::CWIB:
-            m_platformFeatures = m_originalPlatformFeatures;
-            break;
-        case ERiveInterlockOverride::Atomics:
-            m_platformFeatures.supportsAtomicMode = true;
-            m_platformFeatures.supportsRasterOrderingMode = false;
-            break;
-        case ERiveInterlockOverride::Raster:
-            m_platformFeatures.supportsAtomicMode = false;
-            m_platformFeatures.supportsRasterOrderingMode = true;
-            break;
-        case ERiveInterlockOverride::MSAA:
-            m_platformFeatures.supportsAtomicMode = false;
-            m_platformFeatures.supportsRasterOrderingMode = false;
-            break;
-    }
+  switch (Override)
+  {
+    default:
+    case ERiveInterlockOverride::None:
+    case ERiveInterlockOverride::CWMSAA1:
+    case ERiveInterlockOverride::CWIB:
+      m_platformFeatures = m_originalPlatformFeatures;
+      break;
+    case ERiveInterlockOverride::Atomics:
+      m_platformFeatures.supportsAtomicMode = true;
+      m_platformFeatures.supportsRasterOrderingMode = false;
+      break;
+    case ERiveInterlockOverride::Raster:
+      m_platformFeatures.supportsAtomicMode = false;
+      m_platformFeatures.supportsRasterOrderingMode = true;
+      break;
+    case ERiveInterlockOverride::MSAA:
+      m_platformFeatures.supportsAtomicMode = false;
+      m_platformFeatures.supportsRasterOrderingMode = false;
+      break;
+  }
 }
 #endif
 
 #define RIVE_ENSURE_LINEAR_TARGET(Target, Where)                               \
-    ensureMsgf(                                                                \
-        !(Target)->TargetTextureIsSRGB(),                                      \
-        TEXT("Rive %s: the render target has ETextureCreateFlags::SRGB set. "  \
-             "Rive only renders to linear targets -- turn sRGB off on the "    \
-             "texture (and set its format to a non-sRGB one). Colors will be " \
-             "wrong wherever anything blends."),                               \
-        TEXT(Where))
+  ensureMsgf(                                                                  \
+      !(Target)->TargetTextureIsSRGB(),                                        \
+      TEXT("Rive %s: the render target has ETextureCreateFlags::SRGB set. "    \
+           "Rive only renders to linear targets -- turn sRGB off on the "      \
+           "texture (and set its format to a non-sRGB one). Colors will be "   \
+           "wrong wherever anything blends."),                                 \
+      TEXT(Where))
 
 rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(
     FRHICommandListImmediate& RHICmdList,
     const FTextureRHIRef& InTargetTexture)
 {
-    auto Target =
-        make_rcp<RenderTargetRHI>(RHICmdList, m_capabilities, InTargetTexture);
-    RIVE_ENSURE_LINEAR_TARGET(Target, "makeRenderTarget");
-    return Target;
+  auto Target = make_rcp<RenderTargetRHI>(
+      RHICmdList,
+      m_capabilities,
+      InTargetTexture);
+  RIVE_ENSURE_LINEAR_TARGET(Target, "makeRenderTarget");
+  return Target;
 }
 
 rive::rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(
     FRHICommandListImmediate& RHICmdList,
     FRenderTarget* InTargetTexture)
 {
-    auto Target =
-        make_rcp<RenderTargetRHI>(RHICmdList, m_capabilities, InTargetTexture);
-    RIVE_ENSURE_LINEAR_TARGET(Target, "makeRenderTarget");
-    return Target;
+  auto Target = make_rcp<RenderTargetRHI>(
+      RHICmdList,
+      m_capabilities,
+      InTargetTexture);
+  RIVE_ENSURE_LINEAR_TARGET(Target, "makeRenderTarget");
+  return Target;
 }
 
 rive::rcp<RenderTargetRHI> RenderContextRHIImpl::makeRenderTarget(
     FRDGTextureRef InTargetTexture)
 {
-    auto Target = make_rcp<RenderTargetRHI>(m_capabilities, InTargetTexture);
-    RIVE_ENSURE_LINEAR_TARGET(Target, "makeRenderTarget");
-    return Target;
+  auto Target = make_rcp<RenderTargetRHI>(m_capabilities, InTargetTexture);
+  RIVE_ENSURE_LINEAR_TARGET(Target, "makeRenderTarget");
+  return Target;
 }
 
 EImageFormat imageFormatToUEImageFormat(const Bitmap::ImageFormat* format)
 {
-    if (format)
+  if (format)
+  {
+    switch (format->type)
     {
-        switch (format->type)
-        {
-            case Bitmap::ImageType::png:
-                return EImageFormat::PNG;
-            case Bitmap::ImageType::jpeg:
-                return EImageFormat::JPEG;
-            case Bitmap::ImageType::webp:
-                return EImageFormat::Invalid;
-        }
+      case Bitmap::ImageType::png:
+        return EImageFormat::PNG;
+      case Bitmap::ImageType::jpeg:
+        return EImageFormat::JPEG;
+      case Bitmap::ImageType::webp:
+        return EImageFormat::Invalid;
     }
+  }
 
-    return EImageFormat::Invalid;
+  return EImageFormat::Invalid;
 }
 
 rcp<Texture> RenderContextRHIImpl::platformDecodeImageTexture(
     Span<const uint8_t> encodedBytes)
 {
-    constexpr uint8_t PNG_FINGERPRINT[4] = {0x89, 0x50, 0x4E, 0x47};
-    constexpr uint8_t JPEG_FINGERPRINT[3] = {0xFF, 0xD8, 0xFF};
-    constexpr uint8_t WEBP_FINGERPRINT[3] = {0x52, 0x49, 0x46};
+  constexpr uint8_t PNG_FINGERPRINT[4] = {0x89, 0x50, 0x4E, 0x47};
+  constexpr uint8_t JPEG_FINGERPRINT[3] = {0xFF, 0xD8, 0xFF};
+  constexpr uint8_t WEBP_FINGERPRINT[3] = {0x52, 0x49, 0x46};
 
-    EImageFormat format = imageFormatToUEImageFormat(
-        Bitmap::RecognizeImageFormat(encodedBytes.data(), encodedBytes.size()));
+  EImageFormat format = imageFormatToUEImageFormat(
+      Bitmap::RecognizeImageFormat(encodedBytes.data(), encodedBytes.size()));
 
-    // let rive bitmap handle the decoding
-    if (format == EImageFormat::Invalid)
-    {
-        return nullptr;
-    }
+  // let rive bitmap handle the decoding
+  if (format == EImageFormat::Invalid)
+  {
+    return nullptr;
+  }
 
-    // Use Unreal for PNG and JPEG
-    IImageWrapperModule& ImageWrapperModule =
-        FModuleManager::LoadModuleChecked<IImageWrapperModule>(
-            FName("ImageWrapper"));
-    TSharedPtr<IImageWrapper> ImageWrapper =
-        ImageWrapperModule.CreateImageWrapper(format);
-    if (!ImageWrapper.IsValid() ||
-        !ImageWrapper->SetCompressed(encodedBytes.data(), encodedBytes.size()))
-    {
-        return nullptr;
-    }
+  // Use Unreal for PNG and JPEG
+  IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<
+      IImageWrapperModule>(FName("ImageWrapper"));
+  TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule
+                                               .CreateImageWrapper(format);
+  if (!ImageWrapper.IsValid() ||
+      !ImageWrapper->SetCompressed(encodedBytes.data(), encodedBytes.size()))
+  {
+    return nullptr;
+  }
 
-    TArray<uint8> UncompressedRGBA;
-    if (!ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, UncompressedRGBA))
-    {
-        return nullptr;
-    }
+  TArray<uint8> UncompressedRGBA;
+  if (!ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, UncompressedRGBA))
+  {
+    return nullptr;
+  }
 
-    std::unique_ptr<uint8_t[]> data(new uint8[UncompressedRGBA.Num()]);
-    memcpy(data.get(),
-           UncompressedRGBA.GetData(),
-           UncompressedRGBA.Num() * sizeof(uint8));
+  std::unique_ptr<uint8_t[]> data(new uint8[UncompressedRGBA.Num()]);
+  memcpy(
+      data.get(),
+      UncompressedRGBA.GetData(),
+      UncompressedRGBA.Num() * sizeof(uint8));
 
-    std::unique_ptr<Bitmap> bitmap =
-        std::make_unique<Bitmap>(ImageWrapper->GetWidth(),
-                                 ImageWrapper->GetHeight(),
-                                 UncompressedRGBA.Num(),
-                                 Bitmap::PixelFormat::RGBA,
-                                 std::move(data));
+  std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(
+      ImageWrapper->GetWidth(),
+      ImageWrapper->GetHeight(),
+      UncompressedRGBA.Num(),
+      Bitmap::PixelFormat::RGBA,
+      std::move(data));
 
-    bitmap->pixelFormat(Bitmap::PixelFormat::RGBAPremul);
+  bitmap->pixelFormat(Bitmap::PixelFormat::RGBAPremul);
 
-    return makeImageTexture(bitmap->width(),
-                            bitmap->height(),
-                            1,
-                            rive::GPUTextureFormat::rgba32,
-                            bitmap->bytes());
+  return makeImageTexture(
+      bitmap->width(),
+      bitmap->height(),
+      1,
+      rive::GPUTextureFormat::rgba32,
+      bitmap->bytes());
 }
 
 void RenderContextRHIImpl::ensureCanvasBacking(rive::gpu::RenderCanvas* canvas)
 {
-    if (canvas->isBacked())
-    {
-        return;
-    }
+  if (canvas->isBacked())
+  {
+    return;
+  }
 
-    check(IsInRenderingThread());
-    uint32_t width = canvas->width(), height = canvas->height();
-    auto& RHICmdList = GRHICommandList.GetImmediateCommandList();
-    // On some RHIs the native MSAA color resolve writes into this canvas only
-    // if it was created ResolveTargetable. D3D12, by contrast, makes
-    // RenderTargetable and ResolveTargetable mutually exclusive and asserts if
-    // both are set (D3D12Texture.cpp) and on D3D/Metal the RenderTargetable
-    // canvas already works as an auto-resolve dest. So add ResolveTargetable
-    // only where the RHI requires it; everywhere else the canvas is rendered
-    // into directly (UE auto-resolve dest on D3D/Metal, our manual resolve pass
-    // on Vulkan, or single-sample content). See OrePlatformRHI.h.
-    const ETextureCreateFlags CanvasResolveFlag =
-        GRHIOreNeedsResolveTargetFlag ? ETextureCreateFlags::ResolveTargetable
-                                      : ETextureCreateFlags::None;
-    auto RHITexture = RHICmdList.CreateTexture(
-        FRHITextureCreateDesc::Create2D(TEXT("Rive::Canvas"),
-                                        width,
-                                        height,
-                                        EPixelFormat::PF_R8G8B8A8)
-            .SetClearValue(FClearValueBinding(FLinearColor::Transparent))
-            .AddFlags(ETextureCreateFlags::RenderTargetable)
-            .AddFlags(CanvasResolveFlag)
-            .AddFlags(ETextureCreateFlags::UAV)
-            // The canvas is wrapped (wrapCanvasTexture) and sampled by Ore
-            // shaders. On Vulkan, sampling requires VK_IMAGE_USAGE_SAMPLED_BIT
-            // (ShaderResource). Without it, the SRV is invalid and the
-            // texture's usage set is also wrong, which skews UE's image memory
-            // sizing.
-            .AddFlags(ETextureCreateFlags::ShaderResource)
-            .SetNumSamples(1));
-    canvas->setBacking(make_rcp<TextureRHIImpl>(RHITexture),
-                       makeRenderTarget(RHICmdList, RHITexture));
+  check(IsInRenderingThread());
+  uint32_t width = canvas->width(), height = canvas->height();
+  auto& RHICmdList = GRHICommandList.GetImmediateCommandList();
+  // On some RHIs the native MSAA color resolve writes into this canvas only
+  // if it was created ResolveTargetable. D3D12, by contrast, makes
+  // RenderTargetable and ResolveTargetable mutually exclusive and asserts if
+  // both are set (D3D12Texture.cpp) and on D3D/Metal the RenderTargetable
+  // canvas already works as an auto-resolve dest. So add ResolveTargetable
+  // only where the RHI requires it; everywhere else the canvas is rendered
+  // into directly (UE auto-resolve dest on D3D/Metal, our manual resolve pass
+  // on Vulkan, or single-sample content). See OrePlatformRHI.h.
+  const ETextureCreateFlags
+      CanvasResolveFlag = GRHIOreNeedsResolveTargetFlag
+                              ? ETextureCreateFlags::ResolveTargetable
+                              : ETextureCreateFlags::None;
+  auto RHITexture = RHICmdList.CreateTexture(
+      FRHITextureCreateDesc::Create2D(
+          TEXT("Rive::Canvas"),
+          width,
+          height,
+          EPixelFormat::PF_R8G8B8A8)
+          .SetClearValue(FClearValueBinding(FLinearColor::Transparent))
+          .AddFlags(ETextureCreateFlags::RenderTargetable)
+          .AddFlags(CanvasResolveFlag)
+          .AddFlags(ETextureCreateFlags::UAV)
+          // The canvas is wrapped (wrapCanvasTexture) and sampled by Ore
+          // shaders. On Vulkan, sampling requires VK_IMAGE_USAGE_SAMPLED_BIT
+          // (ShaderResource). Without it, the SRV is invalid and the
+          // texture's usage set is also wrong, which skews UE's image memory
+          // sizing.
+          .AddFlags(ETextureCreateFlags::ShaderResource)
+          .SetNumSamples(1));
+  canvas->setBacking(
+      make_rcp<TextureRHIImpl>(RHITexture),
+      makeRenderTarget(RHICmdList, RHITexture));
 }
 
 std::unique_ptr<rive::ore::Context> RenderContextRHIImpl::makeOreContext()
 {
-    return OreContextRHI::make();
+  return OreContextRHI::make();
 }
 
 rive::rcp<rive::gpu::Texture> RenderContextRHIImpl::makeImageTexture(
@@ -1720,160 +1785,164 @@ rive::rcp<rive::gpu::Texture> RenderContextRHIImpl::makeImageTexture(
     bool /*srgb*/,
     bool /*generateRemainingMips*/)
 {
-    return make_rcp<TextureRHIImpl>(width,
-                                    height,
-                                    mipLevelCount,
-                                    imageDataRGBA,
-                                    PixelFormatForGPUTextureFormat(format));
+  return make_rcp<TextureRHIImpl>(
+      width,
+      height,
+      mipLevelCount,
+      imageDataRGBA,
+      PixelFormatForGPUTextureFormat(format));
 }
 
 void RenderContextRHIImpl::resizeFlushUniformBuffer(size_t sizeInBytes)
 {
-    m_flushUniformBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_flushUniformBuffer = std::make_unique<
-            UniformBufferRHIImpl<FlushUniforms, FFlushUniforms>>(sizeInBytes);
-    }
+  m_flushUniformBuffer.reset();
+  if (sizeInBytes != 0)
+  {
+    m_flushUniformBuffer = std::make_unique<
+        UniformBufferRHIImpl<FlushUniforms, FFlushUniforms>>(sizeInBytes);
+  }
 }
 
-void RenderContextRHIImpl::resizePathBuffer(size_t sizeInBytes,
-                                            StorageBufferStructure structure)
+void RenderContextRHIImpl::resizePathBuffer(
+    size_t sizeInBytes,
+    StorageBufferStructure structure)
 {
-    m_pathBuffer.Resize(sizeInBytes,
-                        StorageBufferElementSizeInBytes(structure));
+  m_pathBuffer.Resize(sizeInBytes, StorageBufferElementSizeInBytes(structure));
 }
 
-void RenderContextRHIImpl::resizePaintBuffer(size_t sizeInBytes,
-                                             StorageBufferStructure structure)
+void RenderContextRHIImpl::resizePaintBuffer(
+    size_t sizeInBytes,
+    StorageBufferStructure structure)
 {
-    m_paintBuffer.Resize(sizeInBytes,
-                         StorageBufferElementSizeInBytes(structure));
+  m_paintBuffer.Resize(sizeInBytes, StorageBufferElementSizeInBytes(structure));
 }
 
 void RenderContextRHIImpl::resizePaintAuxBuffer(
     size_t sizeInBytes,
     StorageBufferStructure structure)
 {
-    m_paintAuxBuffer.Resize(sizeInBytes,
-                            StorageBufferElementSizeInBytes(structure));
+  m_paintAuxBuffer.Resize(
+      sizeInBytes,
+      StorageBufferElementSizeInBytes(structure));
 }
 
-void RenderContextRHIImpl::resizeContourBuffer(size_t sizeInBytes,
-                                               StorageBufferStructure structure)
+void RenderContextRHIImpl::resizeContourBuffer(
+    size_t sizeInBytes,
+    StorageBufferStructure structure)
 {
-    m_contourBuffer.Resize(sizeInBytes,
-                           StorageBufferElementSizeInBytes(structure));
+  m_contourBuffer.Resize(
+      sizeInBytes,
+      StorageBufferElementSizeInBytes(structure));
 }
 
 void RenderContextRHIImpl::resizeGradSpanBuffer(size_t sizeInBytes)
 {
-    m_gradSpanBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_gradSpanBuffer =
-            std::make_unique<BufferRingRHIImpl>(EBufferUsageFlags::VertexBuffer,
-                                                sizeInBytes,
-                                                sizeof(GradientSpan));
-    }
+  m_gradSpanBuffer.reset();
+  if (sizeInBytes != 0)
+  {
+    m_gradSpanBuffer = std::make_unique<BufferRingRHIImpl>(
+        EBufferUsageFlags::VertexBuffer,
+        sizeInBytes,
+        sizeof(GradientSpan));
+  }
 }
 
 void RenderContextRHIImpl::resizeTessVertexSpanBuffer(size_t sizeInBytes)
 {
-    m_tessSpanBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_tessSpanBuffer =
-            std::make_unique<BufferRingRHIImpl>(EBufferUsageFlags::VertexBuffer,
-                                                sizeInBytes,
-                                                sizeof(TessVertexSpan));
-    }
+  m_tessSpanBuffer.reset();
+  if (sizeInBytes != 0)
+  {
+    m_tessSpanBuffer = std::make_unique<BufferRingRHIImpl>(
+        EBufferUsageFlags::VertexBuffer,
+        sizeInBytes,
+        sizeof(TessVertexSpan));
+  }
 }
 
 void RenderContextRHIImpl::resizeImageRectInstanceBuffer(size_t sizeInBytes)
 {
-    m_imageRectInstanceBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_imageRectInstanceBuffer =
-            std::make_unique<BufferRingRHIImpl>(EBufferUsageFlags::VertexBuffer,
-                                                sizeInBytes,
-                                                sizeof(ImageRectInstance));
-    }
+  m_imageRectInstanceBuffer.reset();
+  if (sizeInBytes != 0)
+  {
+    m_imageRectInstanceBuffer = std::make_unique<BufferRingRHIImpl>(
+        EBufferUsageFlags::VertexBuffer,
+        sizeInBytes,
+        sizeof(ImageRectInstance));
+  }
 }
 
 void RenderContextRHIImpl::resizeImageMeshInstanceBuffer(size_t sizeInBytes)
 {
-    m_imageMeshInstanceBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_imageMeshInstanceBuffer =
-            std::make_unique<BufferRingRHIImpl>(EBufferUsageFlags::VertexBuffer,
-                                                sizeInBytes,
-                                                sizeof(ImageMeshInstance));
-    }
+  m_imageMeshInstanceBuffer.reset();
+  if (sizeInBytes != 0)
+  {
+    m_imageMeshInstanceBuffer = std::make_unique<BufferRingRHIImpl>(
+        EBufferUsageFlags::VertexBuffer,
+        sizeInBytes,
+        sizeof(ImageMeshInstance));
+  }
 }
 
 void RenderContextRHIImpl::resizeTriangleVertexBuffer(size_t sizeInBytes)
 {
-    m_triangleBuffer.reset();
-    if (sizeInBytes != 0)
-    {
-        m_triangleBuffer =
-            std::make_unique<BufferRingRHIImpl>(EBufferUsageFlags::VertexBuffer,
-                                                sizeInBytes,
-                                                sizeof(TriangleVertex));
-    }
+  m_triangleBuffer.reset();
+  if (sizeInBytes != 0)
+  {
+    m_triangleBuffer = std::make_unique<BufferRingRHIImpl>(
+        EBufferUsageFlags::VertexBuffer,
+        sizeInBytes,
+        sizeof(TriangleVertex));
+  }
 }
 
 void* RenderContextRHIImpl::mapFlushUniformBuffer(size_t mapSizeInBytes)
 {
-    return m_flushUniformBuffer->mapBuffer(mapSizeInBytes);
+  return m_flushUniformBuffer->mapBuffer(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapPathBuffer(size_t mapSizeInBytes)
 {
-    return m_pathBuffer.Map(mapSizeInBytes);
+  return m_pathBuffer.Map(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapPaintBuffer(size_t mapSizeInBytes)
 {
-    return m_paintBuffer.Map(mapSizeInBytes);
+  return m_paintBuffer.Map(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapPaintAuxBuffer(size_t mapSizeInBytes)
 {
-    return m_paintAuxBuffer.Map(mapSizeInBytes);
+  return m_paintAuxBuffer.Map(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapContourBuffer(size_t mapSizeInBytes)
 {
-    return m_contourBuffer.Map(mapSizeInBytes);
+  return m_contourBuffer.Map(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapGradSpanBuffer(size_t mapSizeInBytes)
 {
-    return m_gradSpanBuffer->mapBuffer(mapSizeInBytes);
+  return m_gradSpanBuffer->mapBuffer(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapTessVertexSpanBuffer(size_t mapSizeInBytes)
 {
-    return m_tessSpanBuffer->mapBuffer(mapSizeInBytes);
+  return m_tessSpanBuffer->mapBuffer(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapTriangleVertexBuffer(size_t mapSizeInBytes)
 {
-    return m_triangleBuffer->mapBuffer(mapSizeInBytes);
+  return m_triangleBuffer->mapBuffer(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapImageRectInstanceBuffer(size_t mapSizeInBytes)
 {
-    return m_imageRectInstanceBuffer->mapBuffer(mapSizeInBytes);
+  return m_imageRectInstanceBuffer->mapBuffer(mapSizeInBytes);
 }
 
 void* RenderContextRHIImpl::mapImageMeshInstanceBuffer(size_t mapSizeInBytes)
 {
-    return m_imageMeshInstanceBuffer->mapBuffer(mapSizeInBytes);
+  return m_imageMeshInstanceBuffer->mapBuffer(mapSizeInBytes);
 }
 
 void RenderContextRHIImpl::unmapFlushUniformBuffer(size_t mapSizeInBytes) {}
@@ -1888,27 +1957,27 @@ void RenderContextRHIImpl::unmapContourBuffer(size_t mapSizeInBytes) {}
 
 void RenderContextRHIImpl::unmapGradSpanBuffer(size_t mapSizeInBytes)
 {
-    m_gradSpanBuffer->unmapAndSubmitBuffer();
+  m_gradSpanBuffer->unmapAndSubmitBuffer();
 }
 
 void RenderContextRHIImpl::unmapTessVertexSpanBuffer(size_t mapSizeInBytes)
 {
-    m_tessSpanBuffer->unmapAndSubmitBuffer();
+  m_tessSpanBuffer->unmapAndSubmitBuffer();
 }
 
 void RenderContextRHIImpl::unmapTriangleVertexBuffer(size_t mapSizeInBytes)
 {
-    m_triangleBuffer->unmapAndSubmitBuffer();
+  m_triangleBuffer->unmapAndSubmitBuffer();
 }
 
 void RenderContextRHIImpl::unmapImageRectInstanceBuffer(size_t mapSizeInBytes)
 {
-    m_imageRectInstanceBuffer->unmapAndSubmitBuffer();
+  m_imageRectInstanceBuffer->unmapAndSubmitBuffer();
 }
 
 void RenderContextRHIImpl::unmapImageMeshInstanceBuffer(size_t mapSizeInBytes)
 {
-    m_imageMeshInstanceBuffer->unmapAndSubmitBuffer();
+  m_imageMeshInstanceBuffer->unmapAndSubmitBuffer();
 }
 
 rcp<RenderBuffer> RenderContextRHIImpl::makeRenderBuffer(
@@ -1916,2009 +1985,1989 @@ rcp<RenderBuffer> RenderContextRHIImpl::makeRenderBuffer(
     RenderBufferFlags flags,
     size_t sizeInBytes)
 {
-    if (sizeInBytes == 0)
-        return nullptr;
+  if (sizeInBytes == 0)
+    return nullptr;
 
-    return make_rcp<RenderBufferRHIImpl>(
-        type,
-        flags,
-        sizeInBytes,
-        type == RenderBufferType::index ? sizeof(uint16_t) : 0);
+  return make_rcp<RenderBufferRHIImpl>(
+      type,
+      flags,
+      sizeInBytes,
+      type == RenderBufferType::index ? sizeof(uint16_t) : 0);
 }
 
-void RenderContextRHIImpl::resizeGradientTexture(uint32_t width,
-                                                 uint32_t height)
+void RenderContextRHIImpl::resizeGradientTexture(
+    uint32_t width,
+    uint32_t height)
 {
-    check(IsInRenderingThread());
+  check(IsInRenderingThread());
 
-    height = std::max(1u, height);
+  height = std::max(1u, height);
 
-    auto RDGDesc = FRDGTextureDesc::Create2D(
-        {static_cast<int32_t>(width), static_cast<int32_t>(height)},
-        PF_R8G8B8A8,
-        FClearValueBinding(FLinearColor::Red),
-        ETextureCreateFlags::RenderTargetable |
-            ETextureCreateFlags::ShaderResource);
+  auto RDGDesc = FRDGTextureDesc::Create2D(
+      {static_cast<int32_t>(width), static_cast<int32_t>(height)},
+      PF_R8G8B8A8,
+      FClearValueBinding(FLinearColor::Red),
+      ETextureCreateFlags::RenderTargetable |
+          ETextureCreateFlags::ShaderResource);
 
-    m_gradientTexture.UpdateTexture(RDGDesc, TEXT("rive.GradientTexture"));
+  m_gradientTexture.UpdateTexture(RDGDesc, TEXT("rive.GradientTexture"));
 }
 
-void RenderContextRHIImpl::resizeTessellationTexture(uint32_t width,
-                                                     uint32_t height)
+void RenderContextRHIImpl::resizeTessellationTexture(
+    uint32_t width,
+    uint32_t height)
 {
-    check(IsInRenderingThread());
+  check(IsInRenderingThread());
 
-    height = std::max(1u, height);
+  height = std::max(1u, height);
 
-    auto RDGDesc = FRDGTextureDesc::Create2D(
-        {static_cast<int32_t>(width), static_cast<int32_t>(height)},
-        PF_R32G32B32A32_UINT,
-        FClearValueBinding::Black,
-        ETextureCreateFlags::RenderTargetable |
-            ETextureCreateFlags::ShaderResource);
+  auto RDGDesc = FRDGTextureDesc::Create2D(
+      {static_cast<int32_t>(width), static_cast<int32_t>(height)},
+      PF_R32G32B32A32_UINT,
+      FClearValueBinding::Black,
+      ETextureCreateFlags::RenderTargetable |
+          ETextureCreateFlags::ShaderResource);
 
-    m_tesselationTexture.UpdateTexture(RDGDesc, TEXT("rive.TessTexture"), true);
+  m_tesselationTexture.UpdateTexture(RDGDesc, TEXT("rive.TessTexture"), true);
 }
 
-void RenderContextRHIImpl::resizeFeatherAtlasTexture(uint32_t width,
-                                                     uint32_t height)
+void RenderContextRHIImpl::resizeFeatherAtlasTexture(
+    uint32_t width,
+    uint32_t height)
 {
-    check(IsInRenderingThread());
+  check(IsInRenderingThread());
 
-    width = std::max(1u, width);
-    height = std::max(1u, height);
+  width = std::max(1u, width);
+  height = std::max(1u, height);
 
-    // TODO: Check for rhi support for r32 render target, some android do not
-    // support this
-    auto RDGDesc = FRDGTextureDesc::Create2D(
-        {static_cast<int32_t>(width), static_cast<int32_t>(height)},
-        PF_R16F,
-        FClearValueBinding::Black,
-        ETextureCreateFlags::RenderTargetable |
-            ETextureCreateFlags::ShaderResource);
+  // TODO: Check for rhi support for r32 render target, some android do not
+  // support this
+  auto RDGDesc = FRDGTextureDesc::Create2D(
+      {static_cast<int32_t>(width), static_cast<int32_t>(height)},
+      PF_R16F,
+      FClearValueBinding::Black,
+      ETextureCreateFlags::RenderTargetable |
+          ETextureCreateFlags::ShaderResource);
 
-    m_featherAtlasTexture.UpdateTexture(RDGDesc,
-                                        TEXT("rive.FeatherAtlasTexture"),
-                                        true);
+  m_featherAtlasTexture.UpdateTexture(
+      RDGDesc,
+      TEXT("rive.FeatherAtlasTexture"),
+      true);
 }
 
 DECLARE_GPU_STAT_NAMED(STAT_RiveFlush, TEXT("Rive Flush"));
 DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveBufferSync, TEXT("Rive Buffer Sync"));
-DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveClearCoverageClip,
-                       TEXT("Rive Clear Coverage and Clip"));
-DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_SimpleGradientCopy,
-                       TEXT("Rive Simple Gradient Copy"));
+DECLARE_GPU_STAT_NAMED(
+    STAT_RiveFlush_RiveClearCoverageClip,
+    TEXT("Rive Clear Coverage and Clip"));
+DECLARE_GPU_STAT_NAMED(
+    STAT_RiveFlush_SimpleGradientCopy,
+    TEXT("Rive Simple Gradient Copy"));
 
-DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveComplexGradient,
-                       TEXT("Rive Complex Gradient Draw"));
+DECLARE_GPU_STAT_NAMED(
+    STAT_RiveFlush_RiveComplexGradient,
+    TEXT("Rive Complex Gradient Draw"));
 DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveTess, TEXT("Rive Tess Draw"));
-DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_RiveFlushRenderPass,
-                       TEXT("Rive Flush Render Pass"));
+DECLARE_GPU_STAT_NAMED(
+    STAT_RiveFlush_RiveFlushRenderPass,
+    TEXT("Rive Flush Render Pass"));
 
 // Cost of feeding advanced blend its destination colour on the scratch path.
 DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_DstSeedCopy, TEXT("Rive Dst Seed Copy"));
-DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_DstBoundaryCopy,
-                       TEXT("Rive Dst Boundary Copy"));
-DECLARE_GPU_STAT_NAMED(STAT_RiveFlush_DstBoundaryResolve,
-                       TEXT("Rive Dst Boundary Resolve"));
+DECLARE_GPU_STAT_NAMED(
+    STAT_RiveFlush_DstBoundaryCopy,
+    TEXT("Rive Dst Boundary Copy"));
+DECLARE_GPU_STAT_NAMED(
+    STAT_RiveFlush_DstBoundaryResolve,
+    TEXT("Rive Dst Boundary Resolve"));
 
 constexpr const TCHAR* StrForInterlock(InterlockMode Mode)
 {
-    switch (Mode)
-    {
-        case InterlockMode::rasterOrdering:
-            return TEXT("rasterOrdering");
-        case InterlockMode::atomics:
-            return TEXT("atomics");
-        case InterlockMode::clockwiseAtomic:
-            return TEXT("clockwiseAtomic");
-        case InterlockMode::clockwise:
-            return TEXT("clockwise");
-        case InterlockMode::depthStencil:
-            return TEXT("depthStencil");
-    }
+  switch (Mode)
+  {
+    case InterlockMode::rasterOrdering:
+      return TEXT("rasterOrdering");
+    case InterlockMode::atomics:
+      return TEXT("atomics");
+    case InterlockMode::clockwiseAtomic:
+      return TEXT("clockwiseAtomic");
+    case InterlockMode::clockwise:
+      return TEXT("clockwise");
+    case InterlockMode::depthStencil:
+      return TEXT("depthStencil");
+  }
 
-    return TEXT("none");
+  return TEXT("none");
 }
 
 void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 {
-    check(IsInRenderingThread());
+  check(IsInRenderingThread());
 
-    // Invalidates the per flush RDG texture cache in TextureRHIImpl. An
-    // FRDGTextureRef only stays valid inside the builder that made it, so the
-    // cache must not survive a flush.
-    ++FlushSerial;
+  // Invalidates the per flush RDG texture cache in TextureRHIImpl. An
+  // FRDGTextureRef only stays valid inside the builder that made it, so the
+  // cache must not survive a flush.
+  ++FlushSerial;
 
+  {
+    static const bool callOnce = [interlockMode = desc.interlockMode]() {
+      UE_LOG(
+          LogRiveRenderer,
+          Display,
+          TEXT("RenderContextRHIImpl::flush Interlock: %s, "
+               "Resources: %s"),
+          StrForInterlock(interlockMode),
+          RivePlatformWantsBindless(GMaxRHIShaderPlatform) ? TEXT("bindless")
+                                                           : TEXT("bindful"))
+      return true;
+    }();
+  }
+
+  auto renderTarget = static_cast<RenderTargetRHI*>(desc.renderTarget);
+  check(renderTarget);
+
+  FRDGBuilder* GraphBuilderPtr = static_cast<FRDGBuilder*>(
+      desc.externalCommandBuffer);
+  check(GraphBuilderPtr);
+
+  FRDGBuilder& GraphBuilder = *GraphBuilderPtr;
+  FRHICommandList& CommandList = GraphBuilder.RHICmdList;
+
+  auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+
+  {
+    RHI_BREADCRUMB_EVENT_STAT(
+        GraphBuilder.RHICmdList,
+        STAT_RiveFlush,
+        "RiveFlush");
+    RDG_EVENT_SCOPE_STAT(GraphBuilder, STAT_RiveFlush, "RiveFlush");
+
+    auto targetTexture = renderTarget->targetTexture(GraphBuilder);
+    check(targetTexture);
+
+    RIVE_ENSURE_LINEAR_TARGET(renderTarget, "flush");
+
+    FRDGTextureRef backBuffer = nullptr;
+
+    const bool
+        NeedsBackBuffer = (!renderTarget->TargetTextureSupportsUAV() &&
+                           !desc.fixedFunctionColorOutput) ||
+                          (!renderTarget->TargetTextureSupportsRenderTarget() &&
+                           desc.fixedFunctionColorOutput) ||
+                          (!renderTarget
+                                ->TargetTextureSupportsResolveTarget() &&
+                           desc.interlockMode == InterlockMode::depthStencil &&
+                           desc.msaaSampleCount > 1) ||
+                          // A single sample draws straight into the target, so
+                          // it has to be renderTargetable even when the color
+                          // output is not fixed function.
+                          (!renderTarget->TargetTextureSupportsRenderTarget() &&
+                           desc.interlockMode == InterlockMode::depthStencil &&
+                           desc.msaaSampleCount <= 1) ||
+                          (!desc.fixedFunctionColorOutput &&
+                           desc.interlockMode != InterlockMode::depthStencil &&
+                           targetTexture->Desc.Format != PF_R8G8B8A8);
+
+    const bool NeedsCoalesceResolve = NeedsBackBuffer &&
+                                      desc.interlockMode ==
+                                          InterlockMode::atomics &&
+                                      !desc.fixedFunctionColorOutput;
+    const bool NeedsFinalCopy = NeedsBackBuffer && !NeedsCoalesceResolve;
+
+    if (NeedsBackBuffer)
     {
-        static const bool callOnce = [interlockMode = desc.interlockMode]() {
-            UE_LOG(LogRiveRenderer,
-                   Display,
-                   TEXT("RenderContextRHIImpl::flush Interlock: %s, "
-                        "Resources: %s"),
-                   StrForInterlock(interlockMode),
-                   RivePlatformWantsBindless(GMaxRHIShaderPlatform)
-                       ? TEXT("bindless")
-                       : TEXT("bindful"))
-            return true;
-        }();
+      float values[4];
+      rive::UnpackColorToRGBA32FPremul(desc.colorClearValue, values);
+      backBuffer = renderTarget->backBufferTexture(
+          GraphBuilder,
+          desc.colorLoadAction == LoadAction::clear
+              ? FLinearColor(values[0], values[1], values[2], values[3])
+              : FLinearColor::Transparent,
+          desc);
+      if (EnumHasAnyFlags(backBuffer->Desc.Flags, TexCreate_RenderTargetable))
+      {
+        AddClearRenderTargetPass(GraphBuilder, backBuffer);
+      }
+      if (desc.colorLoadAction == LoadAction::preserveRenderTarget)
+      {
+        AddCopyTexturePass(GraphBuilder, targetTexture, backBuffer);
+      }
     }
 
-    auto renderTarget = static_cast<RenderTargetRHI*>(desc.renderTarget);
-    check(renderTarget);
+    FRDGTextureUAVRef targetUAV = nullptr;
 
-    FRDGBuilder* GraphBuilderPtr =
-        static_cast<FRDGBuilder*>(desc.externalCommandBuffer);
-    check(GraphBuilderPtr);
-
-    FRDGBuilder& GraphBuilder = *GraphBuilderPtr;
-    FRHICommandList& CommandList = GraphBuilder.RHICmdList;
-
-    auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
-
+    if (!desc.fixedFunctionColorOutput &&
+        desc.interlockMode != InterlockMode::depthStencil)
     {
-        RHI_BREADCRUMB_EVENT_STAT(GraphBuilder.RHICmdList,
-                                  STAT_RiveFlush,
-                                  "RiveFlush");
-        RDG_EVENT_SCOPE_STAT(GraphBuilder, STAT_RiveFlush, "RiveFlush");
-
-        auto targetTexture = renderTarget->targetTexture(GraphBuilder);
-        check(targetTexture);
-
-        RIVE_ENSURE_LINEAR_TARGET(renderTarget, "flush");
-
-        FRDGTextureRef backBuffer = nullptr;
-
-        const bool NeedsBackBuffer =
-            (!renderTarget->TargetTextureSupportsUAV() &&
-             !desc.fixedFunctionColorOutput) ||
-            (!renderTarget->TargetTextureSupportsRenderTarget() &&
-             desc.fixedFunctionColorOutput) ||
-            (!renderTarget->TargetTextureSupportsResolveTarget() &&
-             desc.interlockMode == InterlockMode::depthStencil &&
-             desc.msaaSampleCount > 1) ||
-            // A single sample draws straight into the target, so it has to be
-            // renderTargetable even when the color output is not fixed
-            // function.
-            (!renderTarget->TargetTextureSupportsRenderTarget() &&
-             desc.interlockMode == InterlockMode::depthStencil &&
-             desc.msaaSampleCount <= 1) ||
-            (!desc.fixedFunctionColorOutput &&
-             desc.interlockMode != InterlockMode::depthStencil &&
-             targetTexture->Desc.Format != PF_R8G8B8A8);
-
-        const bool NeedsCoalesceResolve =
-            NeedsBackBuffer && desc.interlockMode == InterlockMode::atomics &&
-            !desc.fixedFunctionColorOutput;
-        const bool NeedsFinalCopy = NeedsBackBuffer && !NeedsCoalesceResolve;
-
-        if (NeedsBackBuffer)
-        {
-            float values[4];
-            rive::UnpackColorToRGBA32FPremul(desc.colorClearValue, values);
-            backBuffer = renderTarget->backBufferTexture(
-                GraphBuilder,
-                desc.colorLoadAction == LoadAction::clear
-                    ? FLinearColor(values[0], values[1], values[2], values[3])
-                    : FLinearColor::Transparent,
-                desc);
-            if (EnumHasAnyFlags(backBuffer->Desc.Flags,
-                                TexCreate_RenderTargetable))
-            {
-                AddClearRenderTargetPass(GraphBuilder, backBuffer);
-            }
-            if (desc.colorLoadAction == LoadAction::preserveRenderTarget)
-            {
-                AddCopyTexturePass(GraphBuilder, targetTexture, backBuffer);
-            }
-        }
-
-        FRDGTextureUAVRef targetUAV = nullptr;
-
-        if (!desc.fixedFunctionColorOutput &&
-            desc.interlockMode != InterlockMode::depthStencil)
-        {
-            if (m_capabilities.bSupportsTypedUAVLoads)
-            {
-                targetUAV = GraphBuilder.CreateUAV(
-                    NeedsBackBuffer ? backBuffer : targetTexture);
-            }
-            else
-            {
-                targetUAV = GraphBuilder.CreateUAV(
-                    NeedsBackBuffer ? backBuffer : targetTexture,
-                    ERDGUnorderedAccessViewFlags::None,
-                    PF_R32_UINT);
-            }
-        }
+      if (m_capabilities.bSupportsTypedUAVLoads)
+      {
+        targetUAV = GraphBuilder.CreateUAV(
+            NeedsBackBuffer ? backBuffer : targetTexture);
+      }
+      else
+      {
+        targetUAV = GraphBuilder.CreateUAV(
+            NeedsBackBuffer ? backBuffer : targetTexture,
+            ERDGUnorderedAccessViewFlags::None,
+            PF_R32_UINT);
+      }
+    }
 
 #if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
-        FRDGBufferRef coverageBuffer = nullptr;
-        FRDGBufferUAVRef coverageUAV = nullptr;
-        FRDGTextureUAVRef coverageTextureUAV = nullptr;
+    FRDGBufferRef coverageBuffer = nullptr;
+    FRDGBufferUAVRef coverageUAV = nullptr;
+    FRDGTextureUAVRef coverageTextureUAV = nullptr;
 #else
-        FRDGTextureUAVRef coverageUAV = nullptr;
+    FRDGTextureUAVRef coverageUAV = nullptr;
 #endif
 
-        FRDGTextureRef clipTexture = nullptr;
-        FRDGTextureRef coverageTexture = nullptr;
-        FRDGTextureUAVRef clipUAV = nullptr;
+    FRDGTextureRef clipTexture = nullptr;
+    FRDGTextureRef coverageTexture = nullptr;
+    FRDGTextureUAVRef clipUAV = nullptr;
 
-        if (desc.interlockMode != InterlockMode::depthStencil)
-        {
+    if (desc.interlockMode != InterlockMode::depthStencil)
+    {
 #if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
-            coverageBuffer = renderTarget->coverageBuffer(GraphBuilder);
-            check(coverageBuffer);
+      coverageBuffer = renderTarget->coverageBuffer(GraphBuilder);
+      check(coverageBuffer);
 #else
-            coverageTexture = renderTarget->coverageTexture(GraphBuilder);
-            check(coverageTexture);
+      coverageTexture = renderTarget->coverageTexture(GraphBuilder);
+      check(coverageTexture);
 #endif
 
-            clipTexture = renderTarget->clipTexture(GraphBuilder);
-            check(clipTexture);
-            coverageTexture = renderTarget->coverageTexture(GraphBuilder);
-            check(coverageTexture);
+      clipTexture = renderTarget->clipTexture(GraphBuilder);
+      check(clipTexture);
+      coverageTexture = renderTarget->coverageTexture(GraphBuilder);
+      check(coverageTexture);
 
-            clipUAV = GraphBuilder.CreateUAV(clipTexture,
-                                             ERDGUnorderedAccessViewFlags::None,
-                                             PF_R32_UINT);
+      clipUAV = GraphBuilder.CreateUAV(
+          clipTexture,
+          ERDGUnorderedAccessViewFlags::None,
+          PF_R32_UINT);
 #if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
-            if (desc.interlockMode == InterlockMode::rasterOrdering)
-            {
-                coverageTextureUAV =
-                    GraphBuilder.CreateUAV(coverageTexture,
-                                           ERDGUnorderedAccessViewFlags::None,
-                                           PF_R32_UINT);
-                RDG_EVENT_SCOPE_STAT(GraphBuilder,
-                                     STAT_RiveFlush_RiveClearCoverageClip,
-                                     "RiveClearCoverageClip");
-                AddClearUAVPass(GraphBuilder,
-                                coverageTextureUAV,
-                                FUintVector4(desc.coverageClearValue,
-                                             desc.coverageClearValue,
-                                             desc.coverageClearValue,
-                                             desc.coverageClearValue));
-            }
-            else
-            {
-                coverageUAV =
-                    GraphBuilder.CreateUAV(coverageBuffer, PF_R32_UINT);
-                AddClearUAVPass(GraphBuilder,
-                                coverageUAV,
-                                desc.coverageClearValue);
-            }
+      if (desc.interlockMode == InterlockMode::rasterOrdering)
+      {
+        coverageTextureUAV = GraphBuilder.CreateUAV(
+            coverageTexture,
+            ERDGUnorderedAccessViewFlags::None,
+            PF_R32_UINT);
+        RDG_EVENT_SCOPE_STAT(
+            GraphBuilder,
+            STAT_RiveFlush_RiveClearCoverageClip,
+            "RiveClearCoverageClip");
+        AddClearUAVPass(
+            GraphBuilder,
+            coverageTextureUAV,
+            FUintVector4(
+                desc.coverageClearValue,
+                desc.coverageClearValue,
+                desc.coverageClearValue,
+                desc.coverageClearValue));
+      }
+      else
+      {
+        coverageUAV = GraphBuilder.CreateUAV(coverageBuffer, PF_R32_UINT);
+        AddClearUAVPass(GraphBuilder, coverageUAV, desc.coverageClearValue);
+      }
 #else
-            coverageUAV =
-                GraphBuilder.CreateUAV(coverageTexture,
-                                       ERDGUnorderedAccessViewFlags::None,
-                                       PF_R32_UINT);
-            RDG_EVENT_SCOPE_STAT(GraphBuilder,
-                                 STAT_RiveFlush_RiveClearCoverageClip,
-                                 "RiveClearCoverageClip");
-            AddClearUAVPass(GraphBuilder,
-                            coverageUAV,
-                            FUintVector4(desc.coverageClearValue,
-                                         desc.coverageClearValue,
-                                         desc.coverageClearValue,
-                                         desc.coverageClearValue));
+      coverageUAV = GraphBuilder.CreateUAV(
+          coverageTexture,
+          ERDGUnorderedAccessViewFlags::None,
+          PF_R32_UINT);
+      RDG_EVENT_SCOPE_STAT(
+          GraphBuilder,
+          STAT_RiveFlush_RiveClearCoverageClip,
+          "RiveClearCoverageClip");
+      AddClearUAVPass(
+          GraphBuilder,
+          coverageUAV,
+          FUintVector4(
+              desc.coverageClearValue,
+              desc.coverageClearValue,
+              desc.coverageClearValue,
+              desc.coverageClearValue));
 #endif
 
-            if (enums::is_flag_set(desc.combinedShaderFeatures,
-                                   gpu::ShaderFeatures::ENABLE_CLIPPING))
-            {
-                AddClearUAVPass(GraphBuilder, clipUAV, FUintVector4(0));
-            }
-        }
+      if (enums::is_flag_set(
+              desc.combinedShaderFeatures,
+              gpu::ShaderFeatures::ENABLE_CLIPPING))
+      {
+        AddClearUAVPass(GraphBuilder, clipUAV, FUintVector4(0));
+      }
+    }
 
-        check(m_flushUniformBuffer);
-        auto flushUniforms =
-            m_flushUniformBuffer->Sync(GraphBuilder,
-                                       desc.flushUniformDataOffsetInBytes);
+    check(m_flushUniformBuffer);
+    auto flushUniforms = m_flushUniformBuffer->Sync(
+        GraphBuilder,
+        desc.flushUniformDataOffsetInBytes);
 
-        auto placeholderTexture = GraphBuilder.RegisterExternalTexture(
-            CreateRenderTarget(m_placeholderTexture, TEXT("RivePlaceholder")));
-        auto placeholderSRV = GraphBuilder.CreateSRV(placeholderTexture);
+    auto placeholderTexture = GraphBuilder.RegisterExternalTexture(
+        CreateRenderTarget(m_placeholderTexture, TEXT("RivePlaceholder")));
+    auto placeholderSRV = GraphBuilder.CreateSRV(placeholderTexture);
 
-        FRDGTextureRef gradiantTexture = placeholderTexture;
-        FRDGTextureRef tesselationTexture = placeholderTexture;
-        FRDGTextureSRVRef tessSRV = placeholderSRV;
-        FRDGTextureRef scratchColorTexture = placeholderTexture;
-        FRDGTextureUAVRef scratchUAV =
-            GraphBuilder.CreateUAV(placeholderTexture);
+    FRDGTextureRef gradiantTexture = placeholderTexture;
+    FRDGTextureRef tesselationTexture = placeholderTexture;
+    FRDGTextureSRVRef tessSRV = placeholderSRV;
+    FRDGTextureRef scratchColorTexture = placeholderTexture;
+    FRDGTextureUAVRef scratchUAV = GraphBuilder.CreateUAV(placeholderTexture);
 
-        FRDGTextureRef MSAAColorTexture = nullptr;
-        FRDGTextureRef DepthStencilTexture = nullptr;
-        FRDGTextureRef MSAADstColorTexture = nullptr;
+    FRDGTextureRef MSAAColorTexture = nullptr;
+    FRDGTextureRef DepthStencilTexture = nullptr;
+    FRDGTextureRef MSAADstColorTexture = nullptr;
 
-        if (desc.interlockMode == InterlockMode::rasterOrdering)
+    if (desc.interlockMode == InterlockMode::rasterOrdering)
+    {
+      FRDGTextureDesc scratchDesc = FRDGTextureDesc::Create2D(
+          targetTexture->Desc.Extent,
+          targetTexture->Desc.Format,
+          FClearValueBinding::Black,
+          ETextureCreateFlags::UAV | ETextureCreateFlags::InputAttachmentRead);
+      scratchColorTexture = GraphBuilder.CreateTexture(
+          scratchDesc,
+          TEXT("rive.scratchColor"));
+      scratchUAV = GraphBuilder.CreateUAV(scratchColorTexture);
+    }
+
+    FRDGTextureRef featherAtlasTexture = placeholderTexture;
+
+    FRDGTextureRef
+        gaussianIntegralTexture = GraphBuilder.RegisterExternalTexture(
+            CreateRenderTarget(
+                m_gaussianIntegralTexture,
+                TEXT("Rive.GaussianIntegralTexture")));
+
+    FRDGBufferSRVRef pathSRV = nullptr;
+    FRDGBufferSRVRef paintSRV = nullptr;
+    FRDGBufferSRVRef paintAuxSRV = nullptr;
+    FRDGBufferSRVRef contourSRV = nullptr;
+
+    if (desc.pathCount > 0)
+    {
+      pathSRV = m_pathBuffer.SyncSRV(
+          GraphBuilder,
+          desc.firstPath,
+          desc.pathCount);
+      paintSRV = m_paintBuffer.SyncSRV(
+          GraphBuilder,
+          desc.firstPaint,
+          desc.pathCount);
+      paintAuxSRV = m_paintAuxBuffer.SyncSRV(
+          GraphBuilder,
+          desc.firstPaintAux,
+          desc.pathCount);
+    }
+
+    if (desc.contourCount > 0)
+    {
+      contourSRV = m_contourBuffer.SyncSRV(
+          GraphBuilder,
+          desc.firstContour,
+          desc.contourCount);
+    }
+
+    FBufferRHIRef triangleBuffer = nullptr;
+    // TODO: only sync on first flush of frame
+    if (m_triangleBuffer)
+    {
+      triangleBuffer = m_triangleBuffer->Sync(CommandList);
+    }
+
+    if (desc.gradSpanCount > 0)
+    {
+      RDG_EVENT_SCOPE_STAT(
+          GraphBuilder,
+          STAT_RiveFlush_RiveComplexGradient,
+          "RiveComplexGradient");
+      m_gradientTexture.Sync(GraphBuilder, &gradiantTexture);
+
+      check(gradiantTexture);
+      check(m_gradSpanBuffer);
+      auto gradSpanBuffer = m_gradSpanBuffer->Sync(
+          CommandList,
+          desc.firstGradSpan * sizeof(GradientSpan));
+      AddGradientPass(
+          GraphBuilder,
+          flushUniforms,
+          VertexDeclarations[static_cast<int>(EVertexDeclarations::Gradient)],
+          gradiantTexture,
+          gradSpanBuffer,
+          FUint32Rect(
+              {0, 0},
+              {
+                  kGradTextureWidth,
+                  desc.gradDataHeight,
+              }),
+          desc.gradSpanCount);
+    }
+
+    if (desc.tessVertexSpanCount > 0)
+    {
+      RDG_EVENT_SCOPE_STAT(GraphBuilder, STAT_RiveFlush_RiveTess, "RiveTess");
+      m_tesselationTexture.Sync(GraphBuilder, &tesselationTexture, &tessSRV);
+
+      check(tesselationTexture);
+      check(tessSRV);
+      check(m_tessSpanBuffer);
+      check(pathSRV);
+      check(contourSRV);
+
+      auto tessSpanBuffer = m_tessSpanBuffer->Sync(
+          CommandList,
+          desc.firstTessVertexSpan * sizeof(TessVertexSpan));
+
+      auto TessPassParams = GraphBuilder.AllocParameters<
+          FRiveTesselationPassParameters>();
+      TessPassParams->FlushUniforms = flushUniforms;
+      TessPassParams->RenderTargets[0] = FRenderTargetBinding(
+          tesselationTexture,
+          ERenderTargetLoadAction::ENoAction);
+      TessPassParams->VS.GLSL_pathBuffer_raw = pathSRV;
+      TessPassParams->VS.GLSL_contourBuffer_raw = contourSRV;
+      TessPassParams->VS
+          .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
+      TessPassParams->VS.gaussianIntegralSampler = m_gaussianIntegralSampler;
+
+      AddTessellationPass(
+          GraphBuilder,
+          VertexDeclarations[static_cast<int>(
+              EVertexDeclarations::Tessellation)],
+          tessSpanBuffer,
+          m_tessSpanIndexBuffer,
+          {{0, 0}, {kTessTextureWidth, desc.tessDataHeight}},
+          desc.tessVertexSpanCount,
+          TessPassParams);
+    }
+
+    // render the atlas texture if needed
+    if ((desc.featherAtlasFillBatchCount | desc.featherAtlasStrokeBatchCount) !=
+        0)
+    {
+      check(m_patchIndexBuffer);
+      check(m_patchVertexBuffer);
+
+      m_featherAtlasTexture.Sync(GraphBuilder, &featherAtlasTexture);
+
+      AddClearRenderTargetPass(GraphBuilder, featherAtlasTexture);
+
+      FUintRect viewport(
+          0,
+          0,
+          desc.featherAtlasContentWidth,
+          desc.featherAtlasContentHeight);
+
+      for (size_t i = 0; i < desc.featherAtlasFillBatchCount; ++i)
+      {
+        FRiveAtlasParameters*
+            AtlasParams = GraphBuilder.AllocObject<FRiveAtlasParameters>(
+                desc.featherAtlasFillBatches[i],
+                ShaderMap);
+        AtlasParams->Viewport = viewport;
+        AtlasParams
+            ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+            EVertexDeclarations::Atlas)];
+        AtlasParams->IndexBuffer = m_patchIndexBuffer;
+        AtlasParams->VertexBuffer = m_patchVertexBuffer;
+
+        FRDGAtlasPassParameters* PassParams = GraphBuilder.AllocParameters<
+            FRDGAtlasPassParameters>();
+        PassParams->FlushUniforms = flushUniforms;
+        PassParams->RenderTargets[0] = FRenderTargetBinding(
+            featherAtlasTexture,
+            ERenderTargetLoadAction::ELoad);
+
+        PassParams->PS
+            .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
+        PassParams->PS.gaussianIntegralSampler = m_gaussianIntegralSampler;
+
+        PassParams->VS.baseInstance = desc.featherAtlasFillBatches[i].basePatch;
+        PassParams->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
+        PassParams->VS.GLSL_pathBuffer_raw = pathSRV;
+        PassParams->VS.GLSL_contourBuffer_raw = contourSRV;
+
+        AddFeatherAtlasFillDrawPass(GraphBuilder, AtlasParams, PassParams);
+      }
+
+      for (size_t i = 0; i < desc.featherAtlasStrokeBatchCount; ++i)
+      {
+        FRiveAtlasParameters*
+            AtlasParams = GraphBuilder.AllocObject<FRiveAtlasParameters>(
+                desc.featherAtlasStrokeBatches[i],
+                ShaderMap);
+        AtlasParams->Viewport = viewport;
+        AtlasParams
+            ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+            EVertexDeclarations::Atlas)];
+        AtlasParams->IndexBuffer = m_patchIndexBuffer;
+        AtlasParams->VertexBuffer = m_patchVertexBuffer;
+
+        FRDGAtlasPassParameters* PassParams = GraphBuilder.AllocParameters<
+            FRDGAtlasPassParameters>();
+        PassParams->FlushUniforms = flushUniforms;
+        PassParams->RenderTargets[0] = FRenderTargetBinding(
+            featherAtlasTexture,
+            ERenderTargetLoadAction::ELoad);
+
+        PassParams->PS
+            .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
+        PassParams->PS.gaussianIntegralSampler = m_gaussianIntegralSampler;
+
+        PassParams->VS.baseInstance = desc.featherAtlasStrokeBatches[i]
+                                          .basePatch;
+        PassParams->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
+        PassParams->VS.GLSL_pathBuffer_raw = pathSRV;
+        PassParams->VS.GLSL_contourBuffer_raw = contourSRV;
+
+        AddFeatherAtlasStrokeDrawPass(GraphBuilder, AtlasParams, PassParams);
+      }
+    }
+
+    // always load because the next draw is split into multipl render
+    // passes.
+    ERenderTargetLoadAction loadAction = ERenderTargetLoadAction::ELoad;
+
+    if (desc.colorLoadAction == LoadAction::clear)
+    {
+      if (desc.fixedFunctionColorOutput)
+      {
+        float clearColor4f[4];
+        UnpackColorToRGBA32FPremul(desc.colorClearValue, clearColor4f);
+        AddClearRenderTargetPass(
+            GraphBuilder,
+            NeedsBackBuffer ? backBuffer : targetTexture,
+            FLinearColor(
+                clearColor4f[0],
+                clearColor4f[1],
+                clearColor4f[2],
+                clearColor4f[3]));
+      }
+      else if (desc.interlockMode != InterlockMode::depthStencil)
+      {
+        if (m_capabilities.bSupportsTypedUAVLoads)
         {
-            FRDGTextureDesc scratchDesc = FRDGTextureDesc::Create2D(
-                targetTexture->Desc.Extent,
-                targetTexture->Desc.Format,
-                FClearValueBinding::Black,
-                ETextureCreateFlags::UAV |
-                    ETextureCreateFlags::InputAttachmentRead);
-            scratchColorTexture =
-                GraphBuilder.CreateTexture(scratchDesc,
-                                           TEXT("rive.scratchColor"));
-            scratchUAV = GraphBuilder.CreateUAV(scratchColorTexture);
+          float clearColor4f[4];
+          UnpackColorToRGBA32FPremul(desc.colorClearValue, clearColor4f);
+          AddClearUAVPass(
+              GraphBuilder,
+              targetUAV,
+              FVector4f(
+                  clearColor4f[0],
+                  clearColor4f[1],
+                  clearColor4f[2],
+                  clearColor4f[3]));
         }
-
-        FRDGTextureRef featherAtlasTexture = placeholderTexture;
-
-        FRDGTextureRef gaussianIntegralTexture =
-            GraphBuilder.RegisterExternalTexture(
-                CreateRenderTarget(m_gaussianIntegralTexture,
-                                   TEXT("Rive.GaussianIntegralTexture")));
-
-        FRDGBufferSRVRef pathSRV = nullptr;
-        FRDGBufferSRVRef paintSRV = nullptr;
-        FRDGBufferSRVRef paintAuxSRV = nullptr;
-        FRDGBufferSRVRef contourSRV = nullptr;
-
-        if (desc.pathCount > 0)
+        else
         {
-            pathSRV = m_pathBuffer.SyncSRV(GraphBuilder,
-                                           desc.firstPath,
-                                           desc.pathCount);
-            paintSRV = m_paintBuffer.SyncSRV(GraphBuilder,
-                                             desc.firstPaint,
-                                             desc.pathCount);
-            paintAuxSRV = m_paintAuxBuffer.SyncSRV(GraphBuilder,
-                                                   desc.firstPaintAux,
-                                                   desc.pathCount);
+          auto Color = gpu::SwizzleRiveColorToRGBAPremul(desc.colorClearValue);
+          AddClearUAVPass(GraphBuilder, targetUAV, FUintVector4(Color));
         }
+      }
+    }
+    if (desc.interlockMode == InterlockMode::depthStencil)
+    {
+      check(targetTexture);
 
-        if (desc.contourCount > 0)
-        {
-            contourSRV = m_contourBuffer.SyncSRV(GraphBuilder,
-                                                 desc.firstContour,
-                                                 desc.contourCount);
-        }
-
-        FBufferRHIRef triangleBuffer = nullptr;
-        // TODO: only sync on first flush of frame
-        if (m_triangleBuffer)
-        {
-            triangleBuffer = m_triangleBuffer->Sync(CommandList);
-        }
-
-        if (desc.gradSpanCount > 0)
-        {
-            RDG_EVENT_SCOPE_STAT(GraphBuilder,
-                                 STAT_RiveFlush_RiveComplexGradient,
-                                 "RiveComplexGradient");
-            m_gradientTexture.Sync(GraphBuilder, &gradiantTexture);
-
-            check(gradiantTexture);
-            check(m_gradSpanBuffer);
-            auto gradSpanBuffer = m_gradSpanBuffer->Sync(
-                CommandList,
-                desc.firstGradSpan * sizeof(GradientSpan));
-            AddGradientPass(GraphBuilder,
-                            flushUniforms,
-                            VertexDeclarations[static_cast<int>(
-                                EVertexDeclarations::Gradient)],
-                            gradiantTexture,
-                            gradSpanBuffer,
-                            FUint32Rect({0, 0},
-                                        {
-                                            kGradTextureWidth,
-                                            desc.gradDataHeight,
-                                        }),
-                            desc.gradSpanCount);
-        }
-
-        if (desc.tessVertexSpanCount > 0)
-        {
-            RDG_EVENT_SCOPE_STAT(GraphBuilder,
-                                 STAT_RiveFlush_RiveTess,
-                                 "RiveTess");
-            m_tesselationTexture.Sync(GraphBuilder,
-                                      &tesselationTexture,
-                                      &tessSRV);
-
-            check(tesselationTexture);
-            check(tessSRV);
-            check(m_tessSpanBuffer);
-            check(pathSRV);
-            check(contourSRV);
-
-            auto tessSpanBuffer = m_tessSpanBuffer->Sync(
-                CommandList,
-                desc.firstTessVertexSpan * sizeof(TessVertexSpan));
-
-            auto TessPassParams =
-                GraphBuilder.AllocParameters<FRiveTesselationPassParameters>();
-            TessPassParams->FlushUniforms = flushUniforms;
-            TessPassParams->RenderTargets[0] =
-                FRenderTargetBinding(tesselationTexture,
-                                     ERenderTargetLoadAction::ENoAction);
-            TessPassParams->VS.GLSL_pathBuffer_raw = pathSRV;
-            TessPassParams->VS.GLSL_contourBuffer_raw = contourSRV;
-            TessPassParams->VS.GLSL_gaussianIntegralTexture_raw =
-                gaussianIntegralTexture;
-            TessPassParams->VS.gaussianIntegralSampler =
-                m_gaussianIntegralSampler;
-
-            AddTessellationPass(
-                GraphBuilder,
-                VertexDeclarations[static_cast<int>(
-                    EVertexDeclarations::Tessellation)],
-                tessSpanBuffer,
-                m_tessSpanIndexBuffer,
-                {{0, 0}, {kTessTextureWidth, desc.tessDataHeight}},
-                desc.tessVertexSpanCount,
-                TessPassParams);
-        }
-
-        // render the atlas texture if needed
-        if ((desc.featherAtlasFillBatchCount |
-             desc.featherAtlasStrokeBatchCount) != 0)
-        {
-            check(m_patchIndexBuffer);
-            check(m_patchVertexBuffer);
-
-            m_featherAtlasTexture.Sync(GraphBuilder, &featherAtlasTexture);
-
-            AddClearRenderTargetPass(GraphBuilder, featherAtlasTexture);
-
-            FUintRect viewport(0,
-                               0,
-                               desc.featherAtlasContentWidth,
-                               desc.featherAtlasContentHeight);
-
-            for (size_t i = 0; i < desc.featherAtlasFillBatchCount; ++i)
-            {
-                FRiveAtlasParameters* AtlasParams =
-                    GraphBuilder.AllocObject<FRiveAtlasParameters>(
-                        desc.featherAtlasFillBatches[i],
-                        ShaderMap);
-                AtlasParams->Viewport = viewport;
-                AtlasParams->VertexDeclarationRHI =
-                    VertexDeclarations[static_cast<int32>(
-                        EVertexDeclarations::Atlas)];
-                AtlasParams->IndexBuffer = m_patchIndexBuffer;
-                AtlasParams->VertexBuffer = m_patchVertexBuffer;
-
-                FRDGAtlasPassParameters* PassParams =
-                    GraphBuilder.AllocParameters<FRDGAtlasPassParameters>();
-                PassParams->FlushUniforms = flushUniforms;
-                PassParams->RenderTargets[0] =
-                    FRenderTargetBinding(featherAtlasTexture,
-                                         ERenderTargetLoadAction::ELoad);
-
-                PassParams->PS.GLSL_gaussianIntegralTexture_raw =
-                    gaussianIntegralTexture;
-                PassParams->PS.gaussianIntegralSampler =
-                    m_gaussianIntegralSampler;
-
-                PassParams->VS.baseInstance =
-                    desc.featherAtlasFillBatches[i].basePatch;
-                PassParams->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
-                PassParams->VS.GLSL_pathBuffer_raw = pathSRV;
-                PassParams->VS.GLSL_contourBuffer_raw = contourSRV;
-
-                AddFeatherAtlasFillDrawPass(GraphBuilder,
-                                            AtlasParams,
-                                            PassParams);
-            }
-
-            for (size_t i = 0; i < desc.featherAtlasStrokeBatchCount; ++i)
-            {
-                FRiveAtlasParameters* AtlasParams =
-                    GraphBuilder.AllocObject<FRiveAtlasParameters>(
-                        desc.featherAtlasStrokeBatches[i],
-                        ShaderMap);
-                AtlasParams->Viewport = viewport;
-                AtlasParams->VertexDeclarationRHI =
-                    VertexDeclarations[static_cast<int32>(
-                        EVertexDeclarations::Atlas)];
-                AtlasParams->IndexBuffer = m_patchIndexBuffer;
-                AtlasParams->VertexBuffer = m_patchVertexBuffer;
-
-                FRDGAtlasPassParameters* PassParams =
-                    GraphBuilder.AllocParameters<FRDGAtlasPassParameters>();
-                PassParams->FlushUniforms = flushUniforms;
-                PassParams->RenderTargets[0] =
-                    FRenderTargetBinding(featherAtlasTexture,
-                                         ERenderTargetLoadAction::ELoad);
-
-                PassParams->PS.GLSL_gaussianIntegralTexture_raw =
-                    gaussianIntegralTexture;
-                PassParams->PS.gaussianIntegralSampler =
-                    m_gaussianIntegralSampler;
-
-                PassParams->VS.baseInstance =
-                    desc.featherAtlasStrokeBatches[i].basePatch;
-                PassParams->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
-                PassParams->VS.GLSL_pathBuffer_raw = pathSRV;
-                PassParams->VS.GLSL_contourBuffer_raw = contourSRV;
-
-                AddFeatherAtlasStrokeDrawPass(GraphBuilder,
-                                              AtlasParams,
-                                              PassParams);
-            }
-        }
-
-        // always load because the next draw is split into multipl render
-        // passes.
-        ERenderTargetLoadAction loadAction = ERenderTargetLoadAction::ELoad;
-
-        if (desc.colorLoadAction == LoadAction::clear)
-        {
-            if (desc.fixedFunctionColorOutput)
-            {
-                float clearColor4f[4];
-                UnpackColorToRGBA32FPremul(desc.colorClearValue, clearColor4f);
-                AddClearRenderTargetPass(GraphBuilder,
-                                         NeedsBackBuffer ? backBuffer
-                                                         : targetTexture,
-                                         FLinearColor(clearColor4f[0],
-                                                      clearColor4f[1],
-                                                      clearColor4f[2],
-                                                      clearColor4f[3]));
-            }
-            else if (desc.interlockMode != InterlockMode::depthStencil)
-            {
-                if (m_capabilities.bSupportsTypedUAVLoads)
-                {
-                    float clearColor4f[4];
-                    UnpackColorToRGBA32FPremul(desc.colorClearValue,
-                                               clearColor4f);
-                    AddClearUAVPass(GraphBuilder,
-                                    targetUAV,
-                                    FVector4f(clearColor4f[0],
-                                              clearColor4f[1],
-                                              clearColor4f[2],
-                                              clearColor4f[3]));
-                }
-                else
-                {
-                    auto Color =
-                        gpu::SwizzleRiveColorToRGBAPremul(desc.colorClearValue);
-                    AddClearUAVPass(GraphBuilder,
-                                    targetUAV,
-                                    FUintVector4(Color));
-                }
-            }
-        }
-        if (desc.interlockMode == InterlockMode::depthStencil)
-        {
-            check(targetTexture);
-
-            // Advanced blend reads the msaa color attachment while it is
-            // still bound. The render pass is shared; only the shader variant
-            // differs per RHI.
-            const bool bUseFrameBufferFetch =
+      // Advanced blend reads the msaa color attachment while it is
+      // still bound. The render pass is shared; only the shader variant
+      // differs per RHI.
+      const bool bUseFrameBufferFetch =
 #if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
-                CVarUseSubpassLoad.GetValueOnRenderThread() != 0;
+          CVarUseSubpassLoad.GetValueOnRenderThread() != 0;
 #else
-                false;
+          false;
 #endif
 
-            // Vulkan and Metal read it as a subpass input attachment; anything
-            // else texel-fetches it. Matches SUPPORTS_SUBPASS_LOAD.
-            const ERHIInterfaceType RHIType = GDynamicRHI->GetInterfaceType();
-            const bool bUseSubpassLoad =
-                bUseFrameBufferFetch && (RHIType == ERHIInterfaceType::Vulkan ||
-                                         RHIType == ERHIInterfaceType::Metal);
+      // Vulkan and Metal read it as a subpass input attachment; anything
+      // else texel-fetches it. Matches SUPPORTS_SUBPASS_LOAD.
+      const ERHIInterfaceType RHIType = GDynamicRHI->GetInterfaceType();
+      const bool bUseSubpassLoad = bUseFrameBufferFetch &&
+                                   (RHIType == ERHIInterfaceType::Vulkan ||
+                                    RHIType == ERHIInterfaceType::Metal);
 
-            // Platforms whose RHI allows reading a bound attachment take the
-            // single-pass path with the live target as the dst texture.
-            bool bReadAttachmentInPlace = bUseFrameBufferFetch &&
-                                          !bUseSubpassLoad &&
-                                          RiveGetReadAttachmentInPlace() != 0;
+      // Platforms whose RHI allows reading a bound attachment take the
+      // single-pass path with the live target as the dst texture.
+      bool bReadAttachmentInPlace = bUseFrameBufferFetch && !bUseSubpassLoad &&
+                                    RiveGetReadAttachmentInPlace() != 0;
 
 #if !WITH_EDITOR
-            // The shader variant is fixed at cook time. Where it declares the
-            // dst as Texture2DMS, the scratch fallback would bind a one-sample
-            // texture to it, so the cooked choice wins over the cvars.
-            if (!bReadAttachmentInPlace && !bUseSubpassLoad &&
-                RiveCookedReadAttachmentInPlace())
-            {
-                static bool bWarnedAttachmentOverride = false;
-                if (!bWarnedAttachmentOverride)
-                {
-                    bWarnedAttachmentOverride = true;
-                    UE_LOG(LogRiveRenderer,
-                           Warning,
-                           TEXT("r.rive.SubpassLoad / "
-                                "r.rive.ReadAttachmentInPlace are ignored: the "
-                                "msaa shaders were cooked to texel-fetch the "
-                                "live target."));
-                }
-                bReadAttachmentInPlace = true;
-            }
+      // The shader variant is fixed at cook time. Where it declares the
+      // dst as Texture2DMS, the scratch fallback would bind a one-sample
+      // texture to it, so the cooked choice wins over the cvars.
+      if (!bReadAttachmentInPlace && !bUseSubpassLoad &&
+          RiveCookedReadAttachmentInPlace())
+      {
+        static bool bWarnedAttachmentOverride = false;
+        if (!bWarnedAttachmentOverride)
+        {
+          bWarnedAttachmentOverride = true;
+          UE_LOG(
+              LogRiveRenderer,
+              Warning,
+              TEXT("r.rive.SubpassLoad / "
+                   "r.rive.ReadAttachmentInPlace are ignored: the "
+                   "msaa shaders were cooked to texel-fetch the "
+                   "live target."));
+        }
+        bReadAttachmentInPlace = true;
+      }
 #endif
-            // The modes that keep one render pass for the whole flush.
-            const bool bUseSinglePassBarrier =
-                bUseSubpassLoad || bReadAttachmentInPlace;
+      // The modes that keep one render pass for the whole flush.
+      const bool bUseSinglePassBarrier = bUseSubpassLoad ||
+                                         bReadAttachmentInPlace;
 
-            static const bool bNeedsSeperateResolve =
-                GDynamicRHI->GetInterfaceType() == ERHIInterfaceType::Vulkan;
-            // A separate resolve leaves the render pass with no resolve
-            // target, so the samples have to be averaged by the blit shader.
-            static const bool bNeedsCustomDrawResolve =
-                MSAA_NEEDS_CUSTOM_RESOLVE || bNeedsSeperateResolve;
+      static const bool bNeedsSeperateResolve = GDynamicRHI
+                                                    ->GetInterfaceType() ==
+                                                ERHIInterfaceType::Vulkan;
+      // A separate resolve leaves the render pass with no resolve
+      // target, so the samples have to be averaged by the blit shader.
+      static const bool bNeedsCustomDrawResolve = MSAA_NEEDS_CUSTOM_RESOLVE ||
+                                                  bNeedsSeperateResolve;
 
-            const bool bSingleSampleTarget = desc.msaaSampleCount <= 1;
+      const bool bSingleSampleTarget = desc.msaaSampleCount <= 1;
 
-            // With no framebuffer fetch, a single sample target can be bound
-            // as a UAV so advanced blend reads dst in place instead of
-            // copying it to a scratch texture.
-            const bool bUseUavColor =
-                bSingleSampleTarget && !bUseSinglePassBarrier &&
-                GRHISupportsPixelShaderUAVs &&
-                enums::is_flag_set(desc.combinedShaderFeatures,
-                                   gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND);
+      // With no framebuffer fetch, a single sample target can be bound
+      // as a UAV so advanced blend reads dst in place instead of
+      // copying it to a scratch texture.
+      const bool bUseUavColor = bSingleSampleTarget && !bUseSinglePassBarrier &&
+                                GRHISupportsPixelShaderUAVs &&
+                                enums::is_flag_set(
+                                    desc.combinedShaderFeatures,
+                                    gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND);
 
-            // EClear is only safe while the flush stays in one render pass,
-            // since a restart re-clears the earlier passes. A separate resolve
-            // leaves the pass no resolve target, so it clears standalone.
-            const bool bClearInPass = bUseSinglePassBarrier &&
-                                      !bNeedsSeperateResolve &&
-                                      !bSingleSampleTarget &&
-                                      desc.colorLoadAction == LoadAction::clear;
+      // EClear is only safe while the flush stays in one render pass,
+      // since a restart re-clears the earlier passes. A separate resolve
+      // leaves the pass no resolve target, so it clears standalone.
+      const bool bClearInPass = bUseSinglePassBarrier &&
+                                !bNeedsSeperateResolve &&
+                                !bSingleSampleTarget &&
+                                desc.colorLoadAction == LoadAction::clear;
 
-            float values[4];
-            rive::UnpackColorToRGBA32FPremul(desc.colorClearValue, values);
-            FLinearColor ClearColor(values[0], values[1], values[2], values[3]);
-            MSAAColorTexture =
-                bSingleSampleTarget
-                    ? (NeedsBackBuffer ? backBuffer : targetTexture)
-                    : renderTarget->msaaColorTexture(GraphBuilder,
-                                                     ClearColor,
-                                                     desc.msaaSampleCount);
-            DepthStencilTexture =
-                renderTarget->msaaStencilTexture(GraphBuilder,
-                                                 desc.depthClearValue,
-                                                 desc.stencilClearValue,
-                                                 desc.msaaSampleCount);
+      float values[4];
+      rive::UnpackColorToRGBA32FPremul(desc.colorClearValue, values);
+      FLinearColor ClearColor(values[0], values[1], values[2], values[3]);
+      MSAAColorTexture = bSingleSampleTarget
+                             ? (NeedsBackBuffer ? backBuffer : targetTexture)
+                             : renderTarget->msaaColorTexture(
+                                   GraphBuilder,
+                                   ClearColor,
+                                   desc.msaaSampleCount);
+      DepthStencilTexture = renderTarget->msaaStencilTexture(
+          GraphBuilder,
+          desc.depthClearValue,
+          desc.stencilClearValue,
+          desc.msaaSampleCount);
 
-            AddClearDepthStencilPass(GraphBuilder, DepthStencilTexture);
-            if (desc.colorLoadAction == LoadAction::clear)
-            {
-                AddClearRenderTargetPass(GraphBuilder,
-                                         NeedsBackBuffer ? backBuffer
-                                                         : targetTexture,
-                                         ClearColor);
-                if (!bClearInPass && !bSingleSampleTarget)
-                {
-                    AddClearRenderTargetPass(GraphBuilder, MSAAColorTexture);
-                }
-            }
-            else if (desc.colorLoadAction == LoadAction::preserveRenderTarget &&
-                     !(bSingleSampleTarget && !NeedsBackBuffer))
-            {
-                auto Params =
-                    GraphBuilder
-                        .AllocParameters<FRiveDrawTextureBltParameters>();
-                Params->RenderTargets[0] =
-                    FRenderTargetBinding(MSAAColorTexture,
-                                         ERenderTargetLoadAction::ENoAction);
-                Params->PS.GLSL_sourceTexture_raw = targetTexture;
+      AddClearDepthStencilPass(GraphBuilder, DepthStencilTexture);
+      if (desc.colorLoadAction == LoadAction::clear)
+      {
+        AddClearRenderTargetPass(
+            GraphBuilder,
+            NeedsBackBuffer ? backBuffer : targetTexture,
+            ClearColor);
+        if (!bClearInPass && !bSingleSampleTarget)
+        {
+          AddClearRenderTargetPass(GraphBuilder, MSAAColorTexture);
+        }
+      }
+      else if (
+          desc.colorLoadAction == LoadAction::preserveRenderTarget &&
+          !(bSingleSampleTarget && !NeedsBackBuffer))
+      {
+        auto Params = GraphBuilder
+                          .AllocParameters<FRiveDrawTextureBltParameters>();
+        Params->RenderTargets[0] = FRenderTargetBinding(
+            MSAAColorTexture,
+            ERenderTargetLoadAction::ENoAction);
+        Params->PS.GLSL_sourceTexture_raw = targetTexture;
 
-                AddDrawTextureBlt(GraphBuilder,
-                                  VertexDeclarations[static_cast<int>(
-                                      EVertexDeclarations::Resolve)],
-                                  FUint32Rect(0,
-                                              0,
-                                              renderTarget->width(),
-                                              renderTarget->height()),
-                                  ShaderMap,
-                                  Params,
-                                  false,
-                                  /*bOpaque =*/true);
-            }
+        AddDrawTextureBlt(
+            GraphBuilder,
+            VertexDeclarations[static_cast<int>(EVertexDeclarations::Resolve)],
+            FUint32Rect(0, 0, renderTarget->width(), renderTarget->height()),
+            ShaderMap,
+            Params,
+            false,
+            /*bOpaque =*/true);
+      }
 
-            // The scratch readback texture serves the fallback path.
-            if (!bUseSinglePassBarrier && !bUseUavColor &&
-                enums::is_flag_set(desc.combinedShaderFeatures,
-                                   gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND))
-            {
-                // Used for reading back the framebuffer since we have no easy
-                // framebuffer fetch option
-                auto MSAADstColorTextureDesc = MSAAColorTexture->Desc;
-                MSAADstColorTextureDesc.ClearValue =
-                    FClearValueBinding::Transparent;
-                MSAADstColorTextureDesc.NumSamples = 1;
-                MSAADstColorTextureDesc.Flags |=
-                    ETextureCreateFlags::RenderTargetable;
-                MSAADstColorTextureDesc.Flags |=
-                    ETextureCreateFlags::ShaderResource;
-                // The blend reads this back as raw data and works in gamma
-                // space, so it must not get an sRGB decode on read.
-                MSAADstColorTextureDesc.Flags &= ~ETextureCreateFlags::SRGB;
-                MSAADstColorTexture =
-                    GraphBuilder.CreateTexture(MSAADstColorTextureDesc,
-                                               TEXT("rive.MSAAScratchTexture"));
+      // The scratch readback texture serves the fallback path.
+      if (!bUseSinglePassBarrier && !bUseUavColor &&
+          enums::is_flag_set(
+              desc.combinedShaderFeatures,
+              gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND))
+      {
+        // Used for reading back the framebuffer since we have no easy
+        // framebuffer fetch option
+        auto MSAADstColorTextureDesc = MSAAColorTexture->Desc;
+        MSAADstColorTextureDesc.ClearValue = FClearValueBinding::Transparent;
+        MSAADstColorTextureDesc.NumSamples = 1;
+        MSAADstColorTextureDesc.Flags |= ETextureCreateFlags::RenderTargetable;
+        MSAADstColorTextureDesc.Flags |= ETextureCreateFlags::ShaderResource;
+        // The blend reads this back as raw data and works in gamma
+        // space, so it must not get an sRGB decode on read.
+        MSAADstColorTextureDesc.Flags &= ~ETextureCreateFlags::SRGB;
+        MSAADstColorTexture = GraphBuilder.CreateTexture(
+            MSAADstColorTextureDesc,
+            TEXT("rive.MSAAScratchTexture"));
 
-                // Advanced blend draws in the first render pass read this
-                // before anything has been copied into it, so seed it with
-                // what is already in the framebuffer.
-                FRHICopyTextureInfo SeedCopyInfo;
-                SeedCopyInfo.Size =
-                    FIntVector(static_cast<int32>(renderTarget->width()),
-                               static_cast<int32>(renderTarget->height()),
-                               1);
-                RDG_EVENT_SCOPE_STAT(GraphBuilder,
-                                     STAT_RiveFlush_DstSeedCopy,
-                                     "RiveDstSeedCopy");
-                AddCopyTexturePass(GraphBuilder,
-                                   NeedsBackBuffer ? backBuffer : targetTexture,
-                                   MSAADstColorTexture,
-                                   SeedCopyInfo);
-            }
+        // Advanced blend draws in the first render pass read this
+        // before anything has been copied into it, so seed it with
+        // what is already in the framebuffer.
+        FRHICopyTextureInfo SeedCopyInfo;
+        SeedCopyInfo.Size = FIntVector(
+            static_cast<int32>(renderTarget->width()),
+            static_cast<int32>(renderTarget->height()),
+            1);
+        RDG_EVENT_SCOPE_STAT(
+            GraphBuilder,
+            STAT_RiveFlush_DstSeedCopy,
+            "RiveDstSeedCopy");
+        AddCopyTexturePass(
+            GraphBuilder,
+            NeedsBackBuffer ? backBuffer : targetTexture,
+            MSAADstColorTexture,
+            SeedCopyInfo);
+      }
 
-            auto AllocPassParameters = [&](bool bPassUsesUav) {
-                auto PassParameters =
-                    GraphBuilder
-                        .AllocParameters<FRiveMSAAFlushPassParameters>();
-                if (bPassUsesUav)
-                {
-                    // The framebuffer is the UAV for this pass, so it must not
-                    // also be bound as a color attachment.
-                    PassParameters->PS.GLSL_dstColorUav_raw =
-                        GraphBuilder.CreateUAV(MSAAColorTexture);
-                }
-                else if (bNeedsSeperateResolve || bSingleSampleTarget)
-                {
-                    PassParameters->RenderTargets[0] = {
-                        MSAAColorTexture,
-                        ERenderTargetLoadAction::ELoad,
-                    };
-                }
-                else
-                {
-                    PassParameters->RenderTargets[0] = {
-                        MSAAColorTexture,
-                        NeedsBackBuffer ? backBuffer : targetTexture,
-                        bClearInPass ? ERenderTargetLoadAction::EClear
-                                     : ERenderTargetLoadAction::ELoad,
-                    };
-                }
+      auto AllocPassParameters = [&](bool bPassUsesUav) {
+        auto PassParameters = GraphBuilder.AllocParameters<
+            FRiveMSAAFlushPassParameters>();
+        if (bPassUsesUav)
+        {
+          // The framebuffer is the UAV for this pass, so it must not
+          // also be bound as a color attachment.
+          PassParameters->PS.GLSL_dstColorUav_raw = GraphBuilder.CreateUAV(
+              MSAAColorTexture);
+        }
+        else if (bNeedsSeperateResolve || bSingleSampleTarget)
+        {
+          PassParameters->RenderTargets[0] = {
+              MSAAColorTexture,
+              ERenderTargetLoadAction::ELoad,
+          };
+        }
+        else
+        {
+          PassParameters->RenderTargets[0] = {
+              MSAAColorTexture,
+              NeedsBackBuffer ? backBuffer : targetTexture,
+              bClearInPass ? ERenderTargetLoadAction::EClear
+                           : ERenderTargetLoadAction::ELoad,
+          };
+        }
 
-                PassParameters->RenderTargets.DepthStencil = {
-                    DepthStencilTexture,
-                    nullptr,
-                    ERenderTargetLoadAction::ELoad,
-                    ERenderTargetLoadAction::ELoad,
-                    FExclusiveDepthStencil::DepthWrite_StencilWrite};
+        PassParameters->RenderTargets.DepthStencil = {
+            DepthStencilTexture,
+            nullptr,
+            ERenderTargetLoadAction::ELoad,
+            ERenderTargetLoadAction::ELoad,
+            FExclusiveDepthStencil::DepthWrite_StencilWrite};
 
 #if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
-                if (bUseSinglePassBarrier)
-                {
-                    PassParameters->RenderTargets.SubpassHint =
-                        ESubpassHint::FrameBufferFetchSubpass;
-                }
+        if (bUseSinglePassBarrier)
+        {
+          PassParameters->RenderTargets
+              .SubpassHint = ESubpassHint::FrameBufferFetchSubpass;
+        }
 #endif
 
-                PassParameters->RenderTargets.ResolveRect = {
+        PassParameters->RenderTargets.ResolveRect = {
+            desc.renderTargetUpdateBounds.left,
+            desc.renderTargetUpdateBounds.top,
+            desc.renderTargetUpdateBounds.right,
+            desc.renderTargetUpdateBounds.bottom};
+
+        PassParameters->FlushUniforms = flushUniforms;
+        PassParameters->PS.gradSampler = m_gradSampler;
+
+        PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
+        PassParameters->PS.gaussianIntegralSampler = m_gaussianIntegralSampler;
+        // The bound attachment, or the resolved scratch copy.
+        PassParameters->PS.GLSL_dstColorTexture_raw = MSAADstColorTexture !=
+                                                              nullptr
+                                                          ? MSAADstColorTexture
+                                                          : MSAAColorTexture;
+        PassParameters->PS.GLSL_featherAtlasTexture_raw = featherAtlasTexture;
+        PassParameters->PS
+            .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
+        PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
+        PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+        PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
+        PassParameters->PS.GLSL_imageTexture_raw = m_placeholderTexture;
+
+        PassParameters->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
+        PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
+        PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
+        PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+        PassParameters->VS.GLSL_paintBuffer_raw = paintSRV;
+        PassParameters->VS
+            .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
+        PassParameters->VS.gaussianIntegralSampler = m_gaussianIntegralSampler;
+        PassParameters->VS.baseInstance = 0;
+
+        return PassParameters;
+      };
+
+      FUintRect Viewport = FUintRect(
+          0,
+          0,
+          renderTarget->width(),
+          renderTarget->height());
+
+      FUintRect Scissor = FUintRect(
+          desc.renderTargetUpdateBounds.left,
+          desc.renderTargetUpdateBounds.top,
+          desc.renderTargetUpdateBounds.right,
+          desc.renderTargetUpdateBounds.bottom);
+
+      if (!desc.drawList->empty())
+      {
+        // copy the list on the graph.
+        auto CopyList = GraphBuilder.AllocObject<CopyDrawList>(desc);
+        // A null split list keeps the whole flush in one render pass
+        // with in-pass barriers.
+        const bool bSinglePass = bUseSinglePassBarrier;
+
+        // Advanced blend writes the framebuffer UAV; everything else
+        // writes the color attachment. A pass can only bind one of
+        // them, so the flush alternates passes as the mode changes.
+        auto BatchUsesUav = [bUseUavColor](const DrawBatch* Batch) {
+          return bUseUavColor &&
+                 enums::is_flag_set(
+                     Batch->shaderFeatures,
+                     gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND);
+        };
+        auto SegmentEnd = [&BatchUsesUav](
+                              const DrawBatch* Start,
+                              const DrawBatch* BarrierEnd) {
+          const bool bMode = BatchUsesUav(Start);
+          for (const DrawBatch* Batch = Start->next;
+               Batch != nullptr && Batch != BarrierEnd;
+               Batch = Batch->next)
+          {
+            if (BatchUsesUav(Batch) != bMode)
+            {
+              return Batch;
+            }
+          }
+          return BarrierEnd;
+        };
+
+        // Only batches that start a pass carry a barrier pointer, so
+        // the barrier end is tracked here and only advances once a
+        // pass actually reaches it.
+        const DrawBatch* RenderPassStart = CopyList->head();
+        const DrawBatch* BarrierEnd = bSinglePass ? nullptr
+                                                  : CopyList->head()
+                                                        ->nextDstBlendBarrier;
+        while (RenderPassStart != nullptr)
+        {
+          const DrawBatch* NextRenderPass = bSinglePass ? nullptr
+                                                        : SegmentEnd(
+                                                              RenderPassStart,
+                                                              BarrierEnd);
+          const bool bPassUsesUav = BatchUsesUav(RenderPassStart);
+          auto PassParameters = AllocPassParameters(bPassUsesUav);
+
+          GraphBuilder.AddPass(
+              RDG_EVENT_NAME("Rive_Draw_MSAA_Render_Pass"),
+              PassParameters,
+              ERDGPassFlags::Raster,
+              [PassParameters,
+               desc = desc,
+               RenderPassStart = *RenderPassStart,
+               ShaderMap,
+               capabilities = m_capabilities,
+               platformFeatures = m_platformFeatures,
+               imageSamplers = m_imageSamplers,
+               NextRenderPass,
+               bUseSinglePassBarrier,
+               bUseSubpassLoad,
+               bPassUsesUav,
+               imageRectInstanceBuffer = m_imageRectInstanceBuffer.get(),
+               imageMeshInstanceBuffer = m_imageMeshInstanceBuffer.get(),
+               VertexDeclarations = VertexDeclarations,
+               patchVertexBuffer = m_patchVertexBuffer,
+               patchIndexBuffer = m_patchIndexBuffer,
+               dsMidpointFanFillIndexBuffer = m_dsMidpointFanFillIndexBuffer,
+               dsOuterCubicFillIndexBuffer = m_dsOuterCubicFillIndexBuffer,
+               dsStrokeIndexBuffer = m_dsStrokeIndexBuffer,
+               dsAAStrokeIndexBuffer = m_dsAAStrokeIndexBuffer,
+               triangleBuffer,
+               Viewport,
+               Scissor,
+               FixedFunctionColorOutput = desc.fixedFunctionColorOutput](
+                  FRHICommandListImmediate& RHICmdList) {
+                RHI_BREADCRUMB_EVENT_STAT(
+                    RHICmdList,
+                    STAT_RiveFlush_RiveFlushRenderPass,
+                    "RiveFlushRenderPass");
+                CSV_SCOPED_TIMING_STAT(RiveMSAA, RenderPass);
+
+                // Nothing is bound yet as far as this pass is
+                // concerned, and whatever ran before it had its own
+                // render targets.
+                RiveInvalidateBoundPipelineState();
+
+                for (const DrawBatch* batch =
+                         const_cast<DrawBatch*>(&RenderPassStart);
+                     batch && batch != NextRenderPass;
+                     batch = batch->next)
+                {
+                  // Order prior color writes against this
+                  // batch's dst color reads, even when the
+                  // barrier batch itself is empty.
+                  if (bUseSinglePassBarrier && enums::any_flag_set(
+                                                   batch->barriers,
+                                                   BarrierFlags::dstBlend))
+                  {
+#if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
+                    RHICmdList.FrameBufferFetchBarrier();
+#endif
+                  }
+
+                  if (batch->elementCount == 0)
+                  {
+                    continue;
+                  }
+
+                  CSV_CUSTOM_STAT(
+                      RiveMSAA,
+                      Batches,
+                      1,
+                      ECsvCustomStatOp::Accumulate);
+
+                  AtomicPixelPermutationDomain PixelPermutationDomain;
+                  AtomicVertexPermutationDomain VertexPermutationDomain;
+
+                  auto ShaderFeatures = batch->shaderFeatures;
+                  auto shaderMiscFlags = batch->shaderMiscFlags;
+
+                  if (enums::is_flag_set(
+                          batch->drawContents,
+                          DrawContents::clockwiseFill))
+                    shaderMiscFlags |= ShaderMiscFlags::clockwiseFill;
+
+                  GetPermutationForFeatures(
+                      ShaderFeatures,
+                      shaderMiscFlags,
+                      capabilities,
+                      false,
+                      PixelPermutationDomain,
+                      VertexPermutationDomain);
+
+                  PipelineState PipelineState;
+                  get_pipeline_state(
+                      *batch,
+                      desc,
+                      platformFeatures,
+                      &PipelineState);
+
+                  if (batch->imageTexture)
+                  {
+                    check(
+                        batch->imageSampler.asKey() <
+                        ImageSampler::MAX_SAMPLER_PERMUTATIONS);
+                    PassParameters->PS.imageSampler = imageSamplers
+                        [batch->imageSampler.asKey()];
+                    auto imageTexture = static_cast<TextureRHIImpl*>(
+                        batch->imageTexture);
+                    check(imageTexture);
+                    PassParameters->PS.GLSL_imageTexture_raw = imageTexture
+                                                                   ->contents();
+                  }
+                  else
+                  {
+                    PassParameters->PS.imageSampler = imageSamplers[0];
+                  }
+
+                  FRiveCommonPassParameters CommonPassParameters(
+                      *batch,
+                      PipelineState,
+                      platformFeatures,
+                      ShaderMap);
+
+                  CommonPassParameters
+                      .VertexPermutationDomain = VertexPermutationDomain;
+                  CommonPassParameters
+                      .PixelPermutationDomain = PixelPermutationDomain;
+                  CommonPassParameters.Viewport = Viewport;
+                  CommonPassParameters.Scissor = RiveBatchScissor(
+                      Scissor,
+                      batch->scissorRect);
+                  CommonPassParameters.BlendType = FixedFunctionColorOutput
+                                                       ? EBlendType::Blend
+                                                       : EBlendType::None;
+                  CommonPassParameters
+                      .bWireframe = CVarRiveWireframe
+                                        .GetValueOnRenderThread() ||
+                                    desc.wireframe;
+                  CommonPassParameters.bUseSubpassLoad = bUseSubpassLoad;
+                  CommonPassParameters.bUseUavColor = bPassUsesUav;
+                  CommonPassParameters.bEnableMSAA = desc.msaaSampleCount > 1;
+                  switch (batch->drawType)
+                  {
+                    case DrawType::stencilDynamicMidpointFans:
+                    case DrawType::stencilDynamicOuterCubics:
+                      // Only emitted when the context reports
+                      // supportsPipelineDynamicState, which
+                      // requires the engine patch.
+                      {
+                        const FString& PassName = NameForDrawType(
+                            batch->drawType);
+
+                        CommonPassParameters
+                            .IndexBuffer = IsOuterCubicFillDrawType(
+                                               batch->drawType)
+                                               ? dsOuterCubicFillIndexBuffer
+                                               : dsMidpointFanFillIndexBuffer;
+
+                        // One state per collapsed subpass.
+                        // Same order as the native
+                        // backend's Passes[].
+                        static constexpr DrawType Passes[] = {
+                            DrawType::stencilMidpointFanBorrowedCoverage,
+                            DrawType::stencilMidpointFans,
+                            DrawType::stencilMidpointFanReset,
+                        };
+                        // Qualified: a local named
+                        // PipelineState shadows the type
+                        // here.
+                        rive::gpu::PipelineState
+                            PassStates[UE_ARRAY_COUNT(Passes)];
+                        for (int32 PassIndex = 0;
+                             PassIndex < UE_ARRAY_COUNT(Passes);
+                             ++PassIndex)
+                        {
+                          PassStates[PassIndex] = get_pipeline_state(
+                              Passes[PassIndex],
+                              desc.interlockMode,
+                              shaderMiscFlags,
+                              batch->drawContents,
+                              desc.fixedFunctionColorOutput,
+                              batch->firstBlendMode,
+                              platformFeatures);
+                        }
+
+                        AddDrawMSAADynamicMidpointFansPass(
+                            RHICmdList,
+                            PassName,
+                            &CommonPassParameters,
+                            PassParameters,
+                            PassStates);
+                      }
+                      break;
+
+                    case DrawType::stencilOuterCubics:
+                    case DrawType::stencilOuterCubicBorrowedCoverage:
+                    case DrawType::stencilOuterCubicReset:
+                    case DrawType::stencilOuterCubicWinding:
+                    case DrawType::stencilOuterCubicCover:
+                    case DrawType::stencilMidpointFanBorrowedCoverage:
+                    case DrawType::stencilMidpointFans:
+                    case DrawType::stencilMidpointFanReset:
+                    case DrawType::stencilMidpointFanWinding:
+                    case DrawType::stencilMidpointFanCover:
+                    {
+                      const FString& PassName = NameForDrawType(
+                          batch->drawType);
+
+                      CommonPassParameters
+                          .IndexBuffer = IsOuterCubicFillDrawType(
+                                             batch->drawType)
+                                             ? dsOuterCubicFillIndexBuffer
+                                             : dsMidpointFanFillIndexBuffer;
+
+                      AddDrawMSAAFillsPass(
+                          RHICmdList,
+                          PassName,
+                          &CommonPassParameters,
+                          PassParameters);
+                    }
+                    break;
+
+                    case DrawType::depthStrokes:
+                    case DrawType::depthAAStrokes:
+                    case DrawType::depthAAOuterHairline:
+                    {
+                      const FString& PassName = NameForDrawType(
+                          batch->drawType);
+
+                      CommonPassParameters
+                          .IndexBuffer = batch->drawType ==
+                                                 DrawType::depthAAStrokes
+                                             ? dsAAStrokeIndexBuffer
+                                             : dsStrokeIndexBuffer;
+
+                      AddDrawMSAAFillsPass(
+                          RHICmdList,
+                          PassName,
+                          &CommonPassParameters,
+                          PassParameters);
+                    }
+                    break;
+                    case DrawType::clipReset:
+                    {
+                      CommonPassParameters
+                          .VertexDeclarationRHI = VertexDeclarations
+                          [static_cast<int32>(
+                              EVertexDeclarations::InteriorTriangles)];
+                      CommonPassParameters.VertexBuffers[0] = triangleBuffer;
+
+                      AddDrawMSAAStencilClipResetPass(
+                          RHICmdList,
+                          &CommonPassParameters,
+                          PassParameters);
+                    }
+                    break;
+                    case DrawType::featherAtlasBlit:
+                    {
+                      CommonPassParameters
+                          .VertexDeclarationRHI = VertexDeclarations
+                          [static_cast<int32>(
+                              EVertexDeclarations::InteriorTriangles)];
+                      CommonPassParameters.VertexBuffers[0] = triangleBuffer;
+
+                      AddDrawMSAAAtlasBlitPass(
+                          RHICmdList,
+                          &CommonPassParameters,
+                          PassParameters);
+                    }
+                    break;
+                    case DrawType::imageMesh:
+                    {
+                      LITE_RTTI_CAST_OR_BREAK(
+                          IndexBuffer,
+                          const RenderBufferRHIImpl*,
+                          batch->indexBuffer);
+                      LITE_RTTI_CAST_OR_BREAK(
+                          VertexBuffer,
+                          const RenderBufferRHIImpl*,
+                          batch->vertexBuffer);
+                      LITE_RTTI_CAST_OR_BREAK(
+                          UVBuffer,
+                          const RenderBufferRHIImpl*,
+                          batch->uvBuffer);
+
+                      auto imageTexture = static_cast<const TextureRHIImpl*>(
+                          batch->imageTexture);
+
+                      auto IndexBufferRHI = IndexBuffer->Sync(RHICmdList);
+                      auto VertexBufferRHI = VertexBuffer->Sync(RHICmdList);
+                      auto UVBufferRHI = UVBuffer->Sync(RHICmdList);
+
+                      CommonPassParameters
+                          .VertexDeclarationRHI = VertexDeclarations
+                          [static_cast<int32>(EVertexDeclarations::ImageMesh)];
+                      CommonPassParameters.VertexBuffers[0] = VertexBufferRHI;
+                      CommonPassParameters.VertexBuffers[1] = UVBufferRHI;
+                      CommonPassParameters
+                          .VertexBuffers[2] = imageMeshInstanceBuffer->Sync(
+                          RHICmdList);
+                      CommonPassParameters.IndexBuffer = IndexBufferRHI;
+
+                      AddDrawMSAAImageMeshPass(
+                          RHICmdList,
+                          VertexBuffer->sizeInBytes() / sizeof(Vec2D),
+                          &CommonPassParameters,
+                          PassParameters);
+                    }
+                    break;
+                    case DrawType::midpointFanPatches:
+                    case DrawType::midpointFanCenterAAPatches:
+                    case DrawType::outerCurvePatches:
+                    case DrawType::interiorTriangulation:
+                    case DrawType::renderPassResolve:
+                    case DrawType::imageRect:
+                    case DrawType::renderPassInitialize:
+                      RIVE_UNREACHABLE();
+                  }
+                }
+              });
+
+          if (NextRenderPass && MSAADstColorTexture)
+          {
+            CSV_CUSTOM_STAT(
+                RiveMSAA,
+                DstBoundaries,
+                1,
+                ECsvCustomStatOp::Accumulate);
+            if (bNeedsSeperateResolve && !bSingleSampleTarget)
+            {
+              RDG_EVENT_SCOPE_STAT(
+                  GraphBuilder,
+                  STAT_RiveFlush_DstBoundaryResolve,
+                  "RiveDstBoundaryResolve");
+              auto Params = GraphBuilder.AllocParameters<
+                  FRiveDrawTextureBltParameters>();
+              Params->RenderTargets[0] = FRenderTargetBinding(
+                  MSAADstColorTexture,
+                  ERenderTargetLoadAction::ELoad);
+              Params->PS.GLSL_sourceTexture_raw = MSAAColorTexture;
+              AddDrawTextureBlt(
+                  GraphBuilder,
+                  VertexDeclarations[static_cast<int>(
+                      EVertexDeclarations::Resolve)],
+                  FUint32Rect(
+                      desc.renderTargetUpdateBounds.left,
+                      desc.renderTargetUpdateBounds.top,
+                      desc.renderTargetUpdateBounds.right,
+                      desc.renderTargetUpdateBounds.bottom),
+                  ShaderMap,
+                  Params,
+                  true,
+                  /*bOpaque =*/true);
+            }
+            else
+            {
+              RDG_EVENT_SCOPE_STAT(
+                  GraphBuilder,
+                  STAT_RiveFlush_DstBoundaryCopy,
+                  "RiveDstBoundaryCopy");
+              FRHICopyTextureInfo DstCopyInfo;
+              DstCopyInfo.Size = FIntVector(
+                  static_cast<int32>(renderTarget->width()),
+                  static_cast<int32>(renderTarget->height()),
+                  1);
+              AddCopyTexturePass(
+                  GraphBuilder,
+                  NeedsBackBuffer ? backBuffer : targetTexture,
+                  MSAADstColorTexture,
+                  DstCopyInfo);
+            }
+          }
+
+          RenderPassStart = NextRenderPass;
+          if (RenderPassStart != nullptr && RenderPassStart == BarrierEnd)
+          {
+            BarrierEnd = RenderPassStart->nextDstBlendBarrier;
+          }
+        }
+
+        if (bNeedsSeperateResolve && MSAAColorTexture && !bSingleSampleTarget)
+        {
+          if (bNeedsCustomDrawResolve)
+          {
+            auto Params = GraphBuilder
+                              .AllocParameters<FRiveDrawTextureBltParameters>();
+            Params->RenderTargets[0] = FRenderTargetBinding(
+                NeedsBackBuffer ? backBuffer : targetTexture,
+                ERenderTargetLoadAction::ELoad);
+            Params->PS.GLSL_sourceTexture_raw = MSAAColorTexture;
+            AddDrawTextureBlt(
+                GraphBuilder,
+                VertexDeclarations[static_cast<int>(
+                    EVertexDeclarations::Resolve)],
+                FUint32Rect(
                     desc.renderTargetUpdateBounds.left,
                     desc.renderTargetUpdateBounds.top,
                     desc.renderTargetUpdateBounds.right,
-                    desc.renderTargetUpdateBounds.bottom};
-
-                PassParameters->FlushUniforms = flushUniforms;
-                PassParameters->PS.gradSampler = m_gradSampler;
-
-                PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
-                PassParameters->PS.gaussianIntegralSampler =
-                    m_gaussianIntegralSampler;
-                // The bound attachment, or the resolved scratch copy.
-                PassParameters->PS.GLSL_dstColorTexture_raw =
-                    MSAADstColorTexture != nullptr ? MSAADstColorTexture
-                                                   : MSAAColorTexture;
-                PassParameters->PS.GLSL_featherAtlasTexture_raw =
-                    featherAtlasTexture;
-                PassParameters->PS.GLSL_gaussianIntegralTexture_raw =
-                    gaussianIntegralTexture;
-                PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
-                PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
-                PassParameters->PS.GLSL_imageTexture_raw = m_placeholderTexture;
-
-                PassParameters->VS.GLSL_tessVertexTexture_raw =
-                    tesselationTexture;
-                PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
-                PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
-                PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                PassParameters->VS.GLSL_paintBuffer_raw = paintSRV;
-                PassParameters->VS.GLSL_gaussianIntegralTexture_raw =
-                    gaussianIntegralTexture;
-                PassParameters->VS.gaussianIntegralSampler =
-                    m_gaussianIntegralSampler;
-                PassParameters->VS.baseInstance = 0;
-
-                return PassParameters;
-            };
-
-            FUintRect Viewport =
-                FUintRect(0, 0, renderTarget->width(), renderTarget->height());
-
-            FUintRect Scissor = FUintRect(desc.renderTargetUpdateBounds.left,
-                                          desc.renderTargetUpdateBounds.top,
-                                          desc.renderTargetUpdateBounds.right,
-                                          desc.renderTargetUpdateBounds.bottom);
-
-            if (!desc.drawList->empty())
-            {
-                // copy the list on the graph.
-                auto CopyList = GraphBuilder.AllocObject<CopyDrawList>(desc);
-                // A null split list keeps the whole flush in one render pass
-                // with in-pass barriers.
-                const bool bSinglePass = bUseSinglePassBarrier;
-
-                // Advanced blend writes the framebuffer UAV; everything else
-                // writes the color attachment. A pass can only bind one of
-                // them, so the flush alternates passes as the mode changes.
-                auto BatchUsesUav = [bUseUavColor](const DrawBatch* Batch) {
-                    return bUseUavColor &&
-                           enums::is_flag_set(
-                               Batch->shaderFeatures,
-                               gpu::ShaderFeatures::ENABLE_ADVANCED_BLEND);
-                };
-                auto SegmentEnd = [&BatchUsesUav](const DrawBatch* Start,
-                                                  const DrawBatch* BarrierEnd) {
-                    const bool bMode = BatchUsesUav(Start);
-                    for (const DrawBatch* Batch = Start->next;
-                         Batch != nullptr && Batch != BarrierEnd;
-                         Batch = Batch->next)
-                    {
-                        if (BatchUsesUav(Batch) != bMode)
-                        {
-                            return Batch;
-                        }
-                    }
-                    return BarrierEnd;
-                };
-
-                // Only batches that start a pass carry a barrier pointer, so
-                // the barrier end is tracked here and only advances once a
-                // pass actually reaches it.
-                const DrawBatch* RenderPassStart = CopyList->head();
-                const DrawBatch* BarrierEnd =
-                    bSinglePass ? nullptr
-                                : CopyList->head()->nextDstBlendBarrier;
-                while (RenderPassStart != nullptr)
-                {
-                    const DrawBatch* NextRenderPass =
-                        bSinglePass ? nullptr
-                                    : SegmentEnd(RenderPassStart, BarrierEnd);
-                    const bool bPassUsesUav = BatchUsesUav(RenderPassStart);
-                    auto PassParameters = AllocPassParameters(bPassUsesUav);
-
-                    GraphBuilder.AddPass(
-                        RDG_EVENT_NAME("Rive_Draw_MSAA_Render_Pass"),
-                        PassParameters,
-                        ERDGPassFlags::Raster,
-                        [PassParameters,
-                         desc = desc,
-                         RenderPassStart = *RenderPassStart,
-                         ShaderMap,
-                         capabilities = m_capabilities,
-                         platformFeatures = m_platformFeatures,
-                         imageSamplers = m_imageSamplers,
-                         NextRenderPass,
-                         bUseSinglePassBarrier,
-                         bUseSubpassLoad,
-                         bPassUsesUav,
-                         imageRectInstanceBuffer =
-                             m_imageRectInstanceBuffer.get(),
-                         imageMeshInstanceBuffer =
-                             m_imageMeshInstanceBuffer.get(),
-                         VertexDeclarations = VertexDeclarations,
-                         patchVertexBuffer = m_patchVertexBuffer,
-                         patchIndexBuffer = m_patchIndexBuffer,
-                         dsMidpointFanFillIndexBuffer =
-                             m_dsMidpointFanFillIndexBuffer,
-                         dsOuterCubicFillIndexBuffer =
-                             m_dsOuterCubicFillIndexBuffer,
-                         dsStrokeIndexBuffer = m_dsStrokeIndexBuffer,
-                         dsAAStrokeIndexBuffer = m_dsAAStrokeIndexBuffer,
-                         triangleBuffer,
-                         Viewport,
-                         Scissor,
-                         FixedFunctionColorOutput =
-                             desc.fixedFunctionColorOutput](
-                            FRHICommandListImmediate& RHICmdList) {
-                            RHI_BREADCRUMB_EVENT_STAT(
-                                RHICmdList,
-                                STAT_RiveFlush_RiveFlushRenderPass,
-                                "RiveFlushRenderPass");
-                            CSV_SCOPED_TIMING_STAT(RiveMSAA, RenderPass);
-
-                            // Nothing is bound yet as far as this pass is
-                            // concerned, and whatever ran before it had its own
-                            // render targets.
-                            RiveInvalidateBoundPipelineState();
-
-                            for (const DrawBatch* batch =
-                                     const_cast<DrawBatch*>(&RenderPassStart);
-                                 batch && batch != NextRenderPass;
-                                 batch = batch->next)
-                            {
-                                // Order prior color writes against this
-                                // batch's dst color reads, even when the
-                                // barrier batch itself is empty.
-                                if (bUseSinglePassBarrier &&
-                                    enums::any_flag_set(batch->barriers,
-                                                        BarrierFlags::dstBlend))
-                                {
-#if defined(UE_RHI_HAS_FRAMEBUFFER_FETCH_SUBPASS)
-                                    RHICmdList.FrameBufferFetchBarrier();
-#endif
-                                }
-
-                                if (batch->elementCount == 0)
-                                {
-                                    continue;
-                                }
-
-                                CSV_CUSTOM_STAT(RiveMSAA,
-                                                Batches,
-                                                1,
-                                                ECsvCustomStatOp::Accumulate);
-
-                                AtomicPixelPermutationDomain
-                                    PixelPermutationDomain;
-                                AtomicVertexPermutationDomain
-                                    VertexPermutationDomain;
-
-                                auto ShaderFeatures = batch->shaderFeatures;
-                                auto shaderMiscFlags = batch->shaderMiscFlags;
-
-                                if (enums::is_flag_set(
-                                        batch->drawContents,
-                                        DrawContents::clockwiseFill))
-                                    shaderMiscFlags |=
-                                        ShaderMiscFlags::clockwiseFill;
-
-                                GetPermutationForFeatures(
-                                    ShaderFeatures,
-                                    shaderMiscFlags,
-                                    capabilities,
-                                    false,
-                                    PixelPermutationDomain,
-                                    VertexPermutationDomain);
-
-                                PipelineState PipelineState;
-                                get_pipeline_state(*batch,
-                                                   desc,
-                                                   platformFeatures,
-                                                   &PipelineState);
-
-                                if (batch->imageTexture)
-                                {
-                                    check(
-                                        batch->imageSampler.asKey() <
-                                        ImageSampler::MAX_SAMPLER_PERMUTATIONS);
-                                    PassParameters->PS.imageSampler =
-                                        imageSamplers[batch->imageSampler
-                                                          .asKey()];
-                                    auto imageTexture =
-                                        static_cast<TextureRHIImpl*>(
-                                            batch->imageTexture);
-                                    check(imageTexture);
-                                    PassParameters->PS.GLSL_imageTexture_raw =
-                                        imageTexture->contents();
-                                }
-                                else
-                                {
-                                    PassParameters->PS.imageSampler =
-                                        imageSamplers[0];
-                                }
-
-                                FRiveCommonPassParameters CommonPassParameters(
-                                    *batch,
-                                    PipelineState,
-                                    platformFeatures,
-                                    ShaderMap);
-
-                                CommonPassParameters.VertexPermutationDomain =
-                                    VertexPermutationDomain;
-                                CommonPassParameters.PixelPermutationDomain =
-                                    PixelPermutationDomain;
-                                CommonPassParameters.Viewport = Viewport;
-                                CommonPassParameters.Scissor =
-                                    RiveBatchScissor(Scissor,
-                                                     batch->scissorRect);
-                                CommonPassParameters.BlendType =
-                                    FixedFunctionColorOutput ? EBlendType::Blend
-                                                             : EBlendType::None;
-                                CommonPassParameters.bWireframe =
-                                    CVarRiveWireframe
-                                        .GetValueOnRenderThread() ||
-                                    desc.wireframe;
-                                CommonPassParameters.bUseSubpassLoad =
-                                    bUseSubpassLoad;
-                                CommonPassParameters.bUseUavColor =
-                                    bPassUsesUav;
-                                CommonPassParameters.bEnableMSAA =
-                                    desc.msaaSampleCount > 1;
-                                switch (batch->drawType)
-                                {
-                                    case DrawType::stencilDynamicMidpointFans:
-                                    case DrawType::stencilDynamicOuterCubics:
-                                        // Only emitted when the context reports
-                                        // supportsPipelineDynamicState, which
-                                        // requires the engine patch.
-                                        {
-                                            const FString& PassName =
-                                                NameForDrawType(
-                                                    batch->drawType);
-
-                                            CommonPassParameters.IndexBuffer =
-                                                IsOuterCubicFillDrawType(
-                                                    batch->drawType)
-                                                    ? dsOuterCubicFillIndexBuffer
-                                                    : dsMidpointFanFillIndexBuffer;
-
-                                            // One state per collapsed subpass.
-                                            // Same order as the native
-                                            // backend's Passes[].
-                                            static constexpr DrawType Passes[] = {
-                                                DrawType::
-                                                    stencilMidpointFanBorrowedCoverage,
-                                                DrawType::stencilMidpointFans,
-                                                DrawType::
-                                                    stencilMidpointFanReset,
-                                            };
-                                            // Qualified: a local named
-                                            // PipelineState shadows the type
-                                            // here.
-                                            rive::gpu::PipelineState
-                                                PassStates[UE_ARRAY_COUNT(
-                                                    Passes)];
-                                            for (int32 PassIndex = 0;
-                                                 PassIndex <
-                                                 UE_ARRAY_COUNT(Passes);
-                                                 ++PassIndex)
-                                            {
-                                                PassStates[PassIndex] =
-                                                    get_pipeline_state(
-                                                        Passes[PassIndex],
-                                                        desc.interlockMode,
-                                                        shaderMiscFlags,
-                                                        batch->drawContents,
-                                                        desc.fixedFunctionColorOutput,
-                                                        batch->firstBlendMode,
-                                                        platformFeatures);
-                                            }
-
-                                            AddDrawMSAADynamicMidpointFansPass(
-                                                RHICmdList,
-                                                PassName,
-                                                &CommonPassParameters,
-                                                PassParameters,
-                                                PassStates);
-                                        }
-                                        break;
-
-                                    case DrawType::stencilOuterCubics:
-                                    case DrawType::
-                                        stencilOuterCubicBorrowedCoverage:
-                                    case DrawType::stencilOuterCubicReset:
-                                    case DrawType::stencilOuterCubicWinding:
-                                    case DrawType::stencilOuterCubicCover:
-                                    case DrawType::
-                                        stencilMidpointFanBorrowedCoverage:
-                                    case DrawType::stencilMidpointFans:
-                                    case DrawType::stencilMidpointFanReset:
-                                    case DrawType::stencilMidpointFanWinding:
-                                    case DrawType::stencilMidpointFanCover:
-                                    {
-                                        const FString& PassName =
-                                            NameForDrawType(batch->drawType);
-
-                                        CommonPassParameters.IndexBuffer =
-                                            IsOuterCubicFillDrawType(
-                                                batch->drawType)
-                                                ? dsOuterCubicFillIndexBuffer
-                                                : dsMidpointFanFillIndexBuffer;
-
-                                        AddDrawMSAAFillsPass(
-                                            RHICmdList,
-                                            PassName,
-                                            &CommonPassParameters,
-                                            PassParameters);
-                                    }
-                                    break;
-
-                                    case DrawType::depthStrokes:
-                                    case DrawType::depthAAStrokes:
-                                    case DrawType::depthAAOuterHairline:
-                                    {
-                                        const FString& PassName =
-                                            NameForDrawType(batch->drawType);
-
-                                        CommonPassParameters.IndexBuffer =
-                                            batch->drawType ==
-                                                    DrawType::depthAAStrokes
-                                                ? dsAAStrokeIndexBuffer
-                                                : dsStrokeIndexBuffer;
-
-                                        AddDrawMSAAFillsPass(
-                                            RHICmdList,
-                                            PassName,
-                                            &CommonPassParameters,
-                                            PassParameters);
-                                    }
-                                    break;
-                                    case DrawType::clipReset:
-                                    {
-                                        CommonPassParameters
-                                            .VertexDeclarationRHI =
-                                            VertexDeclarations[static_cast<
-                                                int32>(EVertexDeclarations::
-                                                           InteriorTriangles)];
-                                        CommonPassParameters.VertexBuffers[0] =
-                                            triangleBuffer;
-
-                                        AddDrawMSAAStencilClipResetPass(
-                                            RHICmdList,
-                                            &CommonPassParameters,
-                                            PassParameters);
-                                    }
-                                    break;
-                                    case DrawType::featherAtlasBlit:
-                                    {
-                                        CommonPassParameters
-                                            .VertexDeclarationRHI =
-                                            VertexDeclarations[static_cast<
-                                                int32>(EVertexDeclarations::
-                                                           InteriorTriangles)];
-                                        CommonPassParameters.VertexBuffers[0] =
-                                            triangleBuffer;
-
-                                        AddDrawMSAAAtlasBlitPass(
-                                            RHICmdList,
-                                            &CommonPassParameters,
-                                            PassParameters);
-                                    }
-                                    break;
-                                    case DrawType::imageMesh:
-                                    {
-                                        LITE_RTTI_CAST_OR_BREAK(
-                                            IndexBuffer,
-                                            const RenderBufferRHIImpl*,
-                                            batch->indexBuffer);
-                                        LITE_RTTI_CAST_OR_BREAK(
-                                            VertexBuffer,
-                                            const RenderBufferRHIImpl*,
-                                            batch->vertexBuffer);
-                                        LITE_RTTI_CAST_OR_BREAK(
-                                            UVBuffer,
-                                            const RenderBufferRHIImpl*,
-                                            batch->uvBuffer);
-
-                                        auto imageTexture =
-                                            static_cast<const TextureRHIImpl*>(
-                                                batch->imageTexture);
-
-                                        auto IndexBufferRHI =
-                                            IndexBuffer->Sync(RHICmdList);
-                                        auto VertexBufferRHI =
-                                            VertexBuffer->Sync(RHICmdList);
-                                        auto UVBufferRHI =
-                                            UVBuffer->Sync(RHICmdList);
-
-                                        CommonPassParameters
-                                            .VertexDeclarationRHI =
-                                            VertexDeclarations[static_cast<
-                                                int32>(EVertexDeclarations::
-                                                           ImageMesh)];
-                                        CommonPassParameters.VertexBuffers[0] =
-                                            VertexBufferRHI;
-                                        CommonPassParameters.VertexBuffers[1] =
-                                            UVBufferRHI;
-                                        CommonPassParameters.VertexBuffers[2] =
-                                            imageMeshInstanceBuffer->Sync(
-                                                RHICmdList);
-                                        CommonPassParameters.IndexBuffer =
-                                            IndexBufferRHI;
-
-                                        AddDrawMSAAImageMeshPass(
-                                            RHICmdList,
-                                            VertexBuffer->sizeInBytes() /
-                                                sizeof(Vec2D),
-                                            &CommonPassParameters,
-                                            PassParameters);
-                                    }
-                                    break;
-                                    case DrawType::midpointFanPatches:
-                                    case DrawType::midpointFanCenterAAPatches:
-                                    case DrawType::outerCurvePatches:
-                                    case DrawType::interiorTriangulation:
-                                    case DrawType::renderPassResolve:
-                                    case DrawType::imageRect:
-                                    case DrawType::renderPassInitialize:
-                                        RIVE_UNREACHABLE();
-                                }
-                            }
-                        });
-
-                    if (NextRenderPass && MSAADstColorTexture)
-                    {
-                        CSV_CUSTOM_STAT(RiveMSAA,
-                                        DstBoundaries,
-                                        1,
-                                        ECsvCustomStatOp::Accumulate);
-                        if (bNeedsSeperateResolve && !bSingleSampleTarget)
-                        {
-                            RDG_EVENT_SCOPE_STAT(
-                                GraphBuilder,
-                                STAT_RiveFlush_DstBoundaryResolve,
-                                "RiveDstBoundaryResolve");
-                            auto Params = GraphBuilder.AllocParameters<
-                                FRiveDrawTextureBltParameters>();
-                            Params->RenderTargets[0] = FRenderTargetBinding(
-                                MSAADstColorTexture,
-                                ERenderTargetLoadAction::ELoad);
-                            Params->PS.GLSL_sourceTexture_raw =
-                                MSAAColorTexture;
-                            AddDrawTextureBlt(
-                                GraphBuilder,
-                                VertexDeclarations[static_cast<int>(
-                                    EVertexDeclarations::Resolve)],
-                                FUint32Rect(
-                                    desc.renderTargetUpdateBounds.left,
-                                    desc.renderTargetUpdateBounds.top,
-                                    desc.renderTargetUpdateBounds.right,
-                                    desc.renderTargetUpdateBounds.bottom),
-                                ShaderMap,
-                                Params,
-                                true,
-                                /*bOpaque =*/true);
-                        }
-                        else
-                        {
-                            RDG_EVENT_SCOPE_STAT(GraphBuilder,
-                                                 STAT_RiveFlush_DstBoundaryCopy,
-                                                 "RiveDstBoundaryCopy");
-                            FRHICopyTextureInfo DstCopyInfo;
-                            DstCopyInfo.Size = FIntVector(
-                                static_cast<int32>(renderTarget->width()),
-                                static_cast<int32>(renderTarget->height()),
-                                1);
-                            AddCopyTexturePass(GraphBuilder,
-                                               NeedsBackBuffer ? backBuffer
-                                                               : targetTexture,
-                                               MSAADstColorTexture,
-                                               DstCopyInfo);
-                        }
-                    }
-
-                    RenderPassStart = NextRenderPass;
-                    if (RenderPassStart != nullptr &&
-                        RenderPassStart == BarrierEnd)
-                    {
-                        BarrierEnd = RenderPassStart->nextDstBlendBarrier;
-                    }
-                }
-
-                if (bNeedsSeperateResolve && MSAAColorTexture &&
-                    !bSingleSampleTarget)
-                {
-                    if (bNeedsCustomDrawResolve)
-                    {
-                        auto Params = GraphBuilder.AllocParameters<
-                            FRiveDrawTextureBltParameters>();
-                        Params->RenderTargets[0] = FRenderTargetBinding(
-                            NeedsBackBuffer ? backBuffer : targetTexture,
-                            ERenderTargetLoadAction::ELoad);
-                        Params->PS.GLSL_sourceTexture_raw = MSAAColorTexture;
-                        AddDrawTextureBlt(
-                            GraphBuilder,
-                            VertexDeclarations[static_cast<int>(
-                                EVertexDeclarations::Resolve)],
-                            FUint32Rect(desc.renderTargetUpdateBounds.left,
-                                        desc.renderTargetUpdateBounds.top,
-                                        desc.renderTargetUpdateBounds.right,
-                                        desc.renderTargetUpdateBounds.bottom),
-                            ShaderMap,
-                            Params,
-                            true,
-                            /*bOpaque =*/true);
-                    }
-                    else
-                    {
-                        AddDrawTexturePass(GraphBuilder,
-                                           ShaderMap,
-                                           MSAAColorTexture,
-                                           NeedsBackBuffer ? backBuffer
-                                                           : targetTexture,
-                                           {});
-                    }
-                }
-            }
+                    desc.renderTargetUpdateBounds.bottom),
+                ShaderMap,
+                Params,
+                true,
+                /*bOpaque =*/true);
+          }
+          else
+          {
+            AddDrawTexturePass(
+                GraphBuilder,
+                ShaderMap,
+                MSAAColorTexture,
+                NeedsBackBuffer ? backBuffer : targetTexture,
+                {});
+          }
         }
-        else if (desc.interlockMode == InterlockMode::rasterOrdering)
+      }
+    }
+    else if (desc.interlockMode == InterlockMode::rasterOrdering)
+    {
+      RDG_EVENT_SCOPE_STAT(
+          GraphBuilder,
+          STAT_RiveFlush_RiveFlushRenderPass,
+          "RiveFlushRenderPass");
+
+      for (const DrawBatch& batch : *desc.drawList)
+      {
+        if (batch.elementCount == 0)
         {
-            RDG_EVENT_SCOPE_STAT(GraphBuilder,
-                                 STAT_RiveFlush_RiveFlushRenderPass,
-                                 "RiveFlushRenderPass");
+          continue;
+        }
 
-            for (const DrawBatch& batch : *desc.drawList)
-            {
-                if (batch.elementCount == 0)
-                {
-                    continue;
-                }
+        AtomicPixelPermutationDomain PixelPermutationDomain;
+        AtomicVertexPermutationDomain VertexPermutationDomain;
 
-                AtomicPixelPermutationDomain PixelPermutationDomain;
-                AtomicVertexPermutationDomain VertexPermutationDomain;
+        auto ShaderFeatures = batch.shaderFeatures;
+        auto ShaderMiscFlags = batch.shaderMiscFlags;
 
-                auto ShaderFeatures = batch.shaderFeatures;
-                auto ShaderMiscFlags = batch.shaderMiscFlags;
+        if (enums::is_flag_set(batch.drawContents, DrawContents::clockwiseFill))
+          ShaderMiscFlags |= ShaderMiscFlags::clockwiseFill;
 
-                if (enums::is_flag_set(batch.drawContents,
-                                       DrawContents::clockwiseFill))
-                    ShaderMiscFlags |= ShaderMiscFlags::clockwiseFill;
+        GetPermutationForFeatures(
+            ShaderFeatures,
+            ShaderMiscFlags,
+            m_capabilities,
+            NeedsCoalesceResolve &&
+                batch.drawType == DrawType::renderPassResolve,
+            PixelPermutationDomain,
+            VertexPermutationDomain);
 
-                GetPermutationForFeatures(ShaderFeatures,
-                                          ShaderMiscFlags,
-                                          m_capabilities,
-                                          NeedsCoalesceResolve &&
-                                              batch.drawType ==
-                                                  DrawType::renderPassResolve,
-                                          PixelPermutationDomain,
-                                          VertexPermutationDomain);
+        PipelineState PipelineState;
+        get_pipeline_state(batch, desc, m_platformFeatures, &PipelineState);
 
-                PipelineState PipelineState;
-                get_pipeline_state(batch,
-                                   desc,
-                                   m_platformFeatures,
-                                   &PipelineState);
+        FRiveCommonPassParameters*
+            CommonPassParameters = GraphBuilder
+                                       .AllocObject<FRiveCommonPassParameters>(
+                                           batch,
+                                           PipelineState,
+                                           m_platformFeatures,
+                                           ShaderMap);
+        CommonPassParameters->VertexPermutationDomain = VertexPermutationDomain;
+        CommonPassParameters->PixelPermutationDomain = PixelPermutationDomain;
+        CommonPassParameters->Viewport = FUintRect(
+            0,
+            0,
+            renderTarget->width(),
+            renderTarget->height());
+        CommonPassParameters->Scissor = RiveBatchScissor(
+            FUintRect(
+                desc.renderTargetUpdateBounds.left,
+                desc.renderTargetUpdateBounds.top,
+                desc.renderTargetUpdateBounds.right,
+                desc.renderTargetUpdateBounds.bottom),
+            batch.scissorRect);
+        if (desc.fixedFunctionColorOutput)
+          CommonPassParameters->BlendType = EBlendType::Blend;
+        else if (NeedsCoalesceResolve)
+          CommonPassParameters->BlendType = EBlendType::WriteOnly;
+        else
+          CommonPassParameters->BlendType = EBlendType::None;
+        CommonPassParameters->bWireframe = CVarRiveWireframe
+                                               .GetValueOnRenderThread() ||
+                                           desc.wireframe;
 
-                FRiveCommonPassParameters* CommonPassParameters =
-                    GraphBuilder.AllocObject<FRiveCommonPassParameters>(
-                        batch,
-                        PipelineState,
-                        m_platformFeatures,
-                        ShaderMap);
-                CommonPassParameters->VertexPermutationDomain =
-                    VertexPermutationDomain;
-                CommonPassParameters->PixelPermutationDomain =
-                    PixelPermutationDomain;
-                CommonPassParameters->Viewport =
-                    FUintRect(0,
-                              0,
-                              renderTarget->width(),
-                              renderTarget->height());
-                CommonPassParameters->Scissor = RiveBatchScissor(
-                    FUintRect(desc.renderTargetUpdateBounds.left,
-                              desc.renderTargetUpdateBounds.top,
-                              desc.renderTargetUpdateBounds.right,
-                              desc.renderTargetUpdateBounds.bottom),
-                    batch.scissorRect);
-                if (desc.fixedFunctionColorOutput)
-                    CommonPassParameters->BlendType = EBlendType::Blend;
-                else if (NeedsCoalesceResolve)
-                    CommonPassParameters->BlendType = EBlendType::WriteOnly;
-                else
-                    CommonPassParameters->BlendType = EBlendType::None;
-                CommonPassParameters->bWireframe =
-                    CVarRiveWireframe.GetValueOnRenderThread() ||
-                    desc.wireframe;
+        FRiveRasterOrderFlushPassParameters*
+            PassParameters = GraphBuilder.AllocParameters<
+                FRiveRasterOrderFlushPassParameters>();
 
-                FRiveRasterOrderFlushPassParameters* PassParameters =
-                    GraphBuilder
-                        .AllocParameters<FRiveRasterOrderFlushPassParameters>();
-
-                PassParameters->FlushUniforms = flushUniforms;
-                PassParameters->PS.gradSampler = m_gradSampler;
-                check(batch.imageSampler.asKey() <
-                      ImageSampler::MAX_SAMPLER_PERMUTATIONS);
-                PassParameters->PS.imageSampler =
-                    m_imageSamplers[batch.imageSampler.asKey()];
-                PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
-                PassParameters->PS.gaussianIntegralSampler =
-                    m_gaussianIntegralSampler;
-                PassParameters->PS.GLSL_dstColorTexture_raw = MSAAColorTexture;
-                PassParameters->PS.GLSL_featherAtlasTexture_raw =
-                    featherAtlasTexture;
-                PassParameters->PS.GLSL_gaussianIntegralTexture_raw =
-                    gaussianIntegralTexture;
-                PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
-                PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
+        PassParameters->FlushUniforms = flushUniforms;
+        PassParameters->PS.gradSampler = m_gradSampler;
+        check(
+            batch.imageSampler.asKey() <
+            ImageSampler::MAX_SAMPLER_PERMUTATIONS);
+        PassParameters->PS
+            .imageSampler = m_imageSamplers[batch.imageSampler.asKey()];
+        PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
+        PassParameters->PS.gaussianIntegralSampler = m_gaussianIntegralSampler;
+        PassParameters->PS.GLSL_dstColorTexture_raw = MSAAColorTexture;
+        PassParameters->PS.GLSL_featherAtlasTexture_raw = featherAtlasTexture;
+        PassParameters->PS
+            .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
+        PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
+        PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+        PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
 #if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
-                PassParameters->PS.coverageCountBuffer = coverageTextureUAV;
+        PassParameters->PS.coverageCountBuffer = coverageTextureUAV;
 #else
-                PassParameters->PS.coverageCountBuffer = coverageUAV;
+        PassParameters->PS.coverageCountBuffer = coverageUAV;
 #endif
-                PassParameters->PS.clipBuffer = clipUAV;
-                PassParameters->PS.colorBuffer = targetUAV;
-                PassParameters->PS.scratchColorBuffer = scratchUAV;
-                PassParameters->PS.GLSL_imageTexture_raw =
-                    batch.imageTexture != nullptr
-                        ? static_cast<const TextureRHIImpl*>(batch.imageTexture)
-                              ->asRDGTexture(GraphBuilder)
-                        : placeholderTexture;
+        PassParameters->PS.clipBuffer = clipUAV;
+        PassParameters->PS.colorBuffer = targetUAV;
+        PassParameters->PS.scratchColorBuffer = scratchUAV;
+        PassParameters->PS
+            .GLSL_imageTexture_raw = batch.imageTexture != nullptr
+                                         ? static_cast<const TextureRHIImpl*>(
+                                               batch.imageTexture)
+                                               ->asRDGTexture(GraphBuilder)
+                                         : placeholderTexture;
 
-                PassParameters->VS.GLSL_tessVertexTexture_raw =
-                    tesselationTexture;
-                PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
-                PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
-                PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                PassParameters->VS.GLSL_paintBuffer_raw = paintSRV;
-                PassParameters->VS.GLSL_gaussianIntegralTexture_raw =
-                    gaussianIntegralTexture;
-                PassParameters->VS.gaussianIntegralSampler =
-                    m_gaussianIntegralSampler;
-                PassParameters->VS.baseInstance = 0;
+        PassParameters->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
+        PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
+        PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
+        PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+        PassParameters->VS.GLSL_paintBuffer_raw = paintSRV;
+        PassParameters->VS
+            .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
+        PassParameters->VS.gaussianIntegralSampler = m_gaussianIntegralSampler;
+        PassParameters->VS.baseInstance = 0;
 
-                if (desc.fixedFunctionColorOutput)
-                {
-                    PassParameters->RenderTargets[0] = FRenderTargetBinding(
-                        NeedsBackBuffer ? backBuffer : targetTexture,
-                        loadAction);
-                }
-                else
-                {
-                    PassParameters->RenderTargets.ResolveRect =
-                        FResolveRect(0,
-                                     0,
-                                     renderTarget->width(),
-                                     renderTarget->height());
-                }
-
-                switch (batch.drawType)
-                {
-                    case DrawType::midpointFanPatches:
-                    case DrawType::midpointFanCenterAAPatches:
-                    case DrawType::outerCurvePatches:
-                    {
-                        check(pathSRV);
-                        check(paintSRV);
-                        check(paintAuxSRV);
-                        check(contourSRV);
-
-                        const FString& PassName =
-                            NameForDrawType(batch.drawType);
-
-                        CommonPassParameters->VertexDeclarationRHI =
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::Paths)];
-                        CommonPassParameters->VertexBuffers[0] =
-                            m_patchVertexBuffer;
-                        CommonPassParameters->IndexBuffer = m_patchIndexBuffer;
-
-                        PassParameters->VS.baseInstance = batch.baseElement;
-
-                        AddDrawRasterOrderPatchesPass(GraphBuilder,
-                                                      PassName,
-                                                      CommonPassParameters,
-                                                      PassParameters);
-                    }
-                    break;
-                    case DrawType::interiorTriangulation:
-                    {
-                        check(triangleBuffer.IsValid());
-                        check(pathSRV);
-                        check(paintSRV);
-                        check(paintAuxSRV);
-
-                        CommonPassParameters->VertexDeclarationRHI =
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::InteriorTriangles)];
-                        CommonPassParameters->VertexBuffers[0] = triangleBuffer;
-
-                        AddDrawRasterOrderInteriorTrianglesPass(
-                            GraphBuilder,
-                            CommonPassParameters,
-                            PassParameters);
-                    }
-                    break;
-                    case DrawType::featherAtlasBlit:
-                    {
-                        check(triangleBuffer.IsValid());
-                        check(pathSRV);
-                        check(paintSRV);
-                        check(paintAuxSRV);
-
-                        CommonPassParameters->VertexDeclarationRHI =
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::InteriorTriangles)];
-                        CommonPassParameters->VertexBuffers[0] = triangleBuffer;
-
-                        AddDrawRasterOrderAtlasBlitPass(GraphBuilder,
-                                                        CommonPassParameters,
-                                                        PassParameters);
-                    }
-                    break;
-                    case DrawType::imageMesh:
-                    {
-                        check(paintSRV);
-                        check(paintAuxSRV);
-                        check(m_imageMeshInstanceBuffer);
-
-                        LITE_RTTI_CAST_OR_BREAK(IndexBuffer,
-                                                const RenderBufferRHIImpl*,
-                                                batch.indexBuffer);
-                        LITE_RTTI_CAST_OR_BREAK(VertexBuffer,
-                                                const RenderBufferRHIImpl*,
-                                                batch.vertexBuffer);
-                        LITE_RTTI_CAST_OR_BREAK(UVBuffer,
-                                                const RenderBufferRHIImpl*,
-                                                batch.uvBuffer);
-
-                        auto imageTexture = static_cast<const TextureRHIImpl*>(
-                            batch.imageTexture);
-
-                        auto IndexBufferRHI = IndexBuffer->Sync(CommandList);
-                        auto VertexBufferRHI = VertexBuffer->Sync(CommandList);
-                        auto UVBufferRHI = UVBuffer->Sync(CommandList);
-
-                        PassParameters->PS.GLSL_imageTexture_raw =
-                            imageTexture->asRDGTexture(GraphBuilder);
-
-                        CommonPassParameters->VertexDeclarationRHI =
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::ImageMesh)];
-                        CommonPassParameters->VertexBuffers[0] =
-                            VertexBufferRHI;
-                        CommonPassParameters->VertexBuffers[1] = UVBufferRHI;
-                        CommonPassParameters->VertexBuffers[2] =
-                            m_imageMeshInstanceBuffer->Sync(CommandList);
-                        CommonPassParameters->IndexBuffer = IndexBufferRHI;
-
-                        AddDrawRasterOrderImageMeshPass(
-                            GraphBuilder,
-                            VertexBuffer->sizeInBytes() / sizeof(Vec2D),
-                            CommonPassParameters,
-                            PassParameters);
-                    }
-                    break;
-                    case DrawType::imageRect:
-                    case DrawType::renderPassInitialize:
-                    case DrawType::renderPassResolve:
-                    case DrawType::stencilMidpointFanBorrowedCoverage:
-                    case DrawType::stencilDynamicMidpointFans:
-                    case DrawType::stencilMidpointFans:
-                    case DrawType::stencilMidpointFanReset:
-                    case DrawType::stencilMidpointFanWinding:
-                    case DrawType::stencilMidpointFanCover:
-                    case DrawType::stencilOuterCubics:
-                    case DrawType::stencilOuterCubicBorrowedCoverage:
-                    case DrawType::stencilDynamicOuterCubics:
-                    case DrawType::stencilOuterCubicReset:
-                    case DrawType::stencilOuterCubicWinding:
-                    case DrawType::stencilOuterCubicCover:
-                    case DrawType::depthStrokes:
-                    case DrawType::depthAAStrokes:
-                    case DrawType::depthAAOuterHairline:
-                    case DrawType::clipReset:
-                        RIVE_UNREACHABLE();
-                }
-            }
+        if (desc.fixedFunctionColorOutput)
+        {
+          PassParameters->RenderTargets[0] = FRenderTargetBinding(
+              NeedsBackBuffer ? backBuffer : targetTexture,
+              loadAction);
         }
-        else // Atomic mode
+        else
         {
-            RDG_EVENT_SCOPE_STAT(GraphBuilder,
-                                 STAT_RiveFlush_RiveFlushRenderPass,
-                                 "RiveFlushRenderPass");
-
-            for (const DrawBatch& batch : *desc.drawList)
-            {
-                if (batch.elementCount == 0)
-                {
-                    continue;
-                }
-
-                AtomicPixelPermutationDomain PixelPermutationDomain;
-                AtomicVertexPermutationDomain VertexPermutationDomain;
-
-                auto ShaderFeatures = desc.combinedShaderFeatures;
-                auto ShaderMiscFlags = batch.shaderMiscFlags;
-
-                GetPermutationForFeatures(ShaderFeatures,
-                                          ShaderMiscFlags,
-                                          m_capabilities,
-                                          NeedsCoalesceResolve &&
-                                              batch.drawType ==
-                                                  DrawType::renderPassResolve,
-                                          PixelPermutationDomain,
-                                          VertexPermutationDomain);
-
-                PipelineState PipelineState;
-                get_pipeline_state(batch,
-                                   desc,
-                                   m_platformFeatures,
-                                   &PipelineState);
-
-                FRiveCommonPassParameters* CommonPassParameters =
-                    GraphBuilder.AllocObject<FRiveCommonPassParameters>(
-                        batch,
-                        PipelineState,
-                        m_platformFeatures,
-                        ShaderMap);
-                CommonPassParameters->VertexPermutationDomain =
-                    VertexPermutationDomain;
-                CommonPassParameters->PixelPermutationDomain =
-                    PixelPermutationDomain;
-                CommonPassParameters->Viewport =
-                    FUintRect(0,
-                              0,
-                              renderTarget->width(),
-                              renderTarget->height());
-                CommonPassParameters->Scissor = RiveBatchScissor(
-                    FUintRect(desc.renderTargetUpdateBounds.left,
-                              desc.renderTargetUpdateBounds.top,
-                              desc.renderTargetUpdateBounds.right,
-                              desc.renderTargetUpdateBounds.bottom),
-                    batch.scissorRect);
-                if (desc.fixedFunctionColorOutput)
-                    CommonPassParameters->BlendType = EBlendType::Blend;
-                else if (NeedsCoalesceResolve)
-                    CommonPassParameters->BlendType = EBlendType::WriteOnly;
-                else
-                    CommonPassParameters->BlendType = EBlendType::None;
-                CommonPassParameters->bWireframe =
-                    CVarRiveWireframe.GetValueOnRenderThread() ||
-                    desc.wireframe;
-
-                FRiveFlushPassParameters* PassParameters =
-                    GraphBuilder.AllocParameters<FRiveFlushPassParameters>();
-
-                PassParameters->FlushUniforms = flushUniforms;
-                PassParameters->PS.gradSampler = m_gradSampler;
-                check(batch.imageSampler.asKey() <
-                      ImageSampler::MAX_SAMPLER_PERMUTATIONS);
-                PassParameters->PS.imageSampler =
-                    m_imageSamplers[batch.imageSampler.asKey()];
-                PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
-                PassParameters->PS.gaussianIntegralSampler =
-                    m_gaussianIntegralSampler;
-                PassParameters->PS.GLSL_dstColorTexture_raw = MSAAColorTexture;
-                PassParameters->PS.GLSL_featherAtlasTexture_raw =
-                    featherAtlasTexture;
-                PassParameters->PS.GLSL_gaussianIntegralTexture_raw =
-                    gaussianIntegralTexture;
-                PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
-                PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
-                PassParameters->PS.coverageAtomicBuffer = coverageUAV;
-                PassParameters->PS.coverageCountBuffer = coverageUAV;
-                PassParameters->PS.clipBuffer = clipUAV;
-                PassParameters->PS.colorBuffer = targetUAV;
-                PassParameters->PS.scratchColorBuffer = scratchUAV;
-                PassParameters->PS.GLSL_imageTexture_raw = placeholderTexture;
-
-                PassParameters->VS.GLSL_tessVertexTexture_raw =
-                    tesselationTexture;
-                PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
-                PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
-                PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
-                PassParameters->VS.GLSL_paintBuffer_raw = paintSRV;
-                PassParameters->VS.GLSL_gaussianIntegralTexture_raw =
-                    gaussianIntegralTexture;
-                PassParameters->VS.gaussianIntegralSampler =
-                    m_gaussianIntegralSampler;
-                PassParameters->VS.baseInstance = 0;
-
-                if (desc.fixedFunctionColorOutput)
-                {
-                    PassParameters->RenderTargets[0] = FRenderTargetBinding(
-                        NeedsBackBuffer ? backBuffer : targetTexture,
-                        loadAction);
-                }
-                else if (NeedsCoalesceResolve)
-                {
-                    PassParameters->RenderTargets[0] =
-                        FRenderTargetBinding(targetTexture, loadAction);
-                }
-                else
-                {
-                    PassParameters->RenderTargets.ResolveRect =
-                        FResolveRect(0,
-                                     0,
-                                     renderTarget->width(),
-                                     renderTarget->height());
-                }
-
-                switch (batch.drawType)
-                {
-                    case DrawType::midpointFanPatches:
-                    case DrawType::midpointFanCenterAAPatches:
-                    case DrawType::outerCurvePatches:
-                    {
-                        check(pathSRV);
-                        check(paintSRV);
-                        check(paintAuxSRV);
-                        check(contourSRV);
-
-                        const FString& PassName =
-                            NameForDrawType(batch.drawType);
-
-                        CommonPassParameters->VertexDeclarationRHI =
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::Paths)];
-                        CommonPassParameters->VertexBuffers[0] =
-                            m_patchVertexBuffer;
-                        CommonPassParameters->IndexBuffer = m_patchIndexBuffer;
-
-                        PassParameters->VS.baseInstance = batch.baseElement;
-
-                        AddDrawPatchesPass(GraphBuilder,
-                                           PassName,
-                                           CommonPassParameters,
-                                           PassParameters);
-                    }
-                    break;
-                    case DrawType::interiorTriangulation:
-                    {
-                        check(triangleBuffer.IsValid());
-                        check(pathSRV);
-                        check(paintSRV);
-                        check(paintAuxSRV);
-
-                        CommonPassParameters->VertexDeclarationRHI =
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::InteriorTriangles)];
-                        CommonPassParameters->VertexBuffers[0] = triangleBuffer;
-
-                        AddDrawInteriorTrianglesPass(GraphBuilder,
-                                                     CommonPassParameters,
-                                                     PassParameters);
-                    }
-                    break;
-                    case DrawType::featherAtlasBlit:
-                    {
-                        check(triangleBuffer.IsValid());
-                        check(pathSRV);
-                        check(paintSRV);
-                        check(paintAuxSRV);
-
-                        CommonPassParameters->VertexDeclarationRHI =
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::InteriorTriangles)];
-                        CommonPassParameters->VertexBuffers[0] = triangleBuffer;
-
-                        AddDrawAtlasBlitPass(GraphBuilder,
-                                             CommonPassParameters,
-                                             PassParameters);
-                    }
-                    break;
-                    case DrawType::imageRect:
-                    {
-                        check(paintSRV);
-                        check(paintAuxSRV);
-                        check(m_imageRectInstanceBuffer);
-                        check(desc.interlockMode == InterlockMode::atomics);
-
-                        auto imageTexture = static_cast<const TextureRHIImpl*>(
-                            batch.imageTexture);
-
-                        PassParameters->PS.GLSL_imageTexture_raw =
-                            imageTexture->asRDGTexture(GraphBuilder);
-
-                        CommonPassParameters->VertexDeclarationRHI =
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::ImageRect)];
-                        CommonPassParameters->VertexBuffers[0] =
-                            m_imageRectVertexBuffer;
-                        CommonPassParameters->VertexBuffers[1] =
-                            m_imageRectInstanceBuffer->Sync(CommandList);
-                        CommonPassParameters->IndexBuffer =
-                            m_imageRectIndexBuffer;
-
-                        AddDrawImageRectPass(GraphBuilder,
-                                             CommonPassParameters,
-                                             PassParameters);
-                    }
-                    break;
-                    case DrawType::imageMesh:
-                    {
-                        check(paintSRV);
-                        check(paintAuxSRV);
-                        check(m_imageMeshInstanceBuffer);
-
-                        LITE_RTTI_CAST_OR_BREAK(IndexBuffer,
-                                                const RenderBufferRHIImpl*,
-                                                batch.indexBuffer);
-                        LITE_RTTI_CAST_OR_BREAK(VertexBuffer,
-                                                const RenderBufferRHIImpl*,
-                                                batch.vertexBuffer);
-                        LITE_RTTI_CAST_OR_BREAK(UVBuffer,
-                                                const RenderBufferRHIImpl*,
-                                                batch.uvBuffer);
-
-                        auto imageTexture = static_cast<const TextureRHIImpl*>(
-                            batch.imageTexture);
-
-                        auto IndexBufferRHI = IndexBuffer->Sync(CommandList);
-                        auto VertexBufferRHI = VertexBuffer->Sync(CommandList);
-                        auto UVBufferRHI = UVBuffer->Sync(CommandList);
-
-                        PassParameters->PS.GLSL_imageTexture_raw =
-                            imageTexture->asRDGTexture(GraphBuilder);
-
-                        CommonPassParameters->VertexDeclarationRHI =
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::ImageMesh)];
-                        CommonPassParameters->VertexBuffers[0] =
-                            VertexBufferRHI;
-                        CommonPassParameters->VertexBuffers[1] = UVBufferRHI;
-                        CommonPassParameters->VertexBuffers[2] =
-                            m_imageMeshInstanceBuffer->Sync(CommandList);
-                        CommonPassParameters->IndexBuffer = IndexBufferRHI;
-
-                        AddDrawImageMeshPass(GraphBuilder,
-                                             VertexBuffer->sizeInBytes() /
-                                                 sizeof(Vec2D),
-                                             CommonPassParameters,
-                                             PassParameters);
-                    }
-                    break;
-                    case DrawType::renderPassResolve:
-                    {
-                        check(paintSRV);
-                        check(paintAuxSRV);
-
-                        CommonPassParameters->VertexDeclarationRHI =
-                            VertexDeclarations[static_cast<int32>(
-                                EVertexDeclarations::Resolve)];
-
-                        AddAtomicResolvePass(GraphBuilder,
-                                             CommonPassParameters,
-                                             PassParameters);
-                    }
-                    break;
-                    case DrawType::renderPassInitialize:
-                    case DrawType::stencilMidpointFanBorrowedCoverage:
-                    case DrawType::stencilDynamicMidpointFans:
-                    case DrawType::stencilMidpointFans:
-                    case DrawType::stencilMidpointFanReset:
-                    case DrawType::stencilMidpointFanWinding:
-                    case DrawType::stencilMidpointFanCover:
-                    case DrawType::stencilOuterCubics:
-                    case DrawType::stencilOuterCubicBorrowedCoverage:
-                    case DrawType::stencilDynamicOuterCubics:
-                    case DrawType::stencilOuterCubicReset:
-                    case DrawType::stencilOuterCubicWinding:
-                    case DrawType::stencilOuterCubicCover:
-                    case DrawType::depthStrokes:
-                    case DrawType::depthAAStrokes:
-                    case DrawType::depthAAOuterHairline:
-                    case DrawType::clipReset:
-                        RIVE_UNREACHABLE();
-                }
-            }
-        } // end flush render pass scope
-
-        if (NeedsFinalCopy)
-        {
-            if (!renderTarget->TargetTextureSupportsRenderTarget())
-            {
-                AddCopyTexturePass(GraphBuilder, backBuffer, targetTexture);
-            }
-            else
-            {
-                auto Params =
-                    GraphBuilder
-                        .AllocParameters<FRiveDrawTextureBltParameters>();
-                Params->RenderTargets[0] =
-                    FRenderTargetBinding(targetTexture,
-                                         ERenderTargetLoadAction::ELoad);
-                Params->PS.GLSL_sourceTexture_raw = backBuffer;
-                // The back buffer already holds the composited result, so it
-                // replaces the target rather than blending: nothing initializes
-                // the target, and blending would let its contents show through.
-                AddDrawTextureBlt(
-                    GraphBuilder,
-                    VertexDeclarations[static_cast<int>(
-                        EVertexDeclarations::Resolve)],
-                    FUint32Rect(desc.renderTargetUpdateBounds.left,
-                                desc.renderTargetUpdateBounds.top,
-                                desc.renderTargetUpdateBounds.right,
-                                desc.renderTargetUpdateBounds.bottom),
-                    ShaderMap,
-                    Params,
-                    false,
-                    /*bOpaque =*/true);
-            }
+          PassParameters->RenderTargets.ResolveRect = FResolveRect(
+              0,
+              0,
+              renderTarget->width(),
+              renderTarget->height());
         }
 
-        static const auto CVarVisualize =
-            IConsoleManager::Get().FindConsoleVariable(TEXT("r.rive.vis"));
-        switch (CVarVisualize->GetInt())
+        switch (batch.drawType)
         {
-            case 1:
-                AddBltU32ToF4Pass(
-                    GraphBuilder,
-                    clipTexture,
-                    targetTexture,
-                    FIntPoint(renderTarget->width(), renderTarget->height()));
-                break;
-            case 2:
+          case DrawType::midpointFanPatches:
+          case DrawType::midpointFanCenterAAPatches:
+          case DrawType::outerCurvePatches:
+          {
+            check(pathSRV);
+            check(paintSRV);
+            check(paintAuxSRV);
+            check(contourSRV);
+
+            const FString& PassName = NameForDrawType(batch.drawType);
+
+            CommonPassParameters
+                ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+                EVertexDeclarations::Paths)];
+            CommonPassParameters->VertexBuffers[0] = m_patchVertexBuffer;
+            CommonPassParameters->IndexBuffer = m_patchIndexBuffer;
+
+            PassParameters->VS.baseInstance = batch.baseElement;
+
+            AddDrawRasterOrderPatchesPass(
+                GraphBuilder,
+                PassName,
+                CommonPassParameters,
+                PassParameters);
+          }
+          break;
+          case DrawType::interiorTriangulation:
+          {
+            check(triangleBuffer.IsValid());
+            check(pathSRV);
+            check(paintSRV);
+            check(paintAuxSRV);
+
+            CommonPassParameters
+                ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+                EVertexDeclarations::InteriorTriangles)];
+            CommonPassParameters->VertexBuffers[0] = triangleBuffer;
+
+            AddDrawRasterOrderInteriorTrianglesPass(
+                GraphBuilder,
+                CommonPassParameters,
+                PassParameters);
+          }
+          break;
+          case DrawType::featherAtlasBlit:
+          {
+            check(triangleBuffer.IsValid());
+            check(pathSRV);
+            check(paintSRV);
+            check(paintAuxSRV);
+
+            CommonPassParameters
+                ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+                EVertexDeclarations::InteriorTriangles)];
+            CommonPassParameters->VertexBuffers[0] = triangleBuffer;
+
+            AddDrawRasterOrderAtlasBlitPass(
+                GraphBuilder,
+                CommonPassParameters,
+                PassParameters);
+          }
+          break;
+          case DrawType::imageMesh:
+          {
+            check(paintSRV);
+            check(paintAuxSRV);
+            check(m_imageMeshInstanceBuffer);
+
+            LITE_RTTI_CAST_OR_BREAK(
+                IndexBuffer,
+                const RenderBufferRHIImpl*,
+                batch.indexBuffer);
+            LITE_RTTI_CAST_OR_BREAK(
+                VertexBuffer,
+                const RenderBufferRHIImpl*,
+                batch.vertexBuffer);
+            LITE_RTTI_CAST_OR_BREAK(
+                UVBuffer,
+                const RenderBufferRHIImpl*,
+                batch.uvBuffer);
+
+            auto imageTexture = static_cast<const TextureRHIImpl*>(
+                batch.imageTexture);
+
+            auto IndexBufferRHI = IndexBuffer->Sync(CommandList);
+            auto VertexBufferRHI = VertexBuffer->Sync(CommandList);
+            auto UVBufferRHI = UVBuffer->Sync(CommandList);
+
+            PassParameters->PS.GLSL_imageTexture_raw = imageTexture
+                                                           ->asRDGTexture(
+                                                               GraphBuilder);
+
+            CommonPassParameters
+                ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+                EVertexDeclarations::ImageMesh)];
+            CommonPassParameters->VertexBuffers[0] = VertexBufferRHI;
+            CommonPassParameters->VertexBuffers[1] = UVBufferRHI;
+            CommonPassParameters->VertexBuffers[2] = m_imageMeshInstanceBuffer
+                                                         ->Sync(CommandList);
+            CommonPassParameters->IndexBuffer = IndexBufferRHI;
+
+            AddDrawRasterOrderImageMeshPass(
+                GraphBuilder,
+                VertexBuffer->sizeInBytes() / sizeof(Vec2D),
+                CommonPassParameters,
+                PassParameters);
+          }
+          break;
+          case DrawType::imageRect:
+          case DrawType::renderPassInitialize:
+          case DrawType::renderPassResolve:
+          case DrawType::stencilMidpointFanBorrowedCoverage:
+          case DrawType::stencilDynamicMidpointFans:
+          case DrawType::stencilMidpointFans:
+          case DrawType::stencilMidpointFanReset:
+          case DrawType::stencilMidpointFanWinding:
+          case DrawType::stencilMidpointFanCover:
+          case DrawType::stencilOuterCubics:
+          case DrawType::stencilOuterCubicBorrowedCoverage:
+          case DrawType::stencilDynamicOuterCubics:
+          case DrawType::stencilOuterCubicReset:
+          case DrawType::stencilOuterCubicWinding:
+          case DrawType::stencilOuterCubicCover:
+          case DrawType::depthStrokes:
+          case DrawType::depthAAStrokes:
+          case DrawType::depthAAOuterHairline:
+          case DrawType::clipReset:
+            RIVE_UNREACHABLE();
+        }
+      }
+    }
+    else // Atomic mode
+    {
+      RDG_EVENT_SCOPE_STAT(
+          GraphBuilder,
+          STAT_RiveFlush_RiveFlushRenderPass,
+          "RiveFlushRenderPass");
+
+      for (const DrawBatch& batch : *desc.drawList)
+      {
+        if (batch.elementCount == 0)
+        {
+          continue;
+        }
+
+        AtomicPixelPermutationDomain PixelPermutationDomain;
+        AtomicVertexPermutationDomain VertexPermutationDomain;
+
+        auto ShaderFeatures = desc.combinedShaderFeatures;
+        auto ShaderMiscFlags = batch.shaderMiscFlags;
+
+        GetPermutationForFeatures(
+            ShaderFeatures,
+            ShaderMiscFlags,
+            m_capabilities,
+            NeedsCoalesceResolve &&
+                batch.drawType == DrawType::renderPassResolve,
+            PixelPermutationDomain,
+            VertexPermutationDomain);
+
+        PipelineState PipelineState;
+        get_pipeline_state(batch, desc, m_platformFeatures, &PipelineState);
+
+        FRiveCommonPassParameters*
+            CommonPassParameters = GraphBuilder
+                                       .AllocObject<FRiveCommonPassParameters>(
+                                           batch,
+                                           PipelineState,
+                                           m_platformFeatures,
+                                           ShaderMap);
+        CommonPassParameters->VertexPermutationDomain = VertexPermutationDomain;
+        CommonPassParameters->PixelPermutationDomain = PixelPermutationDomain;
+        CommonPassParameters->Viewport = FUintRect(
+            0,
+            0,
+            renderTarget->width(),
+            renderTarget->height());
+        CommonPassParameters->Scissor = RiveBatchScissor(
+            FUintRect(
+                desc.renderTargetUpdateBounds.left,
+                desc.renderTargetUpdateBounds.top,
+                desc.renderTargetUpdateBounds.right,
+                desc.renderTargetUpdateBounds.bottom),
+            batch.scissorRect);
+        if (desc.fixedFunctionColorOutput)
+          CommonPassParameters->BlendType = EBlendType::Blend;
+        else if (NeedsCoalesceResolve)
+          CommonPassParameters->BlendType = EBlendType::WriteOnly;
+        else
+          CommonPassParameters->BlendType = EBlendType::None;
+        CommonPassParameters->bWireframe = CVarRiveWireframe
+                                               .GetValueOnRenderThread() ||
+                                           desc.wireframe;
+
+        FRiveFlushPassParameters* PassParameters = GraphBuilder.AllocParameters<
+            FRiveFlushPassParameters>();
+
+        PassParameters->FlushUniforms = flushUniforms;
+        PassParameters->PS.gradSampler = m_gradSampler;
+        check(
+            batch.imageSampler.asKey() <
+            ImageSampler::MAX_SAMPLER_PERMUTATIONS);
+        PassParameters->PS
+            .imageSampler = m_imageSamplers[batch.imageSampler.asKey()];
+        PassParameters->PS.featherAtlasSampler = m_featherAtlasSampler;
+        PassParameters->PS.gaussianIntegralSampler = m_gaussianIntegralSampler;
+        PassParameters->PS.GLSL_dstColorTexture_raw = MSAAColorTexture;
+        PassParameters->PS.GLSL_featherAtlasTexture_raw = featherAtlasTexture;
+        PassParameters->PS
+            .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
+        PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
+        PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+        PassParameters->PS.GLSL_paintBuffer_raw = paintSRV;
+        PassParameters->PS.coverageAtomicBuffer = coverageUAV;
+        PassParameters->PS.coverageCountBuffer = coverageUAV;
+        PassParameters->PS.clipBuffer = clipUAV;
+        PassParameters->PS.colorBuffer = targetUAV;
+        PassParameters->PS.scratchColorBuffer = scratchUAV;
+        PassParameters->PS.GLSL_imageTexture_raw = placeholderTexture;
+
+        PassParameters->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
+        PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
+        PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
+        PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
+        PassParameters->VS.GLSL_paintBuffer_raw = paintSRV;
+        PassParameters->VS
+            .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
+        PassParameters->VS.gaussianIntegralSampler = m_gaussianIntegralSampler;
+        PassParameters->VS.baseInstance = 0;
+
+        if (desc.fixedFunctionColorOutput)
+        {
+          PassParameters->RenderTargets[0] = FRenderTargetBinding(
+              NeedsBackBuffer ? backBuffer : targetTexture,
+              loadAction);
+        }
+        else if (NeedsCoalesceResolve)
+        {
+          PassParameters->RenderTargets[0] = FRenderTargetBinding(
+              targetTexture,
+              loadAction);
+        }
+        else
+        {
+          PassParameters->RenderTargets.ResolveRect = FResolveRect(
+              0,
+              0,
+              renderTarget->width(),
+              renderTarget->height());
+        }
+
+        switch (batch.drawType)
+        {
+          case DrawType::midpointFanPatches:
+          case DrawType::midpointFanCenterAAPatches:
+          case DrawType::outerCurvePatches:
+          {
+            check(pathSRV);
+            check(paintSRV);
+            check(paintAuxSRV);
+            check(contourSRV);
+
+            const FString& PassName = NameForDrawType(batch.drawType);
+
+            CommonPassParameters
+                ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+                EVertexDeclarations::Paths)];
+            CommonPassParameters->VertexBuffers[0] = m_patchVertexBuffer;
+            CommonPassParameters->IndexBuffer = m_patchIndexBuffer;
+
+            PassParameters->VS.baseInstance = batch.baseElement;
+
+            AddDrawPatchesPass(
+                GraphBuilder,
+                PassName,
+                CommonPassParameters,
+                PassParameters);
+          }
+          break;
+          case DrawType::interiorTriangulation:
+          {
+            check(triangleBuffer.IsValid());
+            check(pathSRV);
+            check(paintSRV);
+            check(paintAuxSRV);
+
+            CommonPassParameters
+                ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+                EVertexDeclarations::InteriorTriangles)];
+            CommonPassParameters->VertexBuffers[0] = triangleBuffer;
+
+            AddDrawInteriorTrianglesPass(
+                GraphBuilder,
+                CommonPassParameters,
+                PassParameters);
+          }
+          break;
+          case DrawType::featherAtlasBlit:
+          {
+            check(triangleBuffer.IsValid());
+            check(pathSRV);
+            check(paintSRV);
+            check(paintAuxSRV);
+
+            CommonPassParameters
+                ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+                EVertexDeclarations::InteriorTriangles)];
+            CommonPassParameters->VertexBuffers[0] = triangleBuffer;
+
+            AddDrawAtlasBlitPass(
+                GraphBuilder,
+                CommonPassParameters,
+                PassParameters);
+          }
+          break;
+          case DrawType::imageRect:
+          {
+            check(paintSRV);
+            check(paintAuxSRV);
+            check(m_imageRectInstanceBuffer);
+            check(desc.interlockMode == InterlockMode::atomics);
+
+            auto imageTexture = static_cast<const TextureRHIImpl*>(
+                batch.imageTexture);
+
+            PassParameters->PS.GLSL_imageTexture_raw = imageTexture
+                                                           ->asRDGTexture(
+                                                               GraphBuilder);
+
+            CommonPassParameters
+                ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+                EVertexDeclarations::ImageRect)];
+            CommonPassParameters->VertexBuffers[0] = m_imageRectVertexBuffer;
+            CommonPassParameters->VertexBuffers[1] = m_imageRectInstanceBuffer
+                                                         ->Sync(CommandList);
+            CommonPassParameters->IndexBuffer = m_imageRectIndexBuffer;
+
+            AddDrawImageRectPass(
+                GraphBuilder,
+                CommonPassParameters,
+                PassParameters);
+          }
+          break;
+          case DrawType::imageMesh:
+          {
+            check(paintSRV);
+            check(paintAuxSRV);
+            check(m_imageMeshInstanceBuffer);
+
+            LITE_RTTI_CAST_OR_BREAK(
+                IndexBuffer,
+                const RenderBufferRHIImpl*,
+                batch.indexBuffer);
+            LITE_RTTI_CAST_OR_BREAK(
+                VertexBuffer,
+                const RenderBufferRHIImpl*,
+                batch.vertexBuffer);
+            LITE_RTTI_CAST_OR_BREAK(
+                UVBuffer,
+                const RenderBufferRHIImpl*,
+                batch.uvBuffer);
+
+            auto imageTexture = static_cast<const TextureRHIImpl*>(
+                batch.imageTexture);
+
+            auto IndexBufferRHI = IndexBuffer->Sync(CommandList);
+            auto VertexBufferRHI = VertexBuffer->Sync(CommandList);
+            auto UVBufferRHI = UVBuffer->Sync(CommandList);
+
+            PassParameters->PS.GLSL_imageTexture_raw = imageTexture
+                                                           ->asRDGTexture(
+                                                               GraphBuilder);
+
+            CommonPassParameters
+                ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+                EVertexDeclarations::ImageMesh)];
+            CommonPassParameters->VertexBuffers[0] = VertexBufferRHI;
+            CommonPassParameters->VertexBuffers[1] = UVBufferRHI;
+            CommonPassParameters->VertexBuffers[2] = m_imageMeshInstanceBuffer
+                                                         ->Sync(CommandList);
+            CommonPassParameters->IndexBuffer = IndexBufferRHI;
+
+            AddDrawImageMeshPass(
+                GraphBuilder,
+                VertexBuffer->sizeInBytes() / sizeof(Vec2D),
+                CommonPassParameters,
+                PassParameters);
+          }
+          break;
+          case DrawType::renderPassResolve:
+          {
+            check(paintSRV);
+            check(paintAuxSRV);
+
+            CommonPassParameters
+                ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
+                EVertexDeclarations::Resolve)];
+
+            AddAtomicResolvePass(
+                GraphBuilder,
+                CommonPassParameters,
+                PassParameters);
+          }
+          break;
+          case DrawType::renderPassInitialize:
+          case DrawType::stencilMidpointFanBorrowedCoverage:
+          case DrawType::stencilDynamicMidpointFans:
+          case DrawType::stencilMidpointFans:
+          case DrawType::stencilMidpointFanReset:
+          case DrawType::stencilMidpointFanWinding:
+          case DrawType::stencilMidpointFanCover:
+          case DrawType::stencilOuterCubics:
+          case DrawType::stencilOuterCubicBorrowedCoverage:
+          case DrawType::stencilDynamicOuterCubics:
+          case DrawType::stencilOuterCubicReset:
+          case DrawType::stencilOuterCubicWinding:
+          case DrawType::stencilOuterCubicCover:
+          case DrawType::depthStrokes:
+          case DrawType::depthAAStrokes:
+          case DrawType::depthAAOuterHairline:
+          case DrawType::clipReset:
+            RIVE_UNREACHABLE();
+        }
+      }
+    } // end flush render pass scope
+
+    if (NeedsFinalCopy)
+    {
+      if (!renderTarget->TargetTextureSupportsRenderTarget())
+      {
+        AddCopyTexturePass(GraphBuilder, backBuffer, targetTexture);
+      }
+      else
+      {
+        auto Params = GraphBuilder
+                          .AllocParameters<FRiveDrawTextureBltParameters>();
+        Params->RenderTargets[0] = FRenderTargetBinding(
+            targetTexture,
+            ERenderTargetLoadAction::ELoad);
+        Params->PS.GLSL_sourceTexture_raw = backBuffer;
+        // The back buffer already holds the composited result, so it
+        // replaces the target rather than blending: nothing initializes
+        // the target, and blending would let its contents show through.
+        AddDrawTextureBlt(
+            GraphBuilder,
+            VertexDeclarations[static_cast<int>(EVertexDeclarations::Resolve)],
+            FUint32Rect(
+                desc.renderTargetUpdateBounds.left,
+                desc.renderTargetUpdateBounds.top,
+                desc.renderTargetUpdateBounds.right,
+                desc.renderTargetUpdateBounds.bottom),
+            ShaderMap,
+            Params,
+            false,
+            /*bOpaque =*/true);
+      }
+    }
+
+    static const auto CVarVisualize = IConsoleManager::Get()
+                                          .FindConsoleVariable(
+                                              TEXT("r.rive.vis"));
+    switch (CVarVisualize->GetInt())
+    {
+      case 1:
+        AddBltU32ToF4Pass(
+            GraphBuilder,
+            clipTexture,
+            targetTexture,
+            FIntPoint(renderTarget->width(), renderTarget->height()));
+        break;
+      case 2:
 #if !PLATFORM_APPLE && !FORCE_ATOMIC_BUFFER
-                AddBltU32ToF4Pass(
-                    GraphBuilder,
-                    coverageTexture,
-                    targetTexture,
-                    FIntPoint(renderTarget->width(), renderTarget->height()));
+        AddBltU32ToF4Pass(
+            GraphBuilder,
+            coverageTexture,
+            targetTexture,
+            FIntPoint(renderTarget->width(), renderTarget->height()));
 #endif
-                break;
-            case 3:
-                AddBltU324ToF4Pass(
-                    GraphBuilder,
-                    tesselationTexture,
-                    targetTexture,
-                    {{0, 0},
-                     {kTessTextureWidth,
-                      static_cast<UE::Math::TIntPoint<int>::IntType>(
-                          desc.tessDataHeight)}});
-                break;
-            case 4:
-                AddVisualizeBufferPass(
-                    GraphBuilder,
-                    desc.pathCount,
-                    paintSRV,
-                    targetTexture,
-                    FIntPoint(renderTarget->width(), renderTarget->height()));
-                break;
-            case 5:
-                if (MSAAColorTexture)
-                {
-                    FRDGTextureRef VisTexture =
-                        FVisualizeTexture::AddVisualizeTexturePass(
-                            GraphBuilder,
-                            ShaderMap,
-                            MSAAColorTexture);
-                    FIntPoint UpdatePosition{desc.renderTargetUpdateBounds.left,
-                                             desc.renderTargetUpdateBounds.top};
-                    FIntPoint UpdateSize{
-                        desc.renderTargetUpdateBounds.width(),
-                        desc.renderTargetUpdateBounds.height()};
-                    AddDrawTexturePass(GraphBuilder,
-                                       ShaderMap,
-                                       VisTexture,
-                                       targetTexture,
-                                       {.Size = UpdateSize,
-                                        .SourcePosition = UpdatePosition,
-                                        .DestPosition = UpdatePosition});
-                }
-                break;
-            case 6:
-                if (DepthStencilTexture)
-                {
-                    FRDGTextureRef VisTexture =
-                        FVisualizeTexture::AddVisualizeTexturePass(
-                            GraphBuilder,
-                            ShaderMap,
-                            DepthStencilTexture);
-                    FIntPoint UpdatePosition{desc.renderTargetUpdateBounds.left,
-                                             desc.renderTargetUpdateBounds.top};
-                    FIntPoint UpdateSize{
-                        desc.renderTargetUpdateBounds.width(),
-                        desc.renderTargetUpdateBounds.height()};
-                    AddDrawTexturePass(GraphBuilder,
-                                       ShaderMap,
-                                       VisTexture,
-                                       targetTexture,
-                                       {.Size = UpdateSize,
-                                        .SourcePosition = UpdatePosition,
-                                        .DestPosition = UpdatePosition});
-                }
-                break;
-            case 7:
-                if (featherAtlasTexture != placeholderTexture)
-                {
-                    FIntPoint UpdatePosition{desc.renderTargetUpdateBounds.left,
-                                             desc.renderTargetUpdateBounds.top};
-                    AddBltF16ToF4Pass(GraphBuilder,
-                                      featherAtlasTexture,
-                                      targetTexture,
-                                      {{0, 0},
-                                       FIntPoint(renderTarget->width(),
-                                                 renderTarget->height())});
-                }
-                break;
-            default:
-                break;
+        break;
+      case 3:
+        AddBltU324ToF4Pass(
+            GraphBuilder,
+            tesselationTexture,
+            targetTexture,
+            {{0, 0},
+             {kTessTextureWidth,
+              static_cast<UE::Math::TIntPoint<int>::IntType>(
+                  desc.tessDataHeight)}});
+        break;
+      case 4:
+        AddVisualizeBufferPass(
+            GraphBuilder,
+            desc.pathCount,
+            paintSRV,
+            targetTexture,
+            FIntPoint(renderTarget->width(), renderTarget->height()));
+        break;
+      case 5:
+        if (MSAAColorTexture)
+        {
+          FRDGTextureRef
+              VisTexture = FVisualizeTexture::AddVisualizeTexturePass(
+                  GraphBuilder,
+                  ShaderMap,
+                  MSAAColorTexture);
+          FIntPoint UpdatePosition{
+              desc.renderTargetUpdateBounds.left,
+              desc.renderTargetUpdateBounds.top};
+          FIntPoint UpdateSize{
+              desc.renderTargetUpdateBounds.width(),
+              desc.renderTargetUpdateBounds.height()};
+          AddDrawTexturePass(
+              GraphBuilder,
+              ShaderMap,
+              VisTexture,
+              targetTexture,
+              {.Size = UpdateSize,
+               .SourcePosition = UpdatePosition,
+               .DestPosition = UpdatePosition});
         }
-    } // End Flush Event Scope
+        break;
+      case 6:
+        if (DepthStencilTexture)
+        {
+          FRDGTextureRef
+              VisTexture = FVisualizeTexture::AddVisualizeTexturePass(
+                  GraphBuilder,
+                  ShaderMap,
+                  DepthStencilTexture);
+          FIntPoint UpdatePosition{
+              desc.renderTargetUpdateBounds.left,
+              desc.renderTargetUpdateBounds.top};
+          FIntPoint UpdateSize{
+              desc.renderTargetUpdateBounds.width(),
+              desc.renderTargetUpdateBounds.height()};
+          AddDrawTexturePass(
+              GraphBuilder,
+              ShaderMap,
+              VisTexture,
+              targetTexture,
+              {.Size = UpdateSize,
+               .SourcePosition = UpdatePosition,
+               .DestPosition = UpdatePosition});
+        }
+        break;
+      case 7:
+        if (featherAtlasTexture != placeholderTexture)
+        {
+          FIntPoint UpdatePosition{
+              desc.renderTargetUpdateBounds.left,
+              desc.renderTargetUpdateBounds.top};
+          AddBltF16ToF4Pass(
+              GraphBuilder,
+              featherAtlasTexture,
+              targetTexture,
+              {{0, 0},
+               FIntPoint(renderTarget->width(), renderTarget->height())});
+        }
+        break;
+      default:
+        break;
+    }
+  } // End Flush Event Scope
 }

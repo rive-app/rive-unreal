@@ -10,63 +10,67 @@ THIRD_PARTY_INCLUDES_START
 #include "rive/renderer/render_target.hpp"
 THIRD_PARTY_INCLUDES_END
 
-FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRiveRenderer* Renderer,
-                                           const FString& InRiveName,
-                                           UTexture2DDynamic* InRenderTarget) :
-    FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
+FRiveRenderTargetRHI::FRiveRenderTargetRHI(
+    FRiveRenderer* Renderer,
+    const FString& InRiveName,
+    UTexture2DDynamic* InRenderTarget)
+    : FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
 {}
 
 FRiveRenderTargetRHI::FRiveRenderTargetRHI(
     FRiveRenderer* Renderer,
     const FString& InRiveName,
-    UTextureRenderTarget2D* InRenderTarget) :
-    FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
+    UTextureRenderTarget2D* InRenderTarget)
+    : FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
 {}
 
-FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRiveRenderer* Renderer,
-                                           const FString& InRiveName,
-                                           FRenderTarget* InRenderTarget) :
-    FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
+FRiveRenderTargetRHI::FRiveRenderTargetRHI(
+    FRiveRenderer* Renderer,
+    const FString& InRiveName,
+    FRenderTarget* InRenderTarget)
+    : FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
 {}
 
-FRiveRenderTargetRHI::FRiveRenderTargetRHI(FRDGBuilder& GraphBuilder,
-                                           FRiveRenderer* Renderer,
-                                           const FString& InRiveName,
-                                           FRDGTextureRef InRenderTarget) :
-    FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
+FRiveRenderTargetRHI::FRiveRenderTargetRHI(
+    FRDGBuilder& GraphBuilder,
+    FRiveRenderer* Renderer,
+    const FString& InRiveName,
+    FRDGTextureRef InRenderTarget)
+    : FRiveRenderTarget(Renderer, InRiveName, InRenderTarget)
 {
-    check(IsInRenderingThread());
-    check(RiveRenderer != nullptr);
+  check(IsInRenderingThread());
+  check(RiveRenderer != nullptr);
 
-    rive::gpu::RenderContext* PLSRenderContext =
-        RiveRenderer->GetRenderContext();
-    RenderContextRHIImpl* const PLSRenderContextImpl =
-        PLSRenderContext->static_impl_cast<RenderContextRHIImpl>();
-    CachedRenderTarget = PLSRenderContextImpl->makeRenderTarget(InRenderTarget);
+  rive::gpu::RenderContext* PLSRenderContext = RiveRenderer->GetRenderContext();
+  RenderContextRHIImpl* const
+      PLSRenderContextImpl = PLSRenderContext
+                                 ->static_impl_cast<RenderContextRHIImpl>();
+  CachedRenderTarget = PLSRenderContextImpl->makeRenderTarget(InRenderTarget);
 }
 
 FRiveRenderTargetRHI::~FRiveRenderTargetRHI() {}
 
 void FRiveRenderTargetRHI::Initialize()
 {
-    FRiveRenderTarget::Initialize();
+  FRiveRenderTarget::Initialize();
 
-    if (ThumbnailRenderTarget == nullptr)
-    {
-        return;
-    }
+  if (ThumbnailRenderTarget == nullptr)
+  {
+    return;
+  }
 
-    ENQUEUE_RENDER_COMMAND(FRiveRenderTargetRHI_CacheRenderTarget)
-    ([StrongThis = SharedThis(this)](FRHICommandListImmediate& RHICmdList) {
-        rive::gpu::RenderContext* PLSRenderContext =
-            StrongThis->RiveRenderer->GetRenderContext();
-        check(PLSRenderContext);
-        RenderContextRHIImpl* const PLSRenderContextImpl =
-            PLSRenderContext->static_impl_cast<RenderContextRHIImpl>();
-        StrongThis->CachedRenderTarget = PLSRenderContextImpl->makeRenderTarget(
-            RHICmdList,
-            StrongThis->ThumbnailRenderTarget);
-    });
+  ENQUEUE_RENDER_COMMAND(FRiveRenderTargetRHI_CacheRenderTarget)
+  ([StrongThis = SharedThis(this)](FRHICommandListImmediate& RHICmdList) {
+    rive::gpu::RenderContext* PLSRenderContext = StrongThis->RiveRenderer
+                                                     ->GetRenderContext();
+    check(PLSRenderContext);
+    RenderContextRHIImpl* const
+        PLSRenderContextImpl = PLSRenderContext
+                                   ->static_impl_cast<RenderContextRHIImpl>();
+    StrongThis->CachedRenderTarget = PLSRenderContextImpl->makeRenderTarget(
+        RHICmdList,
+        StrongThis->ThumbnailRenderTarget);
+  });
 }
 
 DECLARE_GPU_STAT_NAMED(
@@ -76,64 +80,69 @@ void FRiveRenderTargetRHI::CacheTextureTarget_RenderThread(
     FRHICommandListImmediate& RHICmdList,
     const FTextureRHIRef& InTexture)
 {
-    check(IsInRenderingThread());
-    check(RiveRenderer != nullptr);
+  check(IsInRenderingThread());
+  check(RiveRenderer != nullptr);
 
-    rive::gpu::RenderContext* PLSRenderContext =
-        RiveRenderer->GetRenderContext();
+  rive::gpu::RenderContext* PLSRenderContext = RiveRenderer->GetRenderContext();
 
-    check(PLSRenderContext);
+  check(PLSRenderContext);
 
-    if (!InTexture.IsValid())
-    {
-        UE_LOG(LogRiveRenderer,
-               Error,
-               TEXT("FRiveRenderTargetRHI::CacheTextureTarget_RenderThread "
-                    "InTexture was invalid !"));
-        return;
-    }
+  if (!InTexture.IsValid())
+  {
+    UE_LOG(
+        LogRiveRenderer,
+        Error,
+        TEXT("FRiveRenderTargetRHI::CacheTextureTarget_RenderThread "
+             "InTexture was invalid !"));
+    return;
+  }
 
-    EPixelFormat PixelFormat = InTexture->GetFormat();
+  EPixelFormat PixelFormat = InTexture->GetFormat();
 
-    if (PixelFormat != PF_R8G8B8A8)
-    {
-        UE_LOG(LogRiveRenderer,
-               Warning,
-               TEXT("FRiveRenderTargetRHI::CacheTextureTarget_RenderThread "
-                    "InTexture was not PF_R8G8B8A8!"));
-    }
+  if (PixelFormat != PF_R8G8B8A8)
+  {
+    UE_LOG(
+        LogRiveRenderer,
+        Warning,
+        TEXT("FRiveRenderTargetRHI::CacheTextureTarget_RenderThread "
+             "InTexture was not PF_R8G8B8A8!"));
+  }
 
-    RHI_BREADCRUMB_EVENT_STAT(RHICmdList,
-                              CacheTextureTargetRHI,
-                              "CacheTextureTargetRHI");
+  RHI_BREADCRUMB_EVENT_STAT(
+      RHICmdList,
+      CacheTextureTargetRHI,
+      "CacheTextureTargetRHI");
 
-    RenderContextRHIImpl* const PLSRenderContextImpl =
-        PLSRenderContext->static_impl_cast<RenderContextRHIImpl>();
-    CachedRenderTarget =
-        PLSRenderContextImpl->makeRenderTarget(RHICmdList, InTexture);
+  RenderContextRHIImpl* const
+      PLSRenderContextImpl = PLSRenderContext
+                                 ->static_impl_cast<RenderContextRHIImpl>();
+  CachedRenderTarget = PLSRenderContextImpl->makeRenderTarget(
+      RHICmdList,
+      InTexture);
 }
 
 void FRiveRenderTargetRHI::UpdateTargetTexture(FRDGTextureRef InRenderTarget)
 {
-    FRiveRenderTarget::UpdateTargetTexture(InRenderTarget);
-    CachedRenderTarget->updateTargetTexture(InRenderTarget);
+  FRiveRenderTarget::UpdateTargetTexture(InRenderTarget);
+  CachedRenderTarget->updateTargetTexture(InRenderTarget);
 }
 
 void FRiveRenderTargetRHI::UpdateTargetTexture(FRenderTarget* InRenderTarget)
 {
-    check(IsInGameThread());
-    FRiveRenderTarget::UpdateTargetTexture(InRenderTarget);
-    ENQUEUE_RENDER_COMMAND(FRiveRenderTargetRHI_CacheRenderTarget)
-    ([StrongThis = SharedThis(this),
-      InRenderTarget](FRHICommandListImmediate& RHICmdList) {
-        StrongThis->CachedRenderTarget->updateTargetTexture(InRenderTarget);
-    });
+  check(IsInGameThread());
+  FRiveRenderTarget::UpdateTargetTexture(InRenderTarget);
+  ENQUEUE_RENDER_COMMAND(FRiveRenderTargetRHI_CacheRenderTarget)
+  ([StrongThis = SharedThis(this),
+    InRenderTarget](FRHICommandListImmediate& RHICmdList) {
+    StrongThis->CachedRenderTarget->updateTargetTexture(InRenderTarget);
+  });
 }
 
 void FRiveRenderTargetRHI::UpdateRHIResorourceDirect(
     FTextureRHIRef InRenderTarget)
 {
-    FRiveRenderTarget::UpdateRHIResorourceDirect(InRenderTarget);
-    CacheTextureTarget_RenderThread(GRHICommandList.GetImmediateCommandList(),
-                                    InRenderTarget);
+  FRiveRenderTarget::UpdateRHIResorourceDirect(InRenderTarget);
+  CacheTextureTarget_RenderThread(
+      GRHICommandList.GetImmediateCommandList(),
+      InRenderTarget);
 }

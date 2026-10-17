@@ -12,105 +12,107 @@ THIRD_PARTY_INCLUDES_END
 
 enum EBlendType
 {
-    None,
-    WriteOnly,
-    Blend
+  None,
+  WriteOnly,
+  Blend
 };
 
 struct FRiveCommonPassParameters
 {
-    AtomicPixelPermutationDomain PixelPermutationDomain;
-    AtomicVertexPermutationDomain VertexPermutationDomain;
-    FVertexDeclarationRHIRef VertexDeclarationRHI = nullptr;
-    // [0]/[1] geometry streams; imageMesh uses [2] for the per-instance
-    // gpu::ImageMeshInstance stream; imageRect uses [1] for
-    // gpu::ImageRectInstance.
-    FBufferRHIRef VertexBuffers[3];
-    FBufferRHIRef IndexBuffer = nullptr;
-    FUint32Rect Viewport;
-    FUint32Rect Scissor;
-    bool bWireframe = false;
-    bool bEnableMSAA = true;
-    FGlobalShaderMap* ShaderMap;
-    const rive::gpu::DrawBatch
-        DrawBatch; // Copy intentionally since lambda execution is deferred for
-                   // RenderGraph
-    EBlendType BlendType = EBlendType::None;
-    // Copy for the same reason as above.
-    // This is currently only used for MSAA mode, but may get used for other
-    // modes in the future
-    rive::gpu::PipelineState PipelineState;
-    const rive::gpu::PlatformFeatures& PlatformFeatures;
-    // Picks the subpass read msaa pixel shaders over the sampled dst color
-    // ones. Both variants are compiled, so this is a runtime choice.
-    bool bUseSubpassLoad = false;
-    bool bUseUavColor = false;
+  AtomicPixelPermutationDomain PixelPermutationDomain;
+  AtomicVertexPermutationDomain VertexPermutationDomain;
+  FVertexDeclarationRHIRef VertexDeclarationRHI = nullptr;
+  // [0]/[1] geometry streams; imageMesh uses [2] for the per-instance
+  // gpu::ImageMeshInstance stream; imageRect uses [1] for
+  // gpu::ImageRectInstance.
+  FBufferRHIRef VertexBuffers[3];
+  FBufferRHIRef IndexBuffer = nullptr;
+  FUint32Rect Viewport;
+  FUint32Rect Scissor;
+  bool bWireframe = false;
+  bool bEnableMSAA = true;
+  FGlobalShaderMap* ShaderMap;
+  const rive::gpu::DrawBatch DrawBatch; // Copy intentionally since lambda
+                                        // execution is deferred for RenderGraph
+  EBlendType BlendType = EBlendType::None;
+  // Copy for the same reason as above.
+  // This is currently only used for MSAA mode, but may get used for other
+  // modes in the future
+  rive::gpu::PipelineState PipelineState;
+  const rive::gpu::PlatformFeatures& PlatformFeatures;
+  // Picks the subpass read msaa pixel shaders over the sampled dst color
+  // ones. Both variants are compiled, so this is a runtime choice.
+  bool bUseSubpassLoad = false;
+  bool bUseUavColor = false;
 
-    // The subpass variants only exist for permutations that actually read the
-    // dst color, which is what their ShouldCompilePermutation allows. Asking
-    // for one outside that set would look up a shader that was never compiled.
-    bool UseSubpassPixelShader() const
-    {
-        return bUseSubpassLoad &&
-               PixelPermutationDomain.Get<FEnableAdvanceBlend>() &&
-               !PixelPermutationDomain.Get<FEnableFixedFunctionColorOutput>();
-    }
+  // The subpass variants only exist for permutations that actually read the
+  // dst color, which is what their ShouldCompilePermutation allows. Asking
+  // for one outside that set would look up a shader that was never compiled.
+  bool UseSubpassPixelShader() const
+  {
+    return bUseSubpassLoad &&
+           PixelPermutationDomain.Get<FEnableAdvanceBlend>() &&
+           !PixelPermutationDomain.Get<FEnableFixedFunctionColorOutput>();
+  }
 
-    // Composites into the framebuffer UAV instead of a color attachment. Same
-    // permutation set as the subpass variants, for platforms with no
-    // framebuffer fetch.
-    bool UseUavPixelShader() const
-    {
-        return bUseUavColor &&
-               PixelPermutationDomain.Get<FEnableAdvanceBlend>() &&
-               !PixelPermutationDomain.Get<FEnableFixedFunctionColorOutput>();
-    }
-    FRiveCommonPassParameters(
-        const rive::gpu::DrawBatch& DrawBatch,
-        const rive::gpu::PipelineState& PipelineState,
-        const rive::gpu::PlatformFeatures& PlatformFeatures,
-        FGlobalShaderMap* ShaderMap) :
-        ShaderMap(ShaderMap),
-        DrawBatch(DrawBatch),
-        PipelineState(PipelineState),
-        PlatformFeatures(PlatformFeatures)
-    {}
-    uint64_t GetUniqueKey(rive::gpu::InterlockMode Interlock) const
-    {
-        return GetUniqueKeyForDrawType(DrawBatch.drawType, Interlock);
-    }
+  // Composites into the framebuffer UAV instead of a color attachment. Same
+  // permutation set as the subpass variants, for platforms with no
+  // framebuffer fetch.
+  bool UseUavPixelShader() const
+  {
+    return bUseUavColor && PixelPermutationDomain.Get<FEnableAdvanceBlend>() &&
+           !PixelPermutationDomain.Get<FEnableFixedFunctionColorOutput>();
+  }
+  FRiveCommonPassParameters(
+      const rive::gpu::DrawBatch& DrawBatch,
+      const rive::gpu::PipelineState& PipelineState,
+      const rive::gpu::PlatformFeatures& PlatformFeatures,
+      FGlobalShaderMap* ShaderMap)
+      : ShaderMap(ShaderMap)
+      , DrawBatch(DrawBatch)
+      , PipelineState(PipelineState)
+      , PlatformFeatures(PlatformFeatures)
+  {}
+  uint64_t GetUniqueKey(rive::gpu::InterlockMode Interlock) const
+  {
+    return GetUniqueKeyForDrawType(DrawBatch.drawType, Interlock);
+  }
 
-    // stencilDynamicMidpointFans draws one batch once per collapsed subpass, so
-    // the state it caches has to be keyed off the pass rather than the batch.
-    uint64_t GetUniqueKeyForDrawType(rive::gpu::DrawType DrawType,
-                                     rive::gpu::InterlockMode Interlock) const
-    {
-        return getPipelineUniqueKey(DrawType,
-                                    DrawBatch.shaderFeatures,
-                                    Interlock,
-                                    DrawBatch.shaderMiscFlags,
-                                    DrawBatch.drawContents,
-                                    BlendType == EBlendType::Blend,
-                                    rive::BlendMode::srcOver,
-                                    PlatformFeatures);
-    }
+  // stencilDynamicMidpointFans draws one batch once per collapsed subpass, so
+  // the state it caches has to be keyed off the pass rather than the batch.
+  uint64_t GetUniqueKeyForDrawType(
+      rive::gpu::DrawType DrawType,
+      rive::gpu::InterlockMode Interlock) const
+  {
+    return getPipelineUniqueKey(
+        DrawType,
+        DrawBatch.shaderFeatures,
+        Interlock,
+        DrawBatch.shaderMiscFlags,
+        DrawBatch.drawContents,
+        BlendType == EBlendType::Blend,
+        rive::BlendMode::srcOver,
+        PlatformFeatures);
+  }
 };
 
 struct FRiveAtlasParameters
 {
-    FVertexDeclarationRHIRef VertexDeclarationRHI = nullptr;
-    FBufferRHIRef VertexBuffer = nullptr;
-    FBufferRHIRef IndexBuffer = nullptr;
-    FUint32Rect Viewport;
-    FGlobalShaderMap* ShaderMap;
-    const rive::gpu::AtlasDrawBatch
-        DrawBatch; // Copy intentionally since lamnda execution is defered for
-                   // RenderGraph
+  FVertexDeclarationRHIRef VertexDeclarationRHI = nullptr;
+  FBufferRHIRef VertexBuffer = nullptr;
+  FBufferRHIRef IndexBuffer = nullptr;
+  FUint32Rect Viewport;
+  FGlobalShaderMap* ShaderMap;
+  const rive::gpu::AtlasDrawBatch
+      DrawBatch; // Copy intentionally since lamnda execution is defered for
+                 // RenderGraph
 
-    FRiveAtlasParameters(const rive::gpu::AtlasDrawBatch& DrawBatch,
-                         FGlobalShaderMap* ShaderMap) :
-        ShaderMap(ShaderMap), DrawBatch(DrawBatch)
-    {}
+  FRiveAtlasParameters(
+      const rive::gpu::AtlasDrawBatch& DrawBatch,
+      FGlobalShaderMap* ShaderMap)
+      : ShaderMap(ShaderMap)
+      , DrawBatch(DrawBatch)
+  {}
 };
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRDGAtlasPassParameters, )
@@ -122,13 +124,14 @@ RENDER_TARGET_BINDING_SLOTS()
 
 END_SHADER_PARAMETER_STRUCT()
 
-FRDGPassRef AddGradientPass(FRDGBuilder& GraphBuilder,
-                            TRDGUniformBufferRef<FFlushUniforms> FlushUniforms,
-                            FVertexDeclarationRHIRef VertexDeclaration,
-                            FRDGTextureRef GradientTexture,
-                            FBufferRHIRef GradientSpanBuffer,
-                            FUint32Rect Viewport,
-                            uint32_t NumGradients);
+FRDGPassRef AddGradientPass(
+    FRDGBuilder& GraphBuilder,
+    TRDGUniformBufferRef<FFlushUniforms> FlushUniforms,
+    FVertexDeclarationRHIRef VertexDeclaration,
+    FRDGTextureRef GradientTexture,
+    FBufferRHIRef GradientSpanBuffer,
+    FUint32Rect Viewport,
+    uint32_t NumGradients);
 
 BEGIN_SHADER_PARAMETER_STRUCT(FRiveTesselationPassParameters, )
 SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FFlushUniforms, FlushUniforms)
@@ -204,10 +207,11 @@ void AddDrawMSAAPatchesPass(
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters);
 
-void AddDrawMSAAFillsPass(FRHICommandList& RHICmdList,
-                          const FString& PassName,
-                          const FRiveCommonPassParameters* CommonPassParameters,
-                          FRiveMSAAFlushPassParameters* PassParameters);
+void AddDrawMSAAFillsPass(
+    FRHICommandList& RHICmdList,
+    const FString& PassName,
+    const FRiveCommonPassParameters* CommonPassParameters,
+    FRiveMSAAFlushPassParameters* PassParameters);
 
 // The msaa fast path fill, drawn as one batch instead of three.
 void AddDrawMSAADynamicMidpointFansPass(
@@ -287,21 +291,24 @@ RENDER_TARGET_BINDING_SLOTS()
 
 END_SHADER_PARAMETER_STRUCT()
 
-FRDGPassRef AddDrawTextureBlt(FRDGBuilder& GraphBuilder,
-                              FVertexDeclarationRHIRef VertexDeclarationRHI,
-                              FUint32Rect Viewport,
-                              FGlobalShaderMap* ShaderMap,
-                              FRiveDrawTextureBltParameters* PassParameters,
-                              bool isMSAAResolve,
-                              bool bOpaque = false);
+FRDGPassRef AddDrawTextureBlt(
+    FRDGBuilder& GraphBuilder,
+    FVertexDeclarationRHIRef VertexDeclarationRHI,
+    FUint32Rect Viewport,
+    FGlobalShaderMap* ShaderMap,
+    FRiveDrawTextureBltParameters* PassParameters,
+    bool isMSAAResolve,
+    bool bOpaque = false);
 
-void AddDrawTextureBlt(FRHICommandList& RHICmdList,
-                       FVertexDeclarationRHIRef VertexDeclarationRHI,
-                       FGlobalShaderMap* ShaderMap,
-                       FRiveDrawTextureBltParameters& PassParameters,
-                       const rive::gpu::DrawBatch& Batch,
-                       bool isMSAAResolve);
+void AddDrawTextureBlt(
+    FRHICommandList& RHICmdList,
+    FVertexDeclarationRHIRef VertexDeclarationRHI,
+    FGlobalShaderMap* ShaderMap,
+    FRiveDrawTextureBltParameters& PassParameters,
+    const rive::gpu::DrawBatch& Batch,
+    bool isMSAAResolve);
 
-FRDGPassRef AddDrawClearQuadPass(FRDGBuilder& GraphBuilder,
-                                 FRDGTextureRef RenderTarget,
-                                 FLinearColor ClearColor);
+FRDGPassRef AddDrawClearQuadPass(
+    FRDGBuilder& GraphBuilder,
+    FRDGTextureRef RenderTarget,
+    FLinearColor ClearColor);
