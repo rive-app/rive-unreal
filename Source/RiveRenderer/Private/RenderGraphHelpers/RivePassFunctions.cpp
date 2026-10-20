@@ -267,6 +267,7 @@ FBlendStateRHIRef BlendStateForPipeline(const PipelineState& PipelineState)
           BF_InverseSourceAlpha>::GetRHI();
     case BlendEquation::plus:
     case BlendEquation::max:
+    case BlendEquation::layerMask:
     case BlendEquation::screen:
     case BlendEquation::overlay:
     case BlendEquation::darken:
