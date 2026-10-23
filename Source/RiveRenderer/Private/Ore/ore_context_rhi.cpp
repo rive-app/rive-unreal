@@ -638,6 +638,11 @@ rive::rcp<rive::ore::Pipeline> OreContextRHI::makePipeline(
             desc.bindGroupLayouts,
             desc.bindGroupLayoutCount,
             &err) ||
+        !rive::ore::validateLayoutSlots(
+            pipeline->m_bindingMap,
+            desc.bindGroupLayouts,
+            desc.bindGroupLayoutCount,
+            &err) ||
         !rive::ore::validateColorRequiresFragment(
             desc.colorCount,
             desc.fragmentModule != nullptr,
