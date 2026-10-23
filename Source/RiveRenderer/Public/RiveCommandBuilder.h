@@ -290,6 +290,19 @@ struct RIVERENDERER_API FRiveCommandBuilder
       UTexture*,
       uint64_t* outRequestId = nullptr);
 
+  // Queues a decode of a font's bytes on the command server. Listener, if
+  // set, receives this handle's messages and must outlive the handle or
+  // unregister itself; URiveExternalFont passes the one it owns.
+  rive::FontHandle CreateFont(
+      std::vector<uint8_t> Bytes,
+      rive::CommandQueue::FontListener* Listener = nullptr)
+  {
+    return CommandQueue->decodeFont(
+        MoveTemp(Bytes),
+        Listener,
+        ++CurrentRequestId);
+  }
+
   rive::BlobAssetHandle CreateBlobAsset(
       const TArray<uint8>& Bytes,
       uint64_t* outRequestId = nullptr)
@@ -511,6 +524,21 @@ struct RIVERENDERER_API FRiveCommandBuilder
       const FString& Name,
       UTexture* Value);
 
+  // RIVE_NULL_HANDLE clears the property.
+  uint64_t SetViewModelFont(
+      rive::ViewModelInstanceHandle ViewModel,
+      const FString& Name,
+      rive::FontHandle Value)
+  {
+    FTCHARToUTF8 ConvertName(*Name);
+    CommandQueue->setViewModelInstanceFont(
+        ViewModel,
+        ConvertName.Get(),
+        Value,
+        ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
   uint64_t SetViewModelBlob(
       rive::ViewModelInstanceHandle ViewModel,
       const FString& Name,
@@ -640,6 +668,12 @@ struct RIVERENDERER_API FRiveCommandBuilder
   uint64_t DestroyBlob(rive::BlobAssetHandle Blob)
   {
     CommandQueue->deleteBlob(Blob, ++CurrentRequestId);
+    return CurrentRequestId;
+  }
+
+  uint64_t DestroyFont(rive::FontHandle Font)
+  {
+    CommandQueue->deleteFont(Font, ++CurrentRequestId);
     return CurrentRequestId;
   }
 

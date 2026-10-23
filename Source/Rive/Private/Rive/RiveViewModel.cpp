@@ -9,6 +9,7 @@
 #include "rive/command_server.hpp"
 #include "Rive/RiveArtboard.h"
 #include "Rive/RiveBlobAsset.h"
+#include "Rive/RiveExternalFont.h"
 #include "Rive/RiveFile.h"
 #include "Rive/RiveUtils.h"
 #include "Engine/BlueprintGeneratedClass.h"
@@ -46,6 +47,8 @@ static rive::DataType RiveDataTypeToDataType(ERiveDataType Type)
       return rive::DataType::viewModel;
     case ERiveDataType::AssetImage:
       return rive::DataType::assetImage;
+    case ERiveDataType::AssetFont:
+      return rive::DataType::assetFont;
     case ERiveDataType::AssetBlob:
       return rive::DataType::assetBlob;
     case ERiveDataType::Artboard:
@@ -144,6 +147,7 @@ constexpr bool GetIsPropertyTypeWithDefault(ERiveDataType Type)
     case ERiveDataType::ViewModel:
     case ERiveDataType::Artboard:
       return true;
+    case ERiveDataType::AssetFont:
     case ERiveDataType::AssetImage:
     case ERiveDataType::AssetBlob:
     case ERiveDataType::List:
@@ -423,6 +427,7 @@ void URiveViewModel::SetupGeneratedProperties(
           }
           break;
           case ERiveDataType::Artboard:
+          case ERiveDataType::AssetFont:
           case ERiveDataType::AssetImage:
           case ERiveDataType::AssetBlob:
           case ERiveDataType::List:
@@ -437,6 +442,7 @@ void URiveViewModel::SetupGeneratedProperties(
       if (PropertyDefinition.Type == ERiveDataType::ViewModel ||
           PropertyDefinition.Type == ERiveDataType::SymbolListIndex ||
           PropertyDefinition.Type == ERiveDataType::AssetImage ||
+          PropertyDefinition.Type == ERiveDataType::AssetFont ||
           PropertyDefinition.Type == ERiveDataType::AssetBlob ||
           PropertyDefinition.Type == ERiveDataType::Artboard)
       {
@@ -803,6 +809,49 @@ bool URiveViewModel::SetImageValue(
     }
     ObjectProperty->SetPropertyValue_InContainer(this, InImage);
     UnsettleStateMachine(TEXT("SetImageValue"));
+    UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
+                                                .GetField(
+                                                    GetClass(),
+                                                    *PropertyName);
+    BroadcastFieldValueChanged(Field);
+    return true;
+  }
+  return false;
+}
+
+bool URiveViewModel::SetFontValue(
+    const FString& PropertyName,
+    URiveExternalFont* InFont)
+{
+  check(bIsGenerated);
+  if (auto ObjectProperty = FindFProperty<FObjectProperty>(
+          GetClass(),
+          *PropertyName))
+  {
+    if (ObjectProperty->PropertyClass != URiveExternalFont::StaticClass())
+    {
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("Invalid Property %s For Font Value Set"),
+          *PropertyName);
+      return false;
+    }
+    if (InFont != nullptr &&
+        InFont->GetState() == ERiveExternalFontState::Released)
+    {
+      // Its handle is gone. Rejecting it here keeps the previous font in
+      // the property and on the server.
+      UE_LOG(
+          LogRive,
+          Error,
+          TEXT("SetFontValue: Font %s was released; make a new font to bind "
+               "it."),
+          *InFont->GetName());
+      return false;
+    }
+    ObjectProperty->SetPropertyValue_InContainer(this, InFont);
+    UnsettleStateMachine(TEXT("SetFontValue"));
     UE::FieldNotification::FFieldId Field = GetFieldNotificationDescriptor()
                                                 .GetField(
                                                     GetClass(),
@@ -1332,6 +1381,7 @@ void URiveViewModel::OnViewModelDataReceived(
     case rive::DataType::artboard:
     case rive::DataType::assetImage:
     case rive::DataType::assetBlob:
+    case rive::DataType::assetFont:
       break;
     // Invalid values
     case rive::DataType::none:
@@ -1590,6 +1640,32 @@ void URiveViewModel::OnUpdatedField(UE::FieldNotification::FFieldId InFieldId)
             PropName,
             TextureObject);
       }
+    }
+    else if (ObjectClass == URiveExternalFont::StaticClass())
+    {
+      URiveExternalFont* Font = Cast<URiveExternalFont>(Object);
+      if (Font != nullptr &&
+          Font->GetState() == ERiveExternalFontState::Released)
+      {
+        // Only a direct property set (a Blueprint Set node) gets here;
+        // SetFontValue rejects released fonts first. The previous value is
+        // already overwritten, so clear both sides rather than leave the
+        // property naming a font the server is not showing. This runs before
+        // the field's delegates broadcast, so listeners read the null.
+        UE_LOG(
+            LogRive,
+            Error,
+            TEXT("URiveViewModel::OnUpdatedField Font %s was released; "
+                 "clearing the property. Make a new font to bind it."),
+            *Font->GetName());
+        ObjectProperty->SetObjectPropertyValue_InContainer(this, nullptr);
+        Font = nullptr;
+      }
+      // A null font clears the property.
+      Builder.SetViewModelFont(
+          NativeViewModelInstance,
+          PropName,
+          Font != nullptr ? Font->GetNativeHandle() : RIVE_NULL_HANDLE);
     }
     else if (ObjectClass == URiveBlobAsset::StaticClass())
     {

@@ -32,7 +32,7 @@ public class RiveRenderer : ModuleRules
 			new string[]
 			{
 				"Core", "RiveLibrary",
-				"RiveShaders", 
+				"RiveShaders",
 				"Projects"
 			}
 		);
@@ -49,7 +49,8 @@ public class RiveRenderer : ModuleRules
 				"Renderer",
 				"RiveLibrary",
 				"ImageWrapper",
-				"RiveStats"
+				"RiveStats",
+				"SlateCore" // FFontData, used by RiveFontUtils
 			}
 		);
 

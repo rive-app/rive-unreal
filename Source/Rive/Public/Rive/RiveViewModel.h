@@ -13,6 +13,7 @@
 class URiveViewModel;
 class URiveArtboard;
 class URiveBlobAsset;
+class URiveExternalFont;
 struct FViewModelDefinition;
 class URiveFile;
 
@@ -117,6 +118,8 @@ public:
   bool SetNumberValue(const FString& PropertyName, float InNumber);
   UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
   bool SetImageValue(const FString& PropertyName, UTexture* InImage);
+  UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
+  bool SetFontValue(const FString& PropertyName, URiveExternalFont* InFont);
   UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")
   bool SetBlobValue(const FString& PropertyName, URiveBlobAsset* InBlob);
   UFUNCTION(BlueprintCallable, Category = "Rive|Data Binding")

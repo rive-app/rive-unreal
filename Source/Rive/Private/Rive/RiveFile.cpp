@@ -75,6 +75,8 @@ static ERiveDataType RiveDataTypeFromDataType(rive::DataType type)
       return ERiveDataType::ViewModel;
     case rive::DataType::assetImage:
       return ERiveDataType::AssetImage;
+    case rive::DataType::assetFont:
+      return ERiveDataType::AssetFont;
     case rive::DataType::assetBlob:
       return ERiveDataType::AssetBlob;
     case rive::DataType::artboard:
@@ -1018,6 +1020,7 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
           }
           break;
           case ERiveDataType::SymbolListIndex:
+          case ERiveDataType::AssetFont:
           case ERiveDataType::AssetImage:
           case ERiveDataType::AssetBlob:
           case ERiveDataType::List:
