@@ -2,6 +2,7 @@
  * Copyright 2025 Rive
  */
 #include "TextureRHIImpl.hpp"
+#include "RHITextureReference.h"
 #include "TextureResource.h"
 #include "Platform/RenderContextRHIImpl.hpp"
 #if UE_VERSION_OLDER_THAN(5, 5, 0)
@@ -75,13 +76,19 @@ TextureRHIImpl::TextureRHIImpl(
 
 TextureRHIImpl::TextureRHIImpl(UTextureRenderTarget2D* InTexture)
     : rive::gpu::Texture(InTexture->SizeX, InTexture->SizeY)
-    , m_UTexture(InTexture)
+    , m_isUTexture(true)
 {}
 
 TextureRHIImpl::TextureRHIImpl(UTexture2D* InTexture)
     : rive::gpu::Texture(InTexture->GetSizeX(), InTexture->GetSizeY())
-    , m_UTexture(InTexture)
+    , m_isUTexture(true)
 {}
+
+void TextureRHIImpl::setTextureReference(FTextureReferenceRHIRef InReference)
+{
+  check(IsInRenderingThread());
+  m_textureReference = MoveTemp(InReference);
+}
 
 TextureRHIImpl::TextureRHIImpl(
     uint32_t width,
@@ -134,9 +141,16 @@ TextureRHIImpl::~TextureRHIImpl() {}
 
 FTextureRHIRef TextureRHIImpl::contents() const
 {
-  return m_UTexture.IsValid()
-             ? FTextureRHIRef(m_UTexture->GetResource()->GetTexture2DRHI())
-             : m_texture;
+  if (m_isUTexture)
+  {
+    // Black before the reference arrives and after the engine clears it.
+    FRHITexture* Current = m_textureReference
+                               ? m_textureReference->GetReferencedTexture()
+                               : nullptr;
+    return FTextureRHIRef(
+        Current ? Current : FRHITextureReference::GetDefaultTexture());
+  }
+  return m_texture;
 }
 
 #endif

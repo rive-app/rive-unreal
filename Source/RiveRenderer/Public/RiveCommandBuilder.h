@@ -3,6 +3,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/Texture2D.h"
+#include "UObject/ObjectKey.h"
 
 namespace rive
 {
@@ -889,8 +890,9 @@ private:
   // with UE's garbage collection
   TMap<TSharedPtr<FRiveRenderTarget>, FRiveCommandSet> DrawCommands;
 
-  // Used for data binding external UTextures.
-  TMap<TStrongObjectPtr<UTexture>, rive::RenderImageHandle> ExternalImages;
+  // Used for data binding external UTextures. Keyed without keeping the
+  // texture alive; the render image reads it through its texture reference.
+  TMap<TObjectKey<UTexture>, rive::RenderImageHandle> ExternalImages;
   // This is used for several requests at the same time for the same image.
   // This way all callbacks happen eventually
   TMap<

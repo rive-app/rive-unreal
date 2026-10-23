@@ -1185,17 +1185,31 @@ rive::rcp<rive::RenderImage> RenderContextRHIImpl::MakeExternalRenderImage(
 rive::rcp<rive::RenderImage> RenderContextRHIImpl::MakeExternalRenderImage(
     UTexture* InTargetTexture)
 {
+  rive::rcp<TextureRHIImpl> Impl;
   if (auto Texture = Cast<UTexture2D>(InTargetTexture))
   {
-    return make_rcp<RiveRenderImage>(make_rcp<TextureRHIImpl>(Texture));
+    Impl = make_rcp<TextureRHIImpl>(Texture);
   }
-  if (auto TextureRenderTarget = Cast<UTextureRenderTarget2D>(InTargetTexture))
+  else if (
+      auto TextureRenderTarget = Cast<UTextureRenderTarget2D>(InTargetTexture))
   {
-    return make_rcp<RiveRenderImage>(
-        make_rcp<TextureRHIImpl>(TextureRenderTarget));
+    Impl = make_rcp<TextureRHIImpl>(TextureRenderTarget);
+  }
+  else
+  {
+    return nullptr;
   }
 
-  return nullptr;
+  // The engine creates the reference on the render thread from the texture's
+  // constructor; reading it there, in order, is what makes it non-null. The
+  // texture outlives this command: its destruction fences the render thread.
+  ENQUEUE_RENDER_COMMAND(RiveAcquireTextureReference)
+  ([Impl, InTargetTexture](FRHICommandListImmediate&) {
+    Impl->setTextureReference(
+        InTargetTexture->TextureReference.TextureReferenceRHI);
+  });
+
+  return make_rcp<RiveRenderImage>(Impl);
 }
 
 void* RenderContextRHIImpl::makeCommandBuffer()

@@ -64,10 +64,8 @@ rive::RenderImageHandle FRiveCommandBuilder::CreateRenderImage(
     UTexture* Value,
     uint64_t* outRequestId)
 {
-  // Make a strong reference to the texture so we can guarantee it won't get
-  // GC'd.
-  TStrongObjectPtr<UTexture> StrongValue(Value);
-  auto RenderImageHandle = ExternalImages.Find(StrongValue);
+  const TObjectKey<UTexture> Key(Value);
+  auto RenderImageHandle = ExternalImages.Find(Key);
 
   if (RenderImageHandle == nullptr)
   {
@@ -76,7 +74,7 @@ rive::RenderImageHandle FRiveCommandBuilder::CreateRenderImage(
         MoveTemp(RenderImage),
         nullptr,
         ++CurrentRequestId);
-    ExternalImages.Add(StrongValue, Handle);
+    ExternalImages.Add(Key, Handle);
     return Handle;
   }
 

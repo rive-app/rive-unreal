@@ -71,6 +71,9 @@ public:
   virtual ~TextureRHIImpl() override;
   FTextureRHIRef contents() const;
 
+  // Render thread. Until it is set, contents() is the default black texture.
+  void setTextureReference(FTextureReferenceRHIRef InReference);
+
 private:
   FRDGTextureRef m_RDGTexture = nullptr;
   // asRDGTexture is called once per draw, so images drawn many times in one
@@ -79,6 +82,10 @@ private:
   mutable FRDGTextureRef m_cachedRDGTexture = nullptr;
   mutable uint64 m_cachedRDGFlushSerial = 0;
   FTextureRHIRef m_texture = nullptr;
-  TStrongObjectPtr<UTexture> m_UTexture;
+  // The engine's stable reference to a UTexture's current RHI texture,
+  // repointed on streaming and recreation and cleared on destroy. Acquired on
+  // the render thread, after the engine has created it there.
+  FTextureReferenceRHIRef m_textureReference = nullptr;
+  bool m_isUTexture = false;
 };
 #endif
