@@ -28,6 +28,10 @@ class RIVE_API URiveWidget : public UUserWidget
 {
   GENERATED_BODY()
 
+public:
+  URiveWidget(const FObjectInitializer& ObjectInitializer);
+
+private:
   virtual ~URiveWidget() override;
 
 protected:
@@ -61,7 +65,8 @@ protected:
       const FPointerEvent& InGestureEvent) override;
 
   // Reached only while this widget holds focus, which it takes when a press
-  // lands on something in the artboard — see NativeOnMouseButtonDown.
+  // lands on something in the artboard (see NativeOnMouseButtonDown), or when
+  // UMG navigation or SetFocus gives it focus.
   virtual FReply NativeOnKeyDown(
       const FGeometry& InGeometry,
       const FKeyEvent& InKeyEvent) override;
@@ -71,6 +76,21 @@ protected:
   virtual FReply NativeOnKeyChar(
       const FGeometry& InGeometry,
       const FCharacterEvent& InCharEvent) override;
+  virtual FReply NativeOnAnalogValueChanged(
+      const FGeometry& InGeometry,
+      const FAnalogInputEvent& InAnalogEvent) override;
+
+  // Moves focus inside the artboard first, and leaves the widget only when
+  // there is nothing further that way. See "Navigation" in the plugin docs
+  // before changing anything here.
+  virtual FNavigationReply NativeOnNavigation(
+      const FGeometry& InGeometry,
+      const FNavigationEvent& InNavigationEvent,
+      const FNavigationReply& InDefaultReply) override;
+
+  virtual FReply NativeOnFocusReceived(
+      const FGeometry& InGeometry,
+      const FFocusEvent& InFocusEvent) override;
   virtual void NativeOnFocusLost(const FFocusEvent& InFocusEvent) override;
   //~ END : UWidget Interface
 
@@ -104,6 +124,33 @@ public:
 #endif
 private:
   void Setup();
+
+  // Gives a newly set artboard its entry focus when the widget already holds
+  // Slate focus, as NativeOnFocusReceived would have.
+  void EnterArtboardFocusIfFocused();
+
+  // The game-thread half of a deferred navigation: replays it through
+  // Slate when the artboard had nowhere to move. See NativeOnNavigation.
+  void FinishNavigation(
+      uint32 Sequence,
+      EUINavigation NavigationType,
+      ENavigationGenesis Genesis,
+      uint32 UserIndex,
+      bool bMoved);
+
+  // Counts navigations sent to the artboard, so only the answer to the
+  // latest one can make the widget leave.
+  uint32 NavigationSequence = 0;
+
+  // True while FinishNavigation replays a navigation through Slate, so
+  // NativeOnNavigation answers with the widget's own UMG rules instead of
+  // asking the artboard again.
+  bool bReplayingNavigation = false;
+
+  // Sends a gamepad button to the artboard and says whether the press was
+  // the artboard's to keep. False for navigation directions, so they
+  // can still become navigation.
+  bool GamepadKey(const FKeyEvent& InKeyEvent, bool bPressed);
 
   UPROPERTY(Transient)
   TObjectPtr<URiveArtboard> RiveArtboard;

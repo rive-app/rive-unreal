@@ -257,6 +257,53 @@ public:
     }
   }
 
+  // Cached, so it never waits on the render thread: a focus change made
+  // this frame may not show until the next.
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  bool HasFocus() { return StateMachine.IsValid() && StateMachine->HasFocus(); }
+
+  // Focuses the artboard's first focusable when nothing is focused, so its
+  // gamepad and key listeners have something to hear events through.
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  void FocusFirst()
+  {
+    if (StateMachine.IsValid())
+    {
+      StateMachine->FocusFirst();
+    }
+  }
+
+  // For a host with no widget to receive the pad — a world-space artboard on
+  // a render target, driven from Enhanced Input. Value is 0 or 1 for a
+  // button, the analog value for a stick or trigger axis. False for keys
+  // with no slot in the standard gamepad layout.
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  bool GamepadInput(FKey Key, float Value, int32 DeviceId = 0)
+  {
+    return StateMachine.IsValid() &&
+           StateMachine->GamepadInput(Key, Value, DeviceId);
+  }
+
+  // Lets go of every held button and recentres every stick, for a host that
+  // stops hearing the pad mid-press.
+  UFUNCTION(BlueprintCallable, Category = "Rive|Artboard")
+  void ReleaseGamepads()
+  {
+    if (StateMachine.IsValid())
+    {
+      StateMachine->ReleaseGamepads();
+    }
+  }
+
+  // See FRiveStateMachine::MoveFocus. OnResult runs on the game thread.
+  bool MoveFocus(
+      EUINavigation Navigation,
+      TFunction<void(bool bMoved)> OnResult)
+  {
+    return StateMachine.IsValid() &&
+           StateMachine->MoveFocus(Navigation, MoveTemp(OnResult));
+  }
+
   bool KeyInput(const FKeyEvent& KeyEvent, bool bPressed)
   {
     if (!StateMachine.IsValid())

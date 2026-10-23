@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "RiveCommandBuilder.h"
 
+#include <atomic>
+
 #if WITH_RIVE
 
 struct FRiveDescriptor;
@@ -133,6 +135,32 @@ struct RIVE_API FRiveStateMachine : public TSharedFromThis<FRiveStateMachine>
   // Fire and forget: nothing is decided on the strength of it.
   void ClearFocus();
 
+  // Whether anything in the artboard holds focus. Read from a cache so it
+  // never waits on the render thread; it can be a frame behind. See "Focus
+  // state cache" in the plugin docs.
+  bool HasFocus() const { return CachedHasFocus->load(); }
+
+  // Focuses the first stop in tab order, only when nothing is focused, so it
+  // never moves focus the player already has. Fire and forget.
+  void FocusFirst();
+
+  // Moves focus one step inside the artboard. Doesn't wait: OnResult runs on
+  // the game thread with whether focus moved. Returns false, without calling
+  // OnResult, for a navigation type Rive has no move for.
+  bool MoveFocus(
+      EUINavigation Navigation,
+      TFunction<void(bool bMoved)> OnResult);
+
+  // A gamepad button or axis as Unreal names it, sent as a W3C standard
+  // gamepad change. False for keys with no standard slot, before anything is
+  // sent. Does not wait: analog input arrives every frame a stick is held.
+  bool GamepadInput(const FKey& InKey, float Value, int32 DeviceId);
+
+  // Returns every pad to rest. For a host that stops hearing the pad while
+  // it is held: once focus moves away the release goes to another widget,
+  // and the artboard would keep the button down.
+  void ReleaseGamepads();
+
   void BindViewModel(TObjectPtr<URiveViewModel> ViewModel);
 
   void SetStateMachineSettled(bool inStateMachineSettled);
@@ -159,4 +187,18 @@ private:
   static rive::EventReport NullEvent;
   bool bStateMachineSettled = false;
   bool bIsValid = true;
+
+  // Written on the server, read by HasFocus. Shared so a callback still in
+  // flight when this state machine goes away writes somewhere valid.
+  TSharedRef<std::atomic<bool>> CachedHasFocus = MakeShared<std::atomic<bool>>(
+      false);
+
+  // What each pad has last been told, so the first event from a pad can
+  // announce it and an unchanged value is not sent again.
+  struct FGamepadState
+  {
+    TArray<float> Buttons;
+    TArray<float> Axes;
+  };
+  TMap<int32, FGamepadState> Gamepads;
 };

@@ -13,11 +13,15 @@
 #include "rive/animation/state_machine_instance.hpp"
 #include "rive/command_queue.hpp"
 #include "rive/command_server.hpp"
+#include "rive/input/focus_manager.hpp"
 #include "rive/input/focusable.hpp"
+#include "rive/input/gamepad_batch.hpp"
+#include "rive/input/standard_gamepad.hpp"
 #include "Rive/RiveDescriptor.h"
 #include "Stats/RiveStats.h"
 #include "Rive/RiveUtils.h"
 #include "RenderingThread.h"
+#include "Async/Async.h"
 
 #include <atomic>
 
@@ -133,6 +137,18 @@ void FRiveStateMachine::Advance(
       STAT_STATEMACHINE_ADVANCE,
       STATGROUP_Rive);
   CommandBuilder.AdvanceStateMachine(NativeStateMachineHandle, InSeconds);
+
+  // Listeners apply focus changes during the advance, so refresh the cache
+  // after it.
+  const rive::StateMachineHandle Handle = NativeStateMachineHandle;
+  CommandBuilder.RunOnce([Handle,
+                          Cache = CachedHasFocus](rive::CommandServer* Server) {
+    if (rive::StateMachineInstance* Instance = Server->getStateMachineInstance(
+            Handle))
+    {
+      Cache->store(Instance->focusState().hasFocus);
+    }
+  });
 }
 
 uint32 FRiveStateMachine::GetInputCount() const { return 0; }
@@ -677,16 +693,355 @@ void FRiveStateMachine::ClearFocus()
 {
   bStateMachineSettled = false;
 
-  // Nothing waits on losing focus, so this one does not block.
+  // Nothing waits on losing focus, so this one does not block. Immediate
+  // rather than end of frame all the same: a focus query or entry sent later
+  // in the frame would otherwise run first and be undone by this clear.
   const rive::StateMachineHandle Handle = NativeStateMachineHandle;
-  IRiveRendererModule::GetCommandBuilder().RunOnce([Handle](rive::CommandServer*
-                                                                Server) {
-    if (rive::StateMachineInstance* Instance = Server->getStateMachineInstance(
-            Handle))
+  IRiveRendererModule::GetCommandBuilder().RunOnceImmediate(
+      [Handle, Cache = CachedHasFocus](rive::CommandServer* Server) {
+        rive::StateMachineInstance* Instance = Server->getStateMachineInstance(
+            Handle);
+        if (Instance != nullptr)
+        {
+          Instance->clearFocus();
+          Cache->store(false);
+        }
+      });
+}
+
+static bool IsRiveFocusMove(EUINavigation Navigation)
+{
+  switch (Navigation)
+  {
+    case EUINavigation::Left:
+    case EUINavigation::Right:
+    case EUINavigation::Up:
+    case EUINavigation::Down:
+    case EUINavigation::Next:
+    case EUINavigation::Previous:
+      return true;
+    default:
+      return false;
+  }
+}
+
+// Runs on the command server.
+static bool MoveFocusOnServer(
+    rive::StateMachineInstance* Instance,
+    EUINavigation Navigation)
+{
+  if (Instance == nullptr || !Instance->focusState().hasFocus)
+    return false;
+  switch (Navigation)
+  {
+    case EUINavigation::Left:
+      return Instance->focusLeft();
+    case EUINavigation::Right:
+      return Instance->focusRight();
+    case EUINavigation::Up:
+      return Instance->focusUp();
+    case EUINavigation::Down:
+      return Instance->focusDown();
+    case EUINavigation::Next:
+    case EUINavigation::Previous:
+      break;
+    default:
+      return false;
+  }
+
+  // Running off either end of the tab order clears focus. Put the node back
+  // in case Slate has nowhere to send focus either. See "Tab running off the
+  // end" in the plugin docs.
+  rive::FocusManager* Manager = Instance->focusManager();
+  rive::rcp<rive::FocusNode> Previous;
+  if (Manager != nullptr)
+  {
+    Previous = Manager->primaryFocus();
+  }
+  const bool bMoved = Navigation == EUINavigation::Next
+                          ? Instance->focusNext()
+                          : Instance->focusPrevious();
+  if (!bMoved && Previous && !Instance->focusState().hasFocus)
+  {
+    Manager->setFocus(Previous);
+  }
+  return bMoved;
+}
+
+bool FRiveStateMachine::MoveFocus(
+    EUINavigation Navigation,
+    TFunction<void(bool bMoved)> OnResult)
+{
+  if (!IsRiveFocusMove(Navigation))
+    return false;
+
+  // The focus and blur listeners a move fires run on the next advance.
+  bStateMachineSettled = false;
+
+  // Immediate, so a d-pad listener on the focused node hears the press
+  // before focus moves away from it. The answer is posted back rather than
+  // waited for; see "Navigation" in the plugin docs.
+  const rive::StateMachineHandle Handle = NativeStateMachineHandle;
+  IRiveRendererModule::GetCommandBuilder().RunOnceImmediate(
+      [Handle,
+       Navigation,
+       Cache = CachedHasFocus,
+       OnResult = MoveTemp(OnResult)](rive::CommandServer* Server) {
+        rive::StateMachineInstance* Instance = Server->getStateMachineInstance(
+            Handle);
+        const bool bMoved = MoveFocusOnServer(Instance, Navigation);
+        if (Instance != nullptr)
+        {
+          Cache->store(Instance->focusState().hasFocus);
+        }
+        // Posted even when the instance is gone, so a widget waiting on the
+        // answer still gets to leave.
+        AsyncTask(ENamedThreads::GameThread, [OnResult, bMoved]() {
+          OnResult(bMoved);
+        });
+      });
+  return true;
+}
+
+// TODO: stand-in for focus entry until the directional focus proposal lands.
+// See "Future work" in the plugin docs.
+void FRiveStateMachine::FocusFirst()
+{
+  // The focus listeners it fires run on the next advance.
+  bStateMachineSettled = false;
+
+  const rive::StateMachineHandle Handle = NativeStateMachineHandle;
+  IRiveRendererModule::GetCommandBuilder().RunOnceImmediate(
+      [Handle, Cache = CachedHasFocus](rive::CommandServer* Server) {
+        rive::StateMachineInstance* Instance = Server->getStateMachineInstance(
+            Handle);
+        if (Instance != nullptr && !Instance->focusState().hasFocus)
+        {
+          Instance->focusNext();
+          Cache->store(Instance->focusState().hasFocus);
+        }
+      });
+}
+
+namespace
+{
+constexpr int32 GamepadButtonCount = 17;
+constexpr int32 GamepadAxisCount = 6;
+constexpr int32 NoSlot = -1;
+
+// Where an Unreal gamepad key lands in the W3C standard layout. Triggers are
+// both a button with analog pressure and an axis there, so they fill both.
+struct FGamepadSlot
+{
+  int32 Button = NoSlot;
+  int32 Axis = NoSlot;
+  // Unreal's sticks read positive up, the W3C layout's positive down.
+  bool bInvert = false;
+};
+
+using rive::StandardGamepadAxis;
+using rive::StandardGamepadButton;
+
+constexpr int32 Slot(StandardGamepadButton Button)
+{
+  return static_cast<int32>(Button);
+}
+
+constexpr int32 Slot(StandardGamepadAxis Axis)
+{
+  return static_cast<int32>(Axis);
+}
+
+const TMap<FKey, FGamepadSlot>& GamepadSlotTable()
+{
+  // No entry for the digital trigger keys: the trigger axes carry the same
+  // press with its pressure, and sending both would report it twice. Unreal
+  // has no standard key for the home button (W3C 16).
+  static const TMap<FKey, FGamepadSlot> Table = {
+      {EKeys::Gamepad_FaceButton_Bottom, {Slot(StandardGamepadButton::south)}},
+      {EKeys::Gamepad_FaceButton_Right, {Slot(StandardGamepadButton::east)}},
+      {EKeys::Gamepad_FaceButton_Left, {Slot(StandardGamepadButton::west)}},
+      {EKeys::Gamepad_FaceButton_Top, {Slot(StandardGamepadButton::north)}},
+      {EKeys::Gamepad_LeftShoulder,
+       {Slot(StandardGamepadButton::leftShoulder)}},
+      {EKeys::Gamepad_RightShoulder,
+       {Slot(StandardGamepadButton::rightShoulder)}},
+      {EKeys::Gamepad_Special_Left, {Slot(StandardGamepadButton::back)}},
+      {EKeys::Gamepad_Special_Right, {Slot(StandardGamepadButton::forward)}},
+      {EKeys::Gamepad_LeftThumbstick, {Slot(StandardGamepadButton::leftStick)}},
+      {EKeys::Gamepad_RightThumbstick,
+       {Slot(StandardGamepadButton::rightStick)}},
+      {EKeys::Gamepad_DPad_Up, {Slot(StandardGamepadButton::dpadUp)}},
+      {EKeys::Gamepad_DPad_Down, {Slot(StandardGamepadButton::dpadDown)}},
+      {EKeys::Gamepad_DPad_Left, {Slot(StandardGamepadButton::dpadLeft)}},
+      {EKeys::Gamepad_DPad_Right, {Slot(StandardGamepadButton::dpadRight)}},
+
+      {EKeys::Gamepad_LeftX, {NoSlot, Slot(StandardGamepadAxis::leftX)}},
+      {EKeys::Gamepad_LeftY, {NoSlot, Slot(StandardGamepadAxis::leftY), true}},
+      {EKeys::Gamepad_RightX, {NoSlot, Slot(StandardGamepadAxis::rightX)}},
+      {EKeys::Gamepad_RightY,
+       {NoSlot, Slot(StandardGamepadAxis::rightY), true}},
+      {EKeys::Gamepad_LeftTriggerAxis,
+       {Slot(StandardGamepadButton::leftTrigger),
+        Slot(StandardGamepadAxis::leftTrigger)}},
+      {EKeys::Gamepad_RightTriggerAxis,
+       {Slot(StandardGamepadButton::rightTrigger),
+        Slot(StandardGamepadAxis::rightTrigger)}},
+  };
+  return Table;
+}
+
+// The batch wire format is little endian, fixed width.
+void AppendU8(TArray<uint8>& Buffer, uint8 Value) { Buffer.Add(Value); }
+
+void AppendU32(TArray<uint8>& Buffer, uint32 Value)
+{
+  for (int32 Shift = 0; Shift < 32; Shift += 8)
+  {
+    Buffer.Add(static_cast<uint8>((Value >> Shift) & 0xFF));
+  }
+}
+
+void AppendF32(TArray<uint8>& Buffer, float Value)
+{
+  uint32 Bits;
+  FMemory::Memcpy(&Bits, &Value, sizeof(Bits));
+  AppendU32(Buffer, Bits);
+}
+
+// Kind (0 button, 1 axis), index and value of each field an update moves.
+using FGamepadChanges = TArray<
+    TTuple<uint8, uint8, float>,
+    TInlineAllocator<4>>;
+
+void AppendUpdate(
+    TArray<uint8>& Buffer,
+    int32 DeviceId,
+    const FGamepadChanges& Changes)
+{
+  if (Changes.IsEmpty())
+    return;
+
+  AppendU8(Buffer, static_cast<uint8>(rive::GamepadRecordType::update));
+  AppendU32(Buffer, static_cast<uint32>(DeviceId));
+  AppendU8(Buffer, static_cast<uint8>(Changes.Num()));
+  for (const auto& Change : Changes)
+  {
+    AppendU8(Buffer, Change.Get<0>());
+    AppendU8(Buffer, Change.Get<1>());
+    AppendF32(Buffer, Change.Get<2>());
+  }
+}
+
+void SubmitGamepadBatch(rive::StateMachineHandle Handle, TArray<uint8> Buffer)
+{
+  // Immediate rather than end of frame, so a focus query that follows sees
+  // this batch already dispatched.
+  IRiveRendererModule::GetCommandBuilder().RunOnceImmediate(
+      [Handle, Buffer = MoveTemp(Buffer)](rive::CommandServer* Server) {
+        rive::StateMachineInstance* Instance = Server->getStateMachineInstance(
+            Handle);
+        if (Instance != nullptr)
+        {
+          Instance->submitGamepadsFromBuffer(Buffer.GetData(), Buffer.Num());
+        }
+      });
+}
+} // namespace
+
+bool FRiveStateMachine::GamepadInput(
+    const FKey& InKey,
+    float Value,
+    int32 DeviceId)
+{
+  const FGamepadSlot* Found = GamepadSlotTable().Find(InKey);
+  if (Found == nullptr)
+    return false;
+
+  const FGamepadSlot GamepadSlot = *Found;
+  const float SlotValue = GamepadSlot.bInvert ? -Value : Value;
+
+  TArray<uint8> Buffer;
+  AppendU32(Buffer, rive::kGamepadBatchWireVersion);
+
+  // The runtime drops updates from a pad it has not been told about, so the
+  // first event from one announces it at rest.
+  FGamepadState* State = Gamepads.Find(DeviceId);
+  if (State == nullptr)
+  {
+    State = &Gamepads.Add(DeviceId);
+    State->Buttons.Init(0.f, GamepadButtonCount);
+    State->Axes.Init(0.f, GamepadAxisCount);
+
+    AppendU8(Buffer, static_cast<uint8>(rive::GamepadRecordType::connected));
+    AppendU32(Buffer, static_cast<uint32>(DeviceId));
+    AppendU8(Buffer, 0); // standard mapping
+    AppendU8(Buffer, GamepadButtonCount);
+    AppendU8(Buffer, GamepadAxisCount);
+    AppendU8(Buffer, 0); // padding
+    for (float Button : State->Buttons)
+      AppendF32(Buffer, Button);
+    for (float Axis : State->Axes)
+      AppendF32(Buffer, Axis);
+  }
+
+  FGamepadChanges Changes;
+  if (GamepadSlot.Button != NoSlot &&
+      State->Buttons[GamepadSlot.Button] != SlotValue)
+  {
+    State->Buttons[GamepadSlot.Button] = SlotValue;
+    Changes.Emplace(0, static_cast<uint8>(GamepadSlot.Button), SlotValue);
+  }
+  if (GamepadSlot.Axis != NoSlot && State->Axes[GamepadSlot.Axis] != SlotValue)
+  {
+    State->Axes[GamepadSlot.Axis] = SlotValue;
+    Changes.Emplace(1, static_cast<uint8>(GamepadSlot.Axis), SlotValue);
+  }
+
+  AppendUpdate(Buffer, DeviceId, Changes);
+
+  // Only the version: a repeat of a value already sent.
+  if (Buffer.Num() == sizeof(uint32))
+    return true;
+
+  bStateMachineSettled = false;
+  SubmitGamepadBatch(NativeStateMachineHandle, MoveTemp(Buffer));
+  return true;
+}
+
+void FRiveStateMachine::ReleaseGamepads()
+{
+  TArray<uint8> Buffer;
+  AppendU32(Buffer, rive::kGamepadBatchWireVersion);
+
+  for (auto& [DeviceId, State] : Gamepads)
+  {
+    FGamepadChanges Changes;
+    for (int32 Index = 0; Index < State.Buttons.Num(); ++Index)
     {
-      Instance->clearFocus();
+      if (State.Buttons[Index] != 0.f)
+      {
+        State.Buttons[Index] = 0.f;
+        Changes.Emplace(0, static_cast<uint8>(Index), 0.f);
+      }
     }
-  });
+    for (int32 Index = 0; Index < State.Axes.Num(); ++Index)
+    {
+      if (State.Axes[Index] != 0.f)
+      {
+        State.Axes[Index] = 0.f;
+        Changes.Emplace(1, static_cast<uint8>(Index), 0.f);
+      }
+    }
+    AppendUpdate(Buffer, DeviceId, Changes);
+  }
+
+  // Nothing was held.
+  if (Buffer.Num() == sizeof(uint32))
+    return;
+
+  bStateMachineSettled = false;
+  SubmitGamepadBatch(NativeStateMachineHandle, MoveTemp(Buffer));
 }
 
 void FRiveStateMachine::BindViewModel(TObjectPtr<URiveViewModel> ViewModel)
