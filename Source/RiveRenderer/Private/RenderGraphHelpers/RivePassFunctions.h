@@ -32,10 +32,9 @@ struct FRiveCommonPassParameters
   bool bWireframe = false;
   bool bEnableMSAA = true;
   FGlobalShaderMap* ShaderMap;
-  const rive::gpu::DrawBatch DrawBatch; // Copy intentionally since lambda
-                                        // execution is deferred for RenderGraph
+  const rive::gpu::DrawBatch& DrawBatch;
   EBlendType BlendType = EBlendType::None;
-  // Copy for the same reason as above.
+  // Copy intentionally since lambda execution is deferred for RenderGraph.
   // This is currently only used for MSAA mode, but may get used for other
   // modes in the future
   rive::gpu::PipelineState PipelineState;

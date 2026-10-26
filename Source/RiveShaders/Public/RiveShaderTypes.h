@@ -723,7 +723,7 @@ public:
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGImageMeshPixelShader>(
         Parameters,
-        rive::PixelPermutationFlags::none);
+        rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -746,7 +746,8 @@ public:
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGImageMeshPixelShader>(
         Parameters,
-        rive::PixelPermutationFlags::isAtomicBuffer);
+        rive::PixelPermutationFlags::isAtomicBuffer |
+            rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -784,7 +785,8 @@ public:
   {
     return RiveShouldCompilePixelPermutation<FRiveRDGAtomicResolvePixelShader>(
         Parameters,
-        rive::PixelPermutationFlags::isResolve);
+        rive::PixelPermutationFlags::isResolve |
+            rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 
@@ -808,7 +810,8 @@ public:
     return RiveShouldCompilePixelPermutation<FRiveRDGAtomicResolvePixelShader>(
         Parameters,
         rive::PixelPermutationFlags::isResolve |
-            rive::PixelPermutationFlags::isAtomicBuffer);
+            rive::PixelPermutationFlags::isAtomicBuffer |
+            rive::PixelPermutationFlags::allowAngularGradient);
   }
 };
 

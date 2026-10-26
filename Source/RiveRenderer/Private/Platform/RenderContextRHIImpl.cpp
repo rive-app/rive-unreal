@@ -302,71 +302,26 @@ static FUintRect RiveBatchScissor(
   return FUintRect(Left, Top, Right, Bottom);
 }
 
-class CopyDrawList : public BlockAllocatedLinkedList<DrawBatch>
+class FRetiredPerFrameAllocator
 {
 public:
-  CopyDrawList(const FlushDescriptor& desc)
-      : m_allocator(desc.drawList->count() * sizeof(DrawBatch))
-  {
-    const DrawBatch** NextRenderPass = nullptr;
-    const DrawBatch* OriginalNextRenderPass = desc.firstDstBlendBarrier;
+  FRetiredPerFrameAllocator(
+      TSharedRef<FRivePerFrameAllocatorPool, ESPMode::ThreadSafe> InPool,
+      std::unique_ptr<TrivialBlockAllocator> InAllocator)
+      : Pool(MoveTemp(InPool))
+      , Allocator(std::move(InAllocator))
+  {}
 
-    for (auto& Value : *desc.drawList)
-    {
-      if (Value.imageTexture)
-        Value.imageTexture->ref();
-      if (Value.drawType == DrawType::imageMesh)
-      {
-        if (Value.vertexBuffer)
-          Value.vertexBuffer->ref();
-        if (Value.uvBuffer)
-          Value.uvBuffer->ref();
-        if (Value.indexBuffer)
-          Value.indexBuffer->ref();
-      }
-      auto Batch = emplace_back(m_allocator, Value);
-      // The copy inherits a barrier that points into the original list,
-      // which the render pass loop can never terminate on. Only the
-      // barriers rebuilt below are valid for this list.
-      Batch->nextDstBlendBarrier = nullptr;
-      if (NextRenderPass == nullptr)
-      {
-        NextRenderPass = &Batch->nextDstBlendBarrier;
-      }
-      if (OriginalNextRenderPass == &Value)
-      {
-        // The first batch being the barrier would point head at
-        // itself, so leave it and let it start the first pass.
-        if (NextRenderPass != &Batch->nextDstBlendBarrier)
-        {
-          *NextRenderPass = Batch;
-        }
-        NextRenderPass = &Batch->nextDstBlendBarrier;
-        OriginalNextRenderPass = Value.nextDstBlendBarrier;
-      }
-    }
-  }
-
-  ~CopyDrawList()
+  ~FRetiredPerFrameAllocator()
   {
-    for (const DrawBatch* Value = head(); Value; Value = Value->next)
-    {
-      if (Value->imageTexture)
-        Value->imageTexture->unref();
-      if (Value->drawType == DrawType::imageMesh)
-      {
-        if (Value->vertexBuffer)
-          Value->vertexBuffer->unref();
-        if (Value->uvBuffer)
-          Value->uvBuffer->unref();
-        if (Value->indexBuffer)
-          Value->indexBuffer->unref();
-      }
-    }
+    Allocator->reset();
+    FScopeLock ScopeLock(&Pool->Lock);
+    Pool->Free.Add(std::move(Allocator));
   }
 
 private:
-  TrivialBlockAllocator m_allocator;
+  TSharedRef<FRivePerFrameAllocatorPool, ESPMode::ThreadSafe> Pool;
+  std::unique_ptr<TrivialBlockAllocator> Allocator;
 };
 
 TStaticExternalResourceData GImageRectIndices(kImageRectIndices);
@@ -2118,6 +2073,36 @@ constexpr const TCHAR* StrForInterlock(InterlockMode Mode)
   return TEXT("none");
 }
 
+std::unique_ptr<TrivialBlockAllocator> RenderContextRHIImpl::
+    recyclePerFrameAllocator(
+        const RenderContext::FlushResources& flushResources,
+        std::unique_ptr<TrivialBlockAllocator> allocator)
+{
+  check(IsInRenderingThread());
+
+  FRDGBuilder* GraphBuilderPtr = static_cast<FRDGBuilder*>(
+      flushResources.externalCommandBuffer);
+  if (GraphBuilderPtr == nullptr)
+  {
+    allocator->reset();
+    return allocator;
+  }
+
+  GraphBuilderPtr->AllocObject<FRetiredPerFrameAllocator>(
+      m_perFrameAllocatorPool,
+      std::move(allocator));
+
+  {
+    FScopeLock ScopeLock(&m_perFrameAllocatorPool->Lock);
+    if (!m_perFrameAllocatorPool->Free.IsEmpty())
+    {
+      return m_perFrameAllocatorPool->Free.Pop(EAllowShrinking::No);
+    }
+  }
+  return std::make_unique<TrivialBlockAllocator>(
+      RenderContext::kPerFlushAllocatorInitialBlockSize);
+}
+
 void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 {
   check(IsInRenderingThread());
@@ -2839,8 +2824,21 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
       if (!desc.drawList->empty())
       {
-        // copy the list on the graph.
-        auto CopyList = GraphBuilder.AllocObject<CopyDrawList>(desc);
+        auto& ImageTextureRefs = *GraphBuilder
+                                      .AllocObject<TArray<rcp<Texture>>>();
+        auto& ImageMeshBufferRefs = *GraphBuilder.AllocObject<
+            TArray<rcp<RenderBuffer>>>();
+        for (const DrawBatch& Batch : *desc.drawList)
+        {
+          if (Batch.imageTexture)
+            ImageTextureRefs.Emplace(ref_rcp(Batch.imageTexture));
+          if (Batch.drawType == DrawType::imageMesh)
+          {
+            ImageMeshBufferRefs.Emplace(ref_rcp(Batch.vertexBuffer));
+            ImageMeshBufferRefs.Emplace(ref_rcp(Batch.uvBuffer));
+            ImageMeshBufferRefs.Emplace(ref_rcp(Batch.indexBuffer));
+          }
+        }
         // A null split list keeps the whole flush in one render pass
         // with in-pass barriers.
         const bool bSinglePass = bUseSinglePassBarrier;
@@ -2873,10 +2871,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         // Only batches that start a pass carry a barrier pointer, so
         // the barrier end is tracked here and only advances once a
         // pass actually reaches it.
-        const DrawBatch* RenderPassStart = CopyList->head();
-        const DrawBatch* BarrierEnd = bSinglePass ? nullptr
-                                                  : CopyList->head()
-                                                        ->nextDstBlendBarrier;
+        const DrawBatch* RenderPassStart = desc.drawList->head();
+        const DrawBatch* BarrierEnd = nullptr;
+        if (!bSinglePass)
+        {
+          BarrierEnd = RenderPassStart == desc.firstDstBlendBarrier
+                           ? RenderPassStart->nextDstBlendBarrier
+                           : desc.firstDstBlendBarrier;
+        }
         while (RenderPassStart != nullptr)
         {
           const DrawBatch* NextRenderPass = bSinglePass ? nullptr
@@ -2892,7 +2894,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
               ERDGPassFlags::Raster,
               [PassParameters,
                desc = desc,
-               RenderPassStart = *RenderPassStart,
+               RenderPassStart,
                ShaderMap,
                capabilities = m_capabilities,
                platformFeatures = m_platformFeatures,
@@ -2926,8 +2928,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 // render targets.
                 RiveInvalidateBoundPipelineState();
 
-                for (const DrawBatch* batch =
-                         const_cast<DrawBatch*>(&RenderPassStart);
+                for (const DrawBatch* batch = RenderPassStart;
                      batch && batch != NextRenderPass;
                      batch = batch->next)
                 {

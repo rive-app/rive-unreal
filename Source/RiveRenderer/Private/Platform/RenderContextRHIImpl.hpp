@@ -387,6 +387,12 @@ inline ERiveInterlockOverride ParseRiveInterlockOverride(const FString& Name)
   return ERiveInterlockOverride::None;
 }
 
+struct FRivePerFrameAllocatorPool
+{
+  FCriticalSection Lock;
+  TArray<std::unique_ptr<rive::TrivialBlockAllocator>> Free;
+};
+
 class RIVERENDERER_API RenderContextRHIImpl
     : public rive::gpu::RenderContextImpl
 {
@@ -512,6 +518,10 @@ public:
 
   virtual void flush(const rive::gpu::FlushDescriptor&) override;
 
+  virtual std::unique_ptr<rive::TrivialBlockAllocator> recyclePerFrameAllocator(
+      const rive::gpu::RenderContext::FlushResources&,
+      std::unique_ptr<rive::TrivialBlockAllocator> allocator) override;
+
   virtual void* makeCommandBuffer() override;
 
   // Builder the backend hands out as an external command buffer, which is
@@ -585,6 +595,11 @@ private:
 #if WITH_EDITOR
   rive::gpu::PlatformFeatures m_originalPlatformFeatures;
 #endif
+
+  TSharedRef<FRivePerFrameAllocatorPool, ESPMode::ThreadSafe>
+      m_perFrameAllocatorPool = MakeShared<
+          FRivePerFrameAllocatorPool,
+          ESPMode::ThreadSafe>();
 
   static FRDGBuilder* TestBuilder;
 
