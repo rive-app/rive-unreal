@@ -212,15 +212,8 @@ public:
         ClipPath,
         rive::FillRule::nonZero);
 
-    auto* Renderer = RiveRenderer->BeginDeferredFrame();
-    Renderer->save();
-    Renderer->clipPath(ClipRenderPath.get());
-    Renderer->align(
-        Fit,
-        Alignment,
-        AABBForSlateRect(RenderBoundsLocal),
-        ArtboardInstance->bounds(),
-        TotalScale);
+    // Resized before aligning: aligning first would place the artboard at its
+    // previous size inside the new bounds, offset by the alignment for a frame.
     if (bDirty)
     {
       bDirty = false;
@@ -246,6 +239,16 @@ public:
         }
       }
     }
+
+    auto* Renderer = RiveRenderer->BeginDeferredFrame();
+    Renderer->save();
+    Renderer->clipPath(ClipRenderPath.get());
+    Renderer->align(
+        Fit,
+        Alignment,
+        AABBForSlateRect(RenderBoundsLocal),
+        ArtboardInstance->bounds(),
+        TotalScale);
 
     // Normal drawing. Must be done in this order !
     ArtboardInstance->draw(Renderer);
