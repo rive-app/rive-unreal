@@ -469,9 +469,6 @@ public:
   virtual void resizePathBuffer(
       size_t sizeInBytes,
       rive::gpu::StorageBufferStructure) override;
-  virtual void resizePaintBuffer(
-      size_t sizeInBytes,
-      rive::gpu::StorageBufferStructure) override;
   virtual void resizePaintAuxBuffer(
       size_t sizeInBytes,
       rive::gpu::StorageBufferStructure) override;
@@ -486,7 +483,6 @@ public:
 
   virtual void* mapFlushUniformBuffer(size_t mapSizeInBytes) override;
   virtual void* mapPathBuffer(size_t mapSizeInBytes) override;
-  virtual void* mapPaintBuffer(size_t mapSizeInBytes) override;
   virtual void* mapPaintAuxBuffer(size_t mapSizeInBytes) override;
   virtual void* mapContourBuffer(size_t mapSizeInBytes) override;
   virtual void* mapGradSpanBuffer(size_t mapSizeInBytes) override;
@@ -497,7 +493,6 @@ public:
 
   virtual void unmapFlushUniformBuffer(size_t unmapSizeInBytes) override;
   virtual void unmapPathBuffer(size_t unmapSizeInBytes) override;
-  virtual void unmapPaintBuffer(size_t unmapSizeInBytes) override;
   virtual void unmapPaintAuxBuffer(size_t unmapSizeInBytes) override;
   virtual void unmapContourBuffer(size_t unmapSizeInBytes) override;
   virtual void unmapGradSpanBuffer(size_t unmapSizeInBytes) override;
@@ -579,7 +574,6 @@ private:
       UniformBufferRHIImpl<rive::gpu::FlushUniforms, FFlushUniforms>>
       m_flushUniformBuffer;
   StructuredBufferRHIImpl<rive::gpu::PathData> m_pathBuffer;
-  StructuredBufferRHIImpl<rive::gpu::PaintData> m_paintBuffer;
   StructuredBufferRHIImpl<rive::gpu::PaintAuxData> m_paintAuxBuffer;
   StructuredBufferRHIImpl<rive::gpu::ContourData> m_contourBuffer;
   std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
