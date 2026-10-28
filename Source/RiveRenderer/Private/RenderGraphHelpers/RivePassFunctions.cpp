@@ -609,14 +609,12 @@ static void DrawDSFillChunks(
     const TVertexShader& VertexShader,
     const FRiveCommonPassParameters* CommonPassParameters,
     FRiveMSAAFlushPassParameters* PassParameters,
-    int32_t VertexFlags = 0)
+    const rive::gpu::DSIndexRangeChunker& Chunks)
 {
   const rive::gpu::DrawType DrawType = CommonPassParameters->DrawBatch.drawType;
   const bool bAbsoluteVertexID = RHISupportsAbsoluteVertexID(
       GMaxRHIShaderPlatform);
-  for (auto [ChunkIndexCount, ChunkBaseVertex] : rive::gpu::DSIndexRangeChunker(
-           CommonPassParameters->DrawBatch,
-           VertexFlags))
+  for (auto [ChunkIndexCount, ChunkBaseVertex] : Chunks)
   {
     if (!bAbsoluteVertexID)
     {
@@ -744,11 +742,8 @@ static void AddDrawMSAAFillsPassImpl(
       VertexShader,
       CommonPassParameters,
       PassParameters,
-      CommonPassParameters->PipelineState.colorWriteEnabled ||
-              rive::gpu::drawTypeIsDepthAAStroke(
-                  CommonPassParameters->DrawBatch.drawType)
-          ? 0
-          : VERTEX_FLAG_DISABLE_COLOR_WRITE);
+      rive::gpu::DSIndexRangeChunker::drawsForBatch(
+          CommonPassParameters->DrawBatch));
 }
 
 template <typename TPixelShader>
@@ -851,16 +846,8 @@ static void AddDrawMSAAPatchesPassImpl(
       kPatchVertexBufferCount,
       CommonPassParameters->DrawBatch.baseIndex,
       CommonPassParameters->DrawBatch.indexCountPerInstance / 3,
-      CommonPassParameters->DrawBatch.elementCount);
+      CommonPassParameters->DrawBatch.elementCount());
 }
-
-// The three collapsed subpasses, in the order the stencil algorithm needs them.
-// Must match the native vulkan backend's for stencilDynamicMidpointFans.
-static constexpr DrawType kDynamicMidpointFanPasses[] = {
-    DrawType::stencilMidpointFanBorrowedCoverage,
-    DrawType::stencilMidpointFans,
-    DrawType::stencilMidpointFanReset,
-};
 
 template <typename TPixelShader>
 static void AddDrawMSAADynamicMidpointFansPassImpl(
@@ -875,7 +862,8 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
       STAT_RiveMSAA_MidpointFans,
       "rive.MSAADynamicMidpointFans");
 
-  check(PassPipelineStates.Num() == UE_ARRAY_COUNT(kDynamicMidpointFanPasses));
+  constexpr size_t PassCount = DSDynamicFillPipelineStates::PassCount;
+  check(PassPipelineStates.Num() == static_cast<int32>(PassCount));
 
   TShaderMapRef<FRiveRDGFillMSAAVertexShader> VertexShader(
       CommonPassParameters->ShaderMap,
@@ -927,7 +915,7 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
       GraphicsPSOInit.DepthStencilState = StencilStateForPipeline(
           PassPipelineStates[0],
           CommonPassParameters->GetUniqueKeyForDrawType(
-              kDynamicMidpointFanPasses[0],
+              DSDynamicFillPipelineStates::PassDrawTypes[0],
               InterlockMode::depthStencil));
       GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode(
           CommonPassParameters->bEnableMSAA,
@@ -973,39 +961,50 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
           PassParameters->PS);
     }
 
+    // Held alive by the cache inside StencilStateForPipeline, so they
+    // outlive execution of a deferred command list.
+    FDepthStencilStateRHIRef PassDepthStencils[PassCount];
+    FRHIRasterizerState* PassRasterStates[PassCount];
     for (int32 PassIndex = 0; PassIndex < PassPipelineStates.Num(); ++PassIndex)
     {
-      const rive::gpu::PipelineState&
-          PassPipelineState = PassPipelineStates[PassIndex];
-
-      // Held alive by the cache inside StencilStateForPipeline, so it
-      // outlives execution of a deferred command list.
-      FDepthStencilStateRHIRef DepthStencil = StencilStateForPipeline(
-          PassPipelineState,
+      PassDepthStencils[PassIndex] = StencilStateForPipeline(
+          PassPipelineStates[PassIndex],
           CommonPassParameters->GetUniqueKeyForDrawType(
-              kDynamicMidpointFanPasses[PassIndex],
+              DSDynamicFillPipelineStates::PassDrawTypes[PassIndex],
               InterlockMode::depthStencil));
+      PassRasterStates[PassIndex] = RasterStateForCullModeAndDrawMode(
+          CommonPassParameters->bEnableMSAA,
+          PassPipelineStates[PassIndex].cullFace,
+          CommonPassParameters->bWireframe);
+    }
 
-      RHICmdList.SetDynamicPipelineStateOverride(
-          DepthStencil.GetReference(),
-          PassPipelineState.stencilReference,
-          RasterStateForCullModeAndDrawMode(
-              CommonPassParameters->bEnableMSAA,
-              PassPipelineState.cullFace,
-              CommonPassParameters->bWireframe),
-          // Leave color-write on. It's handled below via
-          // VERTEX_FLAG_DISABLE_COLOR_WRITE.
-          /*bColorWriteEnabled=*/true);
+    for (const auto& Range : CommonPassParameters->DrawBatch.elementRanges())
+    {
+      for (int32 PassIndex = 0; PassIndex < PassPipelineStates.Num();
+           ++PassIndex)
+      {
+        const rive::gpu::PipelineState&
+            PassPipelineState = PassPipelineStates[PassIndex];
 
-      CSV_SCOPED_TIMING_STAT(RiveMSAA, Draw);
-      DrawDSFillChunks(
-          RHICmdList,
-          VertexShader,
-          CommonPassParameters,
-          PassParameters,
-          PassPipelineState.colorWriteEnabled
-              ? 0
-              : VERTEX_FLAG_DISABLE_COLOR_WRITE);
+        RHICmdList.SetDynamicPipelineStateOverride(
+            PassDepthStencils[PassIndex].GetReference(),
+            PassPipelineState.stencilReference,
+            PassRasterStates[PassIndex],
+            // Leave color-write on. It's handled below via
+            // VERTEX_FLAG_DISABLE_COLOR_WRITE.
+            /*bColorWriteEnabled=*/true);
+
+        CSV_SCOPED_TIMING_STAT(RiveMSAA, Draw);
+        DrawDSFillChunks(
+            RHICmdList,
+            VertexShader,
+            CommonPassParameters,
+            PassParameters,
+            rive::gpu::DSIndexRangeChunker::drawsForDynamicFillSubpass(
+                CommonPassParameters->DrawBatch,
+                Range,
+                PassPipelineState));
+      }
     }
 
     // The rhi also drops the override on the next pipeline bind, but the
@@ -1016,90 +1015,99 @@ static void AddDrawMSAADynamicMidpointFansPassImpl(
   }
 #endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
 
+  FDepthStencilStateRHIRef PassDepthStencils[PassCount];
+  FGraphicsPipelineStateInitializer PassPSOInits[PassCount];
   for (int32 PassIndex = 0; PassIndex < PassPipelineStates.Num(); ++PassIndex)
   {
     const rive::gpu::PipelineState&
         PassPipelineState = PassPipelineStates[PassIndex];
 
-    FDepthStencilStateRHIRef DepthStencil = StencilStateForPipeline(
+    PassDepthStencils[PassIndex] = StencilStateForPipeline(
         PassPipelineState,
         CommonPassParameters->GetUniqueKeyForDrawType(
-            kDynamicMidpointFanPasses[PassIndex],
+            DSDynamicFillPipelineStates::PassDrawTypes[PassIndex],
             InterlockMode::depthStencil));
 
-    FGraphicsPipelineStateInitializer GraphicsPSOInit;
+    FGraphicsPipelineStateInitializer&
+        GraphicsPSOInit = PassPSOInits[PassIndex];
+    CSV_SCOPED_TIMING_STAT(RiveMSAA, PSOBuild);
+    GraphicsPSOInit.DepthStencilState = PassDepthStencils[PassIndex];
+    GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode(
+        CommonPassParameters->bEnableMSAA,
+        PassPipelineState.cullFace,
+        CommonPassParameters->bWireframe);
+    GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
+    GraphicsPSOInit.BlendState = BlendStateForPipeline(PassPipelineState);
+    GraphicsPSOInit.bDepthBounds = true;
+
+    RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+    // depthStencil fills don't have vertex attributes.
+    GraphicsPSOInit.BoundShaderState
+        .VertexDeclarationRHI = GEmptyVertexDeclaration.VertexDeclarationRHI;
+    GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VertexShader
+                                                           .GetVertexShader();
+    GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PixelShader
+                                                          .GetPixelShader();
+    GraphicsPSOInit.bAllowVariableRateShading = false;
+  }
+
+  for (const auto& Range : CommonPassParameters->DrawBatch.elementRanges())
+  {
+    for (int32 PassIndex = 0; PassIndex < PassPipelineStates.Num(); ++PassIndex)
     {
-      CSV_SCOPED_TIMING_STAT(RiveMSAA, PSOBuild);
-      GraphicsPSOInit.DepthStencilState = DepthStencil;
-      GraphicsPSOInit.RasterizerState = RasterStateForCullModeAndDrawMode(
-          CommonPassParameters->bEnableMSAA,
-          PassPipelineState.cullFace,
-          CommonPassParameters->bWireframe);
-      GraphicsPSOInit.PrimitiveType = EPrimitiveType::PT_TriangleList;
-      GraphicsPSOInit.BlendState = BlendStateForPipeline(PassPipelineState);
-      GraphicsPSOInit.bDepthBounds = true;
+      const rive::gpu::PipelineState&
+          PassPipelineState = PassPipelineStates[PassIndex];
 
-      RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+      {
+        CSV_SCOPED_TIMING_STAT(RiveMSAA, PSOBind);
+        RiveSetGraphicsPipelineState(
+            RHICmdList,
+            PassPSOInits[PassIndex],
+            PassPipelineState.stencilReference);
+      }
 
-      // depthStencil fills don't have vertex attributes.
-      GraphicsPSOInit.BoundShaderState
-          .VertexDeclarationRHI = GEmptyVertexDeclaration.VertexDeclarationRHI;
-      GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VertexShader
-                                                             .GetVertexShader();
-      GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PixelShader
-                                                            .GetPixelShader();
-      GraphicsPSOInit.bAllowVariableRateShading = false;
-    }
+      // Each pipeline carries its own descriptor state in the rhi, so the
+      // parameters have to be re-set after every pipeline change even though
+      // the values are identical.
+      {
+        CSV_SCOPED_TIMING_STAT(RiveMSAA, BindParams);
+        SetShaderParameters(
+            RHICmdList,
+            VertexShader,
+            VertexShader.GetVertexShader(),
+            PassParameters->VS);
+        SetShaderParameters(
+            RHICmdList,
+            PixelShader,
+            PixelShader.GetPixelShader(),
+            PassParameters->PS);
+      }
 
-    {
-      CSV_SCOPED_TIMING_STAT(RiveMSAA, PSOBind);
-      RiveSetGraphicsPipelineState(
-          RHICmdList,
-          GraphicsPSOInit,
-          PassPipelineState.stencilReference);
-    }
-
-    // Each pipeline carries its own descriptor state in the rhi, so the
-    // parameters have to be re-set after every pipeline change even though
-    // the values are identical.
-    {
-      CSV_SCOPED_TIMING_STAT(RiveMSAA, BindParams);
-      SetShaderParameters(
-          RHICmdList,
-          VertexShader,
-          VertexShader.GetVertexShader(),
-          PassParameters->VS);
-      SetShaderParameters(
-          RHICmdList,
-          PixelShader,
-          PixelShader.GetPixelShader(),
-          PassParameters->PS);
-    }
-
-    // Diagnostic mode 2: same pipelines as mode 0, plus a redundant
-    // override restating each pipeline's own values.
+      // Diagnostic mode 2: same pipelines as mode 0, plus a redundant
+      // override restating each pipeline's own values.
 #if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
-    if (DynamicStateMode == 2)
-    {
-      RHICmdList.SetDynamicPipelineStateOverride(
-          DepthStencil.GetReference(),
-          PassPipelineState.stencilReference,
-          RasterStateForCullModeAndDrawMode(
-              CommonPassParameters->bEnableMSAA,
-              PassPipelineState.cullFace,
-              CommonPassParameters->bWireframe),
-          PassPipelineState.colorWriteEnabled);
-    }
+      if (DynamicStateMode == 2)
+      {
+        RHICmdList.SetDynamicPipelineStateOverride(
+            PassDepthStencils[PassIndex].GetReference(),
+            PassPipelineState.stencilReference,
+            PassPSOInits[PassIndex].RasterizerState,
+            PassPipelineState.colorWriteEnabled);
+      }
 #endif // UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE
 
-    CSV_SCOPED_TIMING_STAT(RiveMSAA, Draw);
-    DrawDSFillChunks(
-        RHICmdList,
-        VertexShader,
-        CommonPassParameters,
-        PassParameters,
-        PassPipelineState.colorWriteEnabled ? 0
-                                            : VERTEX_FLAG_DISABLE_COLOR_WRITE);
+      CSV_SCOPED_TIMING_STAT(RiveMSAA, Draw);
+      DrawDSFillChunks(
+          RHICmdList,
+          VertexShader,
+          CommonPassParameters,
+          PassParameters,
+          rive::gpu::DSIndexRangeChunker::drawsForDynamicFillSubpass(
+              CommonPassParameters->DrawBatch,
+              Range,
+              PassPipelineState));
+    }
   }
 
 #if defined(UE_RHI_HAS_DYNAMIC_PIPELINE_STATE_OVERRIDE)
@@ -1355,8 +1363,8 @@ void AddDrawMSAAStencilClipResetPass(
 
   RHICmdList.SetStreamSource(0, CommonPassParameters->VertexBuffers[0], 0);
   RHICmdList.DrawPrimitive(
-      CommonPassParameters->DrawBatch.baseElement,
-      CommonPassParameters->DrawBatch.elementCount / 3,
+      CommonPassParameters->DrawBatch.baseElement(),
+      CommonPassParameters->DrawBatch.elementCount() / 3,
       1);
 }
 
@@ -1445,8 +1453,8 @@ static void AddDrawMSAAAtlasBlitPassImpl(
 
   RHICmdList.SetStreamSource(0, CommonPassParameters->VertexBuffers[0], 0);
   RHICmdList.DrawPrimitive(
-      CommonPassParameters->DrawBatch.baseElement,
-      CommonPassParameters->DrawBatch.elementCount / 3,
+      CommonPassParameters->DrawBatch.baseElement(),
+      CommonPassParameters->DrawBatch.elementCount() / 3,
       1);
 }
 
@@ -1571,7 +1579,7 @@ static void AddDrawMSAAImageMeshPassImpl(
   RHICmdList.SetStreamSource(
       2,
       CommonPassParameters->VertexBuffers[2],
-      CommonPassParameters->DrawBatch.baseElement *
+      CommonPassParameters->DrawBatch.baseElement() *
           sizeof(rive::gpu::ImageMeshInstance));
   RHICmdList.DrawIndexedPrimitive(
       CommonPassParameters->IndexBuffer,
@@ -1580,7 +1588,7 @@ static void AddDrawMSAAImageMeshPassImpl(
       NumVertices,                               // NumVertices
       CommonPassParameters->DrawBatch.baseIndex, // StartIndex
       CommonPassParameters->DrawBatch.indexCountPerInstance / 3,
-      CommonPassParameters->DrawBatch.elementCount);
+      CommonPassParameters->DrawBatch.elementCount());
 }
 
 void AddDrawMSAAImageMeshPass(
@@ -1729,7 +1737,7 @@ FRDGPassRef AddDrawPatchesPass(
             kPatchVertexBufferCount,
             CommonPassParameters->DrawBatch.baseIndex,
             CommonPassParameters->DrawBatch.indexCountPerInstance / 3,
-            CommonPassParameters->DrawBatch.elementCount);
+            CommonPassParameters->DrawBatch.elementCount());
       });
 }
 
@@ -1842,8 +1850,8 @@ FRDGPassRef AddDrawInteriorTrianglesPass(
             CommonPassParameters->VertexBuffers[0],
             0);
         RHICmdList.DrawPrimitive(
-            CommonPassParameters->DrawBatch.baseElement,
-            CommonPassParameters->DrawBatch.elementCount / 3,
+            CommonPassParameters->DrawBatch.baseElement(),
+            CommonPassParameters->DrawBatch.elementCount() / 3,
             1);
       });
 }
@@ -1956,8 +1964,8 @@ FRDGPassRef AddDrawAtlasBlitPass(
             CommonPassParameters->VertexBuffers[0],
             0);
         RHICmdList.DrawPrimitive(
-            CommonPassParameters->DrawBatch.baseElement,
-            CommonPassParameters->DrawBatch.elementCount / 3,
+            CommonPassParameters->DrawBatch.baseElement(),
+            CommonPassParameters->DrawBatch.elementCount() / 3,
             1);
       });
 }
@@ -2083,16 +2091,16 @@ FRDGPassRef AddDrawImageRectPass(
         RHICmdList.SetStreamSource(
             1,
             CommonPassParameters->VertexBuffers[1],
-            CommonPassParameters->DrawBatch.baseElement *
+            CommonPassParameters->DrawBatch.baseElement() *
                 sizeof(rive::gpu::ImageRectInstance));
         RHICmdList.DrawIndexedPrimitive(
             CommonPassParameters->IndexBuffer,
-            0,                                             // BaseVertexIndex
-            0,                                             // FirstInstance
-            std::size(kImageRectVertices),                 // NumVertices
-            0,                                             // StartIndex
-            std::size(kImageRectIndices) / 3,              // NumPrimitives
-            CommonPassParameters->DrawBatch.elementCount); // NumInstances
+            0,                                               // BaseVertexIndex
+            0,                                               // FirstInstance
+            std::size(kImageRectVertices),                   // NumVertices
+            0,                                               // StartIndex
+            std::size(kImageRectIndices) / 3,                // NumPrimitives
+            CommonPassParameters->DrawBatch.elementCount()); // NumInstances
       });
 }
 
@@ -2225,7 +2233,7 @@ FRDGPassRef AddDrawImageMeshPass(
         RHICmdList.SetStreamSource(
             2,
             CommonPassParameters->VertexBuffers[2],
-            CommonPassParameters->DrawBatch.baseElement *
+            CommonPassParameters->DrawBatch.baseElement() *
                 sizeof(rive::gpu::ImageMeshInstance));
         RHICmdList.DrawIndexedPrimitive(
             CommonPassParameters->IndexBuffer,
@@ -2234,8 +2242,8 @@ FRDGPassRef AddDrawImageMeshPass(
             NumVertices,                               // NumVertices
             CommonPassParameters->DrawBatch.baseIndex, // StartIndex
             CommonPassParameters->DrawBatch.indexCountPerInstance /
-                3,                                         // NumPrimitives
-            CommonPassParameters->DrawBatch.elementCount); // NumInstances
+                3,                                           // NumPrimitives
+            CommonPassParameters->DrawBatch.elementCount()); // NumInstances
       });
 }
 
@@ -2436,7 +2444,7 @@ FRDGPassRef AddDrawRasterOrderPatchesPass(
             kPatchVertexBufferCount,
             CommonPassParameters->DrawBatch.baseIndex,
             CommonPassParameters->DrawBatch.indexCountPerInstance / 3,
-            CommonPassParameters->DrawBatch.elementCount);
+            CommonPassParameters->DrawBatch.elementCount());
       });
 }
 
@@ -2522,8 +2530,8 @@ FRDGPassRef AddDrawRasterOrderInteriorTrianglesPass(
             CommonPassParameters->VertexBuffers[0],
             0);
         RHICmdList.DrawPrimitive(
-            CommonPassParameters->DrawBatch.baseElement,
-            CommonPassParameters->DrawBatch.elementCount / 3,
+            CommonPassParameters->DrawBatch.baseElement(),
+            CommonPassParameters->DrawBatch.elementCount() / 3,
             1);
       });
 }
@@ -2611,8 +2619,8 @@ FRDGPassRef AddDrawRasterOrderAtlasBlitPass(
             CommonPassParameters->VertexBuffers[0],
             0);
         RHICmdList.DrawPrimitive(
-            CommonPassParameters->DrawBatch.baseElement,
-            CommonPassParameters->DrawBatch.elementCount / 3,
+            CommonPassParameters->DrawBatch.baseElement(),
+            CommonPassParameters->DrawBatch.elementCount() / 3,
             1);
       });
 }
@@ -2720,7 +2728,7 @@ FRDGPassRef AddDrawRasterOrderImageMeshPass(
         RHICmdList.SetStreamSource(
             2,
             CommonPassParameters->VertexBuffers[2],
-            CommonPassParameters->DrawBatch.baseElement *
+            CommonPassParameters->DrawBatch.baseElement() *
                 sizeof(rive::gpu::ImageMeshInstance));
         RHICmdList.DrawIndexedPrimitive(
             CommonPassParameters->IndexBuffer,
@@ -2729,7 +2737,7 @@ FRDGPassRef AddDrawRasterOrderImageMeshPass(
             NumVertices,                               // NumVertices
             CommonPassParameters->DrawBatch.baseIndex, // StartIndex
             CommonPassParameters->DrawBatch.indexCountPerInstance / 3,
-            CommonPassParameters->DrawBatch.elementCount);
+            CommonPassParameters->DrawBatch.elementCount());
       });
 }
 

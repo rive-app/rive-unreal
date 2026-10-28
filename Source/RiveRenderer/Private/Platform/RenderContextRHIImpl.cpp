@@ -2922,7 +2922,16 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 #endif
                   }
 
-                  if (batch->elementCount == 0)
+                  bool bEmptyBatch = true;
+                  for (const auto& Range : batch->elementRanges())
+                  {
+                    if (Range.count != 0)
+                    {
+                      bEmptyBatch = false;
+                      break;
+                    }
+                  }
+                  if (bEmptyBatch)
                   {
                     continue;
                   }
@@ -3018,39 +3027,21 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                                                ? dsOuterCubicFillIndexBuffer
                                                : dsMidpointFanFillIndexBuffer;
 
-                        // One state per collapsed subpass.
-                        // Same order as the native
-                        // backend's Passes[].
-                        static constexpr DrawType Passes[] = {
-                            DrawType::stencilMidpointFanBorrowedCoverage,
-                            DrawType::stencilMidpointFans,
-                            DrawType::stencilMidpointFanReset,
-                        };
-                        // Qualified: a local named
-                        // PipelineState shadows the type
-                        // here.
-                        rive::gpu::PipelineState
-                            PassStates[UE_ARRAY_COUNT(Passes)];
-                        for (int32 PassIndex = 0;
-                             PassIndex < UE_ARRAY_COUNT(Passes);
-                             ++PassIndex)
-                        {
-                          PassStates[PassIndex] = get_pipeline_state(
-                              Passes[PassIndex],
-                              desc.interlockMode,
-                              shaderMiscFlags,
-                              batch->drawContents,
-                              desc.fixedFunctionColorOutput,
-                              batch->firstBlendMode,
-                              platformFeatures);
-                        }
+                        const DSDynamicFillPipelineStates PassStates(
+                            desc,
+                            *batch,
+                            shaderMiscFlags,
+                            platformFeatures);
 
                         AddDrawMSAADynamicMidpointFansPass(
                             RHICmdList,
                             PassName,
                             &CommonPassParameters,
                             PassParameters,
-                            PassStates);
+                            MakeArrayView(
+                                PassStates.begin(),
+                                static_cast<int32>(
+                                    DSDynamicFillPipelineStates::PassCount)));
                       }
                       break;
 
@@ -3285,7 +3276,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
       for (const DrawBatch& batch : *desc.drawList)
       {
-        if (batch.elementCount == 0)
+        if (batch.elementCount() == 0)
         {
           continue;
         }
@@ -3419,7 +3410,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             CommonPassParameters->VertexBuffers[0] = m_patchVertexBuffer;
             CommonPassParameters->IndexBuffer = m_patchIndexBuffer;
 
-            PassParameters->VS.baseInstance = batch.baseElement;
+            PassParameters->VS.baseInstance = batch.baseElement();
 
             AddDrawRasterOrderPatchesPass(
                 GraphBuilder,
@@ -3540,7 +3531,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
 
       for (const DrawBatch& batch : *desc.drawList)
       {
-        if (batch.elementCount == 0)
+        if (batch.elementCount() == 0)
         {
           continue;
         }
@@ -3668,7 +3659,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
             CommonPassParameters->VertexBuffers[0] = m_patchVertexBuffer;
             CommonPassParameters->IndexBuffer = m_patchIndexBuffer;
 
-            PassParameters->VS.baseInstance = batch.baseElement;
+            PassParameters->VS.baseInstance = batch.baseElement();
 
             AddDrawPatchesPass(
                 GraphBuilder,
