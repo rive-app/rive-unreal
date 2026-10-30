@@ -15,7 +15,9 @@ class URiveArtboard;
 class URiveBlobAsset;
 class URiveExternalFont;
 struct FViewModelDefinition;
+struct FRivePropertyData;
 class URiveFile;
+class UBlueprintGeneratedClass;
 
 // Struct that represents a list property.
 USTRUCT(BlueprintType)
@@ -364,6 +366,15 @@ private:
       FRiveCommandBuilder& Builder,
       URiveFile* OwningFile,
       const FString& InstanceName);
+
+  // Creates the nested view model a ViewModel property refers to and sets it
+  // on that property.
+  void SetNestedViewModel(
+      URiveFile* OwningFile,
+      UBlueprintGeneratedClass* GeneratedClass,
+      const FRivePropertyData& PropertyDefinition,
+      const FString& ViewModelType,
+      const FString& ViewModelInstanceName);
 
   bool RemoveFieldValueChangedDelegate(
       FFieldNotificationId FieldId,

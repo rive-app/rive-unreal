@@ -272,29 +272,47 @@ void URiveViewModel::SetupGeneratedProperties(
   check(!ViewModelInstances.Contains(NativeViewModelInstance));
   ViewModelInstances.Add(NativeViewModelInstance, this);
 
+  // A blank instance holds its type's zero values rather than any instance's,
+  // so it reads no defaults and needs no instance exported to read them from.
   const bool bIsBlankInstance = InstanceName == GViewModelInstanceBlankName;
-  const FString
-      ResolvedInstanceName = (InstanceName == GViewModelInstanceDefaultName ||
-                              bIsBlankInstance || InstanceName.IsEmpty())
-                                 ? ViewModelDefinition.DefaultInstanceName
-                                 : InstanceName;
   // There is no reason to auto-subscribe if we aren't a generated view model.
   if (bIsGenerated)
   {
     int32 DefaultValueIndex = 0;
-    const auto
-        ViewModelDefault = ViewModelDefinition.InstanceDefaults.FindByPredicate(
-            [ResolvedInstanceName](const auto& ViewModelDefault) {
-              return ViewModelDefault.InstanceName == ResolvedInstanceName;
-            });
+    const FViewModelInstanceDefaultData* ViewModelDefault = nullptr;
+    if (!bIsBlankInstance)
+    {
+      const FString ResolvedInstanceName = (InstanceName ==
+                                                GViewModelInstanceDefaultName ||
+                                            InstanceName.IsEmpty())
+                                               ? ViewModelDefinition
+                                                     .DefaultInstanceName
+                                               : InstanceName;
+      ViewModelDefault = ViewModelDefinition.InstanceDefaults.FindByPredicate(
+          [ResolvedInstanceName](const auto& ViewModelDefault) {
+            return ViewModelDefault.InstanceName == ResolvedInstanceName;
+          });
+    }
     UBlueprintGeneratedClass* GeneratedClass = Cast<UBlueprintGeneratedClass>(
         GetClass());
-    if (!ViewModelDefault)
+    if (!bIsBlankInstance && !ViewModelDefault)
     {
+      TArray<FString> ExportedInstances;
+      for (const FViewModelInstanceDefaultData& Default :
+           ViewModelDefinition.InstanceDefaults)
+      {
+        ExportedInstances.Add(Default.InstanceName);
+      }
       UE_LOG(
           LogRive,
           Error,
-          TEXT("URiveViewModel::Initialize No View Model Default !"));
+          TEXT("URiveViewModel::Initialize No View Model Default for '%s' "
+               "instance '%s' (default instance '%s'). Exported "
+               "instances: [%s]"),
+          *ViewModelDefinition.Name,
+          *InstanceName,
+          *ViewModelDefinition.DefaultInstanceName,
+          *FString::Join(ExportedInstances, TEXT(", ")));
       return;
     }
     if (!GeneratedClass)
@@ -310,6 +328,20 @@ void URiveViewModel::SetupGeneratedProperties(
     {
       const auto& PropertyDefinition = ViewModelDefinition
                                            .PropertyDefinitions[Index];
+
+      // Blank all the way down. With no instance to name its type, the
+      // property's own definition carries it.
+      if (bIsBlankInstance &&
+          PropertyDefinition.Type == ERiveDataType::ViewModel)
+      {
+        SetNestedViewModel(
+            OwningFile,
+            GeneratedClass,
+            PropertyDefinition,
+            PropertyDefinition.MetaData,
+            GViewModelInstanceBlankName.ToString());
+        continue;
+      }
 
       if (ViewModelDefault &&
           GetIsPropertyTypeWithDefault(PropertyDefinition.Type))
@@ -398,32 +430,18 @@ void URiveViewModel::SetupGeneratedProperties(
           break;
           case ERiveDataType::ViewModel:
           {
-            if (FObjectProperty* Prop = FindFProperty<FObjectProperty>(
-                    GeneratedClass,
-                    *PropertyDefinition.Name))
-            {
-              FString ViewModelType;
-              FString ViewModelInstanceName;
-              ensure(DefaultValue.Split(
-                  TEXT("/"),
-                  &ViewModelType,
-                  &ViewModelInstanceName));
-              if (bIsBlankInstance)
-                ViewModelInstanceName = GViewModelInstanceBlankName.ToString();
-
-              TObjectPtr<URiveViewModel>
-                  NestedViewModel = URiveFile::CreateReferencedViewModelByName(
-                      OwningFile,
-                      ViewModelType,
-                      ViewModelInstanceName,
-                      NativeViewModelInstance,
-                      PropertyDefinition.Name);
-              if (NestedViewModel)
-              {
-                NestedViewModel->SetOwningViewModel(this);
-                Prop->SetPropertyValue_InContainer(this, NestedViewModel);
-              }
-            }
+            FString ViewModelType;
+            FString ViewModelInstanceName;
+            ensure(DefaultValue.Split(
+                TEXT("/"),
+                &ViewModelType,
+                &ViewModelInstanceName));
+            SetNestedViewModel(
+                OwningFile,
+                GeneratedClass,
+                PropertyDefinition,
+                ViewModelType,
+                ViewModelInstanceName);
           }
           break;
           case ERiveDataType::Artboard:
@@ -481,6 +499,33 @@ void URiveViewModel::SetupGeneratedProperties(
             PropertyDefinition.Name);
       }
     }
+  }
+}
+
+void URiveViewModel::SetNestedViewModel(
+    URiveFile* OwningFile,
+    UBlueprintGeneratedClass* GeneratedClass,
+    const FRivePropertyData& PropertyDefinition,
+    const FString& ViewModelType,
+    const FString& ViewModelInstanceName)
+{
+  FObjectProperty* Prop = FindFProperty<FObjectProperty>(
+      GeneratedClass,
+      *PropertyDefinition.Name);
+  if (!Prop)
+    return;
+
+  TObjectPtr<URiveViewModel>
+      NestedViewModel = URiveFile::CreateReferencedViewModelByName(
+          OwningFile,
+          ViewModelType,
+          ViewModelInstanceName,
+          NativeViewModelInstance,
+          PropertyDefinition.Name);
+  if (NestedViewModel)
+  {
+    NestedViewModel->SetOwningViewModel(this);
+    Prop->SetPropertyValue_InContainer(this, NestedViewModel);
   }
 }
 
