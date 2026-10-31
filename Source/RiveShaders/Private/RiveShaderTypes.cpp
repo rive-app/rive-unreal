@@ -527,7 +527,7 @@ IMPLEMENT_GLOBAL_SHADER(
 IMPLEMENT_GLOBAL_SHADER(
     FRiveRDGStencilMSAAPixelShader,
     "/Plugin/Rive/Private/Rive/draw_depthstencil_triangles_nocolor.usf",
-    GLSL_blitFragmentMain,
+    GLSL_stencilFragmentMain,
     SF_Pixel);
 
 // Same entry points as the shaders above, compiled with SUPPORTS_SUBPASS_LOAD.
