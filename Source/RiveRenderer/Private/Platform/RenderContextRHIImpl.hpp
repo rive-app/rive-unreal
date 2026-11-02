@@ -475,6 +475,9 @@ public:
   virtual void resizeContourBuffer(
       size_t sizeInBytes,
       rive::gpu::StorageBufferStructure) override;
+  virtual void resizeVirtualPatchBuffer(
+      size_t sizeInBytes,
+      rive::gpu::StorageBufferStructure) override;
   virtual void resizeGradSpanBuffer(size_t sizeInBytes) override;
   virtual void resizeTessVertexSpanBuffer(size_t sizeInBytes) override;
   virtual void resizeTriangleVertexBuffer(size_t sizeInBytes) override;
@@ -485,6 +488,7 @@ public:
   virtual void* mapPathBuffer(size_t mapSizeInBytes) override;
   virtual void* mapPaintAuxBuffer(size_t mapSizeInBytes) override;
   virtual void* mapContourBuffer(size_t mapSizeInBytes) override;
+  virtual void* mapVirtualPatchBuffer(size_t mapSizeInBytes) override;
   virtual void* mapGradSpanBuffer(size_t mapSizeInBytes) override;
   virtual void* mapTessVertexSpanBuffer(size_t mapSizeInBytes) override;
   virtual void* mapTriangleVertexBuffer(size_t mapSizeInBytes) override;
@@ -495,6 +499,7 @@ public:
   virtual void unmapPathBuffer(size_t unmapSizeInBytes) override;
   virtual void unmapPaintAuxBuffer(size_t unmapSizeInBytes) override;
   virtual void unmapContourBuffer(size_t unmapSizeInBytes) override;
+  virtual void unmapVirtualPatchBuffer(size_t unmapSizeInBytes) override;
   virtual void unmapGradSpanBuffer(size_t unmapSizeInBytes) override;
   virtual void unmapTessVertexSpanBuffer(size_t unmapSizeInBytes) override;
   virtual void unmapTriangleVertexBuffer(size_t unmapSizeInBytes) override;
@@ -576,6 +581,7 @@ private:
   StructuredBufferRHIImpl<rive::gpu::PathData> m_pathBuffer;
   StructuredBufferRHIImpl<rive::gpu::PaintAuxData> m_paintAuxBuffer;
   StructuredBufferRHIImpl<rive::gpu::ContourData> m_contourBuffer;
+  StructuredBufferRHIImpl<rive::gpu::VirtualPatchData> m_virtualPatchBuffer;
   std::unique_ptr<BufferRingRHIImpl> m_gradSpanBuffer;
   std::unique_ptr<BufferRingRHIImpl> m_tessSpanBuffer;
   std::unique_ptr<BufferRingRHIImpl> m_triangleBuffer;

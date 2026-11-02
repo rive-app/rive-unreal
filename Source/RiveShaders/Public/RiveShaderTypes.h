@@ -257,6 +257,9 @@ SHADER_PARAMETER_RDG_TEXTURE(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(
+    StructuredBuffer<uint>,
+    GLSL_virtualPatchBuffer_raw)
+SHADER_PARAMETER_RDG_BUFFER_SRV(
     StructuredBuffer<float4>,
     GLSL_paintAuxBuffer_raw)
 SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)

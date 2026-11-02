@@ -1245,6 +1245,7 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     : m_pathBuffer(TEXT("rive.PathBuffer"))
     , m_paintAuxBuffer(TEXT("rive.PaintAuxBuffer"))
     , m_contourBuffer(TEXT("rive.ContourBuffer"))
+    , m_virtualPatchBuffer(TEXT("rive.VirtualPatchBuffer"))
 {
   auto CapabilityString = m_capabilities.AsString();
   UE_LOG(
@@ -1800,6 +1801,15 @@ void RenderContextRHIImpl::resizeContourBuffer(
       StorageBufferElementSizeInBytes(structure));
 }
 
+void RenderContextRHIImpl::resizeVirtualPatchBuffer(
+    size_t sizeInBytes,
+    StorageBufferStructure structure)
+{
+  m_virtualPatchBuffer.Resize(
+      sizeInBytes,
+      StorageBufferElementSizeInBytes(structure));
+}
+
 void RenderContextRHIImpl::resizeGradSpanBuffer(size_t sizeInBytes)
 {
   m_gradSpanBuffer.reset();
@@ -1880,6 +1890,11 @@ void* RenderContextRHIImpl::mapContourBuffer(size_t mapSizeInBytes)
   return m_contourBuffer.Map(mapSizeInBytes);
 }
 
+void* RenderContextRHIImpl::mapVirtualPatchBuffer(size_t mapSizeInBytes)
+{
+  return m_virtualPatchBuffer.Map(mapSizeInBytes);
+}
+
 void* RenderContextRHIImpl::mapGradSpanBuffer(size_t mapSizeInBytes)
 {
   return m_gradSpanBuffer->mapBuffer(mapSizeInBytes);
@@ -1912,6 +1927,8 @@ void RenderContextRHIImpl::unmapPathBuffer(size_t mapSizeInBytes) {}
 void RenderContextRHIImpl::unmapPaintAuxBuffer(size_t mapSizeInBytes) {}
 
 void RenderContextRHIImpl::unmapContourBuffer(size_t mapSizeInBytes) {}
+
+void RenderContextRHIImpl::unmapVirtualPatchBuffer(size_t mapSizeInBytes) {}
 
 void RenderContextRHIImpl::unmapGradSpanBuffer(size_t mapSizeInBytes)
 {
@@ -2327,6 +2344,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
     FRDGBufferSRVRef pathSRV = nullptr;
     FRDGBufferSRVRef paintAuxSRV = nullptr;
     FRDGBufferSRVRef contourSRV = nullptr;
+    FRDGBufferSRVRef virtualPatchSRV = nullptr;
 
     if (desc.pathCount > 0)
     {
@@ -2346,6 +2364,14 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           GraphBuilder,
           desc.firstContour,
           desc.contourCount);
+    }
+
+    if (desc.virtualPatchCount > 0)
+    {
+      virtualPatchSRV = m_virtualPatchBuffer.SyncSRV(
+          GraphBuilder,
+          desc.firstVirtualPatch,
+          desc.virtualPatchCount);
     }
 
     FBufferRHIRef triangleBuffer = nullptr;
@@ -2779,6 +2805,7 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         PassParameters->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
         PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
         PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
+        PassParameters->VS.GLSL_virtualPatchBuffer_raw = virtualPatchSRV;
         PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
         PassParameters->VS
             .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
