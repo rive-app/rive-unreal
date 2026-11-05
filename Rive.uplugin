@@ -3,7 +3,7 @@
     "Version": 18,
     "VersionName": "0.4.26",
     "FriendlyName": "Rive",
-    "Description": "An Unreal Engine runtime library for Rive.",
+    "Description": "Unreal Engine runtime for Rive, the agent-native 2D and 3D engine for games, apps, and interactive UI.",
     "Category": "Rive",
     "CreatedBy": "Rive, Inc.",
     "CreatedByURL": "https://rive.app/",
