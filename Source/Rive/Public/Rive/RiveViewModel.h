@@ -376,6 +376,13 @@ private:
       const FString& ViewModelType,
       const FString& ViewModelInstanceName);
 
+  // For a ViewModel property the file left unassigned: creates a child of
+  // ViewModelType and assigns it, natively as well as here.
+  void CreateUnassignedNestedViewModel(
+      URiveFile* OwningFile,
+      const FRivePropertyData& PropertyDefinition,
+      const FString& ViewModelType);
+
   bool RemoveFieldValueChangedDelegate(
       FFieldNotificationId FieldId,
       const FFieldValueChangedDynamicDelegate& Delegate);

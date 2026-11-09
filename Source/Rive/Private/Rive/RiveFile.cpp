@@ -987,7 +987,7 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
           {
             auto Prop = NativeViewModelInstance->propertyViewModel(
                 TerminatedPropName);
-            if (Prop)
+            if (Prop && Prop->instance())
             {
               // Value is view_model_type/instance_name
               FString
@@ -998,8 +998,9 @@ void URiveFile::ViewModelPropertyDefinitionsListed(
             }
             else
             {
-              ensure(CopyViewModelName == TEXT("TextInputViewModel"));
-              DefaultValues.Add({Property.Name, TEXT("")});
+              // Unassigned in the file. The property still names its type,
+              // so the value is "type/" with no instance.
+              DefaultValues.Add({Property.Name, Property.MetaData + TEXT("/")});
             }
           }
           break;

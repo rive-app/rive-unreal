@@ -160,11 +160,27 @@ constexpr bool GetIsPropertyTypeWithDefault(ERiveDataType Type)
   return false;
 }
 
+// Asking for the default (by name, or by leaving the name empty) of a type
+// that exported no default instance gets a blank one: there are no values to
+// load. A nested property with no instance assigned asks this way.
+static FString ResolveInstanceName(
+    const FViewModelDefinition& ViewModelDefinition,
+    const FString& InstanceName)
+{
+  const bool bAsksForDefault = InstanceName == GViewModelInstanceDefaultName ||
+                               InstanceName.IsEmpty();
+  if (bAsksForDefault && ViewModelDefinition.DefaultInstanceName.IsEmpty())
+  {
+    return GViewModelInstanceBlankName.ToString();
+  }
+  return InstanceName;
+}
+
 void URiveViewModel::Initialize(
     FRiveCommandBuilder& Builder,
     URiveFile* OwningFile,
     const FViewModelDefinition& InViewModelDefinition,
-    const FString& InstanceName)
+    const FString& RequestedInstanceName)
 {
   if (!IsValid(OwningFile))
   {
@@ -186,6 +202,9 @@ void URiveViewModel::Initialize(
 
   ViewModelDefinition = InViewModelDefinition;
 
+  const FString InstanceName = ResolveInstanceName(
+      ViewModelDefinition,
+      RequestedInstanceName);
   const bool bIsBlankInstance = InstanceName == GViewModelInstanceBlankName;
 
   if (bIsBlankInstance)
@@ -334,6 +353,19 @@ void URiveViewModel::SetupGeneratedProperties(
       if (bIsBlankInstance &&
           PropertyDefinition.Type == ERiveDataType::ViewModel)
       {
+        // The editor forbids a view model holding its own type; creating one
+        // would recurse forever, so leave it empty as the native builder does.
+        if (PropertyDefinition.MetaData == ViewModelDefinition.Name)
+        {
+          UE_LOG(
+              LogRive,
+              Error,
+              TEXT("View model '%s' holds its own type through '%s'; Rive "
+                   "forbids this, so the property is left empty."),
+              *ViewModelDefinition.Name,
+              *PropertyDefinition.Name);
+          continue;
+        }
         SetNestedViewModel(
             OwningFile,
             GeneratedClass,
@@ -436,6 +468,25 @@ void URiveViewModel::SetupGeneratedProperties(
                 TEXT("/"),
                 &ViewModelType,
                 &ViewModelInstanceName));
+            if (ViewModelInstanceName.IsEmpty())
+            {
+              if (ViewModelType == ViewModelDefinition.Name)
+              {
+                UE_LOG(
+                    LogRive,
+                    Error,
+                    TEXT("View model '%s' holds its own type through '%s'; "
+                         "Rive forbids this, so the property is left empty."),
+                    *ViewModelDefinition.Name,
+                    *PropertyDefinition.Name);
+                break;
+              }
+              CreateUnassignedNestedViewModel(
+                  OwningFile,
+                  PropertyDefinition,
+                  ViewModelType);
+              break;
+            }
             SetNestedViewModel(
                 OwningFile,
                 GeneratedClass,
@@ -526,6 +577,23 @@ void URiveViewModel::SetNestedViewModel(
   {
     NestedViewModel->SetOwningViewModel(this);
     Prop->SetPropertyValue_InContainer(this, NestedViewModel);
+  }
+}
+
+void URiveViewModel::CreateUnassignedNestedViewModel(
+    URiveFile* OwningFile,
+    const FRivePropertyData& PropertyDefinition,
+    const FString& ViewModelType)
+{
+  // Nothing in the file to reference, so make the child as any caller would
+  // (its default, else blank) and assign it, which sets it natively too.
+  URiveViewModel* NestedViewModel = URiveFile::CreateViewModelByName(
+      OwningFile,
+      ViewModelType,
+      TEXT(""));
+  if (NestedViewModel)
+  {
+    SetViewModelValue(PropertyDefinition.Name, NestedViewModel);
   }
 }
 
