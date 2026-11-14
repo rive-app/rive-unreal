@@ -61,6 +61,9 @@ public:
     return rive::ore::ShaderTarget::hlsl;
   }
 
+  // Shaders load only from cooked file assets, by asset id.
+  virtual bool runsEmbeddedShaders() const override { return false; }
+
   // Injected by the caller (SRiveLeafWidget) for the duration of an Ore
   // canvas render. The Ore canvas is drawn inside an RDG pass lambda so its
   // raw-RHI work is bracketed by the render graph; we use the command list
