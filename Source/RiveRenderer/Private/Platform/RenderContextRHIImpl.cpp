@@ -1243,7 +1243,6 @@ RenderContextRHIImpl::RenderContextRHIImpl(
     FRHICommandListImmediate& CommandListImmediate,
     const RHICapabilitiesOverrides& Overrides)
     : m_pathBuffer(TEXT("rive.PathBuffer"))
-    , m_paintAuxBuffer(TEXT("rive.PaintAuxBuffer"))
     , m_contourBuffer(TEXT("rive.ContourBuffer"))
     , m_virtualPatchBuffer(TEXT("rive.VirtualPatchBuffer"))
 {
@@ -1783,15 +1782,6 @@ void RenderContextRHIImpl::resizePathBuffer(
   m_pathBuffer.Resize(sizeInBytes, StorageBufferElementSizeInBytes(structure));
 }
 
-void RenderContextRHIImpl::resizePaintAuxBuffer(
-    size_t sizeInBytes,
-    StorageBufferStructure structure)
-{
-  m_paintAuxBuffer.Resize(
-      sizeInBytes,
-      StorageBufferElementSizeInBytes(structure));
-}
-
 void RenderContextRHIImpl::resizeContourBuffer(
     size_t sizeInBytes,
     StorageBufferStructure structure)
@@ -1880,11 +1870,6 @@ void* RenderContextRHIImpl::mapPathBuffer(size_t mapSizeInBytes)
   return m_pathBuffer.Map(mapSizeInBytes);
 }
 
-void* RenderContextRHIImpl::mapPaintAuxBuffer(size_t mapSizeInBytes)
-{
-  return m_paintAuxBuffer.Map(mapSizeInBytes);
-}
-
 void* RenderContextRHIImpl::mapContourBuffer(size_t mapSizeInBytes)
 {
   return m_contourBuffer.Map(mapSizeInBytes);
@@ -1923,8 +1908,6 @@ void* RenderContextRHIImpl::mapImageMeshInstanceBuffer(size_t mapSizeInBytes)
 void RenderContextRHIImpl::unmapFlushUniformBuffer(size_t mapSizeInBytes) {}
 
 void RenderContextRHIImpl::unmapPathBuffer(size_t mapSizeInBytes) {}
-
-void RenderContextRHIImpl::unmapPaintAuxBuffer(size_t mapSizeInBytes) {}
 
 void RenderContextRHIImpl::unmapContourBuffer(size_t mapSizeInBytes) {}
 
@@ -2342,7 +2325,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
                 TEXT("Rive.GaussianIntegralTexture")));
 
     FRDGBufferSRVRef pathSRV = nullptr;
-    FRDGBufferSRVRef paintAuxSRV = nullptr;
     FRDGBufferSRVRef contourSRV = nullptr;
     FRDGBufferSRVRef virtualPatchSRV = nullptr;
 
@@ -2351,10 +2333,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
       pathSRV = m_pathBuffer.SyncSRV(
           GraphBuilder,
           desc.firstPath,
-          desc.pathCount);
-      paintAuxSRV = m_paintAuxBuffer.SyncSRV(
-          GraphBuilder,
-          desc.firstPaintAux,
           desc.pathCount);
     }
 
@@ -2799,14 +2777,12 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         PassParameters->PS
             .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
         PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
-        PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
         PassParameters->PS.GLSL_imageTexture_raw = m_placeholderTexture;
 
         PassParameters->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
         PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
         PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
         PassParameters->VS.GLSL_virtualPatchBuffer_raw = virtualPatchSRV;
-        PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
         PassParameters->VS
             .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
         PassParameters->VS.gaussianIntegralSampler = m_gaussianIntegralSampler;
@@ -3378,7 +3354,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         PassParameters->PS
             .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
         PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
-        PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
         PassParameters->PS.GLSL_pathBuffer_raw = pathSRV;
 #if PLATFORM_APPLE || FORCE_ATOMIC_BUFFER
         PassParameters->PS.coverageCountBuffer = coverageTextureUAV;
@@ -3398,7 +3373,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         PassParameters->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
         PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
         PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
-        PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
         PassParameters->VS
             .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
         PassParameters->VS.gaussianIntegralSampler = m_gaussianIntegralSampler;
@@ -3426,7 +3400,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           case DrawType::outerCurvePatches:
           {
             check(pathSRV);
-            check(paintAuxSRV);
             check(contourSRV);
 
             const FString& PassName = NameForDrawType(batch.drawType);
@@ -3450,7 +3423,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           {
             check(triangleBuffer.IsValid());
             check(pathSRV);
-            check(paintAuxSRV);
 
             CommonPassParameters
                 ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
@@ -3467,7 +3439,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           {
             check(triangleBuffer.IsValid());
             check(pathSRV);
-            check(paintAuxSRV);
 
             CommonPassParameters
                 ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
@@ -3483,7 +3454,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           case DrawType::imageMesh:
           {
             check(pathSRV);
-            check(paintAuxSRV);
             check(m_imageMeshInstanceBuffer);
 
             LITE_RTTI_CAST_OR_BREAK(
@@ -3629,7 +3599,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         PassParameters->PS
             .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
         PassParameters->PS.GLSL_gradTexture_raw = gradiantTexture;
-        PassParameters->PS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
         PassParameters->PS.GLSL_pathBuffer_raw = pathSRV;
         PassParameters->PS.coverageAtomicBuffer = coverageUAV;
         PassParameters->PS.coverageCountBuffer = coverageUAV;
@@ -3641,7 +3610,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
         PassParameters->VS.GLSL_tessVertexTexture_raw = tesselationTexture;
         PassParameters->VS.GLSL_pathBuffer_raw = pathSRV;
         PassParameters->VS.GLSL_contourBuffer_raw = contourSRV;
-        PassParameters->VS.GLSL_paintAuxBuffer_raw = paintAuxSRV;
         PassParameters->VS
             .GLSL_gaussianIntegralTexture_raw = gaussianIntegralTexture;
         PassParameters->VS.gaussianIntegralSampler = m_gaussianIntegralSampler;
@@ -3675,7 +3643,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           case DrawType::outerCurvePatches:
           {
             check(pathSRV);
-            check(paintAuxSRV);
             check(contourSRV);
 
             const FString& PassName = NameForDrawType(batch.drawType);
@@ -3699,7 +3666,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           {
             check(triangleBuffer.IsValid());
             check(pathSRV);
-            check(paintAuxSRV);
 
             CommonPassParameters
                 ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
@@ -3716,7 +3682,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           {
             check(triangleBuffer.IsValid());
             check(pathSRV);
-            check(paintAuxSRV);
 
             CommonPassParameters
                 ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(
@@ -3732,7 +3697,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           case DrawType::imageRect:
           {
             check(pathSRV);
-            check(paintAuxSRV);
             check(m_imageRectInstanceBuffer);
             check(desc.interlockMode == InterlockMode::atomics);
 
@@ -3760,7 +3724,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           case DrawType::imageMesh:
           {
             check(pathSRV);
-            check(paintAuxSRV);
             check(m_imageMeshInstanceBuffer);
 
             LITE_RTTI_CAST_OR_BREAK(
@@ -3806,7 +3769,6 @@ void RenderContextRHIImpl::flush(const FlushDescriptor& desc)
           case DrawType::renderPassResolve:
           {
             check(pathSRV);
-            check(paintAuxSRV);
 
             CommonPassParameters
                 ->VertexDeclarationRHI = VertexDeclarations[static_cast<int32>(

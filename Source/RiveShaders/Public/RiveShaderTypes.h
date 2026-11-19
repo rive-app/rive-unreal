@@ -164,9 +164,6 @@ SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, featherAtlasSampler)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
-SHADER_PARAMETER_RDG_BUFFER_SRV(
-    StructuredBuffer<float4>,
-    GLSL_paintAuxBuffer_raw)
 
 END_SHADER_PARAMETER_STRUCT()
 
@@ -196,9 +193,6 @@ SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, featherAtlasSampler)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
-SHADER_PARAMETER_RDG_BUFFER_SRV(
-    StructuredBuffer<float4>,
-    GLSL_paintAuxBuffer_raw)
 
 END_SHADER_PARAMETER_STRUCT()
 
@@ -215,9 +209,6 @@ SHADER_PARAMETER_RDG_TEXTURE(
 SHADER_PARAMETER_RDG_TEXTURE(Texture2D<uint4>, GLSL_tessVertexTexture_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_pathBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
-SHADER_PARAMETER_RDG_BUFFER_SRV(
-    StructuredBuffer<float4>,
-    GLSL_paintAuxBuffer_raw)
 SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 SHADER_PARAMETER(unsigned int, baseInstance)
 END_SHADER_PARAMETER_STRUCT()
@@ -240,9 +231,6 @@ SHADER_PARAMETER_SAMPLER(SamplerState, gradSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, imageSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 SHADER_PARAMETER_SAMPLER(SamplerState, featherAtlasSampler)
-SHADER_PARAMETER_RDG_BUFFER_SRV(
-    StructuredBuffer<float4>,
-    GLSL_paintAuxBuffer_raw)
 
 END_SHADER_PARAMETER_STRUCT()
 
@@ -259,9 +247,6 @@ SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint4>, GLSL_contourBuffer_raw)
 SHADER_PARAMETER_RDG_BUFFER_SRV(
     StructuredBuffer<uint>,
     GLSL_virtualPatchBuffer_raw)
-SHADER_PARAMETER_RDG_BUFFER_SRV(
-    StructuredBuffer<float4>,
-    GLSL_paintAuxBuffer_raw)
 SHADER_PARAMETER_SAMPLER(SamplerState, gaussianIntegralSampler)
 SHADER_PARAMETER(unsigned int, baseInstance)
 SHADER_PARAMETER(unsigned int, baseVertex)
