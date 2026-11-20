@@ -52,16 +52,13 @@ public:
   virtual void onDefaultViewModelInfoReceived(
       const rive::ArtboardHandle Handle,
       uint64_t RequestId,
-      std::string ViewModelName,
-      std::string InstanceName) override
+      std::optional<rive::CommandQueue::DefaultViewModelInfo> Info) override
   {
     check(IsInGameThread());
     if (auto StrongArtboard = ListeningArtboard.Pin(); StrongArtboard.IsValid())
     {
 #if WITH_EDITORONLY_DATA
-      StrongArtboard->DefaultViewModelInfoReceived(
-          std::move(ViewModelName),
-          std::move(InstanceName));
+      StrongArtboard->DefaultViewModelInfoReceived(std::move(Info));
 #endif
     }
   }
@@ -197,12 +194,20 @@ void URiveArtboard::StateMachinesListed(
 }
 
 void URiveArtboard::DefaultViewModelInfoReceived(
-    std::string ViewModel,
-    std::string ViewModelInstance)
+    std::optional<rive::CommandQueue::DefaultViewModelInfo> Info)
 {
-  DefaultViewModelName = FString(ViewModel.c_str());
-  DefaultViewModelInstanceName = FString(ViewModelInstance.c_str());
-  bHasDefaultViewModel = true;
+  if (Info)
+  {
+    DefaultViewModelName = FString(Info->viewModelName.c_str());
+    DefaultViewModelInstanceName = FString(Info->instanceName.c_str());
+    bHasDefaultViewModel = true;
+  }
+  else
+  {
+    DefaultViewModelName = "";
+    DefaultViewModelInstanceName = "";
+    bHasDefaultViewModel = false;
+  }
   bHasDefaultViewModelInfo = true;
   BroadcastHasDataIfReady();
 }

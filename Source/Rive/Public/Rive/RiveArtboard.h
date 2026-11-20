@@ -322,8 +322,7 @@ public:
 #if WITH_EDITORONLY_DATA
   void StateMachinesListed(std::vector<std::string> Names);
   void DefaultViewModelInfoReceived(
-      std::string ViewModel,
-      std::string ViewModelInstance);
+      std::optional<rive::CommandQueue::DefaultViewModelInfo> Info);
 
   bool HasData() const
   {
