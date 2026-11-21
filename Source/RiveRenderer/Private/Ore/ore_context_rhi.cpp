@@ -87,9 +87,8 @@ OreContextRHI::OreContextRHI() : Context(nullptr)
   f.anisotropicFiltering = true; // Universally supported on UE desktop RHIs.
   f.texture3D = GSupportsTexture3D;
   f.textureArrays = true; // Texture2DArray is core in all UE SM5+ RHIs.
-  const bool bSM5Plus = GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5;
-  f.computeShaders = bSM5Plus;
-  f.storageBuffers = bSM5Plus;
+  f.computeShaders = false;
+  f.storageBuffers = false;
   f.bc = GPixelFormats[PF_DXT1].Supported;
   f.etc2 = GPixelFormats[PF_ETC2_RGB].Supported;
   f.astc = GPixelFormats[PF_ASTC_4x4].Supported;
