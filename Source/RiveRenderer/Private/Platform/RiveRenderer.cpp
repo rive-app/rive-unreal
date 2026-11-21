@@ -433,5 +433,12 @@ void FRiveRenderer::ApplyFrameOverrides(
 
   Desc.msaaSampleCount = FrameOverrides.MSAASampleCount;
   Desc.clockwiseFillOverride = FrameOverrides.bClockwiseFill;
-  Desc.inkbleedOverride = FrameOverrides.bInkbleed;
+  if (FrameOverrides.bInkbleed)
+  {
+    // 1x with hairlines asks for no sample count.
+    Desc.msaaSampleCount = 0;
+    Desc.enableInkbleed = true;
+  }
+  Desc.inkbleedOverride = static_cast<uint8_t>(
+      FrameOverrides.bInkbleed ? 0xff : 0);
 }
