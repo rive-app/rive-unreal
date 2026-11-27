@@ -106,6 +106,10 @@ rive::rcp<rive::ore::Buffer> OreContextRHI::makeBuffer(
     const rive::ore::BufferDesc& desc)
 {
   check(IsInRenderingThread());
+  if (refusesBuffer(desc))
+  {
+    return nullptr;
+  }
   if (desc.immutable && desc.data == nullptr)
   {
     setLastError("makeBuffer: immutable=true requires `data` (the buffer is "
@@ -136,6 +140,8 @@ rive::rcp<rive::ore::Buffer> OreContextRHI::makeBuffer(
     case rive::ore::BufferUsage::upload:
       bd.Usage |= EBufferUsageFlags::SourceCopy;
       break;
+    case rive::ore::BufferUsage::storage:
+      RIVE_UNREACHABLE();
   }
 
   if (desc.immutable)
@@ -479,7 +485,7 @@ rive::rcp<rive::ore::BindGroup> OreContextRHI::makeBindGroup(
       new rive::ore::OreBindGroupRHI());
   bindGroup->m_context = this;
   bindGroup->m_layoutRef = ref_rcp(layout);
-  bindGroup->recordDynamicRanges(desc);
+  bindGroup->recordBindings(desc);
 
   // UE's RHI binds loose resources per-stage by register slot, like D3D11's
   // independent VS / PS namespaces. The allocator's per-stage native slots
